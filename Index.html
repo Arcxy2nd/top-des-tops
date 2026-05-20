@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root { --bg: #0f111a; --panel: #1e2130; --text: #e0e6ed; --accent: #ff4757; --success: #2ed573; --error: #ff4757; --btn-alt: #353b48; }
@@ -35,27 +36,27 @@
   <div class="container">
     
     <div class="card">
-      <h2>Data Injection Form</h2>
+      <h2>Ajout d'une Infraction</h2>
       <div id="injectAlert"></div>
       <div class="form-group">
-        <select id="playerInput"><option>Loading...</option></select>
-        <select id="categoryInput"><option>Loading...</option></select>
-        <input type="datetime-local" id="dateInput" title="Leave blank for current time">
-        <button class="primary" onclick="submitData()" id="submitBtn">Inject Data</button>
+        <select id="playerInput"><option>Chargement...</option></select>
+        <select id="categoryInput"><option>Chargement...</option></select>
+        <input type="datetime-local" id="dateInput" title="Laissez vide pour utiliser la date et l'heure actuelles">
+        <button class="primary" onclick="submitData()" id="submitBtn">Ajouter</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>Dynamic Analytics</h2>
+      <h2>Tableau de Bord & Analyses</h2>
       <div class="filters">
         <select id="yearFilter" onchange="fetchAnalytics()">
-          <option value="All">All Years</option><option value="2026" selected>2026</option><option value="2025">2025</option>
+          <option value="All">Toutes les années</option><option value="2026" selected>2026</option><option value="2025">2025</option>
         </select>
         <select id="monthFilter" onchange="fetchAnalytics()">
-          <option value="All" selected>All Months</option><option value="0">January</option><option value="1">February</option>
-          <option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option>
-          <option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option>
-          <option value="10">November</option><option value="11">December</option>
+          <option value="All" selected>Tous les mois</option><option value="0">Janvier</option><option value="1">Février</option>
+          <option value="2">Mars</option><option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
+          <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option><option value="9">Octobre</option>
+          <option value="10">Novembre</option><option value="11">Décembre</option>
         </select>
       </div>
       <div id="loadAlert"></div>
@@ -63,32 +64,32 @@
     </div>
 
     <div class="card">
-      <h2>Database Settings</h2>
+      <h2>Gestion des Données</h2>
       <div id="settingsAlert"></div>
       <div class="settings-grid">
         <div>
-          <h3>Players</h3>
+          <h3>Joueurs</h3>
           <ul class="entity-list" id="playersList"></ul>
           <div class="form-group">
-            <input type="text" id="newPlayerName" placeholder="New Player">
-            <button class="primary small" onclick="manageEntity('ADD', 'Players', 'newPlayerName')">Add</button>
+            <input type="text" id="newPlayerName" placeholder="Nouveau Joueur">
+            <button class="primary small" onclick="manageEntity('ADD', 'Players', 'newPlayerName')">Ajouter</button>
           </div>
         </div>
         <div>
-          <h3>Categories</h3>
+          <h3>Catégories</h3>
           <ul class="entity-list" id="categoriesList"></ul>
           <div class="form-group">
-            <input type="text" id="newCategoryName" placeholder="New Category">
-            <button class="primary small" onclick="manageEntity('ADD', 'Categories', 'newCategoryName')">Add</button>
+            <input type="text" id="newCategoryName" placeholder="Nouvelle Catégorie">
+            <button class="primary small" onclick="manageEntity('ADD', 'Categories', 'newCategoryName')">Ajouter</button>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>Automated Report Export</h2>
-      <div class="report-box" id="reportOutput">Initializing analytics engine...</div>
-      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Export Document</button>
+      <h2>Rapport Automatisé</h2>
+      <div class="report-box" id="reportOutput">Initialisation du moteur d'analyse...</div>
+      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Copier le rapport dans le presse-papiers</button>
     </div>
 
   </div>
@@ -132,8 +133,8 @@
         <li class="entity-item">
           <span>${item}</span>
           <div class="entity-actions">
-            <button class="small" onclick="promptRename('${type}', '${item}')">Rename</button>
-            <button class="small" style="background:#ff4757;" onclick="manageEntity('DELETE', '${type}', null, '${item}')">Del</button>
+            <button class="small" onclick="promptRename('${type}', '${item}')">Renommer</button>
+            <button class="small" style="background:#ff4757;" onclick="manageEntity('DELETE', '${type}', null, '${item}')">Suppr</button>
           </div>
         </li>
       `).join('');
@@ -145,11 +146,11 @@
       
       let newName = null;
       if (action === 'RENAME') {
-        newName = prompt(`Enter new name for ${name}:`);
+        newName = prompt(`Entrez le nouveau nom pour ${name} :`);
         if (!newName || newName.trim() === '') return;
         newName = newName.trim();
       } else if (action === 'DELETE') {
-        if (!confirm(`Are you sure you want to delete '${name}'?`)) return;
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer '${name}' ?\nAttention : l'historique associé ne sera pas supprimé, mais il ne sera plus lié à cette entité.`)) return;
       }
 
       google.script.run.withSuccessHandler(res => {
@@ -173,12 +174,12 @@
       const category = document.getElementById('categoryInput').value;
       const customDate = document.getElementById('dateInput').value;
 
-      btn.innerText = "Processing..."; btn.disabled = true;
+      btn.innerText = "Traitement..."; btn.disabled = true;
 
       google.script.run.withSuccessHandler(res => {
-        btn.innerText = "Inject Data"; btn.disabled = false;
+        btn.innerText = "Ajouter"; btn.disabled = false;
         if (res.success) {
-          showAlert('injectAlert', 'Record successfully injected.', 'success');
+          showAlert('injectAlert', 'Donnée ajoutée avec succès !', 'success');
           document.getElementById('dateInput').value = ''; 
           fetchAnalytics(); 
         } else {
@@ -190,11 +191,11 @@
     function fetchAnalytics() {
       const year = document.getElementById('yearFilter').value;
       const month = document.getElementById('monthFilter').value;
-      document.getElementById('reportOutput').innerText = "Compiling analytics matrix...";
+      document.getElementById('reportOutput').innerText = "Compilation de la matrice analytique...";
 
       google.script.run.withSuccessHandler(res => {
         if (res.success) renderDashboard(res.data);
-        else document.getElementById('reportOutput').innerText = "System Failure: " + res.error;
+        else document.getElementById('reportOutput').innerText = "Erreur Système : " + res.error;
       }).apiGetData(year, month);
     }
 
@@ -229,7 +230,7 @@
 
     function exportReport() {
       const text = document.getElementById('reportOutput').innerText;
-      navigator.clipboard.writeText("--- PERIODIC ANALYTICS REPORT ---\nGenerated on: " + new Date().toLocaleString() + "\n\n" + text).then(() => alert('Copied to clipboard.'));
+      navigator.clipboard.writeText("--- RAPPORT ANALYTIQUE PÉRIODIQUE ---\nGénéré le : " + new Date().toLocaleString('fr-FR') + "\n\n" + text).then(() => alert('Document copié dans le presse-papiers avec succès.'));
     }
 
     window.onload = initApp;

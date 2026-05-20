@@ -4,7 +4,7 @@
 const ConfigService = {
   getSpreadsheetId: function() {
     const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-    if (!id) throw new Error("Configuration Error: SPREADSHEET_ID is missing in Script Properties.");
+    if (!id) throw new Error("Erreur de configuration : SPREADSHEET_ID est manquant dans les Propriétés du Script.");
     return id;
   },
   getSheets: function() {
@@ -16,11 +16,11 @@ const ConfigService = {
       const categoriesSheet = ss.getSheetByName('Categories');
       
       if (!historySheet || !playersSheet || !categoriesSheet) {
-        throw new Error("Database Structure Error: Ensure 'History', 'Players', and 'Categories' sheets exist.");
+        throw new Error("Erreur de structure : Assurez-vous que les onglets 'History', 'Players' et 'Categories' existent exactement avec ces noms.");
       }
       return { spreadsheet: ss, history: historySheet, players: playersSheet, categories: categoriesSheet };
     } catch(e) {
-      throw new Error("Connection Error: " + e.message);
+      throw new Error("Erreur de connexion : " + e.message);
     }
   }
 };
@@ -36,7 +36,7 @@ const SettingsService = {
   },
   
   addEntity: function(type, name) {
-    if (!name) throw new Error("Validation Error: Name cannot be empty.");
+    if (!name) throw new Error("Erreur de validation : Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     sheet.appendRow([name]);
   },
@@ -52,13 +52,12 @@ const SettingsService = {
         deleted = true;
       }
     }
-    if (!deleted) throw new Error(`Data Integrity Error: ${name} not found in ${type}.`);
+    if (!deleted) throw new Error(`Erreur d'intégrité : ${name} introuvable dans ${type}.`);
   },
   
   renameEntity: function(type, oldName, newName) {
-    if (!newName) throw new Error("Validation Error: New name cannot be empty.");
+    if (!newName) throw new Error("Erreur de validation : Le nouveau nom ne peut pas être vide.");
     
-    // 1. Update in the specific settings sheet
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data = sheet.getDataRange().getValues();
     let updated = false;
@@ -69,12 +68,11 @@ const SettingsService = {
         break;
       }
     }
-    if (!updated) throw new Error(`Data Integrity Error: ${oldName} not found.`);
+    if (!updated) throw new Error(`Erreur d'intégrité : ${oldName} introuvable.`);
 
-    // 2. Cascade update in History sheet to maintain data integrity
     const historySheet = ConfigService.getSheets().history;
     const historyData = historySheet.getDataRange().getValues();
-    const colIndex = type === 'Players' ? 1 : 2; // Column B (1) for Players, Column C (2) for Categories
+    const colIndex = type === 'Players' ? 1 : 2; 
     
     for (let i = 1; i < historyData.length; i++) {
       if (historyData[i][colIndex] === oldName) {
@@ -89,9 +87,9 @@ const SettingsService = {
  */
 const StorageService = {
   appendLog: function(player, category, customTimestamp) {
-    if (!player || !category) throw new Error("Invalid Data: Player and Category are required.");
+    if (!player || !category) throw new Error("Données invalides : Le joueur et la catégorie sont obligatoires.");
     const targetDate = customTimestamp ? new Date(customTimestamp) : new Date();
-    if (isNaN(targetDate.getTime())) throw new Error("Invalid Format: Incorrect date.");
+    if (isNaN(targetDate.getTime())) throw new Error("Format invalide : La date fournie est incorrecte.");
     
     const { history } = ConfigService.getSheets();
     history.appendRow([targetDate, player, category]); 
@@ -105,7 +103,7 @@ const StorageService = {
     data.shift();
     return data.map(row => {
       const d = new Date(row[0]);
-      if (isNaN(d.getTime())) throw new Error("Corrupt Data: Invalid date in history.");
+      if (isNaN(d.getTime())) throw new Error("Données corrompues : Date invalide dans l'historique.");
       return { timestamp: d, player: row[1], category: row[2] };
     });
   }
@@ -171,7 +169,7 @@ const AnalyticsService = {
 
     Object.keys(categoryWinners).forEach(cat => {
       const w = categoryWinners[cat];
-      narrative.push(`In the '${cat}' category, ${w.names.join(" and ")} dominated with ${w.score} offenses.`);
+      narrative.push(`Dans la catégorie '${cat}', ${w.names.join(" et ")} domine(nt) le classement avec ${w.score} infraction(s).`);
     });
 
     let ultimateWinner = "";
@@ -181,10 +179,10 @@ const AnalyticsService = {
     });
 
     if (ultimateWinner) {
-      narrative.push(`\n🏆 ULTIMATE CHAMPION: ${ultimateWinner} is the Top of the Tops with ${maxTop} category victories!`);
+      narrative.push(`\n🏆 LE PIRE DE TOUS : ${ultimateWinner} remporte le titre de "Top 1 des Tops" en dominant ${maxTop} catégorie(s) distincte(s) !`);
     }
 
-    return narrative.length > 0 ? narrative.join("\n") : "No recorded offenses for this period.";
+    return narrative.length > 0 ? narrative.join("\n") : "Aucune donnée enregistrée pour cette période.";
   }
 };
 
@@ -193,7 +191,7 @@ const AnalyticsService = {
  */
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('Leaderboard Dashboard')
+    .setTitle('Gestionnaire de Casseroles')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
