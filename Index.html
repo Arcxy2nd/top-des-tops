@@ -12,24 +12,37 @@
     .card { background: var(--panel); padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); border: 1px solid #2f3640; }
     h2 { margin-top: 0; border-bottom: 2px solid #2f3640; padding-bottom: 12px; font-size: 1.4rem; color: #fff; }
     h3 { font-size: 1.1rem; color: #a4b0be; }
-    .form-group { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+    .form-group { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; align-items: center; }
     select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #2f3640; color: var(--text); flex: 1; min-width: 150px; font-size: 1rem; }
     select:focus, input:focus { outline: 2px solid var(--accent); }
+    .number-group { display: flex; gap: 10px; flex: 1; min-width: 200px; }
+    .number-group label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #a4b0be; }
     button { font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
     button.primary { background: var(--accent); color: #fff; text-transform: uppercase; letter-spacing: 1px; }
     button.primary:hover { opacity: 0.9; transform: translateY(-2px); }
+    button.secondary { background: #3742fa; color: #fff; text-transform: uppercase; }
+    button.secondary:hover { opacity: 0.9; }
     button.small { padding: 6px 12px; font-size: 0.85rem; flex: none; min-width: auto; background: var(--btn-alt); }
     button.small:hover { background: #57606f; }
     .alert { padding: 12px; border-radius: 6px; display: none; margin-bottom: 15px; font-weight: 500; }
     .alert.error { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); display: block; }
     .alert.success { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); display: block; }
-    .report-box { background: #000; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #7bed9f; border: 1px solid #2f3640; }
+    .report-box { background: #000; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #00d4aa; border: 1px solid #2f3640; }
     .filters { display: flex; gap: 15px; margin-bottom: 25px; }
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .entity-list { list-style: none; padding: 0; margin: 0 0 15px 0; }
     .entity-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #2f3640; }
-    .entity-actions { display: flex; gap: 5px; }
-    @media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
+    .btn-container { display: flex; gap: 15px; margin-top: 20px; }
+    
+    /* GESTION DE L'IMPRESSION (STYLE WALKFORWARD PDF AUTOMATIQUE) */
+    @media print {
+      body { background: #ffffff !important; color: #000000 !important; padding: 0; }
+      .card { background: #ffffff !important; border: none !important; box-shadow: none !important; padding: 10px; margin: 0; }
+      .form-group, .filters, h2, h3, button, .settings-grid, input, select { display: none !important; }
+      .container { max-width: 100%; }
+      .report-box { background: #f5f6fa !important; color: #2f3542 !important; border: 1px solid #ced6e0 !important; }
+      canvas { max-height: 300px !important; }
+    }
   </style>
 </head>
 <body>
@@ -41,13 +54,23 @@
       <div class="form-group">
         <select id="playerInput"><option>Chargement...</option></select>
         <select id="categoryInput"><option>Chargement...</option></select>
-        <input type="datetime-local" id="dateInput" title="Laissez vide pour utiliser la date et l'heure actuelles">
+        <input type="datetime-local" id="dateInput">
+      </div>
+      <div class="form-group">
+        <div class="number-group">
+          <label>Valeur :
+            <select id="pointsInput">
+              <option value="1">1 Point</option><option value="3">3 Points</option><option value="5">5 Points</option><option value="10">10 Points</option>
+            </select>
+          </label>
+          <label>Fois : <input type="number" id="timesInput" value="1" min="1"></label>
+        </div>
         <button class="primary" onclick="submitData()" id="submitBtn">Ajouter</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>Tableau de Bord & Analyses</h2>
+      <h2>Analyses Temporelles & Classements</h2>
       <div class="filters">
         <select id="yearFilter" onchange="fetchAnalytics()">
           <option value="All">Toutes les années</option><option value="2026" selected>2026</option><option value="2025">2025</option>
@@ -55,16 +78,14 @@
         <select id="monthFilter" onchange="fetchAnalytics()">
           <option value="All" selected>Tous les mois</option><option value="0">Janvier</option><option value="1">Février</option>
           <option value="2">Mars</option><option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
-          <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option><option value="9">Octobre</option>
-          <option value="10">Novembre</option><option value="11">Décembre</option>
+          <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option><option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
         </select>
       </div>
-      <div id="loadAlert"></div>
-      <canvas id="mainChart" style="max-height: 400px; width: 100%;"></canvas>
+      <div style="height: 380px; position: relative;"><canvas id="mainChart"></canvas></div>
     </div>
 
     <div class="card">
-      <h2>Gestion des Données</h2>
+      <h2>Gestion de la Matrice des Profils</h2>
       <div id="settingsAlert"></div>
       <div class="settings-grid">
         <div>
@@ -87,9 +108,12 @@
     </div>
 
     <div class="card">
-      <h2>Rapport Automatisé</h2>
-      <div class="report-box" id="reportOutput">Initialisation du moteur d'analyse...</div>
-      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Copier le rapport dans le presse-papiers</button>
+      <h2>Générateur de Rapports & Exportations</h2>
+      <div class="report-box" id="reportOutput">Génération de l'analyse en cours...</div>
+      <div class="btn-container">
+        <button class="primary" onclick="exportHtmlReport()">Exporter en HTML Autonome</button>
+        <button class="secondary" onclick="window.print()">Imprimer / Sauvegarder en PDF</button>
+      </div>
     </div>
 
   </div>
@@ -97,140 +121,81 @@
   <script>
     let currentChart = null;
 
-    function showAlert(elementId, message, type) {
-      const el = document.getElementById(elementId);
-      el.className = 'alert ' + type;
-      el.innerText = message;
-      setTimeout(() => { el.className = 'alert'; }, 5000);
-    }
-
-    function initApp() {
-      fetchSettings();
-      fetchAnalytics();
-    }
-
+    function initApp() { fetchSettings(); fetchAnalytics(); }
+    function showAlert(id, msg, type) { const el = document.getElementById(id); el.className = 'alert ' + type; el.innerText = msg; setTimeout(() => { el.className = 'alert'; }, 5000); }
+    
     function fetchSettings() {
       google.script.run.withSuccessHandler(res => {
         if (res.success) {
-          populateDropdown('playerInput', res.players);
-          populateDropdown('categoryInput', res.categories);
-          renderSettingsList('playersList', 'Players', res.players);
-          renderSettingsList('categoriesList', 'Categories', res.categories);
-        } else {
-          showAlert('settingsAlert', res.error, 'error');
-        }
+          populateDropdown('playerInput', res.players); populateDropdown('categoryInput', res.categories);
+          renderList('playersList', 'Players', res.players); renderList('categoriesList', 'Categories', res.categories);
+        } else { showAlert('settingsAlert', res.error, 'error'); }
       }).apiGetSettings();
     }
-
-    function populateDropdown(elementId, items) {
-      const el = document.getElementById(elementId);
-      el.innerHTML = items.map(item => `<option value="${item}">${item}</option>`).join('');
+    
+    function populateDropdown(id, items) { document.getElementById(id).innerHTML = items.map(i => `<option value="${i}">${i}</option>`).join(''); }
+    function renderList(id, type, items) {
+      document.getElementById(id).innerHTML = items.map(i => `
+        <li class="entity-item"><span>${i}</span>
+          <div><button class="small" onclick="promptRename('${type}', '${i}')">Éditer</button>
+          <button class="small" style="background:#ff4757;" onclick="manageEntity('DELETE', '${type}', null, '${i}')">Suppr</button></div>
+        </li>`).join('');
     }
 
-    function renderSettingsList(elementId, type, items) {
-      const el = document.getElementById(elementId);
-      el.innerHTML = items.map(item => `
-        <li class="entity-item">
-          <span>${item}</span>
-          <div class="entity-actions">
-            <button class="small" onclick="promptRename('${type}', '${item}')">Renommer</button>
-            <button class="small" style="background:#ff4757;" onclick="manageEntity('DELETE', '${type}', null, '${item}')">Suppr</button>
-          </div>
-        </li>
-      `).join('');
-    }
-
-    function manageEntity(action, type, inputId, fixedName = null) {
-      const name = fixedName || document.getElementById(inputId).value.trim();
-      if (!name) return;
-      
-      let newName = null;
-      if (action === 'RENAME') {
-        newName = prompt(`Entrez le nouveau nom pour ${name} :`);
-        if (!newName || newName.trim() === '') return;
-        newName = newName.trim();
-      } else if (action === 'DELETE') {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer '${name}' ?\nAttention : l'historique associé ne sera pas supprimé, mais il ne sera plus lié à cette entité.`)) return;
-      }
+    function manageEntity(act, type, inputId, nameRef) {
+      const name = nameRef || document.getElementById(inputId).value.trim(); if (!name) return;
+      let newName = (act === 'RENAME') ? prompt(`Nouveau nom pour ${name} :`) : null;
+      if (act === 'RENAME' && !newName) return;
+      if (act === 'DELETE' && !confirm(`Confirmer la suppression ?`)) return;
 
       google.script.run.withSuccessHandler(res => {
-        if (res.success) {
-          if (inputId) document.getElementById(inputId).value = '';
-          fetchSettings();
-          fetchAnalytics();
-        } else {
-          showAlert('settingsAlert', res.error, 'error');
-        }
-      }).apiManageEntity(action, type, name, newName);
+        if (res.success) { if (inputId) document.getElementById(inputId).value = ''; fetchSettings(); fetchAnalytics(); }
+        else { showAlert('settingsAlert', res.error, 'error'); }
+      }).apiManageEntity(act, type, name, newName);
     }
-
-    function promptRename(type, oldName) {
-      manageEntity('RENAME', type, null, oldName);
-    }
+    function promptRename(t, n) { manageEntity('RENAME', t, null, n); }
 
     function submitData() {
       const btn = document.getElementById('submitBtn');
-      const player = document.getElementById('playerInput').value;
-      const category = document.getElementById('categoryInput').value;
-      const customDate = document.getElementById('dateInput').value;
-
-      btn.innerText = "Traitement..."; btn.disabled = true;
-
+      btn.innerText = "Calcul..."; btn.disabled = true;
       google.script.run.withSuccessHandler(res => {
         btn.innerText = "Ajouter"; btn.disabled = false;
-        if (res.success) {
-          showAlert('injectAlert', 'Donnée ajoutée avec succès !', 'success');
-          document.getElementById('dateInput').value = ''; 
-          fetchAnalytics(); 
-        } else {
-          showAlert('injectAlert', res.error, 'error');
-        }
-      }).apiAddScore(player, category, customDate);
+        if (res.success) { document.getElementById('dateInput').value = ''; document.getElementById('timesInput').value = '1'; fetchAnalytics(); }
+        else { showAlert('injectAlert', res.error, 'error'); }
+      }).apiAddScore(document.getElementById('playerInput').value, document.getElementById('categoryInput').value, document.getElementById('dateInput').value, document.getElementById('pointsInput').value, document.getElementById('timesInput').value);
     }
 
     function fetchAnalytics() {
-      const year = document.getElementById('yearFilter').value;
-      const month = document.getElementById('monthFilter').value;
-      document.getElementById('reportOutput').innerText = "Compilation de la matrice analytique...";
-
-      google.script.run.withSuccessHandler(res => {
-        if (res.success) renderDashboard(res.data);
-        else document.getElementById('reportOutput').innerText = "Erreur Système : " + res.error;
-      }).apiGetData(year, month);
+      google.script.run.withSuccessHandler(res => { if (res.success) renderDashboard(res.data); }).apiGetData(document.getElementById('yearFilter').value, document.getElementById('monthFilter').value);
     }
 
     function renderDashboard(data) {
       document.getElementById('reportOutput').innerText = data.insights;
-
       const players = Object.keys(data.scores);
-      const datasets = data.categories.map((cat, index) => {
-        const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68', '#9b59b6', '#34495e'];
-        return {
-          label: cat,
-          data: players.map(p => data.scores[p][cat] || 0),
-          backgroundColor: colors[index % colors.length],
-          borderRadius: 4
-        };
+      const datasets = data.categories.map((cat, i) => {
+        const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68', '#9b59b6'];
+        return { label: cat, data: players.map(p => data.scores[p][cat] || 0), backgroundColor: colors[i % colors.length], borderRadius: 4 };
       });
-
       const ctx = document.getElementById('mainChart').getContext('2d');
       if (currentChart) currentChart.destroy();
       currentChart = new Chart(ctx, {
         type: 'bar', data: { labels: players, datasets: datasets },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            x: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', font: { weight: 'bold' } } },
-            y: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', stepSize: 1 } }
-          },
-          plugins: { legend: { labels: { color: '#e0e6ed', usePointStyle: true, padding: 20 } } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { color: '#2f3640' } }, y: { stacked: true, grid: { color: '#2f3640' } } } }
       });
     }
 
-    function exportReport() {
-      const text = document.getElementById('reportOutput').innerText;
-      navigator.clipboard.writeText("--- RAPPORT ANALYTIQUE PÉRIODIQUE ---\nGénéré le : " + new Date().toLocaleString('fr-FR') + "\n\n" + text).then(() => alert('Document copié dans le presse-papiers avec succès.'));
+    function exportHtmlReport() {
+      const y = document.getElementById('yearFilter').value;
+      const m = document.getElementById('monthFilter').value;
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          const blob = new Blob([res.html], { type: 'text/html' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `Rapport_Casseroles_${m}_${y}.html`;
+          link.click();
+        }
+      }).apiDownloadHtmlReport(y, m);
     }
 
     window.onload = initApp;
