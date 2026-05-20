@@ -5,22 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --bg: #0f111a; --panel: #1e2130; --text: #e0e6ed; --accent: #ff4757; --success: #2ed573; --error: #ff4757; }
+    :root { --bg: #0f111a; --panel: #1e2130; --text: #e0e6ed; --accent: #ff4757; --success: #2ed573; --error: #ff4757; --btn-alt: #353b48; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
     .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
     .card { background: var(--panel); padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); border: 1px solid #2f3640; }
     h2 { margin-top: 0; border-bottom: 2px solid #2f3640; padding-bottom: 12px; font-size: 1.4rem; color: #fff; }
+    h3 { font-size: 1.1rem; color: #a4b0be; }
     .form-group { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
     select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #2f3640; color: var(--text); flex: 1; min-width: 150px; font-size: 1rem; }
     select:focus, input:focus { outline: 2px solid var(--accent); }
-    button.primary { background: var(--accent); color: #fff; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+    button { font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
+    button.primary { background: var(--accent); color: #fff; text-transform: uppercase; letter-spacing: 1px; }
     button.primary:hover { opacity: 0.9; transform: translateY(-2px); }
-    button.primary:active { transform: scale(0.98); }
+    button.small { padding: 6px 12px; font-size: 0.85rem; flex: none; min-width: auto; background: var(--btn-alt); }
+    button.small:hover { background: #57606f; }
     .alert { padding: 12px; border-radius: 6px; display: none; margin-bottom: 15px; font-weight: 500; }
     .alert.error { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); display: block; }
     .alert.success { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); display: block; }
     .report-box { background: #000; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #7bed9f; border: 1px solid #2f3640; }
     .filters { display: flex; gap: 15px; margin-bottom: 25px; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .entity-list { list-style: none; padding: 0; margin: 0 0 15px 0; }
+    .entity-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #2f3640; }
+    .entity-actions { display: flex; gap: 5px; }
+    @media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -30,22 +38,8 @@
       <h2>Data Injection Form</h2>
       <div id="injectAlert"></div>
       <div class="form-group">
-        <select id="playerInput">
-          <option value="Safir">Safir</option>
-          <option value="Ilker">Ilker</option>
-          <option value="Antoine">Antoine</option>
-          <option value="Romain">Romain</option>
-          <option value="Nicolas">Nicolas</option>
-          <option value="Alik">Alik</option>
-          <option value="JJ">JJ</option>
-        </select>
-        <select id="categoryInput">
-          <option value="Mauvais">Mauvais</option>
-          <option value="Lâcheur">Lâcheur</option>
-          <option value="Râleur">Râleur</option>
-          <option value="Mito">Mito</option>
-          <option value="Salty">Salty</option>
-        </select>
+        <select id="playerInput"><option>Loading...</option></select>
+        <select id="categoryInput"><option>Loading...</option></select>
         <input type="datetime-local" id="dateInput" title="Leave blank for current time">
         <button class="primary" onclick="submitData()" id="submitBtn">Inject Data</button>
       </div>
@@ -54,25 +48,14 @@
     <div class="card">
       <h2>Dynamic Analytics</h2>
       <div class="filters">
-        <select id="yearFilter" onchange="fetchData()">
-          <option value="All">All Years</option>
-          <option value="2026" selected>2026</option>
-          <option value="2025">2025</option>
+        <select id="yearFilter" onchange="fetchAnalytics()">
+          <option value="All">All Years</option><option value="2026" selected>2026</option><option value="2025">2025</option>
         </select>
-        <select id="monthFilter" onchange="fetchData()">
-          <option value="All" selected>All Months</option>
-          <option value="0">January</option>
-          <option value="1">February</option>
-          <option value="2">March</option>
-          <option value="3">April</option>
-          <option value="4">May</option>
-          <option value="5">June</option>
-          <option value="6">July</option>
-          <option value="7">August</option>
-          <option value="8">September</option>
-          <option value="9">October</option>
-          <option value="10">November</option>
-          <option value="11">December</option>
+        <select id="monthFilter" onchange="fetchAnalytics()">
+          <option value="All" selected>All Months</option><option value="0">January</option><option value="1">February</option>
+          <option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option>
+          <option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option>
+          <option value="10">November</option><option value="11">December</option>
         </select>
       </div>
       <div id="loadAlert"></div>
@@ -80,9 +63,32 @@
     </div>
 
     <div class="card">
+      <h2>Database Settings</h2>
+      <div id="settingsAlert"></div>
+      <div class="settings-grid">
+        <div>
+          <h3>Players</h3>
+          <ul class="entity-list" id="playersList"></ul>
+          <div class="form-group">
+            <input type="text" id="newPlayerName" placeholder="New Player">
+            <button class="primary small" onclick="manageEntity('ADD', 'Players', 'newPlayerName')">Add</button>
+          </div>
+        </div>
+        <div>
+          <h3>Categories</h3>
+          <ul class="entity-list" id="categoriesList"></ul>
+          <div class="form-group">
+            <input type="text" id="newCategoryName" placeholder="New Category">
+            <button class="primary small" onclick="manageEntity('ADD', 'Categories', 'newCategoryName')">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Automated Report Export</h2>
       <div class="report-box" id="reportOutput">Initializing analytics engine...</div>
-      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Export Document (Copy to Clipboard)</button>
+      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Export Document</button>
     </div>
 
   </div>
@@ -97,41 +103,98 @@
       setTimeout(() => { el.className = 'alert'; }, 5000);
     }
 
+    function initApp() {
+      fetchSettings();
+      fetchAnalytics();
+    }
+
+    function fetchSettings() {
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          populateDropdown('playerInput', res.players);
+          populateDropdown('categoryInput', res.categories);
+          renderSettingsList('playersList', 'Players', res.players);
+          renderSettingsList('categoriesList', 'Categories', res.categories);
+        } else {
+          showAlert('settingsAlert', res.error, 'error');
+        }
+      }).apiGetSettings();
+    }
+
+    function populateDropdown(elementId, items) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = items.map(item => `<option value="${item}">${item}</option>`).join('');
+    }
+
+    function renderSettingsList(elementId, type, items) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = items.map(item => `
+        <li class="entity-item">
+          <span>${item}</span>
+          <div class="entity-actions">
+            <button class="small" onclick="promptRename('${type}', '${item}')">Rename</button>
+            <button class="small" style="background:#ff4757;" onclick="manageEntity('DELETE', '${type}', null, '${item}')">Del</button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function manageEntity(action, type, inputId, fixedName = null) {
+      const name = fixedName || document.getElementById(inputId).value.trim();
+      if (!name) return;
+      
+      let newName = null;
+      if (action === 'RENAME') {
+        newName = prompt(`Enter new name for ${name}:`);
+        if (!newName || newName.trim() === '') return;
+        newName = newName.trim();
+      } else if (action === 'DELETE') {
+        if (!confirm(`Are you sure you want to delete '${name}'?`)) return;
+      }
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          if (inputId) document.getElementById(inputId).value = '';
+          fetchSettings();
+          fetchAnalytics();
+        } else {
+          showAlert('settingsAlert', res.error, 'error');
+        }
+      }).apiManageEntity(action, type, name, newName);
+    }
+
+    function promptRename(type, oldName) {
+      manageEntity('RENAME', type, null, oldName);
+    }
+
     function submitData() {
       const btn = document.getElementById('submitBtn');
       const player = document.getElementById('playerInput').value;
       const category = document.getElementById('categoryInput').value;
       const customDate = document.getElementById('dateInput').value;
 
-      btn.innerText = "Processing...";
-      btn.disabled = true;
+      btn.innerText = "Processing..."; btn.disabled = true;
 
       google.script.run.withSuccessHandler(res => {
-        btn.innerText = "Inject Data";
-        btn.disabled = false;
+        btn.innerText = "Inject Data"; btn.disabled = false;
         if (res.success) {
-          showAlert('injectAlert', 'Record successfully injected into database.', 'success');
+          showAlert('injectAlert', 'Record successfully injected.', 'success');
           document.getElementById('dateInput').value = ''; 
-          fetchData(); 
+          fetchAnalytics(); 
         } else {
           showAlert('injectAlert', res.error, 'error');
         }
       }).apiAddScore(player, category, customDate);
     }
 
-    function fetchData() {
+    function fetchAnalytics() {
       const year = document.getElementById('yearFilter').value;
       const month = document.getElementById('monthFilter').value;
-      
       document.getElementById('reportOutput').innerText = "Compiling analytics matrix...";
 
       google.script.run.withSuccessHandler(res => {
-        if (res.success) {
-          renderDashboard(res.data);
-        } else {
-          showAlert('loadAlert', res.error, 'error');
-          document.getElementById('reportOutput').innerText = "System Failure: Unable to compile report.";
-        }
+        if (res.success) renderDashboard(res.data);
+        else document.getElementById('reportOutput').innerText = "System Failure: " + res.error;
       }).apiGetData(year, month);
     }
 
@@ -139,10 +202,8 @@
       document.getElementById('reportOutput').innerText = data.insights;
 
       const players = Object.keys(data.scores);
-      const categories = ["Mauvais", "Lâcheur", "Râleur", "Mito", "Salty"];
-      
-      const datasets = categories.map((cat, index) => {
-        const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68'];
+      const datasets = data.categories.map((cat, index) => {
+        const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68', '#9b59b6', '#34495e'];
         return {
           label: cat,
           data: players.map(p => data.scores[p][cat] || 0),
@@ -153,37 +214,25 @@
 
       const ctx = document.getElementById('mainChart').getContext('2d');
       if (currentChart) currentChart.destroy();
-
       currentChart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: players, datasets: datasets },
+        type: 'bar', data: { labels: players, datasets: datasets },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           scales: {
             x: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', font: { weight: 'bold' } } },
             y: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', stepSize: 1 } }
           },
-          plugins: { 
-            legend: { labels: { color: '#e0e6ed', usePointStyle: true, padding: 20 } },
-            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 14 }, bodyFont: { size: 13 }, padding: 10 }
-          }
+          plugins: { legend: { labels: { color: '#e0e6ed', usePointStyle: true, padding: 20 } } }
         }
       });
     }
 
     function exportReport() {
       const text = document.getElementById('reportOutput').innerText;
-      const finalDoc = "--- PERIODIC ANALYTICS REPORT ---\nGenerated on: " + new Date().toLocaleString() + "\n\n" + text;
-      
-      navigator.clipboard.writeText(finalDoc).then(() => {
-        alert('Data export successful. Document copied to clipboard.');
-      }).catch(err => {
-        alert('Export failure: ' + err);
-      });
+      navigator.clipboard.writeText("--- PERIODIC ANALYTICS REPORT ---\nGenerated on: " + new Date().toLocaleString() + "\n\n" + text).then(() => alert('Copied to clipboard.'));
     }
 
-    window.onload = fetchData;
+    window.onload = initApp;
   </script>
 </body>
 </html>
