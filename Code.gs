@@ -3,7 +3,7 @@
  */
 const ConfigService = {
   getSpreadsheetId: function() {
-    const id = PropertiesService.getScriptProperties().getProperty('1mMfPpdZDb9gnUnBr8zGrumLMwtq-nYJa64robDSqOw57ia3M4EgwsZUB');
+    const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
     if (!id) {
       throw new Error("Configuration Error: SPREADSHEET_ID is missing in Script Properties.");
     }
