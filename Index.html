@@ -1,29 +1,36 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e2f; color: #fff; margin: 0; padding: 20px; }
-      h1 { text-align: center; color: #ff4757; }
-      .container { max-width: 800px; margin: auto; }
-      .control-panel { display: flex; flex-direction: column; gap: 15px; background: #2f3542; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-      select, button { padding: 15px; font-size: 16px; border-radius: 8px; border: none; outline: none; }
-      select { background: #57606f; color: white; font-weight: bold; }
-      .btn-add { background: #ff4757; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-      .btn-add:active { transform: scale(0.95); }
-      .dashboard { display: flex; flex-direction: column; gap: 20px; }
-      .card { background: #2f3542; padding: 20px; border-radius: 10px; }
-      .history-item { padding: 10px; border-bottom: 1px solid #57606f; font-size: 14px; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Top Tracker 🏆</h1>
-      
-      <div class="control-panel">
-        <select id="playerSelect">
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --bg: #0f111a; --panel: #1e2130; --text: #e0e6ed; --accent: #ff4757; --success: #2ed573; --error: #ff4757; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+    .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
+    .card { background: var(--panel); padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); border: 1px solid #2f3640; }
+    h2 { margin-top: 0; border-bottom: 2px solid #2f3640; padding-bottom: 12px; font-size: 1.4rem; color: #fff; }
+    .form-group { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+    select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #2f3640; color: var(--text); flex: 1; min-width: 150px; font-size: 1rem; }
+    select:focus, input:focus { outline: 2px solid var(--accent); }
+    button.primary { background: var(--accent); color: #fff; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+    button.primary:hover { opacity: 0.9; transform: translateY(-2px); }
+    button.primary:active { transform: scale(0.98); }
+    .alert { padding: 12px; border-radius: 6px; display: none; margin-bottom: 15px; font-weight: 500; }
+    .alert.error { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); display: block; }
+    .alert.success { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); display: block; }
+    .report-box { background: #000; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #7bed9f; border: 1px solid #2f3640; }
+    .filters { display: flex; gap: 15px; margin-bottom: 25px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="card">
+      <h2>Data Injection Form</h2>
+      <div id="injectAlert"></div>
+      <div class="form-group">
+        <select id="playerInput">
           <option value="Safir">Safir</option>
           <option value="Ilker">Ilker</option>
           <option value="Antoine">Antoine</option>
@@ -32,90 +39,151 @@
           <option value="Alik">Alik</option>
           <option value="JJ">JJ</option>
         </select>
-        
-        <select id="categorySelect">
+        <select id="categoryInput">
           <option value="Mauvais">Mauvais</option>
           <option value="Lâcheur">Lâcheur</option>
           <option value="Râleur">Râleur</option>
           <option value="Mito">Mito</option>
           <option value="Salty">Salty</option>
         </select>
-        
-        <button class="btn-add" onclick="submitScore()">PUNISH PLAYER !</button>
-      </div>
-
-      <div class="dashboard">
-        <div class="card">
-          <h2>Global Leaderboard</h2>
-          <canvas id="scoreChart"></canvas>
-        </div>
-        
-        <div class="card">
-          <h2>Recent Activity</h2>
-          <div id="historyFeed">Loading...</div>
-        </div>
+        <input type="datetime-local" id="dateInput" title="Leave blank for current time">
+        <button class="primary" onclick="submitData()" id="submitBtn">Inject Data</button>
       </div>
     </div>
 
-    <script>
-      let chartInstance = null;
+    <div class="card">
+      <h2>Dynamic Analytics</h2>
+      <div class="filters">
+        <select id="yearFilter" onchange="fetchData()">
+          <option value="All">All Years</option>
+          <option value="2026" selected>2026</option>
+          <option value="2025">2025</option>
+        </select>
+        <select id="monthFilter" onchange="fetchData()">
+          <option value="All" selected>All Months</option>
+          <option value="0">January</option>
+          <option value="1">February</option>
+          <option value="2">March</option>
+          <option value="3">April</option>
+          <option value="4">May</option>
+          <option value="5">June</option>
+          <option value="6">July</option>
+          <option value="7">August</option>
+          <option value="8">September</option>
+          <option value="9">October</option>
+          <option value="10">November</option>
+          <option value="11">December</option>
+        </select>
+      </div>
+      <div id="loadAlert"></div>
+      <canvas id="mainChart" style="max-height: 400px; width: 100%;"></canvas>
+    </div>
 
-      function submitScore() {
-        const player = document.getElementById('playerSelect').value;
-        const category = document.getElementById('categorySelect').value;
-        
-        const btn = document.querySelector('.btn-add');
-        btn.innerText = "Adding...";
-        btn.style.background = "#2ed573";
-        
-        google.script.run.withSuccessHandler(updateDashboard).addScore(player, category);
-      }
+    <div class="card">
+      <h2>Automated Report Export</h2>
+      <div class="report-box" id="reportOutput">Initializing analytics engine...</div>
+      <button class="primary" style="margin-top: 20px; width: 100%;" onclick="exportReport()">Export Document (Copy to Clipboard)</button>
+    </div>
 
-      function loadData() {
-        google.script.run.withSuccessHandler(updateDashboard).getDashboardData();
-      }
+  </div>
 
-      function updateDashboard(data) {
-        document.querySelector('.btn-add').innerText = "PUNISH PLAYER !";
-        document.querySelector('.btn-add').style.background = "#ff4757";
+  <script>
+    let currentChart = null;
 
-        updateFeed(data.recentHistory);
-        updateChart(data.leaderboard);
-      }
+    function showAlert(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      el.className = 'alert ' + type;
+      el.innerText = message;
+      setTimeout(() => { el.className = 'alert'; }, 5000);
+    }
 
-      function updateFeed(history) {
-        const feed = document.getElementById('historyFeed');
-        feed.innerHTML = '';
-        history.forEach(item => {
-          let date = new Date(item.date).toLocaleString();
-          feed.innerHTML += `<div class="history-item">🚨 <b>${item.player}</b> scored a <b>${item.category}</b> point on ${date}</div>`;
-        });
-      }
+    function submitData() {
+      const btn = document.getElementById('submitBtn');
+      const player = document.getElementById('playerInput').value;
+      const category = document.getElementById('categoryInput').value;
+      const customDate = document.getElementById('dateInput').value;
 
-      function updateChart(leaderboardData) {
-        const players = Object.keys(leaderboardData);
-        const scores = Object.values(leaderboardData).map(d => d.total);
+      btn.innerText = "Processing...";
+      btn.disabled = true;
 
-        const ctx = document.getElementById('scoreChart').getContext('2d');
-        
-        if (chartInstance) chartInstance.destroy();
-        
-        chartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: players,
-            datasets: [{
-              label: 'Total Offenses',
-              data: scores,
-              backgroundColor: '#ff4757',
-              borderRadius: 5
-            }]
+      google.script.run.withSuccessHandler(res => {
+        btn.innerText = "Inject Data";
+        btn.disabled = false;
+        if (res.success) {
+          showAlert('injectAlert', 'Record successfully injected into database.', 'success');
+          document.getElementById('dateInput').value = ''; 
+          fetchData(); 
+        } else {
+          showAlert('injectAlert', res.error, 'error');
+        }
+      }).apiAddScore(player, category, customDate);
+    }
+
+    function fetchData() {
+      const year = document.getElementById('yearFilter').value;
+      const month = document.getElementById('monthFilter').value;
+      
+      document.getElementById('reportOutput').innerText = "Compiling analytics matrix...";
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          renderDashboard(res.data);
+        } else {
+          showAlert('loadAlert', res.error, 'error');
+          document.getElementById('reportOutput').innerText = "System Failure: Unable to compile report.";
+        }
+      }).apiGetData(year, month);
+    }
+
+    function renderDashboard(data) {
+      document.getElementById('reportOutput').innerText = data.insights;
+
+      const players = Object.keys(data.scores);
+      const categories = ["Mauvais", "Lâcheur", "Râleur", "Mito", "Salty"];
+      
+      const datasets = categories.map((cat, index) => {
+        const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68'];
+        return {
+          label: cat,
+          data: players.map(p => data.scores[p][cat] || 0),
+          backgroundColor: colors[index % colors.length],
+          borderRadius: 4
+        };
+      });
+
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      if (currentChart) currentChart.destroy();
+
+      currentChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: players, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', font: { weight: 'bold' } } },
+            y: { stacked: true, grid: { color: '#2f3640' }, ticks: { color: '#e0e6ed', stepSize: 1 } }
           },
-          options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { color: 'white' } }, x: { ticks: { color: 'white' } } }, plugins: { legend: { display: false } } }
-        });
-      }
+          plugins: { 
+            legend: { labels: { color: '#e0e6ed', usePointStyle: true, padding: 20 } },
+            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 14 }, bodyFont: { size: 13 }, padding: 10 }
+          }
+        }
+      });
+    }
 
-      window.onload = loadData;
-    </script>
-  </body>
+    function exportReport() {
+      const text = document.getElementById('reportOutput').innerText;
+      const finalDoc = "--- PERIODIC ANALYTICS REPORT ---\nGenerated on: " + new Date().toLocaleString() + "\n\n" + text;
+      
+      navigator.clipboard.writeText(finalDoc).then(() => {
+        alert('Data export successful. Document copied to clipboard.');
+      }).catch(err => {
+        alert('Export failure: ' + err);
+      });
+    }
+
+    window.onload = fetchData;
+  </script>
+</body>
 </html>
