@@ -67,17 +67,30 @@ const SettingsService = {
 };
 
 /**
- * STORAGE SERVICE
+ * STORAGE SERVICE (Bulk Processing)
  */
 const StorageService = {
-  appendLog: function(player, category, customTimestamp, points, times) {
-    if (!player || !category) throw new Error("Données invalides.");
-    const pPts = parseInt(points, 10);
-    const pTms = parseInt(times, 10);
-    if (isNaN(pPts) || isNaN(pTms) || pTms < 1) throw new Error("Validation des scores échouée.");
+  appendBulkLogs: function(entries, customTimestamp) {
+    if (!entries || entries.length === 0) throw new Error("Erreur : Aucune donnée à injecter.");
+    
     const targetDate = customTimestamp ? new Date(customTimestamp) : new Date();
-    ConfigService.getSheets().history.appendRow([targetDate, player, category, pPts * pTms]); 
+    if (isNaN(targetDate.getTime())) throw new Error("Format invalide : La date fournie est incorrecte.");
+    
+    const rowsToAppend = entries.map(entry => {
+      if (!entry.player || !entry.category) throw new Error("Données invalides : Joueur ou catégorie manquante.");
+      const pts = parseInt(entry.points, 10);
+      const tms = parseInt(entry.times, 10);
+      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Erreur de validation des scores (valeurs non numériques).");
+      
+      return [targetDate, entry.player, entry.category, pts * tms];
+    });
+
+    const { history } = ConfigService.getSheets();
+    // Fail Fast & Performance: Batch write operation instead of looping appendRow
+    const startRow = history.getLastRow() + 1;
+    history.getRange(startRow, 1, rowsToAppend.length, 4).setValues(rowsToAppend);
   },
+  
   getAllLogs: function() {
     const data = ConfigService.getSheets().history.getDataRange().getValues();
     if (data.length <= 1) return [];
@@ -147,7 +160,6 @@ const AnalyticsService = {
     const data = this.getAggregatedData(year, month);
     const periodStr = `Période : ${month !== "All" ? "Mois " + month : "Année"} ${year !== "All" ? year : "Globale"}`;
     
-    // Génération du fichier HTML autonome basé sur l'esthétique "walkforward"
     return `<!DOCTYPE html>
     <html>
     <head>
@@ -164,10 +176,6 @@ const AnalyticsService = {
         .card { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 8px; }
         h2 { margin-top: 0; font-size: 1.2rem; color: #fff; border-left: 4px solid var(--accent); padding-left: 10px; }
         .report-box { background: #0b0c10; padding: 20px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #00d4aa; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { color: var(--muted); font-size: 0.9rem; }
-        td { font-weight: 500; }
       </style>
     </head>
     <body>
@@ -193,11 +201,7 @@ const AnalyticsService = {
             labels: ${JSON.stringify(Object.keys(data.scores))},
             datasets: ${JSON.stringify(data.categories.map((cat, i) => {
               const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68'];
-              return {
-                label: cat,
-                data: Object.keys(data.scores).map(p => data.scores[p][cat] || 0),
-                backgroundColor: colors[i % colors.length]
-              };
+              return { label: cat, data: Object.keys(data.scores).map(p => data.scores[p][cat] || 0), backgroundColor: colors[i % colors.length] };
             }))}
           },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
@@ -212,22 +216,25 @@ const AnalyticsService = {
  * WEB APP API ENDPOINTS
  */
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('Gestionnaire de Casseroles')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return HtmlService.createHtmlOutputFromFile('Index').setTitle('Gestionnaire de Casseroles').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-function apiAddScore(p, c, t, pts, tms) {
-  try { StorageService.appendLog(p, c, t, pts, tms); return { success: true }; } catch(e) { return { success: false, error: e.message }; }
+function apiAddBulkScores(entries, customTimestamp) {
+  try { StorageService.appendBulkLogs(entries, customTimestamp); return { success: true }; } 
+  catch(e) { return { success: false, error: e.message }; }
 }
 function apiGetData(y, m) {
-  try { return { success: true, data: AnalyticsService.getAggregatedData(y, m) }; } catch(e) { return { success: false, error: e.message }; }
+  try { return { success: true, data: AnalyticsService.getAggregatedData(y, m) }; } 
+  catch(e) { return { success: false, error: e.message }; }
 }
 function apiGetSettings() {
-  try { return { success: true, players: SettingsService.getEntities('Players'), categories: SettingsService.getEntities('Categories') }; } catch(e) { return { success: false, error: e.message }; }
+  try { return { success: true, players: SettingsService.getEntities('Players'), categories: SettingsService.getEntities('Categories') }; } 
+  catch(e) { return { success: false, error: e.message }; }
 }
 function apiManageEntity(a, t, n, nn) {
-  try { if (a === 'ADD') SettingsService.addEntity(t, n); if (a === 'DELETE') SettingsService.deleteEntity(t, nn); if (a === 'RENAME') SettingsService.renameEntity(t, n, nn); return { success: true }; } catch(e) { return { success: false, error: e.message }; }
+  try { if (a === 'ADD') SettingsService.addEntity(t, n); if (a === 'DELETE') SettingsService.deleteEntity(t, nn); if (a === 'RENAME') SettingsService.renameEntity(t, n, nn); return { success: true }; } 
+  catch(e) { return { success: false, error: e.message }; }
 }
 function apiDownloadHtmlReport(y, m) {
-  try { return { success: true, html: AnalyticsService.buildHtmlReport(y, m) }; } catch(e) { return { success: false, error: e.message }; }
+  try { return { success: true, html: AnalyticsService.buildHtmlReport(y, m) }; } 
+  catch(e) { return { success: false, error: e.message }; }
 }
