@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e2f; color: #fff; margin: 0; padding: 20px; }
+      h1 { text-align: center; color: #ff4757; }
+      .container { max-width: 800px; margin: auto; }
+      .control-panel { display: flex; flex-direction: column; gap: 15px; background: #2f3542; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+      select, button { padding: 15px; font-size: 16px; border-radius: 8px; border: none; outline: none; }
+      select { background: #57606f; color: white; font-weight: bold; }
+      .btn-add { background: #ff4757; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+      .btn-add:active { transform: scale(0.95); }
+      .dashboard { display: flex; flex-direction: column; gap: 20px; }
+      .card { background: #2f3542; padding: 20px; border-radius: 10px; }
+      .history-item { padding: 10px; border-bottom: 1px solid #57606f; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Top Tracker 🏆</h1>
+      
+      <div class="control-panel">
+        <select id="playerSelect">
+          <option value="Safir">Safir</option>
+          <option value="Ilker">Ilker</option>
+          <option value="Antoine">Antoine</option>
+          <option value="Romain">Romain</option>
+          <option value="Nicolas">Nicolas</option>
+          <option value="Alik">Alik</option>
+          <option value="JJ">JJ</option>
+        </select>
+        
+        <select id="categorySelect">
+          <option value="Mauvais">Mauvais</option>
+          <option value="Lâcheur">Lâcheur</option>
+          <option value="Râleur">Râleur</option>
+          <option value="Mito">Mito</option>
+          <option value="Salty">Salty</option>
+        </select>
+        
+        <button class="btn-add" onclick="submitScore()">PUNISH PLAYER !</button>
+      </div>
+
+      <div class="dashboard">
+        <div class="card">
+          <h2>Global Leaderboard</h2>
+          <canvas id="scoreChart"></canvas>
+        </div>
+        
+        <div class="card">
+          <h2>Recent Activity</h2>
+          <div id="historyFeed">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let chartInstance = null;
+
+      function submitScore() {
+        const player = document.getElementById('playerSelect').value;
+        const category = document.getElementById('categorySelect').value;
+        
+        const btn = document.querySelector('.btn-add');
+        btn.innerText = "Adding...";
+        btn.style.background = "#2ed573";
+        
+        google.script.run.withSuccessHandler(updateDashboard).addScore(player, category);
+      }
+
+      function loadData() {
+        google.script.run.withSuccessHandler(updateDashboard).getDashboardData();
+      }
+
+      function updateDashboard(data) {
+        document.querySelector('.btn-add').innerText = "PUNISH PLAYER !";
+        document.querySelector('.btn-add').style.background = "#ff4757";
+
+        updateFeed(data.recentHistory);
+        updateChart(data.leaderboard);
+      }
+
+      function updateFeed(history) {
+        const feed = document.getElementById('historyFeed');
+        feed.innerHTML = '';
+        history.forEach(item => {
+          let date = new Date(item.date).toLocaleString();
+          feed.innerHTML += `<div class="history-item">🚨 <b>${item.player}</b> scored a <b>${item.category}</b> point on ${date}</div>`;
+        });
+      }
+
+      function updateChart(leaderboardData) {
+        const players = Object.keys(leaderboardData);
+        const scores = Object.values(leaderboardData).map(d => d.total);
+
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        
+        if (chartInstance) chartInstance.destroy();
+        
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: players,
+            datasets: [{
+              label: 'Total Offenses',
+              data: scores,
+              backgroundColor: '#ff4757',
+              borderRadius: 5
+            }]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { color: 'white' } }, x: { ticks: { color: 'white' } } }, plugins: { legend: { display: false } } }
+        });
+      }
+
+      window.onload = loadData;
+    </script>
+  </body>
+</html>
