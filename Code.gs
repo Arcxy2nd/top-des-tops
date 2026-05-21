@@ -156,39 +156,61 @@ const AnalyticsService = {
   },
 
   generateAiQuote: function(year, month) {
-    const key = ConfigService.getGeminiKey();
-    if (!key) throw new Error("Clé GEMINI_API_KEY manquante. Veuillez l'ajouter dans les propriétés du script.");
-
     const data = this.getAggregatedData(year, month);
-    const catEntities = SettingsService.getEntities('Categories');
     
-    let context = "Voici le contexte des catégories :\n";
-    catEntities.forEach(c => context += `- ${c.name} : ${c.meta || 'Aucune description spécifique'}\n`);
-    
-    context += "\nVoici les scores cumulés des joueurs sur la période analysée :\n";
-    Object.keys(data.scores).forEach(p => {
-      context += `- ${p} : ${data.scores[p].total} points d'infraction au total.\n`;
-    });
+    // Détermination du pire joueur pour les citations de secours
+    let topOfTops = {};
+    Object.keys(data.scores).forEach(p => topOfTops[p] = data.scores[p].total);
+    let ultimateWinner = "Quelqu'un";
+    let maxScore = 0;
+    Object.keys(topOfTops).forEach(p => { if (topOfTops[p] > maxScore) { maxScore = topOfTops[p]; ultimateWinner = p; } });
 
-    const prompt = `Tu es un commentateur sarcastique, taquin et plein d'esprit qui juge un groupe d'amis dans une compétition des pires comportements appelée "Les Casseroles".
-    En te basant UNIQUEMENT sur les données ci-dessous, rédige un court paragraphe de conclusion (3-4 phrases max). 
-    Adresse-toi au groupe, cite les pires éléments, utilise de l'humour noir ou de l'ironie piquante, mais reste dans un esprit amical ("vannes entre potes"). Parle en français.
+    // La banque de citations de secours (Plan B)
+    const fallbackQuotes = [
+      `Même sans l'aide de l'IA, tout le monde sait que ${ultimateWinner} a été particulièrement catastrophique cette fois-ci.`,
+      `L'intelligence artificielle de Google a planté tellement les scores de ${ultimateWinner} sont honteux.`,
+      `Pas besoin d'algorithmes complexes pour constater que ${ultimateWinner} tire le niveau du groupe vers le bas.`,
+      `Erreur de quota : L'ego (et le score) de ${ultimateWinner} prennent trop de place sur les serveurs cloud.`,
+      `L'IA refuse de commenter. Elle a développé de la compassion pour la nullité de ${ultimateWinner}.`
+    ];
+    const randomFallback = fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
 
-    ${context}
+    const key = ConfigService.getGeminiKey();
+    if (!key) return randomFallback;
 
-    Génère uniquement la citation finale, pas d'introduction.`;
+    try {
+      const catEntities = SettingsService.getEntities('Categories');
+      let context = "Contexte :\n";
+      catEntities.forEach(c => context += `- ${c.name} : ${c.meta || 'Sans description'}\n`);
+      context += "\nScores :\n";
+      Object.keys(data.scores).forEach(p => { context += `- ${p} : ${data.scores[p].total} points.\n`; });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-    const payload = { contents: [{ parts: [{ text: prompt }] }] };
-    const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
+      const prompt = `Tu es un commentateur sarcastique qui juge un groupe d'amis. 
+      Base-toi sur ces scores pour rédiger un paragraphe de 3 phrases max. 
+      Tacle le pire joueur, sois ironique mais amical. Parle en français.\n\n${context}`;
 
-    const response = UrlFetchApp.fetch(url, options);
-    const json = JSON.parse(response.getContentText());
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+      const payload = { contents: [{ parts: [{ text: prompt }] }] };
+      const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
 
-    if (json.error) throw new Error("API Gemini : " + json.error.message);
-    if (!json.candidates || json.candidates.length === 0) throw new Error("L'IA n'a retourné aucune réponse.");
-    
-    return json.candidates[0].content.parts[0].text;
+      const response = UrlFetchApp.fetch(url, options);
+      
+      // Si la requête HTTP ne passe pas (ex: Erreur 400 ou 429 pour Quota)
+      if (response.getResponseCode() !== 200) {
+        return randomFallback;
+      }
+
+      const json = JSON.parse(response.getContentText());
+      if (json.error || !json.candidates || json.candidates.length === 0) {
+        return randomFallback;
+      }
+      
+      return json.candidates[0].content.parts[0].text;
+
+    } catch (e) {
+      // Interception de n'importe quel crash (timeout, quota, réseau)
+      return randomFallback;
+    }
   },
 
   buildHtmlReport: function(year, month) {
