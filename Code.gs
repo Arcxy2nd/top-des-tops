@@ -4,8 +4,11 @@
 const ConfigService = {
   getSpreadsheetId: function() {
     const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-    if (!id) throw new Error("Erreur de configuration : SPREADSHEET_ID est manquant dans les Propriétés du Script.");
+    if (!id) throw new Error("Erreur de configuration : SPREADSHEET_ID est manquant.");
     return id;
+  },
+  getGeminiKey: function() {
+    return PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); // Non-bloquant au démarrage
   },
   getSheets: function() {
     const ssId = this.getSpreadsheetId();
@@ -18,21 +21,23 @@ const ConfigService = {
         throw new Error("Erreur de structure : Onglets 'History', 'Players' ou 'Categories' manquants.");
       }
       return { spreadsheet: ss, history: historySheet, players: playersSheet, categories: categoriesSheet };
-    } catch(e) { throw new Error("Erreur de connexion base de données : " + e.message); }
+    } catch(e) { throw new Error("Erreur de connexion BDD : " + e.message); }
   }
 };
 
 /**
- * SETTINGS SERVICE
+ * SETTINGS SERVICE (Extended with Metadata for Avatars & Descriptions)
  */
 const SettingsService = {
   getEntities: function(type) {
     const data = ConfigService.getSheets()[type.toLowerCase()].getDataRange().getValues();
-    return data.flat().filter(String);
+    if (data.length === 0) return [];
+    // Index 0: Name, Index 1: Meta (Avatar URL or Description)
+    return data.filter(r => r[0]).map(r => ({ name: r[0].toString(), meta: r[1] ? r[1].toString() : "" }));
   },
-  addEntity: function(type, name) {
+  addEntity: function(type, name, meta) {
     if (!name) throw new Error("Erreur de validation : Le nom ne peut pas être vide.");
-    ConfigService.getSheets()[type.toLowerCase()].appendRow([name]);
+    ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || ""]);
   },
   deleteEntity: function(type, name) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
@@ -43,15 +48,19 @@ const SettingsService = {
     }
     if (!deleted) throw new Error(`Erreur d'intégrité : ${name} introuvable.`);
   },
-  renameEntity: function(type, oldName, newName) {
+  renameEntity: function(type, oldName, newName, newMeta) {
     if (!newName) throw new Error("Erreur de validation : Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data = sheet.getDataRange().getValues();
     let updated = false;
     for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === oldName) { sheet.getRange(i + 1, 1).setValue(newName); updated = true; break; }
+      if (data[i][0] === oldName) { 
+        sheet.getRange(i + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]); 
+        updated = true; break; 
+      }
     }
     if (!updated) throw new Error(`Erreur d'intégrité : ${oldName} introuvable.`);
+    
     const historySheet = ConfigService.getSheets().history;
     const historyData = historySheet.getDataRange().getValues();
     const colIndex = type === 'Players' ? 1 : 2;
@@ -74,13 +83,12 @@ const StorageService = {
       if (!entry.player || !entry.category) throw new Error("Données invalides : Joueur ou catégorie manquante.");
       const pts = parseInt(entry.points, 10);
       const tms = parseInt(entry.times, 10);
-      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Erreur de validation des scores (valeurs non numériques).");
+      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Erreur de validation des scores.");
       return [targetDate, entry.player, entry.category, pts * tms];
     });
 
     const { history } = ConfigService.getSheets();
-    const startRow = history.getLastRow() + 1;
-    history.getRange(startRow, 1, rowsToAppend.length, 4).setValues(rowsToAppend);
+    history.getRange(history.getLastRow() + 1, 1, rowsToAppend.length, 4).setValues(rowsToAppend);
   },
   getAllLogs: function() {
     const data = ConfigService.getSheets().history.getDataRange().getValues();
@@ -95,14 +103,17 @@ const StorageService = {
 };
 
 /**
- * ANALYTICS & EXPORT SERVICE
+ * ANALYTICS & AI SERVICE
  */
 const AnalyticsService = {
   getAggregatedData: function(filterYear, filterMonth) {
     const logs = StorageService.getAllLogs();
-    const players = SettingsService.getEntities('Players');
-    const categories = SettingsService.getEntities('Categories');
+    const playersEntities = SettingsService.getEntities('Players');
+    const categoriesEntities = SettingsService.getEntities('Categories');
     
+    const players = playersEntities.map(p => p.name);
+    const categories = categoriesEntities.map(c => c.name);
+
     let filteredLogs = logs;
     if (filterYear && filterYear !== "All") filteredLogs = filteredLogs.filter(log => log.timestamp.getFullYear() === parseInt(filterYear, 10));
     if (filterMonth && filterMonth !== "All") filteredLogs = filteredLogs.filter(log => log.timestamp.getMonth() === parseInt(filterMonth, 10));
@@ -144,32 +155,48 @@ const AnalyticsService = {
     return narrative.length > 0 ? narrative.join("\n") : "Aucune anomalie ou infraction détectée sur cette période de suivi.";
   },
 
+  generateAiQuote: function(year, month) {
+    const key = ConfigService.getGeminiKey();
+    if (!key) throw new Error("Clé GEMINI_API_KEY manquante. Veuillez l'ajouter dans les propriétés du script.");
+
+    const data = this.getAggregatedData(year, month);
+    const catEntities = SettingsService.getEntities('Categories');
+    
+    let context = "Voici le contexte des catégories :\n";
+    catEntities.forEach(c => context += `- ${c.name} : ${c.meta || 'Aucune description spécifique'}\n`);
+    
+    context += "\nVoici les scores cumulés des joueurs sur la période analysée :\n";
+    Object.keys(data.scores).forEach(p => {
+      context += `- ${p} : ${data.scores[p].total} points d'infraction au total.\n`;
+    });
+
+    const prompt = `Tu es un commentateur sarcastique, taquin et plein d'esprit qui juge un groupe d'amis dans une compétition des pires comportements appelée "Les Casseroles".
+    En te basant UNIQUEMENT sur les données ci-dessous, rédige un court paragraphe de conclusion (3-4 phrases max). 
+    Adresse-toi au groupe, cite les pires éléments, utilise de l'humour noir ou de l'ironie piquante, mais reste dans un esprit amical ("vannes entre potes"). Parle en français.
+
+    ${context}
+
+    Génère uniquement la citation finale, pas d'introduction.`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+    const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const json = JSON.parse(response.getContentText());
+
+    if (json.error) throw new Error("API Gemini : " + json.error.message);
+    if (!json.candidates || json.candidates.length === 0) throw new Error("L'IA n'a retourné aucune réponse.");
+    
+    return json.candidates[0].content.parts[0].text;
+  },
+
   buildHtmlReport: function(year, month) {
     const data = this.getAggregatedData(year, month);
-    const periodStr = `Période : ${month !== "All" ? "Mois " + month : "Année"} ${year !== "All" ? year : "Globale"}`;
     return `<!DOCTYPE html>
     <html><head><meta charset="UTF-8"><title>Rapport Analytique de Suivi</title><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>:root { --bg: #0f1117; --card: #1a1d27; --border: #2a2d3e; --accent: #ff4757; --text: #e8eaf6; --muted: #8892b0; }
-    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 40px 24px; margin: 0; }
-    .header { text-align: center; margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-    h1 { color: #fff; margin: 0 0 10px 0; font-size: 2rem; } .period { color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 40px; }
-    .card { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 8px; }
-    h2 { margin-top: 0; font-size: 1.2rem; color: #fff; border-left: 4px solid var(--accent); padding-left: 10px; }
-    .report-box { background: #0b0c10; padding: 20px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #00d4aa; border: 1px solid var(--border); }
-    </style></head><body>
-      <div class="header"><h1>RAPPORT ANALYTIQUE DES CASSEROLES</h1><div class="period">${periodStr}</div></div>
-      <div class="grid"><div class="card"><h2>Synthèse Narrative du Moteur d'Analyse</h2><div class="report-box">${data.insights.replace(/\n/g, '<br>')}</div></div>
-      <div class="card"><h2>Visualisation de la Matrice des Scores</h2><div style="height:350px; position:relative;"><canvas id="repChart"></canvas></div></div></div>
-      <script>
-        new Chart(document.getElementById('repChart').getContext('2d'), { type: 'bar', data: {
-          labels: ${JSON.stringify(Object.keys(data.scores))},
-          datasets: ${JSON.stringify(data.categories.map((cat, i) => {
-            const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#eccc68'];
-            return { label: cat, data: Object.keys(data.scores).map(p => data.scores[p][cat] || 0), backgroundColor: colors[i % colors.length] };
-          }))}
-        }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
-      </script></body></html>`;
+    <style>:root { --bg: #0f1117; --card: #1a1d27; --border: #2a2d3e; --accent: #ff4757; --text: #e8eaf6; } body { background: var(--bg); color: var(--text); font-family: system-ui; padding: 40px; }</style></head>
+    <body><h1>RAPPORT DES CASSEROLES</h1><pre>${data.insights}</pre></body></html>`;
   }
 };
 
@@ -180,5 +207,6 @@ function doGet() { return HtmlService.createHtmlOutputFromFile('Index').setTitle
 function apiAddBulkScores(e, t) { try { StorageService.appendBulkLogs(e, t); return { success: true }; } catch(err) { return { success: false, error: err.message }; } }
 function apiGetData(y, m) { try { return { success: true, data: AnalyticsService.getAggregatedData(y, m) }; } catch(err) { return { success: false, error: err.message }; } }
 function apiGetSettings() { try { return { success: true, players: SettingsService.getEntities('Players'), categories: SettingsService.getEntities('Categories') }; } catch(err) { return { success: false, error: err.message }; } }
-function apiManageEntity(a, t, n, nn) { try { if (a==='ADD') SettingsService.addEntity(t, n); if (a==='DELETE') SettingsService.deleteEntity(t, nn); if (a==='RENAME') SettingsService.renameEntity(t, n, nn); return { success: true }; } catch(err) { return { success: false, error: err.message }; } }
+function apiManageEntity(a, t, n, m, on) { try { if(a==='ADD') SettingsService.addEntity(t, n, m); if(a==='DELETE') SettingsService.deleteEntity(t, on); if(a==='RENAME') SettingsService.renameEntity(t, on, n, m); return { success: true }; } catch(err) { return { success: false, error: err.message }; } }
 function apiDownloadHtmlReport(y, m) { try { return { success: true, html: AnalyticsService.buildHtmlReport(y, m) }; } catch(err) { return { success: false, error: err.message }; } }
+function apiGenerateAiQuote(y, m) { try { return { success: true, quote: AnalyticsService.generateAiQuote(y, m) }; } catch(err) { return { success: false, error: err.message }; } }
