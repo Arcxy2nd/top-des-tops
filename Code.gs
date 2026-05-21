@@ -178,7 +178,7 @@ const AnalyticsService = {
 
     Génère uniquement la citation finale, pas d'introduction.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
     const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
 
