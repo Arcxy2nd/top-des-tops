@@ -60,7 +60,7 @@
     .entity-item { display: flex; flex-direction: column; gap: 10px; background: #14171f; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
     .entity-header { display: flex; justify-content: space-between; align-items: center; }
     .entity-meta { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
-    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #2a313d; }
     
     #toastContainer { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
     .toast { padding: 15px 25px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease forwards; display: flex; align-items: center; gap: 10px; }
@@ -198,17 +198,30 @@
     
     function renderList(id, type, items, metaLabel) {
       document.getElementById(id).innerHTML = items.map(i => {
-        let visual = type === 'Players' && i.meta ? `<img src="${i.meta}" class="avatar-img" onerror="this.style.display='none'">` : '';
+        let visual = '';
+        let metaDisplay = '';
+        
+        if (type === 'Players') {
+          // Fallback UI Avatar generator if no URL or broken URL
+          const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=2a313d&color=e0e6ed&bold=true`;
+          const avatarSrc = i.meta ? i.meta : fallbackUrl;
+          
+          visual = `<img src="${avatarSrc}" class="avatar-img" onerror="this.onerror=null; this.src='${fallbackUrl}';">`;
+        } else if (i.meta) {
+          // Only show meta text for categories (Descriptions)
+          metaDisplay = `<div class="entity-meta">${metaLabel}: ${i.meta}</div>`;
+        }
+
         return `
         <li class="entity-item">
           <div class="entity-header">
             <div style="display:flex; align-items:center; gap:10px;">${visual} <strong>${i.name}</strong></div>
             <div style="display:flex; gap:8px;">
-              <button class="small" onclick="promptRename('${type}', '${i.name}', '${i.meta.replace(/'/g, "\\'")}')">Éditer</button>
+              <button class="small" onclick="promptRename('${type}', '${i.name}', '${(i.meta || '').replace(/'/g, "\\'")}')">Éditer</button>
               <button class="small danger" onclick="manageEntity('DELETE', '${type}', null, null, '${i.name}')">X</button>
             </div>
           </div>
-          ${i.meta ? `<div class="entity-meta">${metaLabel}: ${i.meta}</div>` : ''}
+          ${metaDisplay}
         </li>`
       }).join('');
     }
@@ -232,7 +245,7 @@
 
     function promptRename(type, oldName, oldMeta) {
       const newName = prompt(`Nouveau nom pour ${oldName} :`, oldName); if (!newName) return;
-      const newMeta = prompt(`Nouvelle métadonnée (Avatar URL / Description) :`, oldMeta || "");
+      const newMeta = prompt(type === 'Players' ? `Lien de l'avatar pour ${newName} :` : `Description pour ${newName} :`, oldMeta || "");
       manageEntity('RENAME', type, null, null, oldName, newName, newMeta);
     }
 
@@ -278,7 +291,7 @@
 
     function fetchAnalytics() {
       google.script.run.withSuccessHandler(res => { if (res.success) renderDashboard(res.data); }).apiGetData(document.getElementById('yearFilter').value, document.getElementById('monthFilter').value);
-      document.getElementById('aiOutput').style.display = 'none'; // Cacher l'ancienne citation lors d'un changement de filtre
+      document.getElementById('aiOutput').style.display = 'none';
     }
 
     function renderDashboard(data) {
