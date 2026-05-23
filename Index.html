@@ -13,22 +13,18 @@
       --success: #2ed573; --error: #ff4757; --btn-alt: #353b48; 
     }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 0; margin: 0; }
-    
     .navbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; justify-content: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
     .nav-container { display: flex; max-width: 900px; width: 100%; gap: 10px; }
     .nav-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1rem; padding: 18px 20px; cursor: pointer; transition: 0.3s; font-weight: 500; border-bottom: 3px solid transparent; }
     .nav-btn:hover { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
-    
     .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: flex; flex-direction: column; gap: 24px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
     .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
     h2 { margin: 0 0 20px 0; font-size: 1.4rem; color: #fff; display: flex; align-items: center; gap: 10px; }
     h3 { font-size: 1.1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
-    
     select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #14171f; color: var(--text); font-size: 1rem; outline: none; transition: 0.2s; }
     select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
     button { font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -43,50 +39,44 @@
     button.small:hover { background: #57606f; }
     button.danger { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); }
     button.danger:hover { background: var(--error); color: #fff; }
-    
-    /* GESTION ROBUSTE DES AVATARS */
     .player-select-wrapper { display: flex; align-items: center; background: #14171f; border: 1px solid #353b48; border-radius: 6px; padding: 0 10px; width: 100%; box-sizing: border-box; transition: 0.2s; }
     .player-select-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
     .player-select-wrapper select { border: none; background: transparent; padding: 12px 0 12px 10px; width: 100%; outline: none; box-shadow: none; color: var(--text); }
     .player-select-wrapper select:focus { box-shadow: none; border: none; }
-
     .batch-header { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; padding: 0 10px; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: bold; text-transform: uppercase; }
     #entryContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .entry-row { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; align-items: center; background: #14171f; padding: 10px; border-radius: 8px; border: 1px solid var(--border); transition: 0.2s; }
     .entry-row:hover { border-color: #4a5568; }
     .row-actions { display: flex; gap: 5px; }
-
+    .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 20px; }
     .filters { display: flex; gap: 15px; background: #14171f; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
     .report-box { background: #0b0c10; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #00d4aa; border: 1px solid var(--border); font-size: 0.95rem; }
     .ai-quote-box { margin-top: 15px; padding: 15px; border-left: 4px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color: #fff; font-style: italic; display: none; border-radius: 4px; }
     .actions-bar { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     .entity-list { list-style: none; padding: 0; margin: 0 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
     .entity-item { display: flex; flex-direction: column; gap: 10px; background: #14171f; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
     .entity-header { display: flex; justify-content: space-between; align-items: center; }
     .entity-meta { font-size: 0.85rem; color: var(--text-muted); font-style: italic; word-break: break-all; }
     .avatar-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #2a313d; }
-    
     #toastContainer { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
     .toast { padding: 15px 25px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease forwards; display: flex; align-items: center; gap: 10px; }
     .toast.success { background: var(--success); border: 1px solid #27ae60; color: #000; }
     .toast.error { background: var(--error); border: 1px solid #c0392b; }
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
-
     @media (max-width: 768px) { 
       .batch-header { display: none; }
       .entry-row { grid-template-columns: 1fr 1fr; padding: 15px; }
       .player-select-wrapper, .entry-row select, .entry-row input { width: 100%; box-sizing: border-box; }
-      .row-actions { grid-column: span 2; display: flex; }
+      /* FIX: grid-column corrigé pour mobile */
+      .row-actions { grid-column: 1 / -1; display: flex; }
       .row-actions button { flex: 1; }
       .settings-grid, .actions-bar, .filters { flex-direction: column; grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-
   <nav class="navbar">
     <div class="nav-container">
       <button class="nav-btn active" onclick="switchTab('tab-dashboard', this)">📊 Tableau de Bord</button>
@@ -107,14 +97,13 @@
         </div>
         <div style="height: 400px; position: relative; width: 100%;"><canvas id="mainChart"></canvas></div>
       </div>
-
       <div class="card">
         <h2>Rapport Narratif & Export</h2>
         <div class="report-box" id="reportOutput">Calcul des algorithmes en cours...</div>
         <div id="aiOutput" class="ai-quote-box"></div>
-        
         <div class="actions-bar">
           <button class="ai" style="flex:1" id="aiBtn" onclick="generateAiQuote()">🤖 Générer Citation IA</button>
+          <!-- FIX: exportHtmlReport() maintenant définie dans le JS -->
           <button class="primary" style="flex:1" onclick="exportHtmlReport()">⬇️ Exporter HTML</button>
           <button class="secondary" style="flex:1" onclick="window.print()">🖨️ Sauvegarder PDF</button>
         </div>
@@ -128,13 +117,10 @@
           <label style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 8px;">Date appliquée au lot (vide = maintenant) :</label>
           <input type="datetime-local" id="globalDateInput" style="width: 100%; box-sizing: border-box;">
         </div>
-
         <div class="batch-header">
           <div>Cible (Joueur)</div><div>Type (Catégorie)</div><div>Valeur unitaire</div><div>Nombre de Fois</div><div>Actions</div>
         </div>
-        
         <div id="entryContainer"></div>
-
         <div class="actions-bar">
           <button class="secondary" onclick="addEntryRow()">+ Nouvelle Ligne</button>
           <button class="primary" style="flex:2" onclick="submitBulkData()" id="submitBtn">✓ Inscrire le Lot</button>
@@ -175,7 +161,7 @@
     let cachedCategories = [];
     let rowCounter = 0;
 
-    // NAVIGATION SÉCURISÉE (Plus d'erreur "event is undefined" sur Safari)
+    // ─── NAVIGATION ──────────────────────────────────────────────────────────
     function switchTab(tabId, btnElement) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -183,189 +169,320 @@
       if (btnElement) btnElement.classList.add('active');
     }
 
+    // ─── TOASTS ───────────────────────────────────────────────────────────────
     function showToast(msg, type) {
       const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
       container.appendChild(toast);
-      setTimeout(() => { toast.style.animation = 'fadeOut 0.3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 4000);
+      setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
     }
 
+    // ─── INIT ─────────────────────────────────────────────────────────────────
     function initApp() { fetchSettings(); fetchAnalytics(); }
-    
+
+    // ─── SETTINGS ─────────────────────────────────────────────────────────────
     function fetchSettings() {
-      google.script.run.withSuccessHandler(res => {
+      google.script.run.withSuccessHandler(function(res) {
         if (res.success) {
-          cachedPlayers = res.players; cachedCategories = res.categories;
-          renderList('playersList', 'Players', res.players, 'Avatar URL'); 
+          cachedPlayers = res.players;
+          cachedCategories = res.categories;
+          renderList('playersList', 'Players', res.players, 'Avatar URL');
           renderList('categoriesList', 'Categories', res.categories, 'Description');
           if (document.getElementById('entryContainer').children.length === 0) addEntryRow();
-        } else { showToast(res.error, 'error'); }
+        } else {
+          showToast(res.error, 'error');
+        }
       }).apiGetSettings();
     }
-    
+
+    // FIX: Échappement XSS complet pour l'affichage dans le HTML
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // FIX: Échappement pour les valeurs dans les attributs onclick (guillemets simples)
+    function escapeAttr(str) {
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
     function renderList(id, type, items, metaLabel) {
-      document.getElementById(id).innerHTML = items.map(i => {
-        let visual = '';
-        let metaDisplay = '';
-        
-        // Échappement strict des caractères (Protection contre les apostrophes/guillemets)
-        const safeName = i.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-        const safeMeta = (i.meta || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-        
+      document.getElementById(id).innerHTML = items.map(function(i) {
+        var displayName = escapeHtml(i.name);
+        var displayMeta = escapeHtml(i.meta || '');
+        var attrName    = escapeAttr(i.name);
+        var attrMeta    = escapeAttr(i.meta || '');
+
+        var visual = '';
+        var metaDisplay = '';
+
         if (type === 'Players') {
-          const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=2a313d&color=e0e6ed&bold=true`;
-          const avatarSrc = i.meta ? i.meta : fallbackUrl;
-          visual = `<img src="${avatarSrc}" class="avatar-img" onerror="this.onerror=null; this.src='${fallbackUrl}';">`;
+          var fallbackUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(i.name) + '&background=2a313d&color=e0e6ed&bold=true';
+          var avatarSrc = i.meta ? escapeHtml(i.meta) : fallbackUrl;
+          var fallbackEsc = escapeHtml(fallbackUrl);
+          visual = '<img src="' + avatarSrc + '" class="avatar-img" onerror="this.onerror=null; this.src=\'' + fallbackEsc + '\';">';
         } else if (i.meta) {
-          metaDisplay = `<div class="entity-meta">${metaLabel}: ${i.meta}</div>`;
+          metaDisplay = '<div class="entity-meta">' + metaLabel + ': ' + displayMeta + '</div>';
         }
 
-        return `
-        <li class="entity-item">
-          <div class="entity-header">
-            <div style="display:flex; align-items:center; gap:10px;">${visual} <strong>${i.name}</strong></div>
-            <div style="display:flex; gap:8px;">
-              <button class="small" onclick="promptRename('${type}', '${safeName}', '${safeMeta}')">Éditer</button>
-              <button class="small danger" onclick="manageEntity('DELETE', '${type}', null, null, '${safeName}')">X</button>
-            </div>
-          </div>
-          ${metaDisplay}
-        </li>`
+        return '<li class="entity-item">' +
+          '<div class="entity-header">' +
+            '<div style="display:flex; align-items:center; gap:10px;">' + visual + ' <strong>' + displayName + '</strong></div>' +
+            '<div style="display:flex; gap:8px;">' +
+              '<button class="small" onclick="promptRename(\'' + type + '\', \'' + attrName + '\', \'' + attrMeta + '\')">Éditer</button>' +
+              '<button class="small danger" onclick="manageEntity(\'DELETE\', \'' + type + '\', null, null, \'' + attrName + '\')">X</button>' +
+            '</div>' +
+          '</div>' +
+          metaDisplay +
+        '</li>';
       }).join('');
     }
 
     function manageEntity(act, type, idName, idMeta, fixedOldName, fixedNewName, fixedNewMeta) {
-      const name = (act === 'ADD') ? document.getElementById(idName).value.trim() : fixedOldName; 
-      const meta = (act === 'ADD' && idMeta) ? document.getElementById(idMeta).value.trim() : null;
+      var name = (act === 'ADD') ? document.getElementById(idName).value.trim() : fixedOldName;
+      var meta = (act === 'ADD' && idMeta) ? document.getElementById(idMeta).value.trim() : null;
       if (act === 'ADD' && !name) return;
-      if (act === 'DELETE' && !confirm(`Supprimer définitivement '${name}' ?`)) return;
+      if (act === 'DELETE' && !confirm("Supprimer définitivement '" + name + "' ?")) return;
 
-      google.script.run.withSuccessHandler(res => {
-        if (res.success) { 
-          if (idName) document.getElementById(idName).value = ''; 
-          if (idMeta) document.getElementById(idMeta).value = ''; 
+      google.script.run.withSuccessHandler(function(res) {
+        if (res.success) {
+          if (idName) document.getElementById(idName).value = '';
+          if (idMeta) document.getElementById(idMeta).value = '';
           document.getElementById('entryContainer').innerHTML = '';
-          fetchSettings(); fetchAnalytics(); 
+          fetchSettings();
+          fetchAnalytics();
           showToast('Base de données mise à jour.', 'success');
-        } else { showToast(res.error, 'error'); }
+        } else {
+          showToast(res.error, 'error');
+        }
       }).apiManageEntity(act, type, fixedNewName || name, fixedNewMeta || meta, fixedOldName);
     }
 
     function promptRename(type, oldName, oldMeta) {
-      const newName = prompt(`Nouveau nom pour ${oldName} :`, oldName); if (!newName) return;
-      const newMeta = prompt(type === 'Players' ? `Lien de l'avatar pour ${newName} :` : `Description pour ${newName} :`, oldMeta || "");
+      var newName = prompt('Nouveau nom pour ' + oldName + ' :', oldName);
+      if (!newName) return;
+      var newMeta = prompt(
+        type === 'Players' ? "Lien de l'avatar pour " + newName + ' :' : 'Description pour ' + newName + ' :',
+        oldMeta || ''
+      );
       manageEntity('RENAME', type, null, null, oldName, newName, newMeta);
     }
 
-    /* GESTION SÉCURISÉE DE L'AVATAR DANS LA LIGNE */
+    // ─── LIGNE D'ENTRÉE ──────────────────────────────────────────────────────
     function updateRowAvatar(selectElement) {
-      const selectedOption = selectElement.options[selectElement.selectedIndex];
+      var selectedOption = selectElement.options[selectElement.selectedIndex];
       if (!selectedOption) return;
-      
-      const playerName = selectedOption.value;
-      const playerMeta = selectedOption.getAttribute('data-img');
-      const imgElement = selectElement.parentElement.querySelector('.row-avatar');
-      
+      var playerName = selectedOption.value;
+      var playerMeta = selectedOption.getAttribute('data-img');
+      var imgElement = selectElement.parentElement.querySelector('.row-avatar');
       if (!imgElement) return;
-
-      const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName)}&background=2a313d&color=e0e6ed&bold=true`;
+      var fallbackUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(playerName) + '&background=2a313d&color=e0e6ed&bold=true';
       imgElement.src = playerMeta ? playerMeta : fallbackUrl;
-      // Empêche la boucle infinie si l'image crash
       imgElement.onerror = function() { this.onerror = null; this.src = fallbackUrl; };
     }
 
-    function addEntryRow(preset = null) {
-      rowCounter++; const id = 'row_' + rowCounter;
-      const div = document.createElement('div'); div.className = 'entry-row'; div.id = id;
-      
-      // Sécurisation des valeurs injectées dans les balises HTML
-      const playerOptions = cachedPlayers.map(p => {
-        const sName = p.name.replace(/"/g, "&quot;");
-        const sMeta = (p.meta || '').replace(/"/g, "&quot;");
-        return `<option value="${sName}" data-img="${sMeta}">${p.name}</option>`;
-      }).join('');
-      
-      const catOptions = cachedCategories.map(c => {
-        return `<option value="${c.name.replace(/"/g, "&quot;")}">${c.name}</option>`;
+    function addEntryRow(preset) {
+      // FIX: Garde-fou si joueurs/catégories pas encore chargés
+      if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
+        var container = document.getElementById('entryContainer');
+        if (!container.querySelector('.empty-state')) {
+          var msg = document.createElement('p');
+          msg.className = 'empty-state';
+          msg.textContent = "⚠️ Ajoutez d'abord des joueurs et des catégories dans l'onglet Paramètres.";
+          container.appendChild(msg);
+        }
+        return;
+      }
+
+      rowCounter++;
+      var id = 'row_' + rowCounter;
+      var div = document.createElement('div');
+      div.className = 'entry-row';
+      div.id = id;
+
+      // FIX: Échappement des valeurs injectées dans les attributs HTML
+      var playerOptions = cachedPlayers.map(function(p) {
+        var sName = escapeHtml(p.name);
+        var sMeta = escapeHtml(p.meta || '');
+        return '<option value="' + sName + '" data-img="' + sMeta + '">' + sName + '</option>';
       }).join('');
 
-      div.innerHTML = `
-        <div class="player-select-wrapper">
-          <img class="row-avatar" src="" style="width:26px; height:26px; min-width:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#2a313d;">
-          <select class="p-sel" onchange="updateRowAvatar(this)">
-            ${playerOptions}
-          </select>
-        </div>
-        <select class="c-sel" style="width:100%">${catOptions}</select>
-        <select class="pts-sel" style="width:100%"><option value="1">1 Point</option><option value="3">3 Points</option><option value="5">5 Points</option><option value="10">10 Points</option></select>
-        <input type="number" class="tms-in" value="1" min="1" title="Multiplicateur" style="width:100%">
-        <div class="row-actions">
-          <button class="small" style="flex:1; background:#3742fa; color:#fff;" onclick="duplicateRow('${id}')">📋</button>
-          <button class="small danger" style="flex:1;" onclick="document.getElementById('${id}').remove()">X</button>
-        </div>
-      `;
+      var catOptions = cachedCategories.map(function(c) {
+        var sName = escapeHtml(c.name);
+        return '<option value="' + sName + '">' + sName + '</option>';
+      }).join('');
+
+      div.innerHTML =
+        '<div class="player-select-wrapper">' +
+          '<img class="row-avatar" src="" style="width:26px; height:26px; min-width:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#2a313d;">' +
+          '<select class="p-sel" onchange="updateRowAvatar(this)">' + playerOptions + '</select>' +
+        '</div>' +
+        '<select class="c-sel" style="width:100%">' + catOptions + '</select>' +
+        '<select class="pts-sel" style="width:100%">' +
+          '<option value="1">1 Point</option>' +
+          '<option value="3">3 Points</option>' +
+          '<option value="5">5 Points</option>' +
+          '<option value="10">10 Points</option>' +
+        '</select>' +
+        '<input type="number" class="tms-in" value="1" min="1" title="Multiplicateur" style="width:100%">' +
+        '<div class="row-actions">' +
+          '<button class="small" style="flex:1; background:#3742fa; color:#fff;" onclick="duplicateRow(\'' + id + '\')">📋</button>' +
+          '<button class="small danger" style="flex:1;" onclick="document.getElementById(\'' + id + '\').remove()">X</button>' +
+        '</div>';
+
       document.getElementById('entryContainer').appendChild(div);
-      
+
       if (preset) {
-        const newRow = document.getElementById(id);
-        newRow.querySelector('.p-sel').value = preset.player; newRow.querySelector('.c-sel').value = preset.category;
-        newRow.querySelector('.pts-sel').value = preset.points; newRow.querySelector('.tms-in').value = preset.times;
+        var newRow = document.getElementById(id);
+        newRow.querySelector('.p-sel').value   = preset.player;
+        newRow.querySelector('.c-sel').value   = preset.category;
+        newRow.querySelector('.pts-sel').value = preset.points;
+        newRow.querySelector('.tms-in').value  = preset.times;
       }
-      
-      // Initialisation immédiate de l'avatar au rendu de la ligne
-      const newlyCreatedSelect = document.getElementById(id).querySelector('.p-sel');
-      if(newlyCreatedSelect) updateRowAvatar(newlyCreatedSelect);
+
+      var sel = document.getElementById(id).querySelector('.p-sel');
+      if (sel) updateRowAvatar(sel);
     }
 
     function duplicateRow(rowId) {
-      const row = document.getElementById(rowId);
-      addEntryRow({ player: row.querySelector('.p-sel').value, category: row.querySelector('.c-sel').value, points: row.querySelector('.pts-sel').value, times: row.querySelector('.tms-in').value });
+      var row = document.getElementById(rowId);
+      addEntryRow({
+        player:   row.querySelector('.p-sel').value,
+        category: row.querySelector('.c-sel').value,
+        points:   row.querySelector('.pts-sel').value,
+        times:    row.querySelector('.tms-in').value
+      });
     }
 
     function submitBulkData() {
-      const rows = document.querySelectorAll('.entry-row'); const entries = [];
-      rows.forEach(row => { entries.push({ player: row.querySelector('.p-sel').value, category: row.querySelector('.c-sel').value, points: row.querySelector('.pts-sel').value, times: row.querySelector('.tms-in').value }); });
+      var rows = document.querySelectorAll('.entry-row');
+      var entries = [];
+      rows.forEach(function(row) {
+        entries.push({
+          player:   row.querySelector('.p-sel').value,
+          category: row.querySelector('.c-sel').value,
+          points:   row.querySelector('.pts-sel').value,
+          times:    row.querySelector('.tms-in').value
+        });
+      });
       if (entries.length === 0) return showToast('Veuillez ajouter au moins une ligne.', 'error');
 
-      const btn = document.getElementById('submitBtn'); const date = document.getElementById('globalDateInput').value;
-      btn.innerHTML = "⏳ Écriture..."; btn.disabled = true;
-      google.script.run.withSuccessHandler(res => {
-        btn.innerHTML = "✓ Inscrire le Lot"; btn.disabled = false;
-        if (res.success) { document.getElementById('globalDateInput').value = ''; document.getElementById('entryContainer').innerHTML = ''; addEntryRow(); fetchAnalytics(); showToast('Lot enregistré avec succès !', 'success'); } 
-        else { showToast(res.error, 'error'); }
+      var btn  = document.getElementById('submitBtn');
+      var date = document.getElementById('globalDateInput').value;
+      btn.innerHTML = '⏳ Écriture...';
+      btn.disabled  = true;
+
+      google.script.run.withSuccessHandler(function(res) {
+        btn.innerHTML = '✓ Inscrire le Lot';
+        btn.disabled  = false;
+        if (res.success) {
+          document.getElementById('globalDateInput').value = '';
+          document.getElementById('entryContainer').innerHTML = '';
+          addEntryRow();
+          fetchAnalytics();
+          showToast('Lot enregistré avec succès !', 'success');
+        } else {
+          showToast(res.error, 'error');
+        }
       }).apiAddBulkScores(entries, date);
     }
 
+    // ─── ANALYTICS ──────────────────────────────────────────────────────────
     function fetchAnalytics() {
-      google.script.run.withSuccessHandler(res => { if (res.success) renderDashboard(res.data); }).apiGetData(document.getElementById('yearFilter').value, document.getElementById('monthFilter').value);
+      google.script.run.withSuccessHandler(function(res) {
+        if (res.success) renderDashboard(res.data);
+        else showToast(res.error, 'error');
+      }).apiGetData(
+        document.getElementById('yearFilter').value,
+        document.getElementById('monthFilter').value
+      );
       document.getElementById('aiOutput').style.display = 'none';
     }
 
     function renderDashboard(data) {
       document.getElementById('reportOutput').innerText = data.insights;
-      const players = Object.keys(data.scores);
-      const datasets = data.categories.map((cat, i) => {
-        const colors = ['#ff4757', '#00d4aa', '#ffd166', '#6c63ff', '#ff6b81', '#3742fa'];
-        return { label: cat, data: players.map(p => data.scores[p][cat] || 0), backgroundColor: colors[i % colors.length], borderRadius: 4 };
+      var players  = Object.keys(data.scores);
+      var colors   = ['#ff4757', '#00d4aa', '#ffd166', '#6c63ff', '#ff6b81', '#3742fa'];
+      var datasets = data.categories.map(function(cat, i) {
+        return {
+          label:           cat,
+          data:            players.map(function(p) { return data.scores[p][cat] || 0; }),
+          backgroundColor: colors[i % colors.length],
+          borderRadius:    4
+        };
       });
-      const ctx = document.getElementById('mainChart').getContext('2d');
+      var ctx = document.getElementById('mainChart').getContext('2d');
       if (currentChart) currentChart.destroy();
-      currentChart = new Chart(ctx, { type: 'bar', data: { labels: players, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { color: '#2a313d' } }, y: { stacked: true, grid: { color: '#2a313d' } } }, plugins: { legend: { labels: { color: '#e0e6ed' } } } } });
+      currentChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: players, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { color: '#2a313d' } },
+            y: { stacked: true, grid: { color: '#2a313d' } }
+          },
+          plugins: { legend: { labels: { color: '#e0e6ed' } } }
+        }
+      });
     }
 
+    // ─── IA ──────────────────────────────────────────────────────────────────
     function generateAiQuote() {
-      const btn = document.getElementById('aiBtn');
-      btn.disabled = true; btn.innerHTML = "⏳ Connexion...";
-      const y = document.getElementById('yearFilter').value; const m = document.getElementById('monthFilter').value;
-      
-      google.script.run.withSuccessHandler(res => {
-        btn.disabled = false; btn.innerHTML = "🤖 Générer Citation IA";
+      var btn = document.getElementById('aiBtn');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Connexion...';
+      var y = document.getElementById('yearFilter').value;
+      var m = document.getElementById('monthFilter').value;
+
+      google.script.run.withSuccessHandler(function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '🤖 Générer Citation IA';
         if (res.success) {
-          const out = document.getElementById('aiOutput');
-          out.innerText = `« ${res.quote} »`;
+          var out = document.getElementById('aiOutput');
+          out.innerText = '« ' + res.quote + ' »';
           out.style.display = 'block';
-        } else { showToast(res.error, 'error'); }
+        } else {
+          showToast(res.error, 'error');
+        }
       }).apiGenerateAiQuote(y, m);
+    }
+
+    // ─── EXPORT HTML ─────────────────────────────────────────────────────────
+    // FIX: cette fonction était absente dans la version originale
+    function exportHtmlReport() {
+      var y   = document.getElementById('yearFilter').value;
+      var m   = document.getElementById('monthFilter').value;
+      var btn = document.querySelector('[onclick="exportHtmlReport()"]');
+      if (btn) { btn.innerHTML = '⏳ Génération...'; btn.disabled = true; }
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (btn) { btn.innerHTML = '⬇️ Exporter HTML'; btn.disabled = false; }
+        if (res.success) {
+          var blob = new Blob([res.html], { type: 'text/html;charset=utf-8' });
+          var url  = URL.createObjectURL(blob);
+          var a    = document.createElement('a');
+          a.href     = url;
+          a.download = 'rapport_casseroles_' + y + '_' + m + '.html';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Rapport exporté !', 'success');
+        } else {
+          showToast(res.error, 'error');
+        }
+      }).apiDownloadHtmlReport(y, m);
     }
 
     window.onload = initApp;
