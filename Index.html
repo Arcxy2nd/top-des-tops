@@ -29,7 +29,6 @@
     h2 { margin: 0 0 20px 0; font-size: 1.4rem; color: #fff; display: flex; align-items: center; gap: 10px; }
     h3 { font-size: 1.1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
     
-    /* INPUTS & BUTTONS */
     select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #14171f; color: var(--text); font-size: 1rem; outline: none; transition: 0.2s; }
     select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
     button { font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -45,13 +44,12 @@
     button.danger { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); }
     button.danger:hover { background: var(--error); color: #fff; }
     
-    /* CUSTOM PLAYER SELECTOR (AVATAR + DROPDOWN) */
-    .player-select-wrapper { display: flex; align-items: center; background: #14171f; border: 1px solid #353b48; border-radius: 6px; padding: 0 10px; transition: 0.2s; }
+    /* GESTION ROBUSTE DES AVATARS */
+    .player-select-wrapper { display: flex; align-items: center; background: #14171f; border: 1px solid #353b48; border-radius: 6px; padding: 0 10px; width: 100%; box-sizing: border-box; transition: 0.2s; }
     .player-select-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
-    .player-select-wrapper select { border: none; background: transparent; padding: 12px 0 12px 10px; width: 100%; outline: none; box-shadow: none; }
+    .player-select-wrapper select { border: none; background: transparent; padding: 12px 0 12px 10px; width: 100%; outline: none; box-shadow: none; color: var(--text); }
     .player-select-wrapper select:focus { box-shadow: none; border: none; }
 
-    /* BATCH BUILDER GRID */
     .batch-header { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; padding: 0 10px; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: bold; text-transform: uppercase; }
     #entryContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .entry-row { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; align-items: center; background: #14171f; padding: 10px; border-radius: 8px; border: 1px solid var(--border); transition: 0.2s; }
@@ -67,10 +65,9 @@
     .entity-list { list-style: none; padding: 0; margin: 0 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
     .entity-item { display: flex; flex-direction: column; gap: 10px; background: #14171f; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
     .entity-header { display: flex; justify-content: space-between; align-items: center; }
-    .entity-meta { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
-    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #2a313d; }
+    .entity-meta { font-size: 0.85rem; color: var(--text-muted); font-style: italic; word-break: break-all; }
+    .avatar-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #2a313d; }
     
-    /* TOASTS */
     #toastContainer { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
     .toast { padding: 15px 25px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease forwards; display: flex; align-items: center; gap: 10px; }
     .toast.success { background: var(--success); border: 1px solid #27ae60; color: #000; }
@@ -92,9 +89,9 @@
 
   <nav class="navbar">
     <div class="nav-container">
-      <button class="nav-btn active" onclick="switchTab('tab-dashboard')">📊 Tableau de Bord</button>
-      <button class="nav-btn" onclick="switchTab('tab-inject')">✍️ Saisir un Lot</button>
-      <button class="nav-btn" onclick="switchTab('tab-settings')">⚙️ Base & Paramètres</button>
+      <button class="nav-btn active" onclick="switchTab('tab-dashboard', this)">📊 Tableau de Bord</button>
+      <button class="nav-btn" onclick="switchTab('tab-inject', this)">✍️ Saisir un Lot</button>
+      <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Base & Paramètres</button>
     </div>
   </nav>
 
@@ -178,11 +175,12 @@
     let cachedCategories = [];
     let rowCounter = 0;
 
-    function switchTab(tabId) {
+    // NAVIGATION SÉCURISÉE (Plus d'erreur "event is undefined" sur Safari)
+    function switchTab(tabId, btnElement) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      event.currentTarget.classList.add('active');
+      if (btnElement) btnElement.classList.add('active');
     }
 
     function showToast(msg, type) {
@@ -210,6 +208,10 @@
         let visual = '';
         let metaDisplay = '';
         
+        // Échappement strict des caractères (Protection contre les apostrophes/guillemets)
+        const safeName = i.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const safeMeta = (i.meta || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        
         if (type === 'Players') {
           const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=2a313d&color=e0e6ed&bold=true`;
           const avatarSrc = i.meta ? i.meta : fallbackUrl;
@@ -223,8 +225,8 @@
           <div class="entity-header">
             <div style="display:flex; align-items:center; gap:10px;">${visual} <strong>${i.name}</strong></div>
             <div style="display:flex; gap:8px;">
-              <button class="small" onclick="promptRename('${type}', '${i.name}', '${(i.meta || '').replace(/'/g, "\\'")}')">Éditer</button>
-              <button class="small danger" onclick="manageEntity('DELETE', '${type}', null, null, '${i.name}')">X</button>
+              <button class="small" onclick="promptRename('${type}', '${safeName}', '${safeMeta}')">Éditer</button>
+              <button class="small danger" onclick="manageEntity('DELETE', '${type}', null, null, '${safeName}')">X</button>
             </div>
           </div>
           ${metaDisplay}
@@ -255,7 +257,7 @@
       manageEntity('RENAME', type, null, null, oldName, newName, newMeta);
     }
 
-    /* GESTION AVATAR DYNAMIQUE */
+    /* GESTION SÉCURISÉE DE L'AVATAR DANS LA LIGNE */
     function updateRowAvatar(selectElement) {
       const selectedOption = selectElement.options[selectElement.selectedIndex];
       if (!selectedOption) return;
@@ -268,23 +270,33 @@
 
       const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName)}&background=2a313d&color=e0e6ed&bold=true`;
       imgElement.src = playerMeta ? playerMeta : fallbackUrl;
-      imgElement.onerror = function() { this.src = fallbackUrl; };
+      // Empêche la boucle infinie si l'image crash
+      imgElement.onerror = function() { this.onerror = null; this.src = fallbackUrl; };
     }
 
     function addEntryRow(preset = null) {
       rowCounter++; const id = 'row_' + rowCounter;
       const div = document.createElement('div'); div.className = 'entry-row'; div.id = id;
       
-      const playerOptions = cachedPlayers.map(p => `<option value="${p.name}" data-img="${p.meta || ''}">${p.name}</option>`).join('');
+      // Sécurisation des valeurs injectées dans les balises HTML
+      const playerOptions = cachedPlayers.map(p => {
+        const sName = p.name.replace(/"/g, "&quot;");
+        const sMeta = (p.meta || '').replace(/"/g, "&quot;");
+        return `<option value="${sName}" data-img="${sMeta}">${p.name}</option>`;
+      }).join('');
+      
+      const catOptions = cachedCategories.map(c => {
+        return `<option value="${c.name.replace(/"/g, "&quot;")}">${c.name}</option>`;
+      }).join('');
 
       div.innerHTML = `
         <div class="player-select-wrapper">
-          <img class="row-avatar" src="" style="width:26px; height:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#2a313d;">
+          <img class="row-avatar" src="" style="width:26px; height:26px; min-width:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#2a313d;">
           <select class="p-sel" onchange="updateRowAvatar(this)">
             ${playerOptions}
           </select>
         </div>
-        <select class="c-sel" style="width:100%">${cachedCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}</select>
+        <select class="c-sel" style="width:100%">${catOptions}</select>
         <select class="pts-sel" style="width:100%"><option value="1">1 Point</option><option value="3">3 Points</option><option value="5">5 Points</option><option value="10">10 Points</option></select>
         <input type="number" class="tms-in" value="1" min="1" title="Multiplicateur" style="width:100%">
         <div class="row-actions">
@@ -300,8 +312,9 @@
         newRow.querySelector('.pts-sel').value = preset.points; newRow.querySelector('.tms-in').value = preset.times;
       }
       
-      // Forcer le rafraichissement de l'avatar pour la ligne nouvellement créée
-      updateRowAvatar(document.getElementById(id).querySelector('.p-sel'));
+      // Initialisation immédiate de l'avatar au rendu de la ligne
+      const newlyCreatedSelect = document.getElementById(id).querySelector('.p-sel');
+      if(newlyCreatedSelect) updateRowAvatar(newlyCreatedSelect);
     }
 
     function duplicateRow(rowId) {
