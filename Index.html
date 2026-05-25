@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionnaire de Casseroles</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
@@ -15,115 +14,299 @@
       --accent: #ff4757; --accent-hover: #ff6b81;
       --text: #e0e6ed; --text-muted: #9aa5be;
       --success: #2ed573; --error: #ff4757;
-      --btn-alt: #353b48;
+      --btn-alt: #353b48; --tap-min: 44px;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
       --accent: #e53e3e; --accent-hover: #c53030;
-      --text: #1a202c; --text-muted: #4a5568; --btn-alt: #e2e8f0;
+      --text: #1a202c; --text-muted: #4a5568;
+      --btn-alt: #e2e8f0;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; transition: background 0.2s, color 0.2s; }
-    .navbar { background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); overflow-x: auto; }
-    .nav-container { display: flex; min-width: max-content; width: 100%; max-width: 1200px; gap: 4px; }
-    .nav-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; padding: 16px 18px; cursor: pointer; transition: 0.3s; font-weight: 500; border-bottom: 3px solid transparent; white-space: nowrap; min-height: 44px; }
-    .nav-btn:hover { color: var(--text); }
-    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .theme-toggle { margin-left: auto; background: var(--btn-alt); border: none; border-radius: 30px; font-size: 1.2rem; padding: 8px 12px; cursor: pointer; color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      margin: 0; padding: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .navbar::-webkit-scrollbar { display: none; }
+    .nav-container {
+      display: flex; min-width: max-content;
+      width: 100%; max-width: 1200px; gap: 2px;
+    }
+    .nav-btn {
+      background: transparent; border: none;
+      color: var(--text-muted); font-size: 0.88rem;
+      padding: 15px 16px; cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap; min-height: var(--tap-min);
+      font-weight: 500; transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn:hover  { color: var(--text); }
+    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+    .theme-toggle {
+      margin-left: auto; background: var(--btn-alt); border: none;
+      border-radius: 20px; font-size: 1.1rem; padding: 8px 12px;
+      cursor: pointer; color: var(--text); align-self: center;
+      margin-right: 12px; min-height: 36px;
+    }
+
+    /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
-    .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 16px rgba(0,0,0,0.2); margin-bottom: 20px; }
-    h2 { margin: 0 0 18px 0; font-size: 1.3rem; }
-    h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; margin-bottom: 12px; }
-    .filter-panel { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; margin-bottom: 10px; }
-    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
-    .filter-group label { font-size: 0.8rem; color: var(--text-muted); }
-    .multi-select { min-width: 180px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--text); }
-    select, input, button { padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
-    button { cursor: pointer; transition: 0.2s; }
-    button.primary { background: var(--accent); color: white; border: none; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card); padding: 20px;
+      border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+    }
+    h2 { margin: 0 0 16px 0; font-size: 1.2rem; color: var(--text); }
+    h3 { font-size: 0.95rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 0 0 12px 0; }
+
+    /* ── FORM CONTROLS ── */
+    select, input {
+      padding: 10px 12px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg); color: var(--text);
+      font-size: 16px; /* évite zoom iOS */
+      outline: none; transition: border-color 0.2s;
+      width: 100%;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    button {
+      padding: 10px 16px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: 0.2s;
+      min-height: var(--tap-min);
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.primary { background: var(--accent); color: #fff; border: none; }
     button.primary:hover { background: var(--accent-hover); }
-    button.secondary { background: var(--btn-alt); border: 1px solid var(--border); }
-    button.small { padding: 6px 12px; font-size: 0.8rem; }
-    button.danger { background: rgba(255,71,87,0.2); color: var(--error); border-color: var(--error); }
-    .chart-container { margin-top: 10px; }
-    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-    .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-    .export-btn { background: var(--btn-alt); border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: var(--text); }
-    .export-btn:hover { background: var(--accent); color: white; }
-    canvas { max-width: 100%; height: auto; }
-    .entry-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
-    .batch-header { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto; gap: 10px; padding: 0 10px; margin-bottom: 8px; font-weight: bold; color: var(--text-muted); font-size: 0.8rem; }
+    button.secondary { background: transparent; border: 1px solid var(--border); }
+    button.secondary:hover { background: var(--btn-alt); }
+    button.small { padding: 7px 11px; font-size: 0.8rem; min-height: 34px; }
+    button.danger { background: rgba(255,71,87,0.12); color: var(--error); border-color: var(--error); }
+    button.danger:hover { background: var(--error); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── FILTER PANEL ── */
+    .filter-panel {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+      background: rgba(0,0,0,0.15); padding: 16px;
+      border-radius: 10px; margin-bottom: 16px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; flex: 1; }
+    .filter-group label { font-size: 0.78rem; color: var(--text-muted); }
+    .filter-group button { width: 100%; }
+    select[multiple] {
+      height: auto; padding: 6px;
+      background: var(--card);
+    }
+    select[multiple] option { padding: 4px 6px; }
+
+    /* ── CHART ── */
+    .chart-header {
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+    }
+    .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+    .export-btn {
+      background: var(--btn-alt); border: none;
+      padding: 6px 10px; border-radius: 6px;
+      font-size: 0.75rem; cursor: pointer; color: var(--text);
+      min-height: 32px;
+    }
+    .export-btn:hover { background: var(--accent); color: #fff; }
+    .chart-wrapper { position: relative; height: 420px; }
+
+    /* ── SKELETON LOADER ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--btn-alt) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── SAISIE LOT ── */
+    .batch-header {
+      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      gap: 10px; padding: 0 10px; margin-bottom: 8px;
+      color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .entry-row {
+      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      gap: 10px; align-items: center;
+      background: rgba(0,0,0,0.15); padding: 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      margin-bottom: 8px; transition: border-color 0.2s;
+    }
+    .entry-row:hover { border-color: var(--accent); }
+    .player-sel-wrap {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0 8px;
+    }
+    .player-sel-wrap:focus-within { border-color: var(--accent); }
+    .player-sel-wrap select { border: none; background: transparent; padding: 10px 0; }
+    .row-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .row-actions { display: flex; gap: 6px; }
+    .row-actions button { flex: 1; padding: 8px; }
+    #entryContainer { min-height: 60px; }
+    .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px; }
+
+    /* ── SETTINGS ── */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
-    .entity-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-    .player-avatar-small { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 6px; object-fit: cover; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
-    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
-    .toast { padding: 12px 20px; border-radius: 8px; background: var(--card); border-left: 4px solid; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.2s ease; }
-    .toast.success { border-left-color: var(--success); color: var(--success); }
-    .toast.error { border-left-color: var(--error); color: var(--error); }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 24px; border-radius: 16px; min-width: 280px; max-width: 90%; }
-    .empty-chart-msg { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 1rem; }
-    @media (max-width: 700px) {
-      .filter-panel { flex-direction: column; align-items: stretch; }
-      .multi-select { min-width: auto; }
-      .entry-row { grid-template-columns: 1fr 1fr; }
-      .row-actions { grid-column: span 2; display: flex; gap: 8px; }
+    .entity-item {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; background: rgba(0,0,0,0.15); padding: 10px 12px;
+      border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .entity-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .entity-left strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entity-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .avatar-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
+    .entity-meta { font-size: 0.78rem; color: var(--text-muted); width: 100%; word-break: break-all; }
+    .add-form { display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.1); padding: 12px; border-radius: 8px; }
+
+    /* ── HISTORIQUE ── */
+    .history-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .history-filters select { flex: 1; min-width: 140px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: rgba(0,0,0,0.2); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; padding: 10px 8px; text-align: left; position: sticky; top: 0; }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    .pagination { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .pagination button { min-width: 36px; padding: 6px; }
+    .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .history-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: var(--btn-alt); }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3000; padding: 16px;
+    }
+    .modal-box {
+      background: var(--card); padding: 24px;
+      border-radius: 16px; width: 100%; max-width: 380px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-box h3 { margin: 0 0 12px; font-size: 1rem; }
+    .modal-box p  { margin: 0 0 20px; line-height: 1.5; }
+    .modal-box input { margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-actions button { flex: 1; }
+
+    /* ── TOASTS ── */
+    #toastContainer {
+      position: fixed; bottom: 20px; right: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 4000; max-width: calc(100vw - 32px);
+    }
+    .toast {
+      padding: 12px 18px; border-radius: 8px;
+      background: var(--card); border-left: 4px solid;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      font-size: 0.88rem; font-weight: 500;
+      animation: slideIn 0.2s ease;
+    }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--error);   color: var(--error);   }
+    @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(6px); } }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .container { padding: 0 10px; margin: 12px auto; }
+      .card { padding: 14px; }
+      h2 { font-size: 1rem; }
+      .chart-wrapper { height: 260px; }
+      .filter-panel { flex-direction: column; }
+      .filter-group { min-width: unset; }
       .batch-header { display: none; }
-      .settings-grid { grid-template-columns: 1fr; }
+      .entry-row { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+      .player-sel-wrap { grid-column: 1 / -1; }
+      .entry-row .c-sel { grid-column: 1 / -1; }
+      .entry-row .pts-sel { grid-column: 1; }
+      .entry-row .tms-in  { grid-column: 2; }
+      .row-actions { grid-column: 1 / -1; }
+      .settings-grid { grid-template-columns: 1fr; gap: 16px; }
+      .export-buttons { gap: 4px; }
+      .export-btn { padding: 5px 7px; font-size: 0.7rem; }
+      .history-filters { flex-direction: column; }
     }
   </style>
 </head>
 <body>
+
 <nav class="navbar">
   <div class="nav-container">
     <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique</button>
-    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
   </div>
 </nav>
 
 <div class="container">
-  <div id="toastContainer" class="toast-container"></div>
+  <div id="toastContainer"></div>
 
-  <!-- DASHBOARD -->
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
     <div class="card">
-      <h2>📊 Filtres croisés dynamiques</h2>
+      <h2>🔍 Filtres croisés</h2>
       <div class="filter-panel">
         <div class="filter-group">
-          <label>Joueurs (Ctrl+clic)</label>
-          <select id="playerSelect" multiple size="3" class="multi-select"></select>
+          <label>Joueurs (Ctrl+clic = multi)</label>
+          <select id="playerSelect" multiple size="4"></select>
         </div>
         <div class="filter-group">
-          <label>Catégories (Ctrl+clic)</label>
-          <select id="categorySelect" multiple size="3" class="multi-select"></select>
+          <label>Catégories (Ctrl+clic = multi)</label>
+          <select id="categorySelect" multiple size="4"></select>
         </div>
         <div class="filter-group">
-          <label>Date de début</label>
+          <label>Date début</label>
           <input type="date" id="startDate">
         </div>
         <div class="filter-group">
-          <label>Date de fin</label>
+          <label>Date fin</label>
           <input type="date" id="endDate">
         </div>
-        <div class="filter-group" style="justify-content:flex-end;">
-          <button id="applyFiltersBtn" class="primary">Appliquer</button>
+        <div class="filter-group" style="min-width:110px; flex:0;">
+          <label>&nbsp;</label>
+          <button class="primary" id="applyFiltersBtn">Appliquer</button>
         </div>
       </div>
     </div>
-    <div class="card chart-container">
+
+    <div class="card">
       <div class="chart-header">
-        <h3>📈 Scores par catégorie</h3>
+        <h2 style="margin:0;">📈 Scores par catégorie</h2>
         <div class="export-buttons">
           <button class="export-btn" data-export="png">📸 PNG</button>
           <button class="export-btn" data-export="jpeg">🖼️ JPEG</button>
@@ -133,35 +316,37 @@
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
       </div>
-      <div id="chartWrapper" style="height:450px; position:relative;">
+      <!-- Skeleton visible pendant le chargement initial -->
+      <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
+      <div class="chart-wrapper" id="chartWrapper" style="display:none;">
         <canvas id="mainChart"></canvas>
-        <div id="emptyChartMsg" class="empty-chart-msg" style="display:none;">
-          Aucune donnée à afficher pour les filtres sélectionnés.
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- SAISIE LOT -->
+  <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
   <div id="tab-inject" class="tab-content">
     <div class="card">
       <h2>✍️ Constructeur de Lot</h2>
       <div style="margin-bottom:16px;">
-        <label style="color:var(--text-muted); display:block; margin-bottom:6px;">Date (vide = maintenant)</label>
+        <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">Date appliquée (vide = maintenant)</label>
         <input type="datetime-local" id="globalDateInput">
       </div>
       <div class="batch-header">
-        <div>Joueur</div><div>Catégorie</div><div>Points</div><div>Fois</div><div>Actions</div>
+        <div>Joueur</div><div>Catégorie</div><div>Points</div><div>×</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
-      <div style="display:flex; gap:10px; margin-top:16px;">
+      <datalist id="pointsSuggestion">
+        <option value="1"><option value="3"><option value="5"><option value="10">
+      </datalist>
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
         <button id="addRowBtn" class="secondary">+ Ligne</button>
-        <button id="submitLotBtn" class="primary">✓ Inscrire le Lot</button>
+        <button id="submitLotBtn" class="primary" style="flex:1;">✓ Inscrire le Lot</button>
       </div>
     </div>
   </div>
 
-  <!-- PARAMÈTRES -->
+  <!-- ══ PARAMÈTRES ════════════════════════════════════════════════════ -->
   <div id="tab-settings" class="tab-content">
     <div class="card">
       <h2>⚙️ Base & Paramètres</h2>
@@ -169,553 +354,710 @@
         <div>
           <h3>Profils Joueurs</h3>
           <ul id="playersList" class="entity-list"></ul>
-          <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="add-form">
             <input type="text" id="newPlayerName" placeholder="Nom du joueur">
-            <input type="url" id="newPlayerMeta" placeholder="URL avatar">
-            <button id="addPlayerBtn" class="primary small">Ajouter</button>
+            <input type="url"  id="newPlayerMeta" placeholder="URL avatar (optionnel)">
+            <button id="addPlayerBtn" class="primary small">Ajouter le joueur</button>
           </div>
         </div>
         <div>
           <h3>Types de Casseroles</h3>
           <ul id="categoriesList" class="entity-list"></ul>
-          <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="add-form">
             <input type="text" id="newCategoryName" placeholder="Nom de la catégorie">
-            <input type="text" id="newCategoryMeta" placeholder="Description IA">
-            <button id="addCategoryBtn" class="primary small">Ajouter</button>
+            <input type="text" id="newCategoryMeta" placeholder="Description pour l'IA">
+            <button id="addCategoryBtn" class="primary small">Ajouter la catégorie</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- HISTORIQUE -->
+  <!-- ══ HISTORIQUE ════════════════════════════════════════════════════ -->
   <div id="tab-history" class="tab-content">
     <div class="card">
       <h2>📜 Historique des entrées</h2>
-      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-        <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
-        <select id="historyCategoryFilter"><option value="">Toutes catégories</option></select>
-        <button id="refreshHistoryBtn" class="secondary">Rafraîchir</button>
+      <div class="history-filters">
+        <select id="historyPlayerFilter" style="flex:1; min-width:140px;"><option value="">Tous joueurs</option></select>
+        <select id="historyCategoryFilter" style="flex:1; min-width:140px;"><option value="">Toutes catégories</option></select>
+        <button id="refreshHistoryBtn" class="secondary small">🔄 Rafraîchir</button>
       </div>
-      <div style="overflow-x:auto;">
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Points</th><th></th></tr></thead>
+          <thead>
+            <tr><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Pts</th><th></th></tr>
+          </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
       </div>
-      <div id="historyPagination" style="display:flex; gap:8px; margin-top:16px; justify-content:center; flex-wrap:wrap;"></div>
+      <div id="historyPagination" class="pagination"></div>
     </div>
   </div>
+</div><!-- /.container -->
+
+<!-- ══ MODAL ═══════════════════════════════════════════════════════════ -->
+<div id="modalBackdrop" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div class="modal-box" id="modalBox"></div>
 </div>
 
 <script>
-  var currentChart = null;
-  var currentChartData = null;
-  var cachedPlayers = [];
-  var cachedCategories = [];
-  var rowCounter = 0;
-  var currentHistoryPage = 1;
-  var totalHistoryPages = 1;
-  var PAGE_SIZE = 20;
+  // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
+  let currentChart     = null;
+  let currentChartData = null;
+  let cachedPlayers    = [];
+  let cachedCategories = [];
+  let rowCounter       = 0;
+  let currentHistoryPage = 1;
+  let totalHistoryEntries = 0;
+  const PAGE_SIZE = 20;
 
-  function showToast(msg, type) {
-    var toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.textContent = msg;
-    document.getElementById('toastContainer').appendChild(toast);
-    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  // ── UTILITAIRES ──────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   function getAvatarUrl(name, meta) {
-    if (meta && meta.trim() !== '') return meta;
-    return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=2a313d&color=e0e6ed&bold=true';
+    if (meta && meta.trim()) return meta.trim();
+    return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
+           '&background=2a313d&color=e0e6ed&bold=true&size=64';
   }
 
-  function getAvatarMapFromCache() {
-    var map = {};
-    cachedPlayers.forEach(function(p) { map[p.name] = getAvatarUrl(p.name, p.meta); });
-    return map;
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(() => {
+      t.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => t.remove(), 300);
+    }, 3500);
   }
 
-  // ─── MODALES ────────────────────────────────────────────────
-  var activeModal = null;
-  function closeModal() { if (activeModal) { document.body.removeChild(activeModal); activeModal = null; } }
+  // ── APPEL SERVEUR (avec withFailureHandler) ──────────────────────────
+  function callServer(fn, params, onSuccess, errorLabel) {
+    let runner = google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.success === false) {
+          showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
+        } else {
+          onSuccess(res);
+        }
+      })
+      .withFailureHandler(err => {
+        showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
+      });
+    runner[fn](...params);
+  }
+
+  // ── MODAL ────────────────────────────────────────────────────────────
+  function closeModal() {
+    document.getElementById('modalBackdrop').style.display = 'none';
+    document.getElementById('modalBox').innerHTML = '';
+  }
 
   function openConfirmModal(msg, onConfirm) {
-    closeModal();
-    var modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = '<div class="modal-content"><p>' + msg + '</p><div style="display:flex;gap:12px;margin-top:20px;"><button id="mYes" class="primary">Oui</button><button id="mNo" class="secondary">Annuler</button></div></div>';
-    document.body.appendChild(modal);
-    activeModal = modal;
-    modal.querySelector('#mYes').onclick = function() { closeModal(); onConfirm(); };
-    modal.querySelector('#mNo').onclick = closeModal;
+    const box = document.getElementById('modalBox');
+    box.innerHTML = '<p>' + escapeHtml(msg) + '</p>' +
+      '<div class="modal-actions">' +
+        '<button id="mConfirm" class="primary">Confirmer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mConfirm').onclick = () => { closeModal(); onConfirm(); };
+    document.getElementById('mCancel').onclick  = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  function openEditModal(type, oldName, oldMeta) {
-    closeModal();
-    var modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = '<div class="modal-content">'
-      + '<h3>Éditer ' + escapeHtml(oldName) + '</h3>'
-      + '<input type="text" id="eNewName" value="' + escapeHtml(oldName) + '" placeholder="Nouveau nom" style="width:100%;margin-bottom:8px;">'
-      + '<input type="text" id="eNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + (type==='player'?'URL avatar':'Description') + '" style="width:100%;">'
-      + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="eSave" class="primary">Enregistrer</button><button id="eCancel" class="secondary">Annuler</button></div>'
-      + '</div>';
-    document.body.appendChild(modal);
-    activeModal = modal;
-    modal.querySelector('#eSave').onclick = function() {
-      var newName = modal.querySelector('#eNewName').value.trim();
-      var newMeta = modal.querySelector('#eNewMeta').value.trim();
-      if (!newName) return;
-      var entityType = (type === 'player') ? 'Players' : 'Categories';
+  function openEditModal(entityType, oldName, oldMeta) {
+    const box = document.getElementById('modalBox');
+    const label = entityType === 'Players' ? 'URL avatar' : 'Description IA';
+    box.innerHTML =
+      '<h3>Éditer : ' + escapeHtml(oldName) + '</h3>' +
+      '<input type="text" id="mNewName" value="' + escapeHtml(oldName) + '" placeholder="Nom">' +
+      '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + label + '">' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mSave').onclick = () => {
+      const n = document.getElementById('mNewName').value.trim();
+      const m = document.getElementById('mNewMeta').value.trim();
+      if (!n) return;
       closeModal();
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) { loadEntities(); showToast('Renommé', 'success'); }
-          else showToast(res.error, 'error');
-        })
-        .withFailureHandler(function(err) { showToast('Erreur renommage: ' + err.message, 'error'); })
-        .apiManageEntity('RENAME', entityType, newName, newMeta, oldName);
+      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName], () => {
+        loadEntities();
+        showToast('Renommé avec succès.', 'success');
+      }, 'Erreur renommage');
     };
-    modal.querySelector('#eCancel').onclick = closeModal;
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  // ─── ENTITÉS ────────────────────────────────────────────────
+  // Fermer modal en cliquant sur le backdrop
+  document.getElementById('modalBackdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
   function loadEntities() {
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!res.success) { showToast(res.error, 'error'); return; }
-        cachedPlayers = res.players;
-        cachedCategories = res.categories;
+    callServer('apiGetSettings', [], res => {
+      cachedPlayers    = res.players    || [];
+      cachedCategories = res.categories || [];
 
-        var ps = document.getElementById('playerSelect');
-        ps.innerHTML = '';
-        cachedPlayers.forEach(function(p) {
-          var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; ps.appendChild(o);
-        });
-        var cs = document.getElementById('categorySelect');
-        cs.innerHTML = '';
-        cachedCategories.forEach(function(c) {
-          var o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cs.appendChild(o);
-        });
+      // Selects multi dashboard
+      const ps = document.getElementById('playerSelect');
+      const cs = document.getElementById('categorySelect');
+      const prevP = Array.from(ps.selectedOptions).map(o => o.value);
+      const prevC = Array.from(cs.selectedOptions).map(o => o.value);
+      ps.innerHTML = '';
+      cachedPlayers.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.name; o.textContent = p.name;
+        if (prevP.includes(p.name)) o.selected = true;
+        ps.appendChild(o);
+      });
+      cs.innerHTML = '';
+      cachedCategories.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.name; o.textContent = c.name;
+        if (prevC.includes(c.name)) o.selected = true;
+        cs.appendChild(o);
+      });
 
-        renderSettingsList(document.getElementById('playersList'), cachedPlayers, 'player');
-        renderSettingsList(document.getElementById('categoriesList'), cachedCategories, 'category');
-        updateHistoryFilters();
-        applyFilters(); // charge le graphique par défaut
-      })
-      .withFailureHandler(function(err) { showToast('Erreur settings: ' + err.message, 'error'); })
-      .apiGetSettings();
+      // Listes paramètres
+      renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
+      renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
+
+      // Filtres historique
+      updateHistoryFilters();
+
+      // Recharger les lignes de saisie si le container est vide
+      if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
+
+    }, 'Chargement settings');
   }
 
-  function renderSettingsList(container, items, type) {
+  function renderEntityList(container, items, type) {
     container.innerHTML = '';
-    items.forEach(function(item) {
-      var li = document.createElement('li');
-      li.className = 'entity-item';
-      var avatarUrl = getAvatarUrl(item.name, item.meta);
-      var avatarHtml = type === 'player'
-        ? '<img class="avatar-img" src="' + escapeHtml(avatarUrl) + '" onerror="this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(item.name) + '&background=2a313d&color=e0e6ed\'">'
-        : '<span style="font-size:1.4rem;">🍳</span>';
-      li.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-        + avatarHtml + '<strong>' + escapeHtml(item.name) + '</strong></div>'
-        + '<div style="display:flex;gap:6px;">'
-        + '<button class="small btn-edit" data-type="' + type + '" data-name="' + escapeHtml(item.name) + '" data-meta="' + escapeHtml(item.meta||'') + '">✏️</button>'
-        + '<button class="small danger btn-del" data-type="' + type + '" data-name="' + escapeHtml(item.name) + '">🗑️</button>'
-        + '</div>';
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.style.cssText = 'color:var(--text-muted); font-style:italic; font-size:0.85rem; padding:8px;';
+      li.textContent = 'Aucun élément.';
       container.appendChild(li);
-    });
-    container.querySelectorAll('.btn-edit').forEach(function(btn) {
-      btn.addEventListener('click', function() { openEditModal(btn.dataset.type, btn.dataset.name, btn.dataset.meta); });
-    });
-    container.querySelectorAll('.btn-del').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var name = btn.dataset.name;
-        var entityType = (btn.dataset.type === 'player') ? 'Players' : 'Categories';
-        openConfirmModal('Supprimer "' + escapeHtml(name) + '" ?', function() {
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) { loadEntities(); showToast('Supprimé', 'success'); }
-              else showToast(res.error, 'error');
-            })
-            .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
-            .apiManageEntity('DELETE', entityType, '', '', name);
+      return;
+    }
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'entity-item';
+
+      const left = document.createElement('div');
+      left.className = 'entity-left';
+
+      if (type === 'Players') {
+        const img = document.createElement('img');
+        img.className = 'avatar-img';
+        img.src = getAvatarUrl(item.name, item.meta);
+        img.alt = item.name;
+        img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
+        left.appendChild(img);
+      }
+
+      const strong = document.createElement('strong');
+      strong.textContent = item.name;
+      left.appendChild(strong);
+
+      if (item.meta && type === 'Categories') {
+        const meta = document.createElement('span');
+        meta.className = 'entity-meta';
+        meta.textContent = item.meta;
+        left.appendChild(meta);
+      }
+
+      const btns = document.createElement('div');
+      btns.className = 'entity-btns';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'small';
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Éditer';
+      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta));
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small danger';
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Supprimer';
+      delBtn.addEventListener('click', () => {
+        openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
+          callServer('apiManageEntity', ['DELETE', type, null, null, item.name], () => {
+            loadEntities();
+            applyFilters();
+            showToast('Supprimé.', 'success');
+          }, 'Suppression');
         });
       });
+
+      btns.appendChild(editBtn);
+      btns.appendChild(delBtn);
+      li.appendChild(left);
+      li.appendChild(btns);
+      container.appendChild(li);
     });
   }
 
-  // ─── GRAPHIQUE ──────────────────────────────────────────────
+  // ── GRAPHIQUE ────────────────────────────────────────────────────────
   function applyFilters() {
-    var selectedPlayers = Array.from(document.getElementById('playerSelect').selectedOptions).map(function(o) { return o.value; });
-    var selectedCategories = Array.from(document.getElementById('categorySelect').selectedOptions).map(function(o) { return o.value; });
-    var startDate = document.getElementById('startDate').value;
-    var endDate = document.getElementById('endDate').value;
+    const selPlayers    = Array.from(document.getElementById('playerSelect').selectedOptions).map(o => o.value);
+    const selCategories = Array.from(document.getElementById('categorySelect').selectedOptions).map(o => o.value);
+    const startDate     = document.getElementById('startDate').value;
+    const endDate       = document.getElementById('endDate').value;
 
-    // Passer des chaînes vides au lieu de null pour GAS
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!res.success) { showToast(res.error, 'error'); return; }
+    // Afficher skeleton
+    document.getElementById('chartSkeleton').style.display = 'block';
+    document.getElementById('chartWrapper').style.display  = 'none';
+
+    callServer('apiGetFilteredData',
+      [selPlayers, selCategories, startDate, endDate],
+      res => {
         currentChartData = res.chartData;
-        renderChart(currentChartData);
-      })
-      .withFailureHandler(function(err) { showToast('Erreur filtrage: ' + err.message, 'error'); })
-      .apiGetFilteredData(selectedPlayers, selectedCategories, startDate, endDate);
+        renderChart(res.chartData);
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+      },
+      'Chargement graphique'
+    );
   }
 
   function renderChart(data) {
-    var emptyMsg = document.getElementById('emptyChartMsg');
-    var canvas = document.getElementById('mainChart');
-    if (currentChart) { currentChart.destroy(); currentChart = null; }
+    if (currentChart) currentChart.destroy();
 
-    var hasData = data && data.labels && data.labels.length > 0
-      && data.datasets && data.datasets.some(function(ds) { return ds.data.some(function(v) { return v > 0; }); });
-
-    if (!hasData) {
-      canvas.style.display = 'none';
-      emptyMsg.style.display = 'block';
+    if (!data || !data.labels || !data.labels.length) {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = 'var(--text-muted)';
+      ctx.textAlign = 'center';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
       return;
     }
-    canvas.style.display = 'block';
-    emptyMsg.style.display = 'none';
 
-    currentChart = new Chart(canvas.getContext('2d'), {
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim()      || '#e0e6ed';
+    const mutedColor= getComputedStyle(document.body).getPropertyValue('--text-muted').trim()|| '#9aa5be';
+    const gridColor = getComputedStyle(document.body).getPropertyValue('--border').trim()    || '#2a313d';
+
+    currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
       type: 'bar',
-      data: { labels: data.labels, datasets: data.datasets },
+      data: data,
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         scales: {
-          x: { stacked: true, ticks: { color: '#9aa5be' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { stacked: true, beginAtZero: true, ticks: { color: '#9aa5be' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          x: { stacked: true, grid: { color: gridColor }, ticks: { color: mutedColor, maxRotation: 40 } },
+          y: { stacked: true, beginAtZero: true, grid: { color: gridColor }, ticks: { color: mutedColor } }
         },
-        plugins: { legend: { labels: { color: '#e0e6ed' } } }
+        plugins: {
+          legend: { labels: { color: textColor, font: { size: 12 } } },
+          tooltip: { mode: 'index', intersect: false }
+        }
       }
     });
   }
 
-  // ─── EXPORTS ────────────────────────────────────────────────
+  // ── EXPORTS ──────────────────────────────────────────────────────────
   function exportAsImage(format) {
-    try {
-      var canvas = document.getElementById('mainChart');
-      var link = document.createElement('a');
-      link.download = 'graphique.' + format;
-      link.href = canvas.toDataURL('image/' + format);
-      link.click();
-      showToast('Export ' + format.toUpperCase() + ' réussi', 'success');
-    } catch(e) { showToast('Erreur export image', 'error'); }
-  }
-  function exportAsPDF() {
-    try {
-      var imgData = document.getElementById('mainChart').toDataURL('image/png');
-      var pdf = new window.jspdf.jsPDF('landscape');
-      var props = pdf.getImageProperties(imgData);
-      var w = pdf.internal.pageSize.getWidth();
-      pdf.addImage(imgData, 'PNG', 0, 0, w, (props.height * w) / props.width);
-      pdf.save('graphique.pdf');
-      showToast('Export PDF réussi', 'success');
-    } catch(e) { showToast('Erreur PDF: ' + e.message, 'error'); }
-  }
-  function exportAsHTML() {
-    var imgData = document.getElementById('mainChart').toDataURL('image/png');
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#fff;display:flex;justify-content:center;"><img src="' + imgData + '" style="max-width:100%;"></body></html>';
-    var blob = new Blob([html], {type:'text/html'});
-    var link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'graphique.html';
-    link.click();
-    URL.revokeObjectURL(link.href);
-    showToast('Export HTML réussi', 'success');
-  }
-  function exportAsCSV() {
-    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
-    var rows = [['Joueur'].concat(currentChartData.datasets.map(function(d) { return d.label; }))];
-    currentChartData.labels.forEach(function(lbl, i) {
-      rows.push([lbl].concat(currentChartData.datasets.map(function(d) { return d.data[i]; })));
-    });
-    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
-    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    var link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'scores.csv';
-    link.click();
-    URL.revokeObjectURL(link.href);
-    showToast('Export CSV réussi', 'success');
-  }
-  function exportAsExcel() {
-    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
-    var sheetData = [['Joueur'].concat(currentChartData.datasets.map(function(d) { return d.label; }))];
-    currentChartData.labels.forEach(function(lbl, i) {
-      sheetData.push([lbl].concat(currentChartData.datasets.map(function(d) { return d.data[i]; })));
-    });
-    var ws = XLSX.utils.aoa_to_sheet(sheetData);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
-    XLSX.writeFile(wb, 'scores_' + Date.now() + '.xlsx');
-    showToast('Export Excel réussi', 'success');
+    const dataUrl = document.getElementById('mainChart').toDataURL('image/' + format);
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = 'casseroles.' + format; a.click();
+    showToast('Export ' + format.toUpperCase() + ' OK', 'success');
   }
 
-  // ─── SAISIE LOT ─────────────────────────────────────────────
+  function exportAsPDF() {
+    try {
+      const imgData = document.getElementById('mainChart').toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('landscape');
+      const w = pdf.internal.pageSize.getWidth();
+      const props = pdf.getImageProperties(imgData);
+      pdf.addImage(imgData, 'PNG', 0, 0, w, (props.height * w) / props.width);
+      pdf.save('casseroles.pdf');
+      showToast('Export PDF OK', 'success');
+    } catch(e) { showToast('Erreur PDF : ' + e.message, 'error'); }
+  }
+
+  function exportAsHTML() {
+    const imgData = document.getElementById('mainChart').toDataURL('image/png');
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Export</title></head>' +
+      '<body style="background:#111;display:flex;justify-content:center;padding:20px;">' +
+      '<img src="' + imgData + '" style="max-width:100%;height:auto;"></body></html>';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], {type:'text/html'}));
+    a.download = 'casseroles.html'; a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Export HTML OK', 'success');
+  }
+
+  function exportAsCSV() {
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    const { labels, datasets } = currentChartData;
+    const rows = [['Joueur', ...datasets.map(d => d.label)]];
+    labels.forEach((l, i) => rows.push([l, ...datasets.map(d => d.data[i] || 0)]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+    a.download = 'casseroles.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Export CSV OK', 'success');
+  }
+
+  function exportAsExcel() {
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    const { labels, datasets } = currentChartData;
+    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
+    labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+    XLSX.writeFile(wb, 'casseroles_' + Date.now() + '.xlsx');
+    showToast('Export Excel OK', 'success');
+  }
+
+  // ── SAISIE LOT ───────────────────────────────────────────────────────
+  function updateRowAvatar(sel, img) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt) return;
+    const player = cachedPlayers.find(p => p.name === opt.value);
+    const url = getAvatarUrl(opt.value, player ? player.meta : '');
+    img.src = url;
+    img.onerror = () => { img.src = getAvatarUrl(opt.value, ''); };
+  }
+
   function addEntryRow(preset) {
-    var ec = document.getElementById('entryContainer');
-    if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-      if (!ec.querySelector('.empty-state')) {
-        var p = document.createElement('p');
+    const container = document.getElementById('entryContainer');
+    // Supprimer l'éventuel message "empty-state"
+    const es = container.querySelector('.empty-state');
+    if (es) es.remove();
+
+    if (!cachedPlayers.length || !cachedCategories.length) {
+      if (!container.querySelector('.empty-state')) {
+        const p = document.createElement('p');
         p.className = 'empty-state';
-        p.style.color = 'var(--text-muted)';
-        p.textContent = "Ajoutez d'abord des joueurs et catégories dans les paramètres.";
-        ec.appendChild(p);
+        p.textContent = "⚠ Ajoutez d'abord des joueurs et des catégories dans Paramètres.";
+        container.appendChild(p);
       }
       return;
     }
-    var es = ec.querySelector('.empty-state');
-    if (es) ec.removeChild(es);
 
     rowCounter++;
-    var div = document.createElement('div');
+    const id  = 'row_' + rowCounter;
+    const div = document.createElement('div');
     div.className = 'entry-row';
-    div.id = 'row_' + rowCounter;
+    div.id = id;
 
-    var playerOpts = cachedPlayers.map(function(p) {
-      return '<option value="' + escapeHtml(p.name) + '" data-img="' + escapeHtml(getAvatarUrl(p.name, p.meta)) + '">' + escapeHtml(p.name) + '</option>';
-    }).join('');
-    var catOpts = cachedCategories.map(function(c) {
-      return '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>';
-    }).join('');
+    // Wrapper joueur
+    const wrap = document.createElement('div');
+    wrap.className = 'player-sel-wrap';
+    const img = document.createElement('img');
+    img.className = 'row-avatar';
+    img.alt = '';
+    const pSel = document.createElement('select');
+    pSel.className = 'p-sel';
+    cachedPlayers.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      pSel.appendChild(o);
+    });
+    pSel.addEventListener('change', () => updateRowAvatar(pSel, img));
+    wrap.appendChild(img);
+    wrap.appendChild(pSel);
 
-    div.innerHTML = '<div style="display:flex;align-items:center;gap:6px;">'
-      + '<img class="row-avatar" src="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">'
-      + '<select class="p-sel" style="flex:1;">' + playerOpts + '</select></div>'
-      + '<select class="c-sel">' + catOpts + '</select>'
-      + '<input type="number" class="pts-sel" value="1" min="1" list="pointsSuggestion">'
-      + '<input type="number" class="tms-in" value="1" min="1">'
-      + '<div style="display:flex;gap:6px;">'
-      + '<button class="small btn-dup" title="Dupliquer">📋</button>'
-      + '<button class="small danger btn-rm" title="Supprimer">✕</button></div>';
-    ec.appendChild(div);
+    // Catégorie
+    const cSel = document.createElement('select');
+    cSel.className = 'c-sel';
+    cachedCategories.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name; o.textContent = c.name;
+      cSel.appendChild(o);
+    });
 
-    var pSel = div.querySelector('.p-sel');
-    var avatar = div.querySelector('.row-avatar');
-    function updateAvatar() {
-      var opt = pSel.options[pSel.selectedIndex];
-      var url = opt ? (opt.getAttribute('data-img') || getAvatarUrl(pSel.value, '')) : getAvatarUrl(pSel.value, '');
-      avatar.src = url;
-      avatar.onerror = function() { avatar.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(pSel.value) + '&background=2a313d&color=e0e6ed'; };
-    }
-    pSel.addEventListener('change', updateAvatar);
-    updateAvatar();
+    // Points (input libre + datalist)
+    const ptsInput = document.createElement('input');
+    ptsInput.type = 'number'; ptsInput.className = 'pts-sel';
+    ptsInput.value = '1'; ptsInput.min = '1';
+    ptsInput.setAttribute('list', 'pointsSuggestion');
+    ptsInput.placeholder = 'Pts';
 
+    // Fois
+    const tmsInput = document.createElement('input');
+    tmsInput.type = 'number'; tmsInput.className = 'tms-in';
+    tmsInput.value = '1'; tmsInput.min = '1';
+    tmsInput.setAttribute('inputmode', 'numeric');
+    tmsInput.placeholder = '×';
+
+    // Boutons
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'small'; dupBtn.textContent = '📋'; dupBtn.title = 'Dupliquer';
+    dupBtn.addEventListener('click', () => addEntryRow({
+      player:   pSel.value,
+      category: cSel.value,
+      points:   ptsInput.value,
+      times:    tmsInput.value
+    }));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
+    delBtn.addEventListener('click', () => div.remove());
+    actions.appendChild(dupBtn);
+    actions.appendChild(delBtn);
+
+    div.appendChild(wrap);
+    div.appendChild(cSel);
+    div.appendChild(ptsInput);
+    div.appendChild(tmsInput);
+    div.appendChild(actions);
+    container.appendChild(div);
+
+    // Preset
     if (preset) {
-      pSel.value = preset.player;
-      div.querySelector('.c-sel').value = preset.category;
-      div.querySelector('.pts-sel').value = preset.points;
-      div.querySelector('.tms-in').value = preset.times;
-      updateAvatar();
+      pSel.value   = preset.player   || pSel.value;
+      cSel.value   = preset.category || cSel.value;
+      ptsInput.value = preset.points || 1;
+      tmsInput.value = preset.times  || 1;
     }
-    div.querySelector('.btn-dup').onclick = function() {
-      addEntryRow({ player: pSel.value, category: div.querySelector('.c-sel').value, points: div.querySelector('.pts-sel').value, times: div.querySelector('.tms-in').value });
-    };
-    div.querySelector('.btn-rm').onclick = function() { ec.removeChild(div); };
+    // Init avatar
+    updateRowAvatar(pSel, img);
   }
 
   function submitBulk() {
-    var rows = document.querySelectorAll('.entry-row');
-    if (!rows.length) { showToast('Ajoutez au moins une ligne', 'error'); return; }
-    var entries = Array.from(rows).map(function(r) {
-      return { player: r.querySelector('.p-sel').value, category: r.querySelector('.c-sel').value, points: r.querySelector('.pts-sel').value, times: r.querySelector('.tms-in').value };
+    const rows = document.querySelectorAll('.entry-row');
+    const entries = [];
+    rows.forEach(r => {
+      const pSel = r.querySelector('.p-sel');
+      const cSel = r.querySelector('.c-sel');
+      const pts  = r.querySelector('.pts-sel');
+      const tms  = r.querySelector('.tms-in');
+      if (pSel && cSel && pts && tms) {
+        entries.push({ player: pSel.value, category: cSel.value, points: pts.value, times: tms.value });
+      }
     });
-    var date = document.getElementById('globalDateInput').value;
-    var btn = document.getElementById('submitLotBtn');
+    if (!entries.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
+
+    const btn  = document.getElementById('submitLotBtn');
+    const date = document.getElementById('globalDateInput').value;
     btn.disabled = true; btn.textContent = '⏳ Écriture...';
-    google.script.run
-      .withSuccessHandler(function(res) {
-        btn.disabled = false; btn.textContent = '✓ Inscrire le Lot';
-        if (res.success) {
-          document.getElementById('globalDateInput').value = '';
-          document.getElementById('entryContainer').innerHTML = '';
-          addEntryRow();
-          applyFilters();
-          showToast('Lot enregistré !', 'success');
-        } else showToast(res.error, 'error');
-      })
-      .withFailureHandler(function(err) {
-        btn.disabled = false; btn.textContent = '✓ Inscrire le Lot';
-        showToast('Erreur envoi: ' + err.message, 'error');
-      })
-      .apiAddBulkScores(entries, date);
+
+    callServer('apiAddBulkScores', [entries, date], () => {
+      btn.disabled = false; btn.textContent = '✓ Inscrire le Lot';
+      document.getElementById('globalDateInput').value = '';
+      document.getElementById('entryContainer').innerHTML = '';
+      addEntryRow();
+      applyFilters();
+      showToast('Lot enregistré !', 'success');
+    }, 'Envoi lot');
+    // En cas de failure, re-activer le bouton
+    // (géré par withFailureHandler dans callServer qui affiche le toast)
+    setTimeout(() => {
+      if (btn.disabled) { btn.disabled = false; btn.textContent = '✓ Inscrire le Lot'; }
+    }, 30000);
   }
 
-  // ─── HISTORIQUE ─────────────────────────────────────────────
+  // ── HISTORIQUE ───────────────────────────────────────────────────────
+  function updateHistoryFilters() {
+    const pFilter = document.getElementById('historyPlayerFilter');
+    const cFilter = document.getElementById('historyCategoryFilter');
+    const prevP = pFilter.value;
+    const prevC = cFilter.value;
+    pFilter.innerHTML = '<option value="">Tous joueurs</option>';
+    cachedPlayers.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      pFilter.appendChild(o);
+    });
+    cFilter.innerHTML = '<option value="">Toutes catégories</option>';
+    cachedCategories.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name; o.textContent = c.name;
+      cFilter.appendChild(o);
+    });
+    pFilter.value = prevP;
+    cFilter.value = prevC;
+  }
+
   function loadHistoryPage(page) {
-    var player = document.getElementById('historyPlayerFilter').value;
-    var category = document.getElementById('historyCategoryFilter').value;
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!res.success) { showToast(res.error, 'error'); return; }
-        totalHistoryPages = Math.ceil(res.total / PAGE_SIZE) || 1;
-        var tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
-        if (res.logs.length === 0) {
-          var tr = tbody.insertRow(); var td = tr.insertCell(0);
-          td.colSpan = 5; td.textContent = 'Aucune entrée trouvée.';
-          td.style.cssText = 'text-align:center;color:var(--text-muted);padding:20px;';
-          renderPagination(); return;
-        }
-        var avatarMap = getAvatarMapFromCache();
-        res.logs.forEach(function(log) {
-          var row = tbody.insertRow();
-          row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString('fr-FR');
-          var pc = row.insertCell(1);
-          var img = document.createElement('img');
-          img.src = avatarMap[log.player] || getAvatarUrl(log.player, '');
-          img.className = 'player-avatar-small';
-          img.alt = log.player;
-          img.onerror = function() { img.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(log.player) + '&background=2a313d&color=e0e6ed'; };
-          pc.appendChild(img); pc.appendChild(document.createTextNode(log.player));
-          row.insertCell(2).textContent = log.category;
-          row.insertCell(3).textContent = log.points;
-          var dc = row.insertCell(4);
-          var db = document.createElement('button');
-          db.textContent = 'Supprimer'; db.className = 'small danger';
-          (function(rowIdx) {
-            db.onclick = function() {
-              openConfirmModal('Supprimer cette entrée ?', function() {
-                google.script.run
-                  .withSuccessHandler(function(r2) {
-                    if (r2.success) { loadHistoryPage(currentHistoryPage); showToast('Supprimée', 'success'); }
-                    else showToast(r2.error, 'error');
-                  })
-                  .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
-                  .apiDeleteHistoryEntry(rowIdx);
-              });
-            };
-          })(log.rowIndex);
-          dc.appendChild(db);
+    currentHistoryPage = page;
+    const player   = document.getElementById('historyPlayerFilter').value;
+    const category = document.getElementById('historyCategoryFilter').value;
+
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, player || null, category || null], res => {
+      const logs  = res.logs  || [];
+      const total = res.total || 0;
+      totalHistoryEntries = total;
+
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+
+      if (!logs.length) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = 5;
+        td.style.cssText = 'text-align:center; color:var(--text-muted); padding:20px; font-style:italic;';
+        td.textContent = 'Aucune entrée trouvée.';
+        document.getElementById('historyPagination').innerHTML = '';
+        return;
+      }
+
+      logs.forEach(log => {
+        const tr = tbody.insertRow();
+        // Date
+        const dateCell = tr.insertCell();
+        const d = new Date(log.timestamp);
+        dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+
+        // Joueur avec avatar
+        const playerCell = tr.insertCell();
+        const player = cachedPlayers.find(p => p.name === log.player);
+        const img = document.createElement('img');
+        img.className = 'history-avatar';
+        img.src = getAvatarUrl(log.player, player ? player.meta : '');
+        img.alt = log.player;
+        img.onerror = () => { img.src = getAvatarUrl(log.player, ''); };
+        playerCell.appendChild(img);
+        playerCell.appendChild(document.createTextNode(log.player));
+
+        // Catégorie
+        tr.insertCell().textContent = log.category;
+
+        // Points
+        const ptsCell = tr.insertCell();
+        ptsCell.textContent = log.points;
+        ptsCell.style.fontWeight = '700';
+
+        // Supprimer
+        const actCell = tr.insertCell();
+        const delBtn = document.createElement('button');
+        delBtn.className = 'small danger';
+        delBtn.textContent = 'Suppr.';
+        delBtn.addEventListener('click', () => {
+          openConfirmModal('Supprimer cette entrée ?', () => {
+            callServer('apiDeleteHistoryEntry', [log.rowIndex], () => {
+              loadHistoryPage(currentHistoryPage);
+              showToast('Entrée supprimée.', 'success');
+            }, 'Suppression historique');
+          });
         });
-        renderPagination();
-      })
-      .withFailureHandler(function(err) { showToast('Erreur historique: ' + err.message, 'error'); })
-      .apiGetHistoryPage(page, PAGE_SIZE, player, category);
+        actCell.appendChild(delBtn);
+      });
+
+      renderPagination(total);
+    }, 'Chargement historique');
   }
 
-  function renderPagination() {
-    var pg = document.getElementById('historyPagination');
+  function renderPagination(total) {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const pg = document.getElementById('historyPagination');
     pg.innerHTML = '';
-    if (totalHistoryPages <= 1) return;
-    for (var i = 1; i <= totalHistoryPages; i++) {
-      (function(n) {
-        var btn = document.createElement('button');
-        btn.textContent = n;
-        btn.className = 'small ' + (n === currentHistoryPage ? 'primary' : 'secondary');
-        btn.onclick = function() { currentHistoryPage = n; loadHistoryPage(n); };
-        pg.appendChild(btn);
-      })(i);
+    if (totalPages <= 1) return;
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = 'small' + (i === currentHistoryPage ? ' active' : '');
+      btn.addEventListener('click', () => loadHistoryPage(i));
+      pg.appendChild(btn);
     }
   }
 
-  function updateHistoryFilters() {
-    var pf = document.getElementById('historyPlayerFilter');
-    pf.innerHTML = '<option value="">Tous joueurs</option>';
-    cachedPlayers.forEach(function(p) { var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; pf.appendChild(o); });
-    var cf = document.getElementById('historyCategoryFilter');
-    cf.innerHTML = '<option value="">Toutes catégories</option>';
-    cachedCategories.forEach(function(c) { var o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cf.appendChild(o); });
-  }
+  // ── NAVIGATION ───────────────────────────────────────────────────────
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+      if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
+    });
+  });
 
-  // ─── INIT ────────────────────────────────────────────────────
-  window.onload = function() {
-    // Thème
-    var saved = localStorage.getItem('theme');
+  // ── THÈME ─────────────────────────────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('casseroles_theme');
     if (saved === 'light') document.body.classList.add('light');
-    var tt = document.getElementById('themeToggle');
-    tt.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
-    tt.addEventListener('click', function() {
+    const btn = document.getElementById('themeToggle');
+    btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    btn.addEventListener('click', () => {
       document.body.classList.toggle('light');
-      var isLight = document.body.classList.contains('light');
-      localStorage.setItem('theme', isLight ? 'light' : 'dark');
-      tt.textContent = isLight ? '☀️' : '🌙';
+      const isLight = document.body.classList.contains('light');
+      localStorage.setItem('casseroles_theme', isLight ? 'light' : 'dark');
+      btn.textContent = isLight ? '☀️' : '🌙';
       if (currentChart && currentChartData) renderChart(currentChartData);
     });
+  }
 
-    // Datalist
-    var dl = document.createElement('datalist'); dl.id = 'pointsSuggestion';
-    [1,3,5,10].forEach(function(v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
-    document.body.appendChild(dl);
-
-    // Navigation
-    document.querySelectorAll('.nav-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var tabId = btn.getAttribute('data-tab');
-        document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
-        document.querySelectorAll('.nav-btn').forEach(function(el) { el.classList.remove('active'); });
-        document.getElementById(tabId).classList.add('active');
-        btn.classList.add('active');
-        if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
-      });
+  // ── BOUTONS AJOUT ─────────────────────────────────────────────────────
+  function bindAddButtons() {
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      const name = document.getElementById('newPlayerName').value.trim();
+      const meta = document.getElementById('newPlayerMeta').value.trim();
+      if (!name) { showToast('Nom requis.', 'error'); return; }
+      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], () => {
+        document.getElementById('newPlayerName').value = '';
+        document.getElementById('newPlayerMeta').value = '';
+        loadEntities();
+        showToast('Joueur ajouté.', 'success');
+      }, 'Ajout joueur');
     });
 
-    // Boutons
-    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
-    document.getElementById('addRowBtn').addEventListener('click', function() { addEntryRow(); });
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      const name = document.getElementById('newCategoryName').value.trim();
+      const meta = document.getElementById('newCategoryMeta').value.trim();
+      if (!name) { showToast('Nom requis.', 'error'); return; }
+      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], () => {
+        document.getElementById('newCategoryName').value = '';
+        document.getElementById('newCategoryMeta').value = '';
+        loadEntities();
+        showToast('Catégorie ajoutée.', 'success');
+      }, 'Ajout catégorie');
+    });
+
+    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
-    document.getElementById('refreshHistoryBtn').addEventListener('click', function() { currentHistoryPage = 1; loadHistoryPage(1); });
-
-    document.getElementById('addPlayerBtn').addEventListener('click', function() {
-      var name = document.getElementById('newPlayerName').value.trim();
-      if (!name) { showToast('Nom requis', 'error'); return; }
-      var meta = document.getElementById('newPlayerMeta').value.trim();
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            loadEntities();
-            showToast('Joueur ajouté', 'success');
-            document.getElementById('newPlayerName').value = '';
-            document.getElementById('newPlayerMeta').value = '';
-          } else showToast(res.error, 'error');
-        })
-        .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
-        .apiManageEntity('ADD', 'Players', name, meta, '');
+    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+    document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
+      currentHistoryPage = 1; loadHistoryPage(1);
     });
+  }
 
-    document.getElementById('addCategoryBtn').addEventListener('click', function() {
-      var name = document.getElementById('newCategoryName').value.trim();
-      if (!name) { showToast('Nom requis', 'error'); return; }
-      var meta = document.getElementById('newCategoryMeta').value.trim();
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            loadEntities();
-            showToast('Catégorie ajoutée', 'success');
-            document.getElementById('newCategoryName').value = '';
-            document.getElementById('newCategoryMeta').value = '';
-          } else showToast(res.error, 'error');
-        })
-        .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
-        .apiManageEntity('ADD', 'Categories', name, meta, '');
-    });
-
-    document.querySelectorAll('.export-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var t = btn.getAttribute('data-export');
-        if (t==='png') exportAsImage('png');
-        else if (t==='jpeg') exportAsImage('jpeg');
-        else if (t==='pdf') exportAsPDF();
-        else if (t==='html') exportAsHTML();
-        else if (t==='csv') exportAsCSV();
-        else if (t==='xlsx') exportAsExcel();
+  // ── EXPORTS BOUTONS ───────────────────────────────────────────────────
+  function bindExportButtons() {
+    document.querySelectorAll('.export-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.export;
+        if      (t === 'png')  exportAsImage('png');
+        else if (t === 'jpeg') exportAsImage('jpeg');
+        else if (t === 'pdf')  exportAsPDF();
+        else if (t === 'html') exportAsHTML();
+        else if (t === 'csv')  exportAsCSV();
+        else if (t === 'xlsx') exportAsExcel();
       });
     });
+  }
 
-    // Pas de filtre de dates par défaut = affiche tout
+  // ── INIT ─────────────────────────────────────────────────────────────
+  window.onload = () => {
+    initTheme();
+    bindAddButtons();
+    bindExportButtons();
+
+    // Dates par défaut : 1er jour du mois → aujourd'hui
+    const today    = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('startDate').value = firstDay.toISOString().slice(0, 10);
+    document.getElementById('endDate').value   = today.toISOString().slice(0, 10);
+
+    // Charger entités → appelle applyFilters() → affiche le graphique par défaut
     loadEntities();
-    addEntryRow();
+    // applyFilters() sera appelé dans loadEntities() une fois les données prêtes
+    // mais on l'appelle aussi ici en sécurité
+    applyFilters();
   };
 </script>
 </body>

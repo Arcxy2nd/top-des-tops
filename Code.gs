@@ -1,15 +1,13 @@
 /**
  * STRUCTURE DU SPREADSHEET
- * History  : [0] Date | [1] Joueur | [2] Catégorie | [3] Points
- * Players  : [0] Nom  | [1] Avatar URL
- * Categories: [0] Nom | [1] Description IA
+ * History   : [0] Date | [1] Joueur | [2] Catégorie | [3] Points
+ * Players   : [0] Nom  | [1] Avatar URL
+ * Categories: [0] Nom  | [1] Description IA
  */
 
-/**
- * CONFIGURATION SERVICE avec cache intra-exécution
- */
+// ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
 const ConfigService = (() => {
-  let _sheetsCache = null;
+  let _cache = null;
 
   const getSpreadsheetId = () => {
     const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
@@ -18,232 +16,206 @@ const ConfigService = (() => {
   };
 
   const getSheets = () => {
-    if (_sheetsCache) return _sheetsCache;
-    const ssId = getSpreadsheetId();
+    if (_cache) return _cache;
     try {
-      const ss = SpreadsheetApp.openById(ssId);
-      const historySheet = ss.getSheetByName('History');
-      const playersSheet = ss.getSheetByName('Players');
-      const categoriesSheet = ss.getSheetByName('Categories');
-      if (!historySheet || !playersSheet || !categoriesSheet) {
-        throw new Error("Erreur de structure : Onglets 'History', 'Players' ou 'Categories' manquants.");
-      }
-      _sheetsCache = {
-        spreadsheet: ss,
-        history: historySheet,
-        players: playersSheet,
-        categories: categoriesSheet
-      };
-      return _sheetsCache;
+      const ss = SpreadsheetApp.openById(getSpreadsheetId());
+      const history    = ss.getSheetByName('History');
+      const players    = ss.getSheetByName('Players');
+      const categories = ss.getSheetByName('Categories');
+      if (!history || !players || !categories)
+        throw new Error("Onglets 'History', 'Players' ou 'Categories' manquants.");
+      _cache = { spreadsheet: ss, history, players, categories };
+      return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
     }
   };
 
-  const getGeminiKey = () => PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  const getGeminiKey = () =>
+    PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
-  const clearCache = () => { _sheetsCache = null; };
+  // Invalider le cache après toute modification
+  const clearCache = () => { _cache = null; };
 
   return { getSheets, getGeminiKey, clearCache };
 })();
 
-/**
- * SETTINGS SERVICE
- */
+// ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
 const SettingsService = {
-  VALID_TYPES: ['Players', 'Categories'],
+  VALID_TYPES:   ['Players', 'Categories'],
   VALID_ACTIONS: ['ADD', 'DELETE', 'RENAME'],
 
-  getEntities: function(type) {
+  getEntities(type) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    const data = sheet.getDataRange().getValues();
-    if (data.length === 0) return [];
+    const data  = sheet.getDataRange().getValues();
     return data.filter(r => r[0]).map(r => ({
       name: r[0].toString(),
       meta: r[1] ? r[1].toString() : ""
     }));
   },
 
-  addEntity: function(type, name, meta) {
-    if (!name) throw new Error("Erreur de validation : Le nom ne peut pas être vide.");
+  addEntity(type, name, meta) {
+    if (!name) throw new Error("Le nom ne peut pas être vide.");
     ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || ""]);
   },
 
-  deleteEntity: function(type, name) {
+  deleteEntity(type, name) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    const data = sheet.getDataRange().getValues();
+    const data  = sheet.getDataRange().getValues();
     let deleted = false;
     for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i][0] === name) {
-        sheet.deleteRow(i + 1);
-        deleted = true;
-      }
+      if (data[i][0] === name) { sheet.deleteRow(i + 1); deleted = true; }
     }
-    if (!deleted) throw new Error(`Erreur d'intégrité : ${name} introuvable.`);
+    if (!deleted) throw new Error(`${name} introuvable.`);
   },
 
-  renameEntity: function(type, oldName, newName, newMeta) {
-    if (!newName) throw new Error("Erreur de validation : Nouveau nom vide.");
+  renameEntity(type, oldName, newName, newMeta) {
+    if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    const data = sheet.getDataRange().getValues();
-    let rowIndex = -1;
+    const data  = sheet.getDataRange().getValues();
+    let idx = -1;
     for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === oldName) { rowIndex = i; break; }
+      if (data[i][0] === oldName) { idx = i; break; }
     }
-    if (rowIndex === -1) throw new Error(`Erreur d'intégrité : ${oldName} introuvable.`);
+    if (idx === -1) throw new Error(`${oldName} introuvable.`);
+    sheet.getRange(idx + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]);
 
-    sheet.getRange(rowIndex + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]);
-
-    const historySheet = ConfigService.getSheets().history;
-    const colIndex = type === 'Players' ? 1 : 2;
-    const lastRow = historySheet.getLastRow();
+    // Cascade rename historique en batch (un seul setValues)
+    const histSheet = ConfigService.getSheets().history;
+    const lastRow   = histSheet.getLastRow();
     if (lastRow > 1) {
-      const range = historySheet.getRange(2, colIndex + 1, lastRow - 1, 1);
-      const values = range.getValues();
-      let modified = false;
-      for (let i = 0; i < values.length; i++) {
-        if (values[i][0] === oldName) { values[i][0] = newName; modified = true; }
+      const colIndex = type === 'Players' ? 1 : 2;
+      const range    = histSheet.getRange(2, colIndex + 1, lastRow - 1, 1);
+      const vals     = range.getValues();
+      let modified   = false;
+      for (let i = 0; i < vals.length; i++) {
+        if (vals[i][0] === oldName) { vals[i][0] = newName; modified = true; }
       }
-      if (modified) range.setValues(values);
+      if (modified) range.setValues(vals);
     }
   }
 };
 
-/**
- * STORAGE SERVICE
- */
+// ─── STORAGE SERVICE ───────────────────────────────────────────────────────────
 const StorageService = {
-  appendBulkLogs: function(entries, customTimestamp) {
-    if (!entries || entries.length === 0) throw new Error("Erreur : Aucune donnée à injecter.");
-    const targetDate = customTimestamp ? new Date(customTimestamp) : new Date();
-    if (isNaN(targetDate.getTime())) throw new Error("Format invalide : La date fournie est incorrecte.");
 
-    const rowsToAppend = entries.map(entry => {
-      if (!entry.player || !entry.category) throw new Error("Données invalides : Joueur ou catégorie manquante.");
-      const pts = parseInt(entry.points, 10);
-      const tms = parseInt(entry.times, 10);
-      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Erreur de validation des scores.");
-      return [targetDate, entry.player, entry.category, pts * tms];
+  appendBulkLogs(entries, customTimestamp) {
+    if (!entries || !entries.length) throw new Error("Aucune donnée à injecter.");
+    const targetDate = customTimestamp ? new Date(customTimestamp) : new Date();
+    if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
+
+    const rows = entries.map(e => {
+      if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
+      const pts = parseInt(e.points, 10);
+      const tms = parseInt(e.times,  10);
+      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Valeurs de score invalides.");
+      return [targetDate, e.player, e.category, pts * tms];
     });
 
     const { history } = ConfigService.getSheets();
-    history.getRange(history.getLastRow() + 1, 1, rowsToAppend.length, 4).setValues(rowsToAppend);
+    history.getRange(history.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
   },
 
-  // ✅ getAllLogs : lecture complète sans filtre (utilisée par apiGetFilteredData)
-  getAllLogs: function() {
-    const sheet = ConfigService.getSheets().history;
+  // Lecture complète (utilisée par AnalyticsService)
+  getAllLogs() {
+    const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return [];
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    const logs = [];
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const d = new Date(row[0]);
-      if (isNaN(d.getTime())) continue;
-      logs.push({
-        timestamp: d,
-        player: row[1],
-        category: row[2],
-        points: parseInt(row[3], 10) || 0
-      });
-    }
-    return logs;
+    return sheet.getRange(2, 1, lastRow - 1, 4).getValues()
+      .map(row => {
+        const d = new Date(row[0]);
+        if (isNaN(d.getTime())) return null;
+        return {
+          timestamp: d,
+          player:    row[1] ? row[1].toString() : '',
+          category:  row[2] ? row[2].toString() : '',
+          points:    parseInt(row[3], 10) || 0
+        };
+      })
+      .filter(Boolean);
   },
 
-  getFilteredLogs: function(filterYear, filterMonth) {
-    const allLogs = this.getAllLogs();
-    const logs = [];
-    for (let i = 0; i < allLogs.length; i++) {
-      const log = allLogs[i];
-      const year = log.timestamp.getFullYear();
-      const month = log.timestamp.getMonth();
-      if (filterYear !== "All" && year !== parseInt(filterYear, 10)) continue;
-      if (filterMonth !== "All" && month !== parseInt(filterMonth, 10)) continue;
-      logs.push(log);
-    }
-    return logs;
+  // Lecture filtrée (utilisée par apiGetFilteredData)
+  getFilteredLogs(players, categories, startDate, endDate) {
+    const all = this.getAllLogs();
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
+
+    return all.filter(log => {
+      if (players   && players.length   && !players.includes(log.player))     return false;
+      if (categories && categories.length && !categories.includes(log.category)) return false;
+      if (start && log.timestamp < start) return false;
+      if (end   && log.timestamp > end)   return false;
+      return true;
+    });
   },
 
-  getHistoryPage: function(page, pageSize, filterPlayer, filterCategory) {
-    const sheet = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { logs: [], total: 0 };
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    let logs = [];
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const d = new Date(row[0]);
-      if (isNaN(d.getTime())) continue;
-      const player = row[1];
-      const category = row[2];
-      if (filterPlayer && player !== filterPlayer) continue;
-      if (filterCategory && category !== filterCategory) continue;
-      logs.push({
-        timestamp: d,
-        player: player,
-        category: category,
-        points: parseInt(row[3], 10),
-        rowIndex: i + 2
-      });
-    }
-    const total = logs.length;
-    const start = (page - 1) * pageSize;
-    const paged = logs.slice(start, start + pageSize);
-    return { logs: paged, total };
+  // Pagination pour l'onglet Historique
+  getHistoryPage(page, pageSize, filterPlayer, filterCategory) {
+    const all = this.getAllLogs();
+    // On inverse pour avoir le plus récent en premier
+    const sorted = all.slice().reverse();
+    const filtered = sorted.filter(log => {
+      if (filterPlayer   && log.player   !== filterPlayer)   return false;
+      if (filterCategory && log.category !== filterCategory) return false;
+      return true;
+    });
+    const total = filtered.length;
+    const start = ((page || 1) - 1) * (pageSize || 20);
+    const paged = filtered.slice(start, start + (pageSize || 20));
+    // On renvoie l'index réel dans le sheet (pour suppression) :
+    // comme on a inversé, il faut retrouver le rowIndex dans all
+    const logsWithIndex = paged.map(log => {
+      // rowIndex = position dans all (0-based) + 2 (header + 1-based)
+      const idx = all.findIndex(
+        l => l.timestamp.getTime() === log.timestamp.getTime() &&
+             l.player === log.player && l.category === log.category && l.points === log.points
+      );
+      return { ...log, rowIndex: idx + 2 };
+    });
+    return { logs: logsWithIndex, total };
   },
 
-  deleteHistoryEntry: function(rowIndex) {
-    const sheet = ConfigService.getSheets().history;
-    sheet.deleteRow(rowIndex);
+  deleteHistoryEntry(rowIndex) {
+    ConfigService.getSheets().history.deleteRow(rowIndex);
   }
 };
 
-/**
- * ANALYTICS & AI SERVICE
- */
+// ─── ANALYTICS SERVICE ─────────────────────────────────────────────────────────
 const AnalyticsService = {
-  getAggregatedData: function(filterYear, filterMonth) {
-    const logs = StorageService.getFilteredLogs(filterYear, filterMonth);
-    const playersEntities = SettingsService.getEntities('Players');
-    const categoriesEntities = SettingsService.getEntities('Categories');
 
-    const players = playersEntities.map(p => p.name);
-    const categories = categoriesEntities.map(c => c.name);
-
-    let scores = {};
+  // Agrégation depuis les logs déjà filtrés (tableau d'objets)
+  _aggregate(logs, players, categories) {
+    const scores = {};
     players.forEach(p => {
       scores[p] = { total: 0 };
-      categories.forEach(c => scores[p][c] = 0);
+      categories.forEach(c => { scores[p][c] = 0; });
     });
-
     let orphanCount = 0;
     logs.forEach(log => {
-      if (scores[log.player] !== undefined && scores[log.player][log.category] !== undefined) {
+      if (scores[log.player] !== undefined &&
+          scores[log.player][log.category] !== undefined) {
         scores[log.player][log.category] += log.points;
-        scores[log.player].total += log.points;
+        scores[log.player].total         += log.points;
       } else {
         orphanCount++;
       }
     });
-
-    const insights = this.generateInsights(scores, categories, orphanCount);
-    return { scores, categories, insights, orphanCount };
+    return { scores, orphanCount };
   },
 
-  generateInsights: function(scores, categories, orphanCount) {
-    let narrative = [];
-    let categoryWinners = {};
-    let topOfTops = {};
-    Object.keys(scores).forEach(player => topOfTops[player] = 0);
+  generateInsights(scores, categories, orphanCount) {
+    const narrative      = [];
+    const categoryWinners = {};
+    const topOfTops      = {};
+    Object.keys(scores).forEach(p => { topOfTops[p] = 0; });
 
     categories.forEach(cat => {
-      let maxScore = 0;
-      let winners = [];
-      Object.keys(scores).forEach(player => {
-        const pScore = scores[player][cat];
-        if (pScore > maxScore) { maxScore = pScore; winners = [player]; }
-        else if (pScore === maxScore && pScore > 0) { winners.push(player); }
+      let maxScore = 0, winners = [];
+      Object.keys(scores).forEach(p => {
+        const s = scores[p][cat];
+        if (s > maxScore)                   { maxScore = s; winners = [p]; }
+        else if (s === maxScore && s > 0)   { winners.push(p); }
       });
       if (maxScore > 0) {
         categoryWinners[cat] = { names: winners, score: maxScore };
@@ -252,294 +224,235 @@ const AnalyticsService = {
     });
 
     Object.keys(categoryWinners).forEach(cat => {
-      narrative.push(`• [${cat.toUpperCase()}] : ${categoryWinners[cat].names.join(" & ")} domine la catégorie avec un pic de ${categoryWinners[cat].score} points.`);
+      narrative.push(`• [${cat.toUpperCase()}] : ${categoryWinners[cat].names.join(" & ")} domine avec ${categoryWinners[cat].score} pts.`);
     });
 
-    let ultimateWinners = [];
-    let maxTop = 0;
+    let ultimateWinners = [], maxTop = 0;
     Object.keys(topOfTops).forEach(p => {
-      if (topOfTops[p] > maxTop) { maxTop = topOfTops[p]; ultimateWinners = [p]; }
+      if (topOfTops[p] > maxTop)              { maxTop = topOfTops[p]; ultimateWinners = [p]; }
       else if (topOfTops[p] === maxTop && maxTop > 0) { ultimateWinners.push(p); }
     });
-
-    if (ultimateWinners.length > 0) {
-      const winnerText = ultimateWinners.join(" et ");
-      narrative.push(`\n🏆 VERDICT GENERAL : ${winnerText} ${ultimateWinners.length > 1 ? "sont co-" : "est "}sacré${ultimateWinners.length > 1 ? "s" : ""} "Top 1 des Tops" sur cette période.`);
+    if (ultimateWinners.length) {
+      const plural = ultimateWinners.length > 1;
+      narrative.push(`\n🏆 VERDICT : ${ultimateWinners.join(" & ")} ${plural ? "sont co-" : "est "}sacré${plural ? "s" : ""} Top 1 des Tops.`);
     }
     if (orphanCount > 0) {
-      narrative.push(`\n⚠️ ${orphanCount} entrée(s) historique(s) non attribuée(s) (joueur ou catégorie supprimé(e)).`);
+      narrative.push(`\n⚠️ ${orphanCount} entrée(s) non attribuée(s) (joueur/catégorie supprimé(e)).`);
     }
-    return narrative.length > 0 ? narrative.join("\n") : "Aucune anomalie ou infraction détectée sur cette période de suivi.";
+    return narrative.length
+      ? narrative.join("\n")
+      : "Aucune infraction détectée sur cette période.";
   },
 
-  generateAiQuote: function(year, month) {
+  // Appelé par apiGetData (dashboard classique, conservé pour compatibilité)
+  getAggregatedData(filterYear, filterMonth) {
+    const all = StorageService.getAllLogs();
+    let logs  = all;
+    if (filterYear  && filterYear  !== "All") logs = logs.filter(l => l.timestamp.getFullYear() === parseInt(filterYear, 10));
+    if (filterMonth && filterMonth !== "All") logs = logs.filter(l => l.timestamp.getMonth()    === parseInt(filterMonth, 10));
+
+    const players    = SettingsService.getEntities('Players').map(p => p.name);
+    const categories = SettingsService.getEntities('Categories').map(c => c.name);
+    const { scores, orphanCount } = this._aggregate(logs, players, categories);
+
+    return {
+      scores,
+      categories,
+      insights: this.generateInsights(scores, categories, orphanCount),
+      orphanCount
+    };
+  },
+
+  // Appelé par apiGetFilteredData (filtres croisés dashboard)
+  getFilteredChartData(players, categories, startDate, endDate) {
+    const logs = StorageService.getFilteredLogs(
+      players && players.length   ? players    : null,
+      categories && categories.length ? categories : null,
+      startDate || null,
+      endDate   || null
+    );
+
+    const allPlayers    = SettingsService.getEntities('Players').map(p => p.name);
+    const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
+
+    // Si des filtres sont actifs, on restreint les labels affichés
+    const displayPlayers    = (players    && players.length)    ? players    : allPlayers;
+    const displayCategories = (categories && categories.length) ? categories : allCategories;
+
+    const { scores } = this._aggregate(logs, displayPlayers, displayCategories);
+
+    const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+    const datasets = displayCategories.map((cat, i) => ({
+      label:           cat,
+      data:            displayPlayers.map(p => (scores[p] && scores[p][cat]) || 0),
+      backgroundColor: colors[i % colors.length],
+      borderRadius:    4
+    }));
+
+    return { labels: displayPlayers, datasets };
+  },
+
+  generateAiQuote(year, month) {
     const data = this.getAggregatedData(year, month);
-    const key = ConfigService.getGeminiKey();
-    if (!key) return { quote: this.getFallbackQuote(data), isAi: false };
-    try {
-      const catEntities = SettingsService.getEntities('Categories');
-      let context = "Contexte :\n";
-      catEntities.forEach(c => context += `- ${c.name} : ${c.meta || 'Sans description'}\n`);
-      context += "\nScores :\n";
-      Object.keys(data.scores).forEach(p => { context += `- ${p} : ${data.scores[p].total} points.\n`; });
-      const prompt = `Tu es un commentateur sarcastique qui juge un groupe d'amis. Base-toi sur ces scores pour rédiger un paragraphe de 3 phrases max. Tacle le pire joueur, sois ironique mais amical. Parle en français.\n\n${context}`;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-      const payload = { contents: [{ parts: [{ text: prompt }] }] };
-      const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
-      const response = UrlFetchApp.fetch(url, options);
-      if (response.getResponseCode() !== 200) return { quote: this.getFallbackQuote(data), isAi: false };
-      const json = JSON.parse(response.getContentText());
-      if (json.error || !json.candidates || json.candidates.length === 0) return { quote: this.getFallbackQuote(data), isAi: false };
-      return { quote: json.candidates[0].content.parts[0].text, isAi: true };
-    } catch(e) {
-      return { quote: this.getFallbackQuote(data), isAi: false };
-    }
-  },
+    const key  = ConfigService.getGeminiKey();
 
-  getFallbackQuote: function(data) {
-    let ultimateWinner = "Quelqu'un";
-    let maxScore = 0;
+    let ultimateWinner = "Quelqu'un", maxScore = 0;
     Object.keys(data.scores).forEach(p => {
       if (data.scores[p].total > maxScore) { maxScore = data.scores[p].total; ultimateWinner = p; }
     });
-    const fallbackQuotes = [
-      `Même sans l'aide de l'IA, tout le monde sait que ${ultimateWinner} a été particulièrement catastrophique cette fois-ci.`,
-      `L'intelligence artificielle de Google a planté tellement les scores de ${ultimateWinner} sont honteux.`,
-      `Pas besoin d'algorithmes complexes pour constater que ${ultimateWinner} tire le niveau du groupe vers la base.`,
-      `Erreur de quota : L'ego (et le score) de ${ultimateWinner} prennent trop de place sur les serveurs cloud.`,
-      `L'IA refuse de commenter. Elle a développé de la compassion pour la nullité de ${ultimateWinner}.`
+    const fallbacks = [
+      `Même sans IA, tout le monde sait que ${ultimateWinner} a été catastrophique.`,
+      `L'IA a planté — les scores de ${ultimateWinner} sont trop honteux à afficher.`,
+      `Pas besoin d'algorithme pour voir que ${ultimateWinner} tire le groupe vers le bas.`,
+      `Quota dépassé : l'ego de ${ultimateWinner} prend trop de place sur les serveurs.`,
+      `L'IA refuse de commenter. Elle a pitié de ${ultimateWinner}.`
     ];
-    return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
+    const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    if (!key) return { quote: fallback, isAi: false };
+
+    try {
+      let context = "Contexte :\n";
+      SettingsService.getEntities('Categories').forEach(c => {
+        context += `- ${c.name} : ${c.meta || 'Sans description'}\n`;
+      });
+      context += "\nScores :\n";
+      Object.keys(data.scores).forEach(p => {
+        context += `- ${p} : ${data.scores[p].total} points.\n`;
+      });
+
+      const prompt = `Tu es un commentateur sarcastique d'un groupe d'amis. Rédige 3 phrases max, tacle le pire joueur, ironique mais amical, en français.\n\n${context}`;
+      const url    = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+      const resp   = UrlFetchApp.fetch(url, {
+        method: 'post', contentType: 'application/json',
+        payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        muteHttpExceptions: true
+      });
+      if (resp.getResponseCode() !== 200) return { quote: fallback, isAi: false };
+      const json = JSON.parse(resp.getContentText());
+      if (!json.candidates || !json.candidates.length) return { quote: fallback, isAi: false };
+      return { quote: json.candidates[0].content.parts[0].text, isAi: true };
+    } catch(e) {
+      return { quote: fallback, isAi: false };
+    }
   },
 
-  getAvailableYears: function() {
-    const logs = StorageService.getFilteredLogs("All", "All");
+  getAvailableYears() {
+    const logs = StorageService.getAllLogs();
     const years = new Set();
-    logs.forEach(log => years.add(log.timestamp.getFullYear()));
-    return Array.from(years).sort((a,b) => b - a);
+    logs.forEach(l => years.add(l.timestamp.getFullYear()));
+    const current = new Date().getFullYear();
+    years.add(current);
+    return Array.from(years).sort((a, b) => b - a);
   },
 
-  getTrendData: function(filterYear, filterMonth) {
-    const logs = StorageService.getFilteredLogs(filterYear, filterMonth);
-    const players = SettingsService.getEntities('Players').map(p => p.name);
-    const weeklyData = {};
-    logs.forEach(log => {
-      const date = log.timestamp;
-      const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
-      const key = weekStart.toISOString().slice(0,10);
-      if (!weeklyData[key]) weeklyData[key] = {};
-      players.forEach(p => { if (!weeklyData[key][p]) weeklyData[key][p] = 0; });
-      if (weeklyData[key][log.player] !== undefined) weeklyData[key][log.player] += log.points;
-    });
-    const sortedWeeks = Object.keys(weeklyData).sort();
-    const datasets = players.map(player => ({
-      label: player,
-      data: sortedWeeks.map(week => weeklyData[week][player] || 0),
-      borderColor: `hsl(${Math.random() * 360}, 70%, 60%)`,
-      fill: false
-    }));
-    return { labels: sortedWeeks, datasets };
-  },
-
-  buildHtmlReport: function(year, month) {
-    const data = this.getAggregatedData(year, month);
-    const players = JSON.stringify(Object.keys(data.scores));
-    const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
-    const datasets = data.categories.map((cat, i) => ({
+  buildHtmlReport(year, month) {
+    const data     = this.getAggregatedData(year, month);
+    const players  = JSON.stringify(Object.keys(data.scores));
+    const colors   = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+    const datasets = JSON.stringify(data.categories.map((cat, i) => ({
       label: cat,
-      data: Object.keys(data.scores).map(p => data.scores[p][cat] || 0),
+      data:  Object.keys(data.scores).map(p => data.scores[p][cat] || 0),
       backgroundColor: colors[i % colors.length],
       borderRadius: 4
-    }));
-    const datasetsJson = JSON.stringify(datasets);
-    const orphanNote = data.orphanCount > 0 ? `<p>⚠️ ${data.orphanCount} entrées historiques non attribuées.</p>` : '';
-    return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8"><title>Rapport Analytique — Casseroles</title>
+    })));
+
+    return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Rapport Casseroles</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
-<style>body{font-family:system-ui,sans-serif;background:#0f1117;color:#e8eaf6;padding:40px;}h1{color:#ff4757;}pre{background:#1a1d27;padding:20px;border-radius:8px;white-space:pre-wrap;color:#00d4aa;line-height:1.6;}.chart-wrapper{max-width:800px;margin:30px 0;background:#1a1d27;padding:20px;border-radius:8px;}</style>
+<style>body{font-family:system-ui;background:#0f1117;color:#e8eaf6;padding:40px;}h1{color:#ff4757;}pre{background:#1a1d27;padding:20px;border-radius:8px;white-space:pre-wrap;color:#00d4aa;}.wrap{max-width:800px;margin:30px 0;background:#1a1d27;padding:20px;border-radius:8px;}</style>
 </head><body>
 <h1>📊 RAPPORT DES CASSEROLES</h1>
 <p style="color:#8892b0">Période : ${year === 'All' ? 'Toutes années' : year} / ${month === 'All' ? 'Tous mois' : month}</p>
-${orphanNote}
-<div class="chart-wrapper"><canvas id="reportChart"></canvas></div>
+${data.orphanCount > 0 ? `<p>⚠️ ${data.orphanCount} entrée(s) non attribuée(s).</p>` : ''}
+<div class="wrap"><canvas id="c"></canvas></div>
 <pre>${data.insights}</pre>
-<script>new Chart(document.getElementById('reportChart').getContext('2d'),{type:'bar',data:{labels:${players},datasets:${datasetsJson}},options:{responsive:true,scales:{x:{stacked:true,grid:{color:'#2a2d3e'},ticks:{color:'#e8eaf6'}},y:{stacked:true,grid:{color:'#2a2d3e'},ticks:{color:'#e8eaf6'}}},plugins:{legend:{labels:{color:'#e8eaf6'}}}}})<\/script>
+<script>new Chart(document.getElementById('c'),{type:'bar',data:{labels:${players},datasets:${datasets}},options:{responsive:true,scales:{x:{stacked:true},y:{stacked:true}}}});<\/script>
 </body></html>`;
   }
 };
 
-/**
- * WEB APP API ENDPOINTS
- */
+// ─── API ENDPOINTS ─────────────────────────────────────────────────────────────
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Gestionnaire de Casseroles')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function apiAddBulkScores(entries, customTimestamp) {
-  try {
-    StorageService.appendBulkLogs(entries, customTimestamp);
-    return { success: true };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
-function apiGetData(year, month) {
-  try {
-    const data = AnalyticsService.getAggregatedData(year, month);
-    return { success: true, data: data };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
 function apiGetSettings() {
   try {
     return {
-      success: true,
-      players: SettingsService.getEntities('Players'),
+      success:    true,
+      players:    SettingsService.getEntities('Players'),
       categories: SettingsService.getEntities('Categories')
     };
-  } catch(err) { return { success: false, error: err.message }; }
+  } catch(e) { return { success: false, error: e.message }; }
 }
 
 function apiManageEntity(action, type, newName, newMeta, oldName) {
   try {
-    if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
+    if (!SettingsService.VALID_TYPES.includes(type))    throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
-    if (action === 'ADD') SettingsService.addEntity(type, newName, newMeta);
-    else if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
-    else if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta);
+    if (action === 'ADD')    SettingsService.addEntity(type, newName, newMeta);
+    if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
+    if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta);
     ConfigService.clearCache();
     return { success: true };
-  } catch(err) { return { success: false, error: err.message }; }
+  } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiDownloadHtmlReport(year, month) {
+function apiAddBulkScores(entries, customTimestamp) {
   try {
-    const html = AnalyticsService.buildHtmlReport(year, month);
-    return { success: true, html: html };
-  } catch(err) { return { success: false, error: err.message }; }
+    StorageService.appendBulkLogs(entries, customTimestamp);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// Dashboard filtres croisés (appelé par applyFilters() dans le frontend)
+function apiGetFilteredData(players, categories, startDate, endDate) {
+  try {
+    const chartData = AnalyticsService.getFilteredChartData(players, categories, startDate, endDate);
+    return { success: true, chartData };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// Données agrégées classiques (conservé pour compatibilité)
+function apiGetData(year, month) {
+  try {
+    return { success: true, data: AnalyticsService.getAggregatedData(year, month) };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// Historique paginé
+function apiGetHistoryPage(page, pageSize, filterPlayer, filterCategory) {
+  try {
+    const result = StorageService.getHistoryPage(page, pageSize, filterPlayer, filterCategory);
+    return { success: true, logs: result.logs, total: result.total };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteHistoryEntry(rowIndex) {
+  try {
+    StorageService.deleteHistoryEntry(rowIndex);
+    ConfigService.clearCache();
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
 }
 
 function apiGenerateAiQuote(year, month) {
   try {
     const result = AnalyticsService.generateAiQuote(year, month);
     return { success: true, quote: result.quote, isAi: result.isAi };
-  } catch(err) { return { success: false, error: err.message }; }
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDownloadHtmlReport(year, month) {
+  try {
+    return { success: true, html: AnalyticsService.buildHtmlReport(year, month) };
+  } catch(e) { return { success: false, error: e.message }; }
 }
 
 function apiGetAvailableYears() {
   try {
-    const years = AnalyticsService.getAvailableYears();
-    return { success: true, years: years };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
-function apiGetTrendData(year, month) {
-  try {
-    const trend = AnalyticsService.getTrendData(year, month);
-    return { success: true, trend: trend };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
-function apiGetHistoryPage(page, pageSize, filterPlayer, filterCategory) {
-  try {
-    const result = StorageService.getHistoryPage(page, pageSize, filterPlayer, filterCategory);
-    return { success: true, logs: result.logs, total: result.total };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
-function apiDeleteHistoryEntry(rowIndex) {
-  try {
-    StorageService.deleteHistoryEntry(rowIndex);
-    return { success: true };
-  } catch(err) { return { success: false, error: err.message }; }
-}
-
-/**
- * ✅ CORRIGÉ : utilise StorageService.getAllLogs() qui existe maintenant
- * Filtrage par joueur(s), catégorie(s) et plage de dates
- */
-function apiGetFilteredData(players, categories, startDate, endDate) {
-  try {
-    const allLogs = StorageService.getAllLogs(); // ✅ fonction existante
-    let filtered = allLogs;
-
-    if (players && players.length > 0) {
-      filtered = filtered.filter(log => players.includes(log.player));
-    }
-    if (categories && categories.length > 0) {
-      filtered = filtered.filter(log => categories.includes(log.category));
-    }
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0,0,0,0);
-      filtered = filtered.filter(log => log.timestamp >= start);
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23,59,59,999);
-      filtered = filtered.filter(log => log.timestamp <= end);
-    }
-
-    const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
-    const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
-
-    // Respecter la sélection : si filtre actif, n'afficher que ces joueurs/catégories
-    const displayPlayers = (players && players.length > 0) ? players : allPlayers;
-    const displayCategories = (categories && categories.length > 0) ? categories : allCategories;
-
-    let scores = {};
-    displayPlayers.forEach(p => {
-      scores[p] = {};
-      displayCategories.forEach(c => scores[p][c] = 0);
-    });
-
-    filtered.forEach(log => {
-      if (scores[log.player] && scores[log.player][log.category] !== undefined) {
-        scores[log.player][log.category] += log.points;
-      }
-    });
-
-    const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa','#eccc68','#1e90ff'];
-    const chartData = {
-      labels: displayPlayers,
-      datasets: displayCategories.map((cat, idx) => ({
-        label: cat,
-        data: displayPlayers.map(p => scores[p][cat] || 0),
-        backgroundColor: colors[idx % colors.length]
-      }))
-    };
-
-    return { success: true, chartData };
-  } catch(e) {
-    return { success: false, error: e.message };
-  }
-}
-
-/**
- * Export des données brutes (CSV)
- */
-function apiGetExportData(players, categories, startDate, endDate, format) {
-  try {
-    const allLogs = StorageService.getAllLogs();
-    let filtered = allLogs;
-    if (players && players.length > 0) filtered = filtered.filter(log => players.includes(log.player));
-    if (categories && categories.length > 0) filtered = filtered.filter(log => categories.includes(log.category));
-    if (startDate) {
-      const start = new Date(startDate); start.setHours(0,0,0,0);
-      filtered = filtered.filter(log => log.timestamp >= start);
-    }
-    if (endDate) {
-      const end = new Date(endDate); end.setHours(23,59,59,999);
-      filtered = filtered.filter(log => log.timestamp <= end);
-    }
-    const rows = [["Date", "Joueur", "Catégorie", "Points"]];
-    filtered.forEach(log => {
-      rows.push([log.timestamp.toISOString(), log.player, log.category, log.points]);
-    });
-    const csv = rows.map(row => row.join(",")).join("\n");
-    return { success: true, csv, filename: `export_${Date.now()}.csv` };
-  } catch(e) {
-    return { success: false, error: e.message };
-  }
+    return { success: true, years: AnalyticsService.getAvailableYears() };
+  } catch(e) { return { success: false, error: e.message }; }
 }
