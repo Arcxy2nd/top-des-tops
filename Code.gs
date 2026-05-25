@@ -531,16 +531,8 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
   try {
     const allLogs = StorageService.getAllLogs();
     let filtered = allLogs;
-
-    // Filtre joueurs
-    if (players && players.length) {
-      filtered = filtered.filter(log => players.includes(log.player));
-    }
-    // Filtre catégories
-    if (categories && categories.length) {
-      filtered = filtered.filter(log => categories.includes(log.category));
-    }
-    // Filtre dates
+    if (players && players.length) filtered = filtered.filter(log => players.includes(log.player));
+    if (categories && categories.length) filtered = filtered.filter(log => categories.includes(log.category));
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0,0,0,0);
@@ -551,23 +543,11 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
       end.setHours(23,59,59,999);
       filtered = filtered.filter(log => log.timestamp <= end);
     }
-
-    // Agrégation par joueur et catégorie
     const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
     const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
     let scores = {};
-    allPlayers.forEach(p => {
-      scores[p] = {};
-      allCategories.forEach(c => scores[p][c] = 0);
-    });
-
-    filtered.forEach(log => {
-      if (scores[log.player] && scores[log.player][log.category] !== undefined) {
-        scores[log.player][log.category] += log.points;
-      }
-    });
-
-    // Transformer pour le frontend
+    allPlayers.forEach(p => { scores[p] = {}; allCategories.forEach(c => scores[p][c] = 0); });
+    filtered.forEach(log => { if (scores[log.player] && scores[log.player][log.category] !== undefined) scores[log.player][log.category] += log.points; });
     const chartData = {
       labels: allPlayers,
       datasets: allCategories.map((cat, idx) => ({
@@ -576,11 +556,8 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
         backgroundColor: `hsl(${idx * 45}, 70%, 60%)`
       }))
     };
-
-    return { success: true, chartData, logs: filtered };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+    return { success: true, chartData };
+  } catch(e) { return { success: false, error: e.message }; }
 }
 
 /**
