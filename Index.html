@@ -11,124 +11,37 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --bg: #0b0c10;
-      --card: #1f2833;
-      --border: #2a313d;
-      --accent: #ff4757;
-      --accent-hover: #ff6b81;
-      --text: #e0e6ed;
-      --text-muted: #9aa5be;
-      --success: #2ed573;
-      --error: #ff4757;
+      --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
+      --accent: #ff4757; --accent-hover: #ff6b81;
+      --text: #e0e6ed; --text-muted: #9aa5be;
+      --success: #2ed573; --error: #ff4757;
       --btn-alt: #353b48;
-      --tap-min: 44px;
     }
     body.light {
-      --bg: #f0f2f5;
-      --card: #ffffff;
-      --border: #d1d5db;
-      --accent: #e53e3e;
-      --accent-hover: #c53030;
-      --text: #1a202c;
-      --text-muted: #4a5568;
-      --btn-alt: #e2e8f0;
+      --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
+      --accent: #e53e3e; --accent-hover: #c53030;
+      --text: #1a202c; --text-muted: #4a5568; --btn-alt: #e2e8f0;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 0;
-      transition: background 0.2s, color 0.2s;
-    }
-    .navbar {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      overflow-x: auto;
-    }
-    .nav-container {
-      display: flex;
-      min-width: max-content;
-      width: 100%;
-      max-width: 1200px;
-      gap: 4px;
-    }
-    .nav-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      padding: 16px 18px;
-      cursor: pointer;
-      transition: 0.3s;
-      font-weight: 500;
-      border-bottom: 3px solid transparent;
-      white-space: nowrap;
-      min-height: var(--tap-min);
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; transition: background 0.2s, color 0.2s; }
+    .navbar { background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); overflow-x: auto; }
+    .nav-container { display: flex; min-width: max-content; width: 100%; max-width: 1200px; gap: 4px; }
+    .nav-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; padding: 16px 18px; cursor: pointer; transition: 0.3s; font-weight: 500; border-bottom: 3px solid transparent; white-space: nowrap; min-height: 44px; }
     .nav-btn:hover { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .theme-toggle {
-      margin-left: auto;
-      background: var(--btn-alt);
-      border: none;
-      border-radius: 30px;
-      font-size: 1.2rem;
-      padding: 8px 12px;
-      cursor: pointer;
-      color: var(--text);
-    }
+    .theme-toggle { margin-left: auto; background: var(--btn-alt); border: none; border-radius: 30px; font-size: 1.2rem; padding: 8px 12px; cursor: pointer; color: var(--text); }
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .card {
-      background: var(--card);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      margin-bottom: 20px;
-    }
+    .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 16px rgba(0,0,0,0.2); margin-bottom: 20px; }
     h2 { margin: 0 0 18px 0; font-size: 1.3rem; }
     h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; margin-bottom: 12px; }
-    .filter-panel {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: flex-end;
-      background: rgba(0,0,0,0.2);
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 10px;
-    }
+    .filter-panel { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; margin-bottom: 10px; }
     .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
     .filter-group label { font-size: 0.8rem; color: var(--text-muted); }
-    .multi-select {
-      min-width: 180px;
-      height: auto;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px;
-      color: var(--text);
-    }
-    select, input, button {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      font-size: 14px;
-    }
+    .multi-select { min-width: 180px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--text); }
+    select, input, button { padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
     button { cursor: pointer; transition: 0.2s; }
     button.primary { background: var(--accent); color: white; border: none; }
     button.primary:hover { background: var(--accent-hover); }
@@ -136,71 +49,22 @@
     button.small { padding: 6px 12px; font-size: 0.8rem; }
     button.danger { background: rgba(255,71,87,0.2); color: var(--error); border-color: var(--error); }
     .chart-container { margin-top: 10px; }
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
     .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-    .export-btn {
-      background: var(--btn-alt);
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: var(--text);
-    }
+    .export-btn { background: var(--btn-alt); border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: var(--text); }
     .export-btn:hover { background: var(--accent); color: white; }
     canvas { max-width: 100%; height: auto; }
-    .entry-row {
-      display: grid;
-      grid-template-columns: 2fr 2fr 1fr 1fr auto;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 10px;
-      background: rgba(0,0,0,0.2);
-      padding: 10px;
-      border-radius: 8px;
-    }
-    .batch-header {
-      display: grid;
-      grid-template-columns: 2fr 2fr 1fr 1fr auto;
-      gap: 10px;
-      padding: 0 10px;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-    }
+    .entry-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+    .batch-header { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto; gap: 10px; padding: 0 10px; margin-bottom: 8px; font-weight: bold; color: var(--text-muted); font-size: 0.8rem; }
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
-    .entity-item {
-      background: rgba(0,0,0,0.2);
-      padding: 10px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+    .entity-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
     .player-avatar-small { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 6px; object-fit: cover; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
     .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
-    .toast {
-      padding: 12px 20px;
-      border-radius: 8px;
-      background: var(--card);
-      border-left: 4px solid;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      animation: slideIn 0.2s ease;
-    }
+    .toast { padding: 12px 20px; border-radius: 8px; background: var(--card); border-left: 4px solid; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.2s ease; }
     .toast.success { border-left-color: var(--success); color: var(--success); }
     .toast.error { border-left-color: var(--error); color: var(--error); }
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -211,7 +75,6 @@
       .filter-panel { flex-direction: column; align-items: stretch; }
       .multi-select { min-width: auto; }
       .entry-row { grid-template-columns: 1fr 1fr; }
-      .entry-row select, .entry-row input { width: 100%; }
       .row-actions { grid-column: span 2; display: flex; gap: 8px; }
       .batch-header { display: none; }
       .settings-grid { grid-template-columns: 1fr; }
@@ -219,14 +82,13 @@
   </style>
 </head>
 <body>
-
 <nav class="navbar">
   <div class="nav-container">
     <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique</button>
-    <button class="theme-toggle" id="themeToggle" aria-label="Thème">🌙</button>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
   </div>
 </nav>
 
@@ -254,7 +116,7 @@
           <label>Date de fin</label>
           <input type="date" id="endDate">
         </div>
-        <div class="filter-group">
+        <div class="filter-group" style="justify-content:flex-end;">
           <button id="applyFiltersBtn" class="primary">Appliquer</button>
         </div>
       </div>
@@ -271,7 +133,7 @@
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
       </div>
-      <div id="chartWrapper" style="height: 450px; position: relative;">
+      <div id="chartWrapper" style="height:450px; position:relative;">
         <canvas id="mainChart"></canvas>
         <div id="emptyChartMsg" class="empty-chart-msg" style="display:none;">
           Aucune donnée à afficher pour les filtres sélectionnés.
@@ -284,8 +146,8 @@
   <div id="tab-inject" class="tab-content">
     <div class="card">
       <h2>✍️ Constructeur de Lot</h2>
-      <div style="margin-bottom: 16px;">
-        <label style="color:var(--text-muted);">Date (vide = maintenant)</label>
+      <div style="margin-bottom:16px;">
+        <label style="color:var(--text-muted); display:block; margin-bottom:6px;">Date (vide = maintenant)</label>
         <input type="datetime-local" id="globalDateInput">
       </div>
       <div class="batch-header">
@@ -347,255 +209,225 @@
 </div>
 
 <script>
-  // ÉTAT GLOBAL
-  let currentChart = null;
-  let currentChartData = null;
-  let cachedPlayers = [];       // [{ name, meta }]
-  let cachedCategories = [];    // [{ name, meta }]
-  let rowCounter = 0;
-  let currentHistoryPage = 1;
-  let totalHistoryPages = 1;
-  const PAGE_SIZE = 20;
-
-  // ✅ Map nom → URL avatar pour accès rapide dans l'historique
-  function getAvatarMapFromCache() {
-    const map = {};
-    cachedPlayers.forEach(p => { map[p.name] = getAvatarUrl(p.name, p.meta); });
-    return map;
-  }
-
-  const playerSelect = document.getElementById('playerSelect');
-  const categorySelect = document.getElementById('categorySelect');
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  const applyBtn = document.getElementById('applyFiltersBtn');
-  const chartCanvas = document.getElementById('mainChart');
-  const toastContainer = document.getElementById('toastContainer');
-  const entryContainer = document.getElementById('entryContainer');
-  const playersList = document.getElementById('playersList');
-  const categoriesList = document.getElementById('categoriesList');
-  const themeToggle = document.getElementById('themeToggle');
+  var currentChart = null;
+  var currentChartData = null;
+  var cachedPlayers = [];
+  var cachedCategories = [];
+  var rowCounter = 0;
+  var currentHistoryPage = 1;
+  var totalHistoryPages = 1;
+  var PAGE_SIZE = 20;
 
   function showToast(msg, type) {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
     toast.textContent = msg;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+    document.getElementById('toastContainer').appendChild(toast);
+    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
   }
 
   function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, function(m) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
-    });
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   function getAvatarUrl(name, meta) {
     if (meta && meta.trim() !== '') return meta;
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2a313d&color=e0e6ed&bold=true`;
+    return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=2a313d&color=e0e6ed&bold=true';
   }
 
-  function callServer(fn, params, onSuccess, errorMsg) {
-    google.script.run
-      .withSuccessHandler(onSuccess)
-      .withFailureHandler(err => showToast(`${errorMsg}: ${err.message}`, 'error'))
-      [fn](...params);
+  function getAvatarMapFromCache() {
+    var map = {};
+    cachedPlayers.forEach(function(p) { map[p.name] = getAvatarUrl(p.name, p.meta); });
+    return map;
   }
 
-  // MODALES
-  let activeModal = null;
-  function closeModal() { if (activeModal) activeModal.remove(); activeModal = null; }
+  // ─── MODALES ────────────────────────────────────────────────
+  var activeModal = null;
+  function closeModal() { if (activeModal) { document.body.removeChild(activeModal); activeModal = null; } }
 
   function openConfirmModal(msg, onConfirm) {
     closeModal();
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal';
-    modal.innerHTML = `<div class="modal-content"><p>${msg}</p><div style="display:flex;gap:12px;margin-top:20px;"><button id="confirmYes" class="primary">Oui</button><button id="confirmNo" class="secondary">Annuler</button></div></div>`;
+    modal.innerHTML = '<div class="modal-content"><p>' + msg + '</p><div style="display:flex;gap:12px;margin-top:20px;"><button id="mYes" class="primary">Oui</button><button id="mNo" class="secondary">Annuler</button></div></div>';
     document.body.appendChild(modal);
     activeModal = modal;
-    modal.querySelector('#confirmYes').onclick = () => { onConfirm(); closeModal(); };
-    modal.querySelector('#confirmNo').onclick = closeModal;
+    modal.querySelector('#mYes').onclick = function() { closeModal(); onConfirm(); };
+    modal.querySelector('#mNo').onclick = closeModal;
   }
 
   function openEditModal(type, oldName, oldMeta) {
     closeModal();
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal';
-    modal.innerHTML = `<div class="modal-content"><h3>Éditer ${escapeHtml(oldName)}</h3>
-      <input type="text" id="editNewName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom" style="width:100%;margin-bottom:8px;">
-      <input type="text" id="editNewMeta" value="${escapeHtml(oldMeta || '')}" placeholder="${type === 'player' ? 'URL avatar' : 'Description'}" style="width:100%;">
-      <div style="display:flex;gap:12px;margin-top:20px;">
-        <button id="saveEdit" class="primary">Enregistrer</button>
-        <button id="cancelEdit" class="secondary">Annuler</button>
-      </div></div>`;
+    modal.innerHTML = '<div class="modal-content">'
+      + '<h3>Éditer ' + escapeHtml(oldName) + '</h3>'
+      + '<input type="text" id="eNewName" value="' + escapeHtml(oldName) + '" placeholder="Nouveau nom" style="width:100%;margin-bottom:8px;">'
+      + '<input type="text" id="eNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + (type==='player'?'URL avatar':'Description') + '" style="width:100%;">'
+      + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="eSave" class="primary">Enregistrer</button><button id="eCancel" class="secondary">Annuler</button></div>'
+      + '</div>';
     document.body.appendChild(modal);
     activeModal = modal;
-    modal.querySelector('#saveEdit').onclick = () => {
-      const newName = modal.querySelector('#editNewName').value.trim();
-      const newMeta = modal.querySelector('#editNewMeta').value.trim();
+    modal.querySelector('#eSave').onclick = function() {
+      var newName = modal.querySelector('#eNewName').value.trim();
+      var newMeta = modal.querySelector('#eNewMeta').value.trim();
       if (!newName) return;
-      const entityType = (type === 'player') ? 'Players' : 'Categories';
-      callServer('apiManageEntity', ['RENAME', entityType, newName, newMeta, oldName], (res) => {
-        if (res.success) { loadEntities(); showToast('Renommé', 'success'); closeModal(); }
-        else showToast(res.error, 'error');
-      }, 'Erreur renommage');
+      var entityType = (type === 'player') ? 'Players' : 'Categories';
+      closeModal();
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) { loadEntities(); showToast('Renommé', 'success'); }
+          else showToast(res.error, 'error');
+        })
+        .withFailureHandler(function(err) { showToast('Erreur renommage: ' + err.message, 'error'); })
+        .apiManageEntity('RENAME', entityType, newName, newMeta, oldName);
     };
-    modal.querySelector('#cancelEdit').onclick = closeModal;
+    modal.querySelector('#eCancel').onclick = closeModal;
   }
 
-  // ✅ CHARGEMENT DES ENTITÉS — charge puis déclenche le graphique par défaut
+  // ─── ENTITÉS ────────────────────────────────────────────────
   function loadEntities() {
-    callServer('apiGetSettings', [], (res) => {
-      if (!res.success) { showToast(res.error, 'error'); return; }
-      cachedPlayers = res.players;       // [{ name, meta }]
-      cachedCategories = res.categories; // [{ name, meta }]
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res.success) { showToast(res.error, 'error'); return; }
+        cachedPlayers = res.players;
+        cachedCategories = res.categories;
 
-      // Remplir selects multiples dashboard
-      playerSelect.innerHTML = '';
-      cachedPlayers.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = p.name;
-        playerSelect.appendChild(opt);
-      });
-      categorySelect.innerHTML = '';
-      cachedCategories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name;
-        opt.textContent = c.name;
-        categorySelect.appendChild(opt);
-      });
+        var ps = document.getElementById('playerSelect');
+        ps.innerHTML = '';
+        cachedPlayers.forEach(function(p) {
+          var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; ps.appendChild(o);
+        });
+        var cs = document.getElementById('categorySelect');
+        cs.innerHTML = '';
+        cachedCategories.forEach(function(c) {
+          var o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cs.appendChild(o);
+        });
 
-      renderSettingsList(playersList, cachedPlayers, 'player');
-      renderSettingsList(categoriesList, cachedCategories, 'category');
-      updateHistoryFilters();
-
-      // ✅ Charger le graphique par défaut (tous les joueurs, toutes catégories, période du mois)
-      applyFilters();
-    }, 'Erreur chargement settings');
+        renderSettingsList(document.getElementById('playersList'), cachedPlayers, 'player');
+        renderSettingsList(document.getElementById('categoriesList'), cachedCategories, 'category');
+        updateHistoryFilters();
+        applyFilters(); // charge le graphique par défaut
+      })
+      .withFailureHandler(function(err) { showToast('Erreur settings: ' + err.message, 'error'); })
+      .apiGetSettings();
   }
 
   function renderSettingsList(container, items, type) {
     container.innerHTML = '';
-    items.forEach(item => {
-      const li = document.createElement('li');
+    items.forEach(function(item) {
+      var li = document.createElement('li');
       li.className = 'entity-item';
-      const avatarUrl = getAvatarUrl(item.name, item.meta);
-      li.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;">
-          ${type === 'player' ? `<img class="avatar-img" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(item.name)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed'">` : '🍳'}
-          <strong>${escapeHtml(item.name)}</strong>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="small edit-entity" data-type="${type}" data-name="${escapeHtml(item.name)}" data-meta="${escapeHtml(item.meta || '')}">✏️</button>
-          <button class="small danger delete-entity" data-type="${type}" data-name="${escapeHtml(item.name)}">🗑️</button>
-        </div>`;
+      var avatarUrl = getAvatarUrl(item.name, item.meta);
+      var avatarHtml = type === 'player'
+        ? '<img class="avatar-img" src="' + escapeHtml(avatarUrl) + '" onerror="this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(item.name) + '&background=2a313d&color=e0e6ed\'">'
+        : '<span style="font-size:1.4rem;">🍳</span>';
+      li.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+        + avatarHtml + '<strong>' + escapeHtml(item.name) + '</strong></div>'
+        + '<div style="display:flex;gap:6px;">'
+        + '<button class="small btn-edit" data-type="' + type + '" data-name="' + escapeHtml(item.name) + '" data-meta="' + escapeHtml(item.meta||'') + '">✏️</button>'
+        + '<button class="small danger btn-del" data-type="' + type + '" data-name="' + escapeHtml(item.name) + '">🗑️</button>'
+        + '</div>';
       container.appendChild(li);
     });
-
-    container.querySelectorAll('.edit-entity').forEach(btn => {
-      btn.addEventListener('click', () => openEditModal(btn.dataset.type, btn.dataset.name, btn.dataset.meta));
+    container.querySelectorAll('.btn-edit').forEach(function(btn) {
+      btn.addEventListener('click', function() { openEditModal(btn.dataset.type, btn.dataset.name, btn.dataset.meta); });
     });
-    container.querySelectorAll('.delete-entity').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const entityType = (btn.dataset.type === 'player') ? 'Players' : 'Categories';
-        openConfirmModal(`Supprimer "${escapeHtml(btn.dataset.name)}" ?`, () => {
-          callServer('apiManageEntity', ['DELETE', entityType, null, null, btn.dataset.name], (res) => {
-            if (res.success) { loadEntities(); showToast('Supprimé', 'success'); }
-            else showToast(res.error, 'error');
-          }, 'Erreur suppression');
+    container.querySelectorAll('.btn-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var name = btn.dataset.name;
+        var entityType = (btn.dataset.type === 'player') ? 'Players' : 'Categories';
+        openConfirmModal('Supprimer "' + escapeHtml(name) + '" ?', function() {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res.success) { loadEntities(); showToast('Supprimé', 'success'); }
+              else showToast(res.error, 'error');
+            })
+            .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
+            .apiManageEntity('DELETE', entityType, '', '', name);
         });
       });
     });
   }
 
-  // ✅ GRAPHIQUE & FILTRES — aucune sélection = tous les éléments
+  // ─── GRAPHIQUE ──────────────────────────────────────────────
   function applyFilters() {
-    const selectedPlayers = Array.from(playerSelect.selectedOptions).map(opt => opt.value);
-    const selectedCategories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
-    const startDate = startDateInput.value;
-    const endDate = endDateInput.value;
+    var selectedPlayers = Array.from(document.getElementById('playerSelect').selectedOptions).map(function(o) { return o.value; });
+    var selectedCategories = Array.from(document.getElementById('categorySelect').selectedOptions).map(function(o) { return o.value; });
+    var startDate = document.getElementById('startDate').value;
+    var endDate = document.getElementById('endDate').value;
 
-    callServer('apiGetFilteredData', [selectedPlayers, selectedCategories, startDate, endDate], (res) => {
-      if (!res.success) { showToast(res.error, 'error'); return; }
-      currentChartData = res.chartData;
-      renderChart(currentChartData);
-    }, 'Erreur filtrage');
+    // Passer des chaînes vides au lieu de null pour GAS
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res.success) { showToast(res.error, 'error'); return; }
+        currentChartData = res.chartData;
+        renderChart(currentChartData);
+      })
+      .withFailureHandler(function(err) { showToast('Erreur filtrage: ' + err.message, 'error'); })
+      .apiGetFilteredData(selectedPlayers, selectedCategories, startDate, endDate);
   }
 
   function renderChart(data) {
-    const emptyMsg = document.getElementById('emptyChartMsg');
+    var emptyMsg = document.getElementById('emptyChartMsg');
+    var canvas = document.getElementById('mainChart');
     if (currentChart) { currentChart.destroy(); currentChart = null; }
 
-    // Vérifier s'il y a des données non nulles
-    const hasData = data && data.labels && data.labels.length > 0 &&
-      data.datasets && data.datasets.some(ds => ds.data.some(v => v > 0));
+    var hasData = data && data.labels && data.labels.length > 0
+      && data.datasets && data.datasets.some(function(ds) { return ds.data.some(function(v) { return v > 0; }); });
 
     if (!hasData) {
-      chartCanvas.style.display = 'none';
+      canvas.style.display = 'none';
       emptyMsg.style.display = 'block';
       return;
     }
-
-    chartCanvas.style.display = 'block';
+    canvas.style.display = 'block';
     emptyMsg.style.display = 'none';
 
-    const ctx = chartCanvas.getContext('2d');
-    currentChart = new Chart(ctx, {
+    currentChart = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: { labels: data.labels, datasets: data.datasets },
       options: {
         responsive: true,
         maintainAspectRatio: true,
         scales: {
-          x: {
-            stacked: true,
-            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted').trim() },
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted').trim() },
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          }
+          x: { stacked: true, ticks: { color: '#9aa5be' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { stacked: true, beginAtZero: true, ticks: { color: '#9aa5be' }, grid: { color: 'rgba(255,255,255,0.05)' } }
         },
-        plugins: {
-          legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text').trim() } }
-        }
+        plugins: { legend: { labels: { color: '#e0e6ed' } } }
       }
     });
   }
 
-  // EXPORTS
-  async function exportAsImage(format) {
+  // ─── EXPORTS ────────────────────────────────────────────────
+  function exportAsImage(format) {
     try {
-      const dataUrl = chartCanvas.toDataURL(`image/${format}`);
-      const link = document.createElement('a');
-      link.download = `graphique.${format}`;
-      link.href = dataUrl;
+      var canvas = document.getElementById('mainChart');
+      var link = document.createElement('a');
+      link.download = 'graphique.' + format;
+      link.href = canvas.toDataURL('image/' + format);
       link.click();
-      showToast(`Export ${format.toUpperCase()} réussi`, 'success');
+      showToast('Export ' + format.toUpperCase() + ' réussi', 'success');
     } catch(e) { showToast('Erreur export image', 'error'); }
   }
-  async function exportAsPDF() {
+  function exportAsPDF() {
     try {
-      const imgData = chartCanvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('landscape');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      var imgData = document.getElementById('mainChart').toDataURL('image/png');
+      var pdf = new window.jspdf.jsPDF('landscape');
+      var props = pdf.getImageProperties(imgData);
+      var w = pdf.internal.pageSize.getWidth();
+      pdf.addImage(imgData, 'PNG', 0, 0, w, (props.height * w) / props.width);
       pdf.save('graphique.pdf');
       showToast('Export PDF réussi', 'success');
-    } catch(e) { showToast('Erreur PDF', 'error'); }
+    } catch(e) { showToast('Erreur PDF: ' + e.message, 'error'); }
   }
   function exportAsHTML() {
-    const imgData = chartCanvas.toDataURL('image/png');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Graphique exporté</title></head><body style="background:white;display:flex;justify-content:center;align-items:center;"><img src="${imgData}" style="max-width:100%;height:auto;"></body></html>`;
-    const blob = new Blob([html], {type: 'text/html'});
-    const link = document.createElement('a');
+    var imgData = document.getElementById('mainChart').toDataURL('image/png');
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#fff;display:flex;justify-content:center;"><img src="' + imgData + '" style="max-width:100%;"></body></html>';
+    var blob = new Blob([html], {type:'text/html'});
+    var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'graphique.html';
     link.click();
@@ -603,89 +435,80 @@
     showToast('Export HTML réussi', 'success');
   }
   function exportAsCSV() {
-    if (!currentChartData) { showToast('Aucune donnée à exporter', 'error'); return; }
-    const { labels, datasets } = currentChartData;
-    let rows = [['Joueur', ...datasets.map(d => d.label)]];
-    for (let i = 0; i < labels.length; i++) {
-      rows.push([labels[i], ...datasets.map(d => d.data[i])]);
-    }
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const link = document.createElement('a');
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    var rows = [['Joueur'].concat(currentChartData.datasets.map(function(d) { return d.label; }))];
+    currentChartData.labels.forEach(function(lbl, i) {
+      rows.push([lbl].concat(currentChartData.datasets.map(function(d) { return d.data[i]; })));
+    });
+    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'donnees_graphique.csv';
+    link.download = 'scores.csv';
     link.click();
     URL.revokeObjectURL(link.href);
     showToast('Export CSV réussi', 'success');
   }
   function exportAsExcel() {
     if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
-    const { labels, datasets } = currentChartData;
-    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
-    for (let i = 0; i < labels.length; i++) {
-      sheetData.push([labels[i], ...datasets.map(d => d.data[i])]);
-    }
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
+    var sheetData = [['Joueur'].concat(currentChartData.datasets.map(function(d) { return d.label; }))];
+    currentChartData.labels.forEach(function(lbl, i) {
+      sheetData.push([lbl].concat(currentChartData.datasets.map(function(d) { return d.data[i]; })));
+    });
+    var ws = XLSX.utils.aoa_to_sheet(sheetData);
+    var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Scores');
-    XLSX.writeFile(wb, `export_graphique_${Date.now()}.xlsx`);
+    XLSX.writeFile(wb, 'scores_' + Date.now() + '.xlsx');
     showToast('Export Excel réussi', 'success');
   }
 
-  // SAISIE LOT
+  // ─── SAISIE LOT ─────────────────────────────────────────────
   function addEntryRow(preset) {
+    var ec = document.getElementById('entryContainer');
     if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-      const existing = entryContainer.querySelector('.empty-state');
-      if (!existing) {
-        const p = document.createElement('p');
+      if (!ec.querySelector('.empty-state')) {
+        var p = document.createElement('p');
         p.className = 'empty-state';
-        p.textContent = "Ajoutez d'abord des joueurs et catégories dans les paramètres.";
         p.style.color = 'var(--text-muted)';
-        entryContainer.appendChild(p);
+        p.textContent = "Ajoutez d'abord des joueurs et catégories dans les paramètres.";
+        ec.appendChild(p);
       }
       return;
     }
-    // Supprimer le message vide si présent
-    const emptyState = entryContainer.querySelector('.empty-state');
-    if (emptyState) emptyState.remove();
+    var es = ec.querySelector('.empty-state');
+    if (es) ec.removeChild(es);
 
     rowCounter++;
-    const id = `row_${rowCounter}`;
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'entry-row';
-    div.id = id;
+    div.id = 'row_' + rowCounter;
 
-    let playerOptions = cachedPlayers.map(p => {
-      const avatarUrl = getAvatarUrl(p.name, p.meta);
-      return `<option value="${escapeHtml(p.name)}" data-img="${escapeHtml(avatarUrl)}">${escapeHtml(p.name)}</option>`;
+    var playerOpts = cachedPlayers.map(function(p) {
+      return '<option value="' + escapeHtml(p.name) + '" data-img="' + escapeHtml(getAvatarUrl(p.name, p.meta)) + '">' + escapeHtml(p.name) + '</option>';
+    }).join('');
+    var catOpts = cachedCategories.map(function(c) {
+      return '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>';
     }).join('');
 
-    let categoryOptions = cachedCategories.map(c =>
-      `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`
-    ).join('');
+    div.innerHTML = '<div style="display:flex;align-items:center;gap:6px;">'
+      + '<img class="row-avatar" src="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">'
+      + '<select class="p-sel" style="flex:1;">' + playerOpts + '</select></div>'
+      + '<select class="c-sel">' + catOpts + '</select>'
+      + '<input type="number" class="pts-sel" value="1" min="1" list="pointsSuggestion">'
+      + '<input type="number" class="tms-in" value="1" min="1">'
+      + '<div style="display:flex;gap:6px;">'
+      + '<button class="small btn-dup" title="Dupliquer">📋</button>'
+      + '<button class="small danger btn-rm" title="Supprimer">✕</button></div>';
+    ec.appendChild(div);
 
-    div.innerHTML = `
-      <div class="player-select-wrapper" style="display:flex;align-items:center;gap:6px;">
-        <img class="row-avatar" src="" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
-        <select class="p-sel" style="flex:1;">${playerOptions}</select>
-      </div>
-      <select class="c-sel">${categoryOptions}</select>
-      <input type="number" class="pts-sel" value="1" min="1" list="pointsSuggestion">
-      <input type="number" class="tms-in" value="1" min="1">
-      <div class="row-actions" style="display:flex;gap:6px;">
-        <button class="small duplicate-row" title="Dupliquer">📋</button>
-        <button class="small danger remove-row" title="Supprimer">✕</button>
-      </div>`;
-    entryContainer.appendChild(div);
-
-    const pSel = div.querySelector('.p-sel');
-    const avatar = div.querySelector('.row-avatar');
-    const updateAvatar = () => {
-      const opt = pSel.options[pSel.selectedIndex];
-      const imgUrl = opt ? (opt.getAttribute('data-img') || getAvatarUrl(pSel.value, '')) : getAvatarUrl(pSel.value, '');
-      avatar.src = imgUrl;
-      avatar.onerror = () => { avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(pSel.value)}&background=2a313d&color=e0e6ed`; };
-    };
+    var pSel = div.querySelector('.p-sel');
+    var avatar = div.querySelector('.row-avatar');
+    function updateAvatar() {
+      var opt = pSel.options[pSel.selectedIndex];
+      var url = opt ? (opt.getAttribute('data-img') || getAvatarUrl(pSel.value, '')) : getAvatarUrl(pSel.value, '');
+      avatar.src = url;
+      avatar.onerror = function() { avatar.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(pSel.value) + '&background=2a313d&color=e0e6ed'; };
+    }
     pSel.addEventListener('change', updateAvatar);
     updateAvatar();
 
@@ -696,233 +519,201 @@
       div.querySelector('.tms-in').value = preset.times;
       updateAvatar();
     }
-    div.querySelector('.duplicate-row').onclick = () => {
-      addEntryRow({
-        player: pSel.value,
-        category: div.querySelector('.c-sel').value,
-        points: div.querySelector('.pts-sel').value,
-        times: div.querySelector('.tms-in').value
-      });
+    div.querySelector('.btn-dup').onclick = function() {
+      addEntryRow({ player: pSel.value, category: div.querySelector('.c-sel').value, points: div.querySelector('.pts-sel').value, times: div.querySelector('.tms-in').value });
     };
-    div.querySelector('.remove-row').onclick = () => div.remove();
+    div.querySelector('.btn-rm').onclick = function() { ec.removeChild(div); };
   }
 
   function submitBulk() {
-    const rows = document.querySelectorAll('.entry-row');
+    var rows = document.querySelectorAll('.entry-row');
     if (!rows.length) { showToast('Ajoutez au moins une ligne', 'error'); return; }
-    const entries = Array.from(rows).map(r => ({
-      player: r.querySelector('.p-sel').value,
-      category: r.querySelector('.c-sel').value,
-      points: r.querySelector('.pts-sel').value,
-      times: r.querySelector('.tms-in').value
-    }));
-    const date = document.getElementById('globalDateInput').value;
-    const btn = document.getElementById('submitLotBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Écriture...';
-    callServer('apiAddBulkScores', [entries, date], (res) => {
-      btn.disabled = false;
-      btn.textContent = '✓ Inscrire le Lot';
-      if (res.success) {
-        document.getElementById('globalDateInput').value = '';
-        entryContainer.innerHTML = '';
-        addEntryRow();
-        applyFilters();
-        showToast('Lot enregistré !', 'success');
-      } else showToast(res.error, 'error');
-    }, 'Erreur envoi');
+    var entries = Array.from(rows).map(function(r) {
+      return { player: r.querySelector('.p-sel').value, category: r.querySelector('.c-sel').value, points: r.querySelector('.pts-sel').value, times: r.querySelector('.tms-in').value };
+    });
+    var date = document.getElementById('globalDateInput').value;
+    var btn = document.getElementById('submitLotBtn');
+    btn.disabled = true; btn.textContent = '⏳ Écriture...';
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false; btn.textContent = '✓ Inscrire le Lot';
+        if (res.success) {
+          document.getElementById('globalDateInput').value = '';
+          document.getElementById('entryContainer').innerHTML = '';
+          addEntryRow();
+          applyFilters();
+          showToast('Lot enregistré !', 'success');
+        } else showToast(res.error, 'error');
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false; btn.textContent = '✓ Inscrire le Lot';
+        showToast('Erreur envoi: ' + err.message, 'error');
+      })
+      .apiAddBulkScores(entries, date);
   }
 
-  // ✅ HISTORIQUE — avatars récupérés depuis cachedPlayers
+  // ─── HISTORIQUE ─────────────────────────────────────────────
   function loadHistoryPage(page) {
-    const player = document.getElementById('historyPlayerFilter').value;
-    const category = document.getElementById('historyCategoryFilter').value;
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, player, category], (res) => {
-      if (!res.success) { showToast(res.error, 'error'); return; }
-      const logs = res.logs;
-      const total = res.total;
-      totalHistoryPages = Math.ceil(total / PAGE_SIZE) || 1;
-      const tbody = document.getElementById('historyTableBody');
-      tbody.innerHTML = '';
-
-      if (logs.length === 0) {
-        const tr = tbody.insertRow();
-        const td = tr.insertCell(0);
-        td.colSpan = 5;
-        td.textContent = 'Aucune entrée trouvée.';
-        td.style.textAlign = 'center';
-        td.style.color = 'var(--text-muted)';
-        td.style.padding = '20px';
+    var player = document.getElementById('historyPlayerFilter').value;
+    var category = document.getElementById('historyCategoryFilter').value;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res.success) { showToast(res.error, 'error'); return; }
+        totalHistoryPages = Math.ceil(res.total / PAGE_SIZE) || 1;
+        var tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        if (res.logs.length === 0) {
+          var tr = tbody.insertRow(); var td = tr.insertCell(0);
+          td.colSpan = 5; td.textContent = 'Aucune entrée trouvée.';
+          td.style.cssText = 'text-align:center;color:var(--text-muted);padding:20px;';
+          renderPagination(); return;
+        }
+        var avatarMap = getAvatarMapFromCache();
+        res.logs.forEach(function(log) {
+          var row = tbody.insertRow();
+          row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString('fr-FR');
+          var pc = row.insertCell(1);
+          var img = document.createElement('img');
+          img.src = avatarMap[log.player] || getAvatarUrl(log.player, '');
+          img.className = 'player-avatar-small';
+          img.alt = log.player;
+          img.onerror = function() { img.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(log.player) + '&background=2a313d&color=e0e6ed'; };
+          pc.appendChild(img); pc.appendChild(document.createTextNode(log.player));
+          row.insertCell(2).textContent = log.category;
+          row.insertCell(3).textContent = log.points;
+          var dc = row.insertCell(4);
+          var db = document.createElement('button');
+          db.textContent = 'Supprimer'; db.className = 'small danger';
+          (function(rowIdx) {
+            db.onclick = function() {
+              openConfirmModal('Supprimer cette entrée ?', function() {
+                google.script.run
+                  .withSuccessHandler(function(r2) {
+                    if (r2.success) { loadHistoryPage(currentHistoryPage); showToast('Supprimée', 'success'); }
+                    else showToast(r2.error, 'error');
+                  })
+                  .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
+                  .apiDeleteHistoryEntry(rowIdx);
+              });
+            };
+          })(log.rowIndex);
+          dc.appendChild(db);
+        });
         renderPagination();
-        return;
-      }
-
-      // ✅ Construire la map avatar depuis le cache
-      const avatarMap = getAvatarMapFromCache();
-
-      logs.forEach(log => {
-        const row = tbody.insertRow();
-        row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString('fr-FR');
-
-        // ✅ Cellule joueur avec avatar depuis avatarMap
-        const playerCell = row.insertCell(1);
-        const avatarUrl = avatarMap[log.player] || getAvatarUrl(log.player, '');
-        const img = document.createElement('img');
-        img.src = avatarUrl;
-        img.className = 'player-avatar-small';
-        img.alt = log.player;
-        img.onerror = () => { img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(log.player)}&background=2a313d&color=e0e6ed`; };
-        playerCell.appendChild(img);
-        playerCell.appendChild(document.createTextNode(log.player));
-
-        row.insertCell(2).textContent = log.category;
-        row.insertCell(3).textContent = log.points;
-
-        const delCell = row.insertCell(4);
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Supprimer';
-        delBtn.className = 'small danger';
-        delBtn.onclick = () => {
-          openConfirmModal('Supprimer cette entrée ?', () => {
-            callServer('apiDeleteHistoryEntry', [log.rowIndex], (res2) => {
-              if (res2.success) { loadHistoryPage(currentHistoryPage); showToast('Supprimée', 'success'); }
-              else showToast(res2.error, 'error');
-            }, 'Erreur suppression');
-          });
-        };
-        delCell.appendChild(delBtn);
-      });
-      renderPagination();
-    }, 'Erreur historique');
+      })
+      .withFailureHandler(function(err) { showToast('Erreur historique: ' + err.message, 'error'); })
+      .apiGetHistoryPage(page, PAGE_SIZE, player, category);
   }
 
   function renderPagination() {
-    const pagination = document.getElementById('historyPagination');
-    pagination.innerHTML = '';
+    var pg = document.getElementById('historyPagination');
+    pg.innerHTML = '';
     if (totalHistoryPages <= 1) return;
-    for (let i = 1; i <= totalHistoryPages; i++) {
-      const btn = document.createElement('button');
-      btn.textContent = i;
-      btn.className = 'small' + (i === currentHistoryPage ? ' primary' : ' secondary');
-      btn.onclick = () => { currentHistoryPage = i; loadHistoryPage(i); };
-      pagination.appendChild(btn);
+    for (var i = 1; i <= totalHistoryPages; i++) {
+      (function(n) {
+        var btn = document.createElement('button');
+        btn.textContent = n;
+        btn.className = 'small ' + (n === currentHistoryPage ? 'primary' : 'secondary');
+        btn.onclick = function() { currentHistoryPage = n; loadHistoryPage(n); };
+        pg.appendChild(btn);
+      })(i);
     }
   }
 
   function updateHistoryFilters() {
-    const playerFilter = document.getElementById('historyPlayerFilter');
-    const catFilter = document.getElementById('historyCategoryFilter');
-    playerFilter.innerHTML = '<option value="">Tous joueurs</option>';
-    cachedPlayers.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.name;
-      opt.textContent = p.name;
-      playerFilter.appendChild(opt);
-    });
-    catFilter.innerHTML = '<option value="">Toutes catégories</option>';
-    cachedCategories.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = c.name;
-      catFilter.appendChild(opt);
-    });
+    var pf = document.getElementById('historyPlayerFilter');
+    pf.innerHTML = '<option value="">Tous joueurs</option>';
+    cachedPlayers.forEach(function(p) { var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; pf.appendChild(o); });
+    var cf = document.getElementById('historyCategoryFilter');
+    cf.innerHTML = '<option value="">Toutes catégories</option>';
+    cachedCategories.forEach(function(c) { var o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cf.appendChild(o); });
   }
 
-  // NAVIGATION & THÈME
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-tab');
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      btn.classList.add('active');
-      if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
-    });
-  });
-
-  function initTheme() {
-    const saved = localStorage.getItem('theme');
+  // ─── INIT ────────────────────────────────────────────────────
+  window.onload = function() {
+    // Thème
+    var saved = localStorage.getItem('theme');
     if (saved === 'light') document.body.classList.add('light');
-    themeToggle.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
-    themeToggle.addEventListener('click', () => {
+    var tt = document.getElementById('themeToggle');
+    tt.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    tt.addEventListener('click', function() {
       document.body.classList.toggle('light');
-      const isLight = document.body.classList.contains('light');
+      var isLight = document.body.classList.contains('light');
       localStorage.setItem('theme', isLight ? 'light' : 'dark');
-      themeToggle.textContent = isLight ? '☀️' : '🌙';
+      tt.textContent = isLight ? '☀️' : '🌙';
       if (currentChart && currentChartData) renderChart(currentChartData);
     });
-  }
 
-  // INITIALISATION
-  window.onload = () => {
-    initTheme();
+    // Datalist
+    var dl = document.createElement('datalist'); dl.id = 'pointsSuggestion';
+    [1,3,5,10].forEach(function(v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+    document.body.appendChild(dl);
 
-    // Datalist suggestions de points
-    const datalist = document.createElement('datalist');
-    datalist.id = 'pointsSuggestion';
-    [1,3,5,10].forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      datalist.appendChild(opt);
-    });
-    document.body.appendChild(datalist);
-
-    // Dates par défaut : mois en cours
-    const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    startDateInput.value = firstDay.toISOString().slice(0,10);
-    endDateInput.value = today.toISOString().slice(0,10);
-
-    applyBtn.addEventListener('click', applyFilters);
-    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
-    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
-
-    document.getElementById('addPlayerBtn').addEventListener('click', () => {
-      const name = document.getElementById('newPlayerName').value.trim();
-      if (!name) { showToast('Nom requis', 'error'); return; }
-      const meta = document.getElementById('newPlayerMeta').value.trim();
-      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], (res) => {
-        if (res.success) {
-          loadEntities();
-          showToast('Joueur ajouté', 'success');
-          document.getElementById('newPlayerName').value = '';
-          document.getElementById('newPlayerMeta').value = '';
-        } else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-
-    document.getElementById('addCategoryBtn').addEventListener('click', () => {
-      const name = document.getElementById('newCategoryName').value.trim();
-      if (!name) { showToast('Nom requis', 'error'); return; }
-      const meta = document.getElementById('newCategoryMeta').value.trim();
-      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], (res) => {
-        if (res.success) {
-          loadEntities();
-          showToast('Catégorie ajoutée', 'success');
-          document.getElementById('newCategoryName').value = '';
-          document.getElementById('newCategoryMeta').value = '';
-        } else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-
-    document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
-      currentHistoryPage = 1;
-      loadHistoryPage(1);
-    });
-
-    document.querySelectorAll('.export-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.getAttribute('data-export');
-        if (type === 'png') exportAsImage('png');
-        else if (type === 'jpeg') exportAsImage('jpeg');
-        else if (type === 'pdf') exportAsPDF();
-        else if (type === 'html') exportAsHTML();
-        else if (type === 'csv') exportAsCSV();
-        else if (type === 'xlsx') exportAsExcel();
+    // Navigation
+    document.querySelectorAll('.nav-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var tabId = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+        document.querySelectorAll('.nav-btn').forEach(function(el) { el.classList.remove('active'); });
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+        if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
       });
     });
 
-    // ✅ Chargement initial : déclenche tout (entités + graphique par défaut)
+    // Boutons
+    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+    document.getElementById('addRowBtn').addEventListener('click', function() { addEntryRow(); });
+    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
+    document.getElementById('refreshHistoryBtn').addEventListener('click', function() { currentHistoryPage = 1; loadHistoryPage(1); });
+
+    document.getElementById('addPlayerBtn').addEventListener('click', function() {
+      var name = document.getElementById('newPlayerName').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+      var meta = document.getElementById('newPlayerMeta').value.trim();
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            loadEntities();
+            showToast('Joueur ajouté', 'success');
+            document.getElementById('newPlayerName').value = '';
+            document.getElementById('newPlayerMeta').value = '';
+          } else showToast(res.error, 'error');
+        })
+        .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
+        .apiManageEntity('ADD', 'Players', name, meta, '');
+    });
+
+    document.getElementById('addCategoryBtn').addEventListener('click', function() {
+      var name = document.getElementById('newCategoryName').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+      var meta = document.getElementById('newCategoryMeta').value.trim();
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            loadEntities();
+            showToast('Catégorie ajoutée', 'success');
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryMeta').value = '';
+          } else showToast(res.error, 'error');
+        })
+        .withFailureHandler(function(err) { showToast('Erreur: ' + err.message, 'error'); })
+        .apiManageEntity('ADD', 'Categories', name, meta, '');
+    });
+
+    document.querySelectorAll('.export-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var t = btn.getAttribute('data-export');
+        if (t==='png') exportAsImage('png');
+        else if (t==='jpeg') exportAsImage('jpeg');
+        else if (t==='pdf') exportAsPDF();
+        else if (t==='html') exportAsHTML();
+        else if (t==='csv') exportAsCSV();
+        else if (t==='xlsx') exportAsExcel();
+      });
+    });
+
+    // Pas de filtre de dates par défaut = affiche tout
     loadEntities();
     addEntryRow();
   };
