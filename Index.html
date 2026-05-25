@@ -2,11 +2,16 @@
 <html lang="fr">
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestionnaire de Casseroles</title>
+  <!-- Librairies -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
-    /* Variables themes */
+    /* ===== VARIABLES THEMES ===== */
     :root {
       --bg: #0b0c10;
       --card: #1f2833;
@@ -14,7 +19,7 @@
       --accent: #ff4757;
       --accent-hover: #ff6b81;
       --text: #e0e6ed;
-      --text-muted: #9aa5be; /* amélioré contraste */
+      --text-muted: #9aa5be;
       --success: #2ed573;
       --error: #ff4757;
       --btn-alt: #353b48;
@@ -30,22 +35,17 @@
       --text-muted: #4a5568;
       --btn-alt: #e2e8f0;
     }
+    /* ===== RESET ===== */
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 0;
       margin: 0;
+      padding: 0;
       transition: background 0.2s, color 0.2s;
     }
-    /* Classes utilitaires */
-    .flex-col { display: flex; flex-direction: column; gap: 10px; }
-    .form-group { margin-bottom: 16px; }
-    .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-
-    /* Navbar */
+    /* ===== NAVBAR ===== */
     .navbar {
       background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -62,7 +62,7 @@
       display: flex;
       min-width: max-content;
       width: 100%;
-      max-width: 900px;
+      max-width: 1200px;
       gap: 4px;
     }
     .nav-btn {
@@ -79,7 +79,7 @@
       min-height: var(--tap-min);
     }
     .nav-btn:hover { color: var(--text); }
-    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
     .theme-toggle {
       margin-left: auto;
       background: var(--btn-alt);
@@ -90,154 +90,227 @@
       cursor: pointer;
       color: var(--text);
     }
-
-    /* Layout */
-    .container { max-width: 900px; margin: 20px auto; padding: 0 16px; }
+    /* ===== LAYOUT ===== */
+    .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: flex; flex-direction: column; gap: 20px; }
+    .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* Cards */
     .card {
       background: var(--card);
       padding: 20px;
       border-radius: 12px;
       border: 1px solid var(--border);
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
     }
-    h2 { margin: 0 0 18px 0; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-    h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
-
-    /* Formulaires */
-    select, input, button, .fake-select {
-      padding: 12px;
+    h2 { margin: 0 0 18px 0; font-size: 1.3rem; }
+    h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; margin-bottom: 12px; }
+    /* ===== FILTRES ===== */
+    .filter-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+      background: rgba(0,0,0,0.2);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 150px;
+    }
+    .filter-group label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .multi-select {
+      min-width: 180px;
+      height: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 6px;
-      border: 1px solid #353b48;
-      background: #14171f;
+      padding: 6px;
       color: var(--text);
-      font-size: 16px;
-      outline: none;
-      transition: 0.2s;
-      width: 100%;
     }
-    body.light select, body.light input, body.light button {
-      background: white;
-      border-color: #cbd5e0;
-    }
-    select:focus, input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(255,71,87,0.2);
+    select, input, button {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
     }
     button {
-      font-weight: bold;
       cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      min-height: var(--tap-min);
-      width: auto;
+      transition: 0.2s;
     }
-    button.primary { background: var(--accent); color: #fff; border: none; }
-    button.secondary { background: transparent; border: 1px solid var(--text-muted); color: var(--text); }
-    button.ai { background: #9b59b6; color: #fff; border: none; }
-    button.small { padding: 10px 12px; font-size: 0.9rem; background: var(--btn-alt); }
-    button.danger { background: rgba(255,71,87,0.1); color: var(--error); border: 1px solid var(--error); }
-    .chart-wrapper { position: relative; height: 350px; }
-    .skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--card) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 300px; width: 100%; }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-    /* Rapport narratif structuré */
-    .report-html {
-      background: var(--card);
-      padding: 16px;
-      border-radius: 8px;
-      line-height: 1.6;
-      border-left: 4px solid var(--accent);
-    }
-    .badge-category {
+    button.primary {
       background: var(--accent);
       color: white;
-      padding: 2px 8px;
-      border-radius: 20px;
+      border: none;
+    }
+    button.primary:hover { background: var(--accent-hover); }
+    button.secondary {
+      background: var(--btn-alt);
+      border: 1px solid var(--border);
+    }
+    button.small {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+    button.danger {
+      background: rgba(255,71,87,0.2);
+      color: var(--error);
+      border-color: var(--error);
+    }
+    /* ===== GRAPHIQUE ===== */
+    .chart-container {
+      margin-top: 10px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .export-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .export-btn {
+      background: var(--btn-alt);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
       font-size: 0.75rem;
-      display: inline-block;
-      margin-right: 6px;
+      cursor: pointer;
+      color: var(--text);
     }
-    .winner-gold {
-      font-size: 1.2rem;
-      font-weight: bold;
-      background: gold;
-      color: #1a202c;
-      display: inline-block;
-      padding: 2px 12px;
-      border-radius: 30px;
+    .export-btn:hover {
+      background: var(--accent);
+      color: white;
     }
-
-    /* Saisie lot */
+    canvas { max-width: 100%; height: auto; }
+    /* ===== SAISIE LOT ===== */
+    .entry-row {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      background: rgba(0,0,0,0.2);
+      padding: 10px;
+      border-radius: 8px;
+    }
     .batch-header {
       display: grid;
-      grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
+      grid-template-columns: 2fr 2fr 1fr 1fr auto;
       gap: 10px;
       padding: 0 10px;
       margin-bottom: 8px;
+      font-weight: bold;
       color: var(--text-muted);
       font-size: 0.8rem;
-      font-weight: bold;
     }
-    #entryContainer { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-    .entry-row {
+    /* ===== PARAMETRES ===== */
+    .settings-grid {
       display: grid;
-      grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
-      gap: 10px;
-      align-items: center;
-      background: #14171f;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .entity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .entity-item {
+      background: rgba(0,0,0,0.2);
       padding: 10px;
       border-radius: 8px;
-      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    body.light .entry-row { background: #f9fafb; }
-    .player-select-wrapper {
+    .avatar-img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    /* ===== HISTORIQUE ===== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    /* ===== TOASTS ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: var(--card);
+      border-left: 4px solid;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.2s ease;
+    }
+    .toast.success { border-left-color: var(--success); color: var(--success); }
+    .toast.error { border-left-color: var(--error); color: var(--error); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    /* ===== MODAL ===== */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
       display: flex;
       align-items: center;
-      background: #14171f;
-      border: 1px solid #353b48;
-      border-radius: 6px;
-      padding: 0 8px;
-    }
-    .player-select-wrapper select { border: none; background: transparent; padding: 10px 0 10px 8px; width: 100%; }
-    .row-actions { display: flex; gap: 6px; }
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
-    .entity-item { background: #14171f; padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
-    .entity-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-    .modal {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
-      z-index: 2000;
+      justify-content: center;
+      z-index: 3000;
     }
     .modal-content {
-      background: var(--card); padding: 24px; border-radius: 12px; min-width: 280px;
-      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 24px;
+      border-radius: 16px;
+      min-width: 280px;
+      max-width: 90%;
     }
-    .toast-container {
-      position: fixed; bottom: 20px; right: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;
-    }
-    .toast { padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; }
-    .toast.success { background: var(--success); color: #000; }
-    .toast.error { background: var(--error); }
-    @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-    @media (max-width: 600px) {
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 700px) {
+      .filter-panel { flex-direction: column; align-items: stretch; }
+      .multi-select { min-width: auto; }
+      .entry-row { grid-template-columns: 1fr 1fr; }
+      .entry-row select, .entry-row input { width: 100%; }
+      .row-actions { grid-column: span 2; display: flex; gap: 8px; }
       .batch-header { display: none; }
-      .entry-row { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .entry-row .player-select-wrapper, .entry-row .c-sel { grid-column: 1 / -1; }
-      .entry-row .pts-sel { grid-column: 1; }
-      .entry-row .tms-in { grid-column: 2; }
-      .row-actions { grid-column: 1 / -1; display: flex; }
       .settings-grid { grid-template-columns: 1fr; }
-      .chart-wrapper { height: 240px; }
     }
   </style>
 </head>
@@ -245,58 +318,66 @@
 
 <nav class="navbar">
   <div class="nav-container">
-    <button class="nav-btn active" data-tab="tab-dashboard">📊 Tableau de Bord</button>
+    <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique</button>
-    <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">🌙</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Thème">🌙</button>
   </div>
 </nav>
 
 <div class="container">
-  <div class="toast-container" id="toastContainer"></div>
+  <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Dashboard -->
+  <!-- ==================== DASHBOARD ==================== -->
   <div id="tab-dashboard" class="tab-content active">
     <div class="card">
-      <h2>📊 Filtres & Visualisation</h2>
-      <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-        <select id="yearFilter"><option value="All">Toutes les années</option></select>
-        <select id="monthFilter">
-          <option value="All">Tous les mois</option>
-          <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
-          <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
-          <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
-          <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
-        </select>
-        <select id="chartTypeSelect">
-          <option value="stacked">Barres empilées</option>
-          <option value="grouped">Barres groupées</option>
-        </select>
-        <button id="trendBtn" class="secondary">📈 Voir tendance</button>
-      </div>
-      <div class="chart-wrapper" id="chartWrapper">
-        <div id="skeletonChart" class="skeleton" style="display:block;"></div>
-        <canvas id="mainChart" style="display:none;"></canvas>
+      <h2>📊 Filtres croisés dynamiques</h2>
+      <div class="filter-panel">
+        <div class="filter-group">
+          <label>Joueurs (Ctrl+clic)</label>
+          <select id="playerSelect" multiple size="3" class="multi-select"></select>
+        </div>
+        <div class="filter-group">
+          <label>Catégories (Ctrl+clic)</label>
+          <select id="categorySelect" multiple size="3" class="multi-select"></select>
+        </div>
+        <div class="filter-group">
+          <label>Date de début</label>
+          <input type="date" id="startDate">
+        </div>
+        <div class="filter-group">
+          <label>Date de fin</label>
+          <input type="date" id="endDate">
+        </div>
+        <div class="filter-group">
+          <button id="applyFiltersBtn" class="primary">Appliquer</button>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <h2>📄 Rapport Narratif</h2>
-      <div id="reportOutput" class="report-html">Calcul...</div>
-      <div id="aiOutput" style="margin-top:15px; padding:15px; border-left:4px solid #9b59b6; background:rgba(155,89,182,0.1); display:none; border-radius:4px;"></div>
-      <div class="actions-bar" style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
-        <button id="aiBtn" class="ai">🤖 Citation IA</button>
-        <button id="exportBtn" class="primary">⬇️ Exporter HTML</button>
-        <button id="printBtn" class="secondary">🖨️ PDF</button>
+    <div class="card chart-container">
+      <div class="chart-header">
+        <h3>📈 Scores par catégorie</h3>
+        <div class="export-buttons">
+          <button class="export-btn" data-export="png">📸 PNG</button>
+          <button class="export-btn" data-export="jpeg">🖼️ JPEG</button>
+          <button class="export-btn" data-export="pdf">📄 PDF</button>
+          <button class="export-btn" data-export="html">🌐 HTML</button>
+          <button class="export-btn" data-export="csv">📊 CSV</button>
+          <button class="export-btn" data-export="xlsx">📗 Excel</button>
+        </div>
+      </div>
+      <div style="height: 450px; position: relative;">
+        <canvas id="mainChart"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Saisie Lot -->
+  <!-- ==================== SAISIE LOT ==================== -->
   <div id="tab-inject" class="tab-content">
     <div class="card">
       <h2>✍️ Constructeur de Lot</h2>
-      <div class="form-group">
+      <div style="margin-bottom: 16px;">
         <label style="color:var(--text-muted);">Date (vide = maintenant)</label>
         <input type="datetime-local" id="globalDateInput">
       </div>
@@ -311,7 +392,7 @@
     </div>
   </div>
 
-  <!-- Paramètres -->
+  <!-- ==================== PARAMÈTRES ==================== -->
   <div id="tab-settings" class="tab-content">
     <div class="card">
       <h2>⚙️ Base & Paramètres</h2>
@@ -319,8 +400,8 @@
         <div>
           <h3>Profils Joueurs</h3>
           <ul id="playersList" class="entity-list"></ul>
-          <div class="flex-col">
-            <input type="text" id="newPlayerName" placeholder="Nom du joueur...">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <input type="text" id="newPlayerName" placeholder="Nom du joueur">
             <input type="url" id="newPlayerMeta" placeholder="URL avatar">
             <button id="addPlayerBtn" class="primary small">Ajouter</button>
           </div>
@@ -328,8 +409,8 @@
         <div>
           <h3>Types de Casseroles</h3>
           <ul id="categoriesList" class="entity-list"></ul>
-          <div class="flex-col">
-            <input type="text" id="newCategoryName" placeholder="Nom de la catégorie...">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <input type="text" id="newCategoryName" placeholder="Nom de la catégorie">
             <input type="text" id="newCategoryMeta" placeholder="Description IA">
             <button id="addCategoryBtn" class="primary small">Ajouter</button>
           </div>
@@ -338,18 +419,18 @@
     </div>
   </div>
 
-  <!-- Historique -->
+  <!-- ==================== HISTORIQUE ==================== -->
   <div id="tab-history" class="tab-content">
     <div class="card">
       <h2>📜 Historique des entrées</h2>
-      <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
         <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
         <select id="historyCategoryFilter"><option value="">Toutes catégories</option></select>
         <button id="refreshHistoryBtn" class="secondary">Rafraîchir</button>
       </div>
       <div style="overflow-x:auto;">
-        <table style="width:100%; border-collapse: collapse;">
-          <thead><tr style="border-bottom:1px solid var(--border);"><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Points</th><th></th></tr></thead>
+        <table>
+          <thead><tr><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Points</th><th></th></tr></thead>
           <tbody id="historyTableBody"></tbody>
         </table>
       </div>
@@ -359,573 +440,482 @@
 </div>
 
 <script>
-  (function() {
-    // État
-    let currentChart = null;
-    let currentTrendChart = null;
-    let cachedPlayers = [];
-    let cachedCategories = [];
-    let rowCounter = 0;
-    let currentPage = 1;
-    let totalHistoryPages = 1;
-    const PAGE_SIZE = 20;
+  // ==================== ÉTAT GLOBAL ====================
+  let currentChart = null;
+  let currentChartData = null;     // données du graphique (labels + datasets)
+  let currentFilters = { players: [], categories: [], startDate: '', endDate: '' };
+  let cachedPlayers = [];
+  let cachedCategories = [];
+  let rowCounter = 0;
+  let currentHistoryPage = 1;
+  let totalHistoryPages = 1;
+  const PAGE_SIZE = 20;
 
-    // DOM elements
-    const toastContainer = document.getElementById('toastContainer');
-    const yearFilter = document.getElementById('yearFilter');
-    const monthFilter = document.getElementById('monthFilter');
-    const chartTypeSelect = document.getElementById('chartTypeSelect');
-    const trendBtn = document.getElementById('trendBtn');
-    const reportDiv = document.getElementById('reportOutput');
-    const aiOutputDiv = document.getElementById('aiOutput');
-    const aiBtn = document.getElementById('aiBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    const printBtn = document.getElementById('printBtn');
-    const addRowBtn = document.getElementById('addRowBtn');
-    const submitLotBtn = document.getElementById('submitLotBtn');
-    const entryContainer = document.getElementById('entryContainer');
-    const playersList = document.getElementById('playersList');
-    const categoriesList = document.getElementById('categoriesList');
-    const addPlayerBtn = document.getElementById('addPlayerBtn');
-    const addCategoryBtn = document.getElementById('addCategoryBtn');
-    const newPlayerName = document.getElementById('newPlayerName');
-    const newPlayerMeta = document.getElementById('newPlayerMeta');
-    const newCategoryName = document.getElementById('newCategoryName');
-    const newCategoryMeta = document.getElementById('newCategoryMeta');
-    const themeToggle = document.getElementById('themeToggle');
-    const historyPlayerFilter = document.getElementById('historyPlayerFilter');
-    const historyCategoryFilter = document.getElementById('historyCategoryFilter');
-    const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
-    const historyTableBody = document.getElementById('historyTableBody');
-    const historyPagination = document.getElementById('historyPagination');
+  // DOM elements
+  const playerSelect = document.getElementById('playerSelect');
+  const categorySelect = document.getElementById('categorySelect');
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  const applyBtn = document.getElementById('applyFiltersBtn');
+  const chartCanvas = document.getElementById('mainChart');
+  const toastContainer = document.getElementById('toastContainer');
+  const entryContainer = document.getElementById('entryContainer');
+  const playersList = document.getElementById('playersList');
+  const categoriesList = document.getElementById('categoriesList');
+  const themeToggle = document.getElementById('themeToggle');
 
-    // Helper : toasts
-    function showToast(msg, type) {
-      const t = document.createElement('div');
-      t.className = `toast ${type}`;
-      t.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
-      toastContainer.appendChild(t);
-      setTimeout(() => { t.style.animation = 'fadeOut 0.3s ease'; setTimeout(() => t.remove(), 300); }, 4000);
-    }
+  // ==================== UTILITAIRES ====================
+  function showToast(msg, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
 
-    // Helper : appel sécurisé avec failureHandler
-    function callServer(fn, params, successCb, errorMsg) {
-      const runner = google.script.run.withSuccessHandler(successCb).withFailureHandler(err => {
-        showToast(errorMsg + ': ' + err.message, 'error');
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Appel serveur avec gestion d'erreur
+  function callServer(fn, params, onSuccess, errorMsg) {
+    google.script.run
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(err => showToast(`${errorMsg}: ${err.message}`, 'error'))
+      [fn](...params);
+  }
+
+  // ==================== GESTION DES MODALES ====================
+  let activeModal = null;
+  function closeModal() { if (activeModal) activeModal.remove(); activeModal = null; }
+  function openConfirmModal(msg, onConfirm) {
+    closeModal();
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `<div class="modal-content"><p>${msg}</p><div style="display:flex; gap:12px; margin-top:20px;"><button id="confirmYes">Oui</button><button id="confirmNo">Annuler</button></div></div>`;
+    document.body.appendChild(modal);
+    activeModal = modal;
+    modal.querySelector('#confirmYes').onclick = () => { onConfirm(); closeModal(); };
+    modal.querySelector('#confirmNo').onclick = closeModal;
+  }
+  function openEditModal(type, oldName, oldMeta) {
+    closeModal();
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `<div class="modal-content"><h3>Éditer ${escapeHtml(oldName)}</h3><input type="text" id="newName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom"><input type="text" id="newMeta" value="${escapeHtml(oldMeta)}" placeholder="${type === 'player' ? 'URL avatar' : 'Description'}"><div style="display:flex; gap:12px; margin-top:20px;"><button id="saveEdit">Enregistrer</button><button id="cancelEdit">Annuler</button></div></div>`;
+    document.body.appendChild(modal);
+    activeModal = modal;
+    modal.querySelector('#saveEdit').onclick = () => {
+      const newName = modal.querySelector('#newName').value.trim();
+      const newMeta = modal.querySelector('#newMeta').value.trim();
+      if (!newName) return;
+      const entityType = (type === 'player') ? 'Players' : 'Categories';
+      callServer('apiManageEntity', ['RENAME', entityType, newName, newMeta, oldName], (res) => {
+        if (res.success) { loadEntities(); applyFilters(); showToast('Renommé', 'success'); closeModal(); }
+        else showToast(res.error, 'error');
+      }, 'Erreur renommage');
+    };
+    modal.querySelector('#cancelEdit').onclick = closeModal;
+  }
+
+  // ==================== CHARGEMENT DES ENTITÉS ====================
+  function loadEntities() {
+    callServer('apiGetSettings', [], (res) => {
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      cachedPlayers = res.players;
+      cachedCategories = res.categories;
+      // Remplir les selects multiples
+      playerSelect.innerHTML = '';
+      cachedPlayers.forEach(p => {
+        let opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        playerSelect.appendChild(opt);
       });
-      runner[fn].apply(runner, params);
-    }
+      categorySelect.innerHTML = '';
+      cachedCategories.forEach(c => {
+        let opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        categorySelect.appendChild(opt);
+      });
+      // Remplir les listes des paramètres
+      renderEntityList(playersList, cachedPlayers, 'player');
+      renderEntityList(categoriesList, cachedCategories, 'category');
+      // Mettre à jour les filtres de l'historique
+      updateHistoryFilters();
+      // Appliquer les filtres par défaut
+      applyFilters();
+    }, 'Erreur chargement settings');
+  }
 
-    // Chargement des paramètres
-    function fetchSettings() {
-      callServer('apiGetSettings', [], (res) => {
-        if (!res.success) { showToast(res.error, 'error'); return; }
-        cachedPlayers = res.players;
-        cachedCategories = res.categories;
-        renderList(playersList, 'Players', cachedPlayers, 'Avatar URL');
-        renderList(categoriesList, 'Categories', cachedCategories, 'Description');
-        if (entryContainer.children.length === 0) addEntryRow();
-        updateHistoryFilters();
-      }, 'Erreur chargement settings');
-    }
-
-    function renderList(ul, type, items, metaLabel) {
-      ul.innerHTML = '';
-      items.forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'entity-item';
-        const header = document.createElement('div');
-        header.className = 'entity-header';
-        const leftDiv = document.createElement('div');
-        leftDiv.style.display = 'flex';
-        leftDiv.style.alignItems = 'center';
-        leftDiv.style.gap = '10px';
-        if (type === 'Players') {
-          const img = document.createElement('img');
-          const fb = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed&bold=true`;
-          img.src = item.meta || fb;
-          img.className = 'avatar-img';
-          img.onerror = function() { this.onerror = null; this.src = fb; };
-          leftDiv.appendChild(img);
-        }
-        const strong = document.createElement('strong');
-        strong.textContent = item.name;
-        leftDiv.appendChild(strong);
-        header.appendChild(leftDiv);
-        const btnDiv = document.createElement('div');
-        btnDiv.className = 'entity-btns';
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Éditer';
-        editBtn.className = 'small';
-        editBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          openEditModal(type, item.name, item.meta || '');
+  function renderEntityList(container, items, type) {
+    container.innerHTML = '';
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'entity-item';
+      li.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${type === 'player' ? `<img class="avatar-img" src="${escapeHtml(item.meta) || 'https://ui-avatars.com/api/?name='+encodeURIComponent(item.name)+'&background=2a313d&color=e0e6ed'}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed'">` : ''}
+          <strong>${escapeHtml(item.name)}</strong>
+        </div>
+        <div>
+          <button class="small edit-entity" data-type="${type}" data-name="${escapeHtml(item.name)}" data-meta="${escapeHtml(item.meta || '')}">✏️</button>
+          <button class="small danger delete-entity" data-type="${type}" data-name="${escapeHtml(item.name)}">🗑️</button>
+        </div>
+      `;
+      container.appendChild(li);
+    });
+    // Événements pour édition/suppression
+    document.querySelectorAll('.edit-entity').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = btn.dataset.type;
+        const name = btn.dataset.name;
+        const meta = btn.dataset.meta;
+        openEditModal(type, name, meta);
+      });
+    });
+    document.querySelectorAll('.delete-entity').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = btn.dataset.type;
+        const name = btn.dataset.name;
+        const entityType = (type === 'player') ? 'Players' : 'Categories';
+        openConfirmModal(`Supprimer "${name}" ?`, () => {
+          callServer('apiManageEntity', ['DELETE', entityType, null, null, name], (res) => {
+            if (res.success) { loadEntities(); applyFilters(); showToast('Supprimé', 'success'); }
+            else showToast(res.error, 'error');
+          }, 'Erreur suppression');
         });
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '✕';
-        deleteBtn.className = 'small danger';
-        deleteBtn.addEventListener('click', () => {
-          openConfirmModal(`Supprimer définitivement "${item.name}" ?`, () => {
-            callServer('apiManageEntity', ['DELETE', type, null, null, item.name], (res2) => {
-              if (res2.success) { fetchSettings(); fetchAnalytics(); showToast('Supprimé', 'success'); }
+      });
+    });
+  }
+
+  // ==================== FILTRES ET GRAPHIQUE ====================
+  function applyFilters() {
+    const selectedPlayers = Array.from(playerSelect.selectedOptions).map(opt => opt.value);
+    const selectedCategories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+    currentFilters = { players: selectedPlayers, categories: selectedCategories, startDate, endDate };
+    showToast('Chargement des données...', 'success');
+    callServer('apiGetFilteredData', [selectedPlayers, selectedCategories, startDate, endDate], (res) => {
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      currentChartData = res.chartData;
+      renderChart(currentChartData);
+    }, 'Erreur filtrage');
+  }
+
+  function renderChart(data) {
+    if (currentChart) currentChart.destroy();
+    const ctx = chartCanvas.getContext('2d');
+    currentChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.labels,
+        datasets: data.datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          x: { stacked: true, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } },
+          y: { stacked: true, beginAtZero: true, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } }
+        },
+        plugins: {
+          legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text') } }
+        }
+      }
+    });
+  }
+
+  // ==================== EXPORTS CIBLÉS (GRAPHIQUE UNIQUEMENT) ====================
+  async function exportAsImage(format) {
+    try {
+      const dataUrl = chartCanvas.toDataURL(`image/${format}`);
+      const link = document.createElement('a');
+      link.download = `graphique.${format}`;
+      link.href = dataUrl;
+      link.click();
+      showToast(`Export ${format.toUpperCase()} réussi`, 'success');
+    } catch(e) { showToast('Erreur export image', 'error'); }
+  }
+  async function exportAsPDF() {
+    try {
+      const imgData = chartCanvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('landscape');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('graphique.pdf');
+      showToast('Export PDF réussi', 'success');
+    } catch(e) { showToast('Erreur PDF', 'error'); }
+  }
+  function exportAsHTML() {
+    const imgData = chartCanvas.toDataURL('image/png');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Graphique exporté</title></head><body style="background:white; display:flex; justify-content:center; align-items:center;"><img src="${imgData}" style="max-width:100%; height:auto;"></body></html>`;
+    const blob = new Blob([html], {type: 'text/html'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'graphique.html';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast('Export HTML réussi', 'success');
+  }
+  function exportAsCSV() {
+    if (!currentChartData) { showToast('Aucune donnée à exporter', 'error'); return; }
+    const labels = currentChartData.labels;
+    const datasets = currentChartData.datasets;
+    let rows = [['Joueur', ...datasets.map(d => d.label)]];
+    for (let i = 0; i < labels.length; i++) {
+      rows.push([labels[i], ...datasets.map(d => d.data[i])]);
+    }
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'donnees_graphique.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast('Export CSV réussi', 'success');
+  }
+  function exportAsExcel() {
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    const labels = currentChartData.labels;
+    const datasets = currentChartData.datasets;
+    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
+    for (let i = 0; i < labels.length; i++) {
+      sheetData.push([labels[i], ...datasets.map(d => d.data[i])]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+    XLSX.writeFile(wb, `export_graphique_${Date.now()}.xlsx`);
+    showToast('Export Excel réussi', 'success');
+  }
+
+  // ==================== SAISIE LOT ====================
+  function addEntryRow(preset) {
+    if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
+      if (!entryContainer.querySelector('.empty-state')) {
+        let p = document.createElement('p');
+        p.className = 'empty-state';
+        p.textContent = "Ajoutez d'abord des joueurs et catégories.";
+        entryContainer.appendChild(p);
+      }
+      return;
+    }
+    rowCounter++;
+    const id = `row_${rowCounter}`;
+    const div = document.createElement('div');
+    div.className = 'entry-row';
+    div.id = id;
+    div.innerHTML = `
+      <select class="p-sel">${cachedPlayers.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('')}</select>
+      <select class="c-sel">${cachedCategories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}</select>
+      <input type="number" class="pts-sel" value="1" min="1" list="pointsSuggestion">
+      <input type="number" class="tms-in" value="1" min="1">
+      <div class="row-actions"><button class="small duplicate-row">📋</button><button class="small danger remove-row">✕</button></div>
+    `;
+    entryContainer.appendChild(div);
+    if (preset) {
+      div.querySelector('.p-sel').value = preset.player;
+      div.querySelector('.c-sel').value = preset.category;
+      div.querySelector('.pts-sel').value = preset.points;
+      div.querySelector('.tms-in').value = preset.times;
+    }
+    div.querySelector('.duplicate-row').onclick = () => duplicateRow(id);
+    div.querySelector('.remove-row').onclick = () => div.remove();
+  }
+  function duplicateRow(rowId) {
+    const orig = document.getElementById(rowId);
+    if (!orig) return;
+    addEntryRow({
+      player: orig.querySelector('.p-sel').value,
+      category: orig.querySelector('.c-sel').value,
+      points: orig.querySelector('.pts-sel').value,
+      times: orig.querySelector('.tms-in').value
+    });
+  }
+  function submitBulk() {
+    const rows = document.querySelectorAll('.entry-row');
+    const entries = [];
+    rows.forEach(r => {
+      entries.push({
+        player: r.querySelector('.p-sel').value,
+        category: r.querySelector('.c-sel').value,
+        points: r.querySelector('.pts-sel').value,
+        times: r.querySelector('.tms-in').value
+      });
+    });
+    if (!entries.length) { showToast('Ajoutez au moins une ligne', 'error'); return; }
+    const date = document.getElementById('globalDateInput').value;
+    const btn = document.getElementById('submitLotBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Écriture...';
+    callServer('apiAddBulkScores', [entries, date], (res) => {
+      btn.disabled = false;
+      btn.textContent = '✓ Inscrire le Lot';
+      if (res.success) {
+        document.getElementById('globalDateInput').value = '';
+        entryContainer.innerHTML = '';
+        addEntryRow();
+        applyFilters(); // met à jour le graphique
+        showToast('Lot enregistré !', 'success');
+      } else showToast(res.error, 'error');
+    }, 'Erreur envoi');
+  }
+
+  // ==================== HISTORIQUE ====================
+  function loadHistoryPage(page) {
+    const player = document.getElementById('historyPlayerFilter').value;
+    const category = document.getElementById('historyCategoryFilter').value;
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, player, category], (res) => {
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      const logs = res.logs;
+      const total = res.total;
+      totalHistoryPages = Math.ceil(total / PAGE_SIZE);
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+      logs.forEach(log => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString();
+        row.insertCell(1).textContent = log.player;
+        row.insertCell(2).textContent = log.category;
+        row.insertCell(3).textContent = log.points;
+        const delCell = row.insertCell(4);
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Supprimer';
+        delBtn.className = 'small danger';
+        delBtn.onclick = () => {
+          openConfirmModal('Supprimer cette entrée ?', () => {
+            callServer('apiDeleteHistoryEntry', [log.rowIndex], (res2) => {
+              if (res2.success) { loadHistoryPage(currentHistoryPage); showToast('Supprimée', 'success'); }
               else showToast(res2.error, 'error');
             }, 'Erreur suppression');
           });
-        });
-        btnDiv.appendChild(editBtn);
-        btnDiv.appendChild(deleteBtn);
-        header.appendChild(btnDiv);
-        li.appendChild(header);
-        if (type !== 'Players' && item.meta) {
-          const metaDiv = document.createElement('div');
-          metaDiv.className = 'entity-meta';
-          metaDiv.textContent = `${metaLabel} : ${item.meta}`;
-          li.appendChild(metaDiv);
-        }
-        ul.appendChild(li);
-      });
-    }
-
-    // Modales custom (remplacent confirm/prompt)
-    let activeModal = null;
-    function closeModal() { if(activeModal) activeModal.remove(); activeModal = null; }
-    function openConfirmModal(message, onConfirm) {
-      closeModal();
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `<div class="modal-content"><p>${message}</p><div style="display:flex; gap:10px; margin-top:20px;"><button id="confirmYes">Oui</button><button id="confirmNo">Non</button></div></div>`;
-      document.body.appendChild(modal);
-      activeModal = modal;
-      modal.querySelector('#confirmYes').addEventListener('click', () => { onConfirm(); closeModal(); });
-      modal.querySelector('#confirmNo').addEventListener('click', closeModal);
-    }
-    function openEditModal(type, oldName, oldMeta) {
-      closeModal();
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `<div class="modal-content"><h3>Éditer ${oldName}</h3><input type="text" id="newName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom"><input type="text" id="newMeta" value="${escapeHtml(oldMeta)}" placeholder="${type === 'Players' ? 'URL avatar' : 'Description'}"><div style="display:flex; gap:10px; margin-top:20px;"><button id="saveEdit">Enregistrer</button><button id="cancelEdit">Annuler</button></div></div>`;
-      document.body.appendChild(modal);
-      activeModal = modal;
-      modal.querySelector('#saveEdit').addEventListener('click', () => {
-        const newName = modal.querySelector('#newName').value.trim();
-        const newMeta = modal.querySelector('#newMeta').value.trim();
-        if(!newName) return;
-        callServer('apiManageEntity', ['RENAME', type, newName, newMeta, oldName], (res) => {
-          if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Renommé', 'success'); closeModal(); }
-          else showToast(res.error, 'error');
-        }, 'Erreur renommage');
-      });
-      modal.querySelector('#cancelEdit').addEventListener('click', closeModal);
-    }
-
-    // Saisie lot (DOM sécurisé)
-    function addEntryRow(preset) {
-      if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-        if (!entryContainer.querySelector('.empty-state')) {
-          const p = document.createElement('p');
-          p.className = 'empty-state';
-          p.textContent = "⚠️ Ajoutez d'abord des joueurs et catégories.";
-          entryContainer.appendChild(p);
-        }
-        return;
-      }
-      rowCounter++;
-      const div = document.createElement('div');
-      div.className = 'entry-row';
-      div.id = `row_${rowCounter}`;
-
-      const playerWrapper = document.createElement('div');
-      playerWrapper.className = 'player-select-wrapper';
-      const avatar = document.createElement('img');
-      avatar.style.cssText = 'width:26px;height:26px;border-radius:50%;object-fit:cover;margin-right:8px;';
-      avatar.className = 'row-avatar';
-      const pSelect = document.createElement('select');
-      pSelect.className = 'p-sel';
-      cachedPlayers.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = p.name;
-        if(p.meta) opt.setAttribute('data-img', p.meta);
-        pSelect.appendChild(opt);
-      });
-      pSelect.addEventListener('change', () => updateRowAvatar(pSelect, avatar));
-      playerWrapper.appendChild(avatar);
-      playerWrapper.appendChild(pSelect);
-      div.appendChild(playerWrapper);
-
-      const cSelect = document.createElement('select');
-      cSelect.className = 'c-sel';
-      cachedCategories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name;
-        opt.textContent = c.name;
-        cSelect.appendChild(opt);
-      });
-      div.appendChild(cSelect);
-
-      const ptsInput = document.createElement('input');
-      ptsInput.type = 'number';
-      ptsInput.min = 1;
-      ptsInput.value = '1';
-      ptsInput.className = 'pts-sel';
-      ptsInput.setAttribute('list', 'pointsSuggestion');
-      div.appendChild(ptsInput);
-      const timesInput = document.createElement('input');
-      timesInput.type = 'number';
-      timesInput.min = 1;
-      timesInput.value = '1';
-      timesInput.className = 'tms-in';
-      div.appendChild(timesInput);
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'row-actions';
-      const dupBtn = document.createElement('button');
-      dupBtn.textContent = '📋';
-      dupBtn.className = 'small';
-      dupBtn.addEventListener('click', () => duplicateRow(div.id));
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '✕';
-      delBtn.className = 'small danger';
-      delBtn.addEventListener('click', () => div.remove());
-      actionsDiv.appendChild(dupBtn);
-      actionsDiv.appendChild(delBtn);
-      div.appendChild(actionsDiv);
-
-      entryContainer.appendChild(div);
-      if(preset) {
-        pSelect.value = preset.player;
-        cSelect.value = preset.category;
-        ptsInput.value = preset.points;
-        timesInput.value = preset.times;
-      }
-      updateRowAvatar(pSelect, avatar);
-    }
-
-    function updateRowAvatar(select, img) {
-      const selected = select.options[select.selectedIndex];
-      if(!selected) return;
-      const fb = `https://ui-avatars.com/api/?name=${encodeURIComponent(selected.value)}&background=2a313d&color=e0e6ed&bold=true`;
-      img.src = selected.getAttribute('data-img') || fb;
-      img.onerror = function() { this.onerror = null; this.src = fb; };
-    }
-
-    function duplicateRow(rowId) {
-      const original = document.getElementById(rowId);
-      if(!original) return;
-      addEntryRow({
-        player: original.querySelector('.p-sel').value,
-        category: original.querySelector('.c-sel').value,
-        points: original.querySelector('.pts-sel').value,
-        times: original.querySelector('.tms-in').value
-      });
-    }
-
-    function submitBulk() {
-      const rows = document.querySelectorAll('.entry-row');
-      const entries = [];
-      rows.forEach(r => {
-        entries.push({
-          player: r.querySelector('.p-sel').value,
-          category: r.querySelector('.c-sel').value,
-          points: r.querySelector('.pts-sel').value,
-          times: r.querySelector('.tms-in').value
-        });
-      });
-      if(entries.length === 0) { showToast('Ajoutez au moins une ligne', 'error'); return; }
-      const date = document.getElementById('globalDateInput').value;
-      const btn = submitLotBtn;
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Écriture...';
-      callServer('apiAddBulkScores', [entries, date], (res) => {
-        btn.disabled = false;
-        btn.innerHTML = '✓ Inscrire le Lot';
-        if(res.success) {
-          document.getElementById('globalDateInput').value = '';
-          entryContainer.innerHTML = '';
-          addEntryRow();
-          fetchAnalytics();
-          showToast('Lot enregistré !', 'success');
-        } else showToast(res.error, 'error');
-      }, 'Erreur enregistrement');
-    }
-
-    // Analytics
-    function fetchAnalytics() {
-      const year = yearFilter.value;
-      const month = monthFilter.value;
-      const wrapper = document.getElementById('chartWrapper');
-      const skeleton = document.getElementById('skeletonChart');
-      const canvas = document.getElementById('mainChart');
-      skeleton.style.display = 'block';
-      canvas.style.display = 'none';
-      callServer('apiGetData', [year, month], (res) => {
-        skeleton.style.display = 'none';
-        canvas.style.display = 'block';
-        if(res.success) renderDashboard(res.data);
-        else showToast(res.error, 'error');
-      }, 'Erreur chargement données');
-    }
-
-    function renderDashboard(data) {
-      // Rapport HTML structuré
-      const insights = data.insights;
-      const lines = insights.split('\n');
-      let html = '';
-      lines.forEach(line => {
-        if(line.startsWith('•')) {
-          html += `<div>🔹 ${line.substring(1)}</div>`;
-        } else if(line.includes('🏆')) {
-          html += `<div class="winner-gold">${line}</div>`;
-        } else if(line.includes('⚠️')) {
-          html += `<div style="color:orange;">${line}</div>`;
-        } else {
-          html += `<div>${line}</div>`;
-        }
-      });
-      reportDiv.innerHTML = html;
-
-      const players = Object.keys(data.scores);
-      const categories = data.categories;
-      const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
-      const chartType = chartTypeSelect.value;
-      const datasets = categories.map((cat, i) => ({
-        label: cat,
-        data: players.map(p => data.scores[p][cat] || 0),
-        backgroundColor: colors[i % colors.length],
-        borderRadius: 4,
-        stack: chartType === 'stacked' ? 'stack' : undefined
-      }));
-      const ctx = document.getElementById('mainChart').getContext('2d');
-      if(currentChart) currentChart.destroy();
-      currentChart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: players, datasets: datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { stacked: chartType === 'stacked', grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } },
-            y: { stacked: chartType === 'stacked', grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } }
-          },
-          plugins: { legend: { labels: { color: '#e0e6ed' } } }
-        }
-      });
-    }
-
-    function generateAiQuote() {
-      const btn = aiBtn;
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Connexion...';
-      callServer('apiGenerateAiQuote', [yearFilter.value, monthFilter.value], (res) => {
-        btn.disabled = false;
-        btn.innerHTML = '🤖 Citation IA';
-        if(res.success) {
-          aiOutputDiv.innerHTML = `« ${res.quote} »${res.isAi ? '' : ' (mode hors ligne)'}`;
-          aiOutputDiv.style.display = 'block';
-        } else showToast(res.error, 'error');
-      }, 'Erreur IA');
-    }
-
-    function exportHtml() {
-      const btn = exportBtn;
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Génération...';
-      callServer('apiDownloadHtmlReport', [yearFilter.value, monthFilter.value], (res) => {
-        btn.disabled = false;
-        btn.innerHTML = '⬇️ Exporter HTML';
-        if(res.success) {
-          const blob = new Blob([res.html], {type: 'text/html;charset=utf-8'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `rapport_${yearFilter.value}_${monthFilter.value}.html`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showToast('Rapport exporté', 'success');
-        } else showToast(res.error, 'error');
-      }, 'Erreur export');
-    }
-
-    // Historique
-    function loadHistoryPage(page) {
-      const player = historyPlayerFilter.value;
-      const category = historyCategoryFilter.value;
-      callServer('apiGetHistoryPage', [page, PAGE_SIZE, player || '', category || ''], (res) => {
-        if(!res.success) { showToast(res.error, 'error'); return; }
-        const logs = res.logs;
-        const total = res.total;
-        totalHistoryPages = Math.ceil(total / PAGE_SIZE);
-        historyTableBody.innerHTML = '';
-        logs.forEach(log => {
-          const row = historyTableBody.insertRow();
-          row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString();
-          row.insertCell(1).textContent = log.player;
-          row.insertCell(2).textContent = log.category;
-          row.insertCell(3).textContent = log.points;
-          const delCell = row.insertCell(4);
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Supprimer';
-          delBtn.className = 'small danger';
-          delBtn.addEventListener('click', () => {
-            openConfirmModal('Supprimer cette entrée ?', () => {
-              callServer('apiDeleteHistoryEntry', [log.rowIndex], (res2) => {
-                if(res2.success) { loadHistoryPage(currentPage); showToast('Supprimée', 'success'); }
-                else showToast(res2.error, 'error');
-              }, 'Erreur suppression');
-            });
-          });
-          delCell.appendChild(delBtn);
-        });
-        renderPagination();
-      }, 'Erreur chargement historique');
-    }
-
-    function renderPagination() {
-      historyPagination.innerHTML = '';
-      for(let i=1; i<=totalHistoryPages; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = 'small';
-        if(i === currentPage) btn.style.fontWeight = 'bold';
-        btn.addEventListener('click', () => { currentPage = i; loadHistoryPage(currentPage); });
-        historyPagination.appendChild(btn);
-      }
-    }
-
-    function updateHistoryFilters() {
-      historyPlayerFilter.innerHTML = '<option value="">Tous joueurs</option>';
-      cachedPlayers.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = p.name;
-        historyPlayerFilter.appendChild(opt);
-      });
-      historyCategoryFilter.innerHTML = '<option value="">Toutes catégories</option>';
-      cachedCategories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name;
-        opt.textContent = c.name;
-        historyCategoryFilter.appendChild(opt);
-      });
-    }
-
-    // Années dynamiques
-    function loadYears() {
-      callServer('apiGetAvailableYears', [], (res) => {
-        if(res.success) {
-          const years = res.years;
-          yearFilter.innerHTML = '<option value="All">Toutes les années</option>';
-          years.forEach(y => {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.textContent = y;
-            yearFilter.appendChild(opt);
-          });
-          yearFilter.value = new Date().getFullYear().toString();
-          fetchAnalytics();
-        } else { showToast(res.error, 'error'); }
-      }, 'Erreur chargement années');
-    }
-
-    // Tendance
-    function showTrend() {
-      callServer('apiGetTrendData', [yearFilter.value, monthFilter.value], (res) => {
-        if(!res.success) { showToast(res.error, 'error'); return; }
-        const trend = res.trend;
-        const wrapper = document.getElementById('chartWrapper');
-        const existingCanvas = document.getElementById('mainChart');
-        existingCanvas.style.display = 'none';
-        let trendCanvas = document.getElementById('trendCanvas');
-        if(!trendCanvas) {
-          trendCanvas = document.createElement('canvas');
-          trendCanvas.id = 'trendCanvas';
-          wrapper.appendChild(trendCanvas);
-        } else trendCanvas.style.display = 'block';
-        if(currentTrendChart) currentTrendChart.destroy();
-        currentTrendChart = new Chart(trendCanvas.getContext('2d'), {
-          type: 'line',
-          data: { labels: trend.labels, datasets: trend.datasets },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-        trendBtn.textContent = '📊 Retour barres';
-        trendBtn.onclick = () => {
-          trendCanvas.style.display = 'none';
-          existingCanvas.style.display = 'block';
-          if(currentTrendChart) currentTrendChart.destroy();
-          trendBtn.textContent = '📈 Voir tendance';
-          trendBtn.onclick = showTrend;
         };
-      }, 'Erreur chargement tendance');
-    }
-
-    // Thème
-    function initTheme() {
-      const saved = localStorage.getItem('theme');
-      if(saved === 'light') document.body.classList.add('light');
-      themeToggle.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
-      themeToggle.addEventListener('click', () => {
-        document.body.classList.toggle('light');
-        const isLight = document.body.classList.contains('light');
-        localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        themeToggle.textContent = isLight ? '☀️' : '🌙';
+        delCell.appendChild(delBtn);
       });
+      renderPagination();
+    }, 'Erreur historique');
+  }
+  function renderPagination() {
+    const pagination = document.getElementById('historyPagination');
+    pagination.innerHTML = '';
+    for (let i = 1; i <= totalHistoryPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = 'small';
+      if (i === currentHistoryPage) btn.style.fontWeight = 'bold';
+      btn.onclick = () => { currentHistoryPage = i; loadHistoryPage(currentHistoryPage); };
+      pagination.appendChild(btn);
     }
+  }
+  function updateHistoryFilters() {
+    const playerFilter = document.getElementById('historyPlayerFilter');
+    const catFilter = document.getElementById('historyCategoryFilter');
+    playerFilter.innerHTML = '<option value="">Tous joueurs</option>';
+    cachedPlayers.forEach(p => {
+      let opt = document.createElement('option');
+      opt.value = p.name;
+      opt.textContent = p.name;
+      playerFilter.appendChild(opt);
+    });
+    catFilter.innerHTML = '<option value="">Toutes catégories</option>';
+    cachedCategories.forEach(c => {
+      let opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = c.name;
+      catFilter.appendChild(opt);
+    });
+  }
 
-    // Navigation par clavier + ARIA
-    function switchTab(tabId, btn) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.setAttribute('aria-selected', 'false'));
-      document.getElementById(tabId).classList.add('active');
-      btn.setAttribute('aria-selected', 'true');
-      if(tabId === 'tab-history') loadHistoryPage(1);
-    }
-    document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
-      btn.setAttribute('role', 'tab');
-      btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
-      btn.addEventListener('click', (e) => {
-        switchTab(btn.getAttribute('data-tab'), btn);
-      });
+  // ==================== NAVIGATION ET THÈME ====================
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+    if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
+  }
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tabId = btn.getAttribute('data-tab');
+      switchTab(tabId, btn);
     });
+  });
+  function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') document.body.classList.add('light');
+    themeToggle.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      const isLight = document.body.classList.contains('light');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      themeToggle.textContent = isLight ? '☀️' : '🌙';
+      if (currentChart && currentChartData) renderChart(currentChartData);
+    });
+  }
 
-    // Événements
-    yearFilter.addEventListener('change', fetchAnalytics);
-    monthFilter.addEventListener('change', fetchAnalytics);
-    chartTypeSelect.addEventListener('change', fetchAnalytics);
-    aiBtn.addEventListener('click', generateAiQuote);
-    exportBtn.addEventListener('click', exportHtml);
-    printBtn.addEventListener('click', () => window.print());
-    addRowBtn.addEventListener('click', () => addEntryRow());
-    submitLotBtn.addEventListener('click', submitBulk);
-    addPlayerBtn.addEventListener('click', () => {
-      const name = newPlayerName.value.trim();
-      if(!name) return;
-      callServer('apiManageEntity', ['ADD', 'Players', name, newPlayerMeta.value.trim(), null], (res) => {
-        if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Joueur ajouté', 'success'); newPlayerName.value = ''; newPlayerMeta.value = ''; }
-        else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-    addCategoryBtn.addEventListener('click', () => {
-      const name = newCategoryName.value.trim();
-      if(!name) return;
-      callServer('apiManageEntity', ['ADD', 'Categories', name, newCategoryMeta.value.trim(), null], (res) => {
-        if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Catégorie ajoutée', 'success'); newCategoryName.value = ''; newCategoryMeta.value = ''; }
-        else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-    refreshHistoryBtn.addEventListener('click', () => { currentPage=1; loadHistoryPage(1); });
-    trendBtn.addEventListener('click', showTrend);
-    // Datalist suggestions
+  // ==================== INITIALISATION ====================
+  window.onload = () => {
+    initTheme();
+    // Éléments supplémentaires
     const datalist = document.createElement('datalist');
     datalist.id = 'pointsSuggestion';
-    [1,3,5,10].forEach(v => { const opt = document.createElement('option'); opt.value = v; datalist.appendChild(opt); });
+    [1,3,5,10].forEach(v => { let opt = document.createElement('option'); opt.value = v; datalist.appendChild(opt); });
     document.body.appendChild(datalist);
-
-    initTheme();
-    loadYears();
-    fetchSettings();
-  })();
+    // Événements UI
+    applyBtn.addEventListener('click', applyFilters);
+    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
+    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      let name = document.getElementById('newPlayerName').value.trim();
+      if (!name) return;
+      let meta = document.getElementById('newPlayerMeta').value.trim();
+      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], (res) => {
+        if (res.success) { loadEntities(); applyFilters(); showToast('Joueur ajouté', 'success'); document.getElementById('newPlayerName').value = ''; document.getElementById('newPlayerMeta').value = ''; }
+        else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      let name = document.getElementById('newCategoryName').value.trim();
+      if (!name) return;
+      let meta = document.getElementById('newCategoryMeta').value.trim();
+      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], (res) => {
+        if (res.success) { loadEntities(); applyFilters(); showToast('Catégorie ajoutée', 'success'); document.getElementById('newCategoryName').value = ''; document.getElementById('newCategoryMeta').value = ''; }
+        else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+    document.getElementById('refreshHistoryBtn').addEventListener('click', () => { currentHistoryPage = 1; loadHistoryPage(1); });
+    // Dates par défaut : mois en cours
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    startDateInput.value = firstDay.toISOString().slice(0,10);
+    endDateInput.value = today.toISOString().slice(0,10);
+    // Boutons d'export
+    document.querySelectorAll('.export-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = btn.getAttribute('data-export');
+        if (type === 'png') exportAsImage('png');
+        else if (type === 'jpeg') exportAsImage('jpeg');
+        else if (type === 'pdf') exportAsPDF();
+        else if (type === 'html') exportAsHTML();
+        else if (type === 'csv') exportAsCSV();
+        else if (type === 'xlsx') exportAsExcel();
+      });
+    });
+    // Chargement initial
+    loadEntities();
+    addEntryRow(); // ligne vide par défaut
+  };
 </script>
 </body>
 </html>

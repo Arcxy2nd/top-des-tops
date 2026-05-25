@@ -518,3 +518,90 @@ function apiDeleteHistoryEntry(rowIndex) {
     return { success: false, error: err.message };
   }
 }
+// Ajouter à la fin du fichier (ne pas supprimer le code existant)
+
+/**
+ * Récupère les données filtrées par joueur(s), catégorie(s) et plage de dates
+ * @param {Array} players - Liste des joueurs sélectionnés (vide = tous)
+ * @param {Array} categories - Liste des catégories sélectionnées (vide = toutes)
+ * @param {string} startDate - YYYY-MM-DD ou vide
+ * @param {string} endDate - YYYY-MM-DD ou vide
+ */
+function apiGetFilteredData(players, categories, startDate, endDate) {
+  try {
+    const allLogs = StorageService.getAllLogs();
+    let filtered = allLogs;
+
+    // Filtre joueurs
+    if (players && players.length) {
+      filtered = filtered.filter(log => players.includes(log.player));
+    }
+    // Filtre catégories
+    if (categories && categories.length) {
+      filtered = filtered.filter(log => categories.includes(log.category));
+    }
+    // Filtre dates
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0,0,0,0);
+      filtered = filtered.filter(log => log.timestamp >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23,59,59,999);
+      filtered = filtered.filter(log => log.timestamp <= end);
+    }
+
+    // Agrégation par joueur et catégorie
+    const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
+    const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
+    let scores = {};
+    allPlayers.forEach(p => {
+      scores[p] = {};
+      allCategories.forEach(c => scores[p][c] = 0);
+    });
+
+    filtered.forEach(log => {
+      if (scores[log.player] && scores[log.player][log.category] !== undefined) {
+        scores[log.player][log.category] += log.points;
+      }
+    });
+
+    // Transformer pour le frontend
+    const chartData = {
+      labels: allPlayers,
+      datasets: allCategories.map((cat, idx) => ({
+        label: cat,
+        data: allPlayers.map(p => scores[p][cat]),
+        backgroundColor: `hsl(${idx * 45}, 70%, 60%)`
+      }))
+    };
+
+    return { success: true, chartData, logs: filtered };
+  } catch(err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Export des données brutes (CSV ou XLSX)
+ */
+function apiGetExportData(players, categories, startDate, endDate, format) {
+  const result = apiGetFilteredData(players, categories, startDate, endDate);
+  if (!result.success) return result;
+  const logs = result.logs;
+  // Transformation en tableau 2D pour CSV
+  const rows = [["Date", "Joueur", "Catégorie", "Points"]];
+  logs.forEach(log => {
+    rows.push([log.timestamp.toISOString(), log.player, log.category, log.points]);
+  });
+  if (format === 'csv') {
+    const csv = rows.map(row => row.join(",")).join("\n");
+    return { success: true, csv, filename: `export_${Date.now()}.csv` };
+  } else if (format === 'xlsx') {
+    // En GAS, on ne peut pas générer directement un vrai XLSX binaire sans lib externe.
+    // On renvoie le CSV et on laisse le frontend convertir via SheetJS (déjà présent)
+    const csv = rows.map(row => row.join(",")).join("\n");
+    return { success: true, csv, filename: `export_${Date.now()}.csv` };
+  }
+}
