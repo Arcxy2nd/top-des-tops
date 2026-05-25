@@ -2,631 +2,701 @@
 <html lang="fr">
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* Variables themes */
     :root {
-      --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
-      --accent: #ff4757; --accent-hover: #ff6b81;
-      --text: #e0e6ed; --text-muted: #8892b0;
-      --success: #2ed573; --error: #ff4757; --btn-alt: #353b48;
+      --bg: #0b0c10;
+      --card: #1f2833;
+      --border: #2a313d;
+      --accent: #ff4757;
+      --accent-hover: #ff6b81;
+      --text: #e0e6ed;
+      --text-muted: #9aa5be; /* amélioré contraste */
+      --success: #2ed573;
+      --error: #ff4757;
+      --btn-alt: #353b48;
       --tap-min: 44px;
     }
-
-    /* ── RESET & BASE ───────────────────────────────────────────── */
+    body.light {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --border: #d1d5db;
+      --accent: #e53e3e;
+      --accent-hover: #c53030;
+      --text: #1a202c;
+      --text-muted: #4a5568;
+      --btn-alt: #e2e8f0;
+    }
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text);
-      padding: 0; margin: 0;
-      -webkit-text-size-adjust: 100%;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+      margin: 0;
+      transition: background 0.2s, color 0.2s;
     }
+    /* Classes utilitaires */
+    .flex-col { display: flex; flex-direction: column; gap: 10px; }
+    .form-group { margin-bottom: 16px; }
+    .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
-    /* ── NAVBAR ─────────────────────────────────────────────────── */
+    /* Navbar */
     .navbar {
-      background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 0; display: flex; justify-content: center;
-      position: sticky; top: 0; z-index: 100;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      overflow-x: auto;
     }
-    .navbar::-webkit-scrollbar { display: none; }
     .nav-container {
-      display: flex; min-width: max-content;
-      width: 100%; max-width: 900px;
+      display: flex;
+      min-width: max-content;
+      width: 100%;
+      max-width: 900px;
+      gap: 4px;
     }
     .nav-btn {
-      background: transparent; border: none; color: var(--text-muted);
-      font-size: 0.9rem; padding: 16px 18px;
-      cursor: pointer; transition: 0.3s; font-weight: 500;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: 500;
       border-bottom: 3px solid transparent;
-      white-space: nowrap; min-height: var(--tap-min);
-      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+      min-height: var(--tap-min);
     }
-    .nav-btn:hover  { color: var(--text); }
+    .nav-btn:hover { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+    .theme-toggle {
+      margin-left: auto;
+      background: var(--btn-alt);
+      border: none;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--text);
+    }
 
-    /* ── LAYOUT ──────────────────────────────────────────────────── */
+    /* Layout */
     .container { max-width: 900px; margin: 20px auto; padding: 0 16px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: flex; flex-direction: column; gap: 20px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── CARDS ───────────────────────────────────────────────────── */
+    /* Cards */
     .card {
-      background: var(--card); padding: 20px;
-      border-radius: 12px; border: 1px solid var(--border);
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     }
-    h2 { margin: 0 0 18px 0; font-size: 1.3rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+    h2 { margin: 0 0 18px 0; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
     h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
 
-    /* ── FORM CONTROLS ───────────────────────────────────────────── */
-    /* font-size 16px minimum sur mobile pour éviter le zoom iOS sur focus */
-    select, input, button {
-      padding: 12px; border-radius: 6px;
-      border: 1px solid #353b48; background: #14171f;
-      color: var(--text); font-size: 16px;
-      outline: none; transition: 0.2s;
+    /* Formulaires */
+    select, input, button, .fake-select {
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #353b48;
+      background: #14171f;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: 0.2s;
       width: 100%;
+    }
+    body.light select, body.light input, body.light button {
+      background: white;
+      border-color: #cbd5e0;
     }
     select:focus, input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2);
+      box-shadow: 0 0 0 2px rgba(255,71,87,0.2);
     }
     button {
-      font-weight: bold; cursor: pointer;
-      display: flex; justify-content: center; align-items: center;
-      gap: 8px; min-height: var(--tap-min);
-      -webkit-tap-highlight-color: transparent;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      min-height: var(--tap-min);
       width: auto;
     }
-    button.primary   { background: var(--accent); color: #fff; border: none; text-transform: uppercase; letter-spacing: 0.5px; }
-    button.primary:hover  { background: var(--accent-hover); }
-    button.primary:active { opacity: 0.85; }
+    button.primary { background: var(--accent); color: #fff; border: none; }
     button.secondary { background: transparent; border: 1px solid var(--text-muted); color: var(--text); }
-    button.secondary:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
-    button.ai        { background: #9b59b6; color: #fff; border: none; text-transform: uppercase; }
-    button.ai:hover  { background: #8e44ad; }
-    button.small     { padding: 10px 12px; font-size: 0.9rem; border: none; background: var(--btn-alt); min-height: var(--tap-min); }
-    button.small:hover { background: #57606f; }
-    button.danger    { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); }
-    button.danger:hover { background: var(--error); color: #fff; }
+    button.ai { background: #9b59b6; color: #fff; border: none; }
+    button.small { padding: 10px 12px; font-size: 0.9rem; background: var(--btn-alt); }
+    button.danger { background: rgba(255,71,87,0.1); color: var(--error); border: 1px solid var(--error); }
+    .chart-wrapper { position: relative; height: 350px; }
+    .skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--card) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 300px; width: 100%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    /* ── FILTERS ─────────────────────────────────────────────────── */
-    .filters {
-      display: flex; gap: 10px;
-      background: #14171f; padding: 12px;
-      border-radius: 8px; border: 1px solid var(--border);
-      margin-bottom: 18px; flex-wrap: wrap;
+    /* Rapport narratif structuré */
+    .report-html {
+      background: var(--card);
+      padding: 16px;
+      border-radius: 8px;
+      line-height: 1.6;
+      border-left: 4px solid var(--accent);
     }
-    .filters select { flex: 1; min-width: 130px; }
-
-    /* ── CHART ───────────────────────────────────────────────────── */
-    .chart-wrapper {
-      position: relative;
-      /* hauteur fixe desktop, dynamique mobile */
-      height: 350px;
+    .badge-category {
+      background: var(--accent);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      display: inline-block;
+      margin-right: 6px;
     }
-
-    /* ── RAPPORT ─────────────────────────────────────────────────── */
-    .report-box {
-      background: #0b0c10; padding: 16px; border-radius: 8px;
-      font-family: 'Courier New', Courier, monospace;
-      white-space: pre-wrap; line-height: 1.6; color: #00d4aa;
-      border: 1px solid var(--border); font-size: 0.85rem;
-      overflow-x: auto;
-    }
-    .ai-quote-box {
-      margin-top: 15px; padding: 15px;
-      border-left: 4px solid #9b59b6;
-      background: rgba(155, 89, 182, 0.1);
-      color: #fff; font-style: italic;
-      display: none; border-radius: 4px;
+    .winner-gold {
+      font-size: 1.2rem;
+      font-weight: bold;
+      background: gold;
+      color: #1a202c;
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 30px;
     }
 
-    /* ── ACTIONS BAR ─────────────────────────────────────────────── */
-    .actions-bar {
-      display: flex; gap: 10px; margin-top: 18px;
-      flex-wrap: wrap;
-    }
-    .actions-bar button { flex: 1; min-width: 120px; }
-
-    /* ── SAISIE LOT — DESKTOP ────────────────────────────────────── */
+    /* Saisie lot */
     .batch-header {
       display: grid;
       grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
-      gap: 10px; padding: 0 10px; margin-bottom: 8px;
-      color: var(--text-muted); font-size: 0.8rem;
-      font-weight: bold; text-transform: uppercase;
+      gap: 10px;
+      padding: 0 10px;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: bold;
     }
     #entryContainer { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-
     .entry-row {
       display: grid;
       grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
-      gap: 10px; align-items: center;
-      background: #14171f; padding: 10px;
-      border-radius: 8px; border: 1px solid var(--border);
-      transition: border-color 0.2s;
+      gap: 10px;
+      align-items: center;
+      background: #14171f;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
     }
-    .entry-row:hover { border-color: #4a5568; }
-    .entry-row select, .entry-row input { font-size: 15px; }
-
+    body.light .entry-row { background: #f9fafb; }
     .player-select-wrapper {
-      display: flex; align-items: center;
-      background: #14171f; border: 1px solid #353b48;
-      border-radius: 6px; padding: 0 8px;
-      width: 100%; transition: 0.2s;
+      display: flex;
+      align-items: center;
+      background: #14171f;
+      border: 1px solid #353b48;
+      border-radius: 6px;
+      padding: 0 8px;
     }
-    .player-select-wrapper:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2);
-    }
-    .player-select-wrapper select {
-      border: none; background: transparent;
-      padding: 10px 0 10px 8px;
-      width: 100%; outline: none;
-      box-shadow: none; color: var(--text);
-      font-size: 15px;
-    }
-    .player-select-wrapper select:focus { box-shadow: none; border: none; }
-
+    .player-select-wrapper select { border: none; background: transparent; padding: 10px 0 10px 8px; width: 100%; }
     .row-actions { display: flex; gap: 6px; }
-    .row-actions button { flex: 1; padding: 10px; }
-
-    /* ── SETTINGS ────────────────────────────────────────────────── */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .entity-list {
-      list-style: none; padding: 0; margin: 0 0 12px 0;
-      display: flex; flex-direction: column; gap: 8px;
+    .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
+    .entity-item { background: #14171f; padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
+    .entity-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .modal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
     }
-    .entity-item {
-      display: flex; flex-direction: column; gap: 8px;
-      background: #14171f; padding: 14px;
-      border-radius: 6px; border: 1px solid var(--border);
+    .modal-content {
+      background: var(--card); padding: 24px; border-radius: 12px; min-width: 280px;
+      border: 1px solid var(--border);
     }
-    .entity-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .entity-header > div:first-child { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .entity-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .entity-meta { font-size: 0.82rem; color: var(--text-muted); font-style: italic; word-break: break-all; }
-    .avatar-img {
-      width: 32px; height: 32px; min-width: 32px;
-      border-radius: 50%; object-fit: cover;
-      border: 2px solid var(--border); background: #2a313d;
+    .toast-container {
+      position: fixed; bottom: 20px; right: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;
     }
-    .entity-btns { display: flex; gap: 6px; flex-shrink: 0; }
-    .entity-btns button { padding: 8px 12px; min-height: 36px; }
-
-    /* ── EMPTY STATE ─────────────────────────────────────────────── */
-    .empty-state {
-      color: var(--text-muted); font-style: italic;
-      text-align: center; padding: 20px;
-    }
-
-    /* ── TOASTS ──────────────────────────────────────────────────── */
-    #toastContainer {
-      position: fixed; bottom: 20px; right: 16px;
-      display: flex; flex-direction: column; gap: 10px;
-      z-index: 1000; max-width: calc(100vw - 32px);
-    }
-    .toast {
-      padding: 14px 20px; border-radius: 8px; color: white;
-      font-weight: 500; font-size: 0.9rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      animation: slideIn 0.3s ease forwards;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .toast.success { background: var(--success); border: 1px solid #27ae60; color: #000; }
-    .toast.error   { background: var(--error);   border: 1px solid #c0392b; }
+    .toast { padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; }
+    .toast.success { background: var(--success); color: #000; }
+    .toast.error { background: var(--error); }
     @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
 
-    /* ── MOBILE ≤ 600px ──────────────────────────────────────────── */
     @media (max-width: 600px) {
-      .container { padding: 0 12px; margin: 12px auto; }
-      .card { padding: 16px; }
-      h2 { font-size: 1.1rem; }
-
-      /* Chart plus court sur mobile */
-      .chart-wrapper { height: 240px; }
-
-      /* Filtres empilés */
-      .filters { flex-direction: column; }
-      .filters select { min-width: unset; }
-
-      /* Batch header caché */
       .batch-header { display: none; }
-
-      /* Chaque ligne = carte empilée sur mobile */
-      .entry-row {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px; padding: 12px;
-      }
-      /* Joueur sur toute la largeur */
-      .entry-row .player-select-wrapper {
-        grid-column: 1 / -1;
-      }
-      /* Catégorie sur toute la largeur */
-      .entry-row .c-sel {
-        grid-column: 1 / -1;
-      }
-      /* Points + Fois côte à côte */
+      .entry-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .entry-row .player-select-wrapper, .entry-row .c-sel { grid-column: 1 / -1; }
       .entry-row .pts-sel { grid-column: 1; }
-      .entry-row .tms-in  { grid-column: 2; }
-      /* Actions sur toute la largeur */
-      .row-actions {
-        grid-column: 1 / -1;
-        display: flex; gap: 8px;
-      }
-      .row-actions button { flex: 1; }
-
-      /* Actions bar empilée */
-      .actions-bar { flex-direction: column; }
-      .actions-bar button { min-width: unset; }
-
-      /* Settings empilé */
-      .settings-grid { grid-template-columns: 1fr; gap: 20px; }
-
-      /* Boutons de la navbar plus compacts */
-      .nav-btn { font-size: 0.8rem; padding: 14px 14px; }
-
-      /* Report box police plus petite */
-      .report-box { font-size: 0.78rem; }
-    }
-
-    /* ── TABLET 601–900px ────────────────────────────────────────── */
-    @media (min-width: 601px) and (max-width: 900px) {
-      .entry-row {
-        grid-template-columns: 2fr 2fr 1fr 1fr auto;
-      }
-      .settings-grid { gap: 16px; }
+      .entry-row .tms-in { grid-column: 2; }
+      .row-actions { grid-column: 1 / -1; display: flex; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 240px; }
     }
   </style>
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="nav-container">
-      <button class="nav-btn active" onclick="switchTab('tab-dashboard', this)">📊 Tableau de Bord</button>
-      <button class="nav-btn" onclick="switchTab('tab-inject', this)">✍️ Saisir un Lot</button>
-      <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Paramètres</button>
-    </div>
-  </nav>
+<nav class="navbar">
+  <div class="nav-container">
+    <button class="nav-btn active" data-tab="tab-dashboard">📊 Tableau de Bord</button>
+    <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
+    <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
+    <button class="nav-btn" data-tab="tab-history">📜 Historique</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">🌙</button>
+  </div>
+</nav>
 
-  <div class="container">
-    <div id="toastContainer"></div>
+<div class="container">
+  <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ═══ DASHBOARD ═══════════════════════════════════════════════ -->
-    <div id="tab-dashboard" class="tab-content active">
-      <div class="card">
-        <h2>📊 Filtres & Matrice Visuelle</h2>
-        <div class="filters">
-          <select id="yearFilter" onchange="fetchAnalytics()">
-            <option value="All">Toutes les années</option>
-            <option value="2026" selected>2026</option>
-            <option value="2025">2025</option>
-          </select>
-          <select id="monthFilter" onchange="fetchAnalytics()">
-            <option value="All" selected>Tous les mois</option>
-            <option value="0">Janvier</option><option value="1">Février</option>
-            <option value="2">Mars</option><option value="3">Avril</option>
-            <option value="4">Mai</option><option value="5">Juin</option>
-            <option value="6">Juillet</option><option value="7">Août</option>
-            <option value="8">Septembre</option><option value="9">Octobre</option>
-            <option value="10">Novembre</option><option value="11">Décembre</option>
-          </select>
-        </div>
-        <div class="chart-wrapper"><canvas id="mainChart"></canvas></div>
+  <!-- Dashboard -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="card">
+      <h2>📊 Filtres & Visualisation</h2>
+      <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <select id="yearFilter"><option value="All">Toutes les années</option></select>
+        <select id="monthFilter">
+          <option value="All">Tous les mois</option>
+          <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
+          <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
+          <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
+          <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
+        </select>
+        <select id="chartTypeSelect">
+          <option value="stacked">Barres empilées</option>
+          <option value="grouped">Barres groupées</option>
+        </select>
+        <button id="trendBtn" class="secondary">📈 Voir tendance</button>
       </div>
-
-      <div class="card">
-        <h2>📄 Rapport Narratif & Export</h2>
-        <div class="report-box" id="reportOutput">Calcul des algorithmes en cours...</div>
-        <div id="aiOutput" class="ai-quote-box"></div>
-        <div class="actions-bar">
-          <button class="ai" id="aiBtn" onclick="generateAiQuote()">🤖 Citation IA</button>
-          <button class="primary" onclick="exportHtmlReport()">⬇️ Exporter HTML</button>
-          <button class="secondary" onclick="window.print()">🖨️ PDF</button>
-        </div>
+      <div class="chart-wrapper" id="chartWrapper">
+        <div id="skeletonChart" class="skeleton" style="display:block;"></div>
+        <canvas id="mainChart" style="display:none;"></canvas>
       </div>
     </div>
-
-    <!-- ═══ SAISIE LOT ══════════════════════════════════════════════ -->
-    <div id="tab-inject" class="tab-content">
-      <div class="card">
-        <h2>✍️ Constructeur de Lot</h2>
-        <div style="margin-bottom:18px; background:#14171f; padding:14px; border-radius:8px; border:1px solid var(--border);">
-          <label style="color:var(--text-muted); font-size:0.85rem; display:block; margin-bottom:8px;">
-            Date appliquée au lot (vide = maintenant) :
-          </label>
-          <input type="datetime-local" id="globalDateInput">
-        </div>
-
-        <div class="batch-header">
-          <div>Cible (Joueur)</div>
-          <div>Type (Catégorie)</div>
-          <div>Valeur</div>
-          <div>Fois</div>
-          <div>Actions</div>
-        </div>
-
-        <div id="entryContainer"></div>
-
-        <div class="actions-bar">
-          <button class="secondary" onclick="addEntryRow()" style="flex:0 0 auto;">+ Ligne</button>
-          <button class="primary" onclick="submitBulkData()" id="submitBtn" style="flex:1;">✓ Inscrire le Lot</button>
-        </div>
+    <div class="card">
+      <h2>📄 Rapport Narratif</h2>
+      <div id="reportOutput" class="report-html">Calcul...</div>
+      <div id="aiOutput" style="margin-top:15px; padding:15px; border-left:4px solid #9b59b6; background:rgba(155,89,182,0.1); display:none; border-radius:4px;"></div>
+      <div class="actions-bar" style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+        <button id="aiBtn" class="ai">🤖 Citation IA</button>
+        <button id="exportBtn" class="primary">⬇️ Exporter HTML</button>
+        <button id="printBtn" class="secondary">🖨️ PDF</button>
       </div>
     </div>
+  </div>
 
-    <!-- ═══ PARAMÈTRES ══════════════════════════════════════════════ -->
-    <div id="tab-settings" class="tab-content">
-      <div class="card">
-        <h2>⚙️ Base & Paramètres</h2>
-        <div class="settings-grid">
-          <div>
-            <h3>Profils Joueurs</h3>
-            <ul class="entity-list" id="playersList"></ul>
-            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:14px; border-radius:8px;">
-              <input type="text" id="newPlayerName" placeholder="Nom du joueur...">
-              <input type="url"  id="newPlayerMeta" placeholder="URL de l'avatar (optionnel)">
-              <button class="primary small" onclick="manageEntity('ADD','Players','newPlayerName','newPlayerMeta')">Ajouter</button>
-            </div>
+  <!-- Saisie Lot -->
+  <div id="tab-inject" class="tab-content">
+    <div class="card">
+      <h2>✍️ Constructeur de Lot</h2>
+      <div class="form-group">
+        <label style="color:var(--text-muted);">Date (vide = maintenant)</label>
+        <input type="datetime-local" id="globalDateInput">
+      </div>
+      <div class="batch-header">
+        <div>Joueur</div><div>Catégorie</div><div>Points</div><div>Fois</div><div>Actions</div>
+      </div>
+      <div id="entryContainer"></div>
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button id="addRowBtn" class="secondary">+ Ligne</button>
+        <button id="submitLotBtn" class="primary">✓ Inscrire le Lot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paramètres -->
+  <div id="tab-settings" class="tab-content">
+    <div class="card">
+      <h2>⚙️ Base & Paramètres</h2>
+      <div class="settings-grid">
+        <div>
+          <h3>Profils Joueurs</h3>
+          <ul id="playersList" class="entity-list"></ul>
+          <div class="flex-col">
+            <input type="text" id="newPlayerName" placeholder="Nom du joueur...">
+            <input type="url" id="newPlayerMeta" placeholder="URL avatar">
+            <button id="addPlayerBtn" class="primary small">Ajouter</button>
           </div>
-          <div>
-            <h3>Types de Casseroles</h3>
-            <ul class="entity-list" id="categoriesList"></ul>
-            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:14px; border-radius:8px;">
-              <input type="text" id="newCategoryName" placeholder="Nom de la catégorie...">
-              <input type="text" id="newCategoryMeta" placeholder="Description pour l'IA...">
-              <button class="primary small" onclick="manageEntity('ADD','Categories','newCategoryName','newCategoryMeta')">Ajouter</button>
-            </div>
+        </div>
+        <div>
+          <h3>Types de Casseroles</h3>
+          <ul id="categoriesList" class="entity-list"></ul>
+          <div class="flex-col">
+            <input type="text" id="newCategoryName" placeholder="Nom de la catégorie...">
+            <input type="text" id="newCategoryMeta" placeholder="Description IA">
+            <button id="addCategoryBtn" class="primary small">Ajouter</button>
           </div>
         </div>
       </div>
     </div>
-  </div><!-- /.container -->
+  </div>
 
-  <script>
-    var currentChart    = null;
-    var cachedPlayers   = [];
-    var cachedCategories = [];
-    var rowCounter      = 0;
+  <!-- Historique -->
+  <div id="tab-history" class="tab-content">
+    <div class="card">
+      <h2>📜 Historique des entrées</h2>
+      <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+        <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
+        <select id="historyCategoryFilter"><option value="">Toutes catégories</option></select>
+        <button id="refreshHistoryBtn" class="secondary">Rafraîchir</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead><tr style="border-bottom:1px solid var(--border);"><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Points</th><th></th></tr></thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+      <div id="historyPagination" style="display:flex; gap:8px; margin-top:16px; justify-content:center;"></div>
+    </div>
+  </div>
+</div>
 
-    /* ── NAVIGATION ───────────────────────────────────────────────── */
-    function switchTab(tabId, btnEl) {
-      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
-      document.querySelectorAll('.nav-btn').forEach(function(el)      { el.classList.remove('active'); });
-      document.getElementById(tabId).classList.add('active');
-      if (btnEl) btnEl.classList.add('active');
-    }
+<script>
+  (function() {
+    // État
+    let currentChart = null;
+    let currentTrendChart = null;
+    let cachedPlayers = [];
+    let cachedCategories = [];
+    let rowCounter = 0;
+    let currentPage = 1;
+    let totalHistoryPages = 1;
+    const PAGE_SIZE = 20;
 
-    /* ── TOASTS ───────────────────────────────────────────────────── */
+    // DOM elements
+    const toastContainer = document.getElementById('toastContainer');
+    const yearFilter = document.getElementById('yearFilter');
+    const monthFilter = document.getElementById('monthFilter');
+    const chartTypeSelect = document.getElementById('chartTypeSelect');
+    const trendBtn = document.getElementById('trendBtn');
+    const reportDiv = document.getElementById('reportOutput');
+    const aiOutputDiv = document.getElementById('aiOutput');
+    const aiBtn = document.getElementById('aiBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const printBtn = document.getElementById('printBtn');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const submitLotBtn = document.getElementById('submitLotBtn');
+    const entryContainer = document.getElementById('entryContainer');
+    const playersList = document.getElementById('playersList');
+    const categoriesList = document.getElementById('categoriesList');
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    const newPlayerName = document.getElementById('newPlayerName');
+    const newPlayerMeta = document.getElementById('newPlayerMeta');
+    const newCategoryName = document.getElementById('newCategoryName');
+    const newCategoryMeta = document.getElementById('newCategoryMeta');
+    const themeToggle = document.getElementById('themeToggle');
+    const historyPlayerFilter = document.getElementById('historyPlayerFilter');
+    const historyCategoryFilter = document.getElementById('historyCategoryFilter');
+    const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+    const historyTableBody = document.getElementById('historyTableBody');
+    const historyPagination = document.getElementById('historyPagination');
+
+    // Helper : toasts
     function showToast(msg, type) {
-      var c = document.getElementById('toastContainer');
-      var t = document.createElement('div');
-      t.className = 'toast ' + type;
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
       t.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
-      c.appendChild(t);
-      setTimeout(function() {
-        t.style.animation = 'fadeOut 0.3s ease forwards';
-        setTimeout(function() { t.remove(); }, 300);
-      }, 4000);
+      toastContainer.appendChild(t);
+      setTimeout(() => { t.style.animation = 'fadeOut 0.3s ease'; setTimeout(() => t.remove(), 300); }, 4000);
     }
 
-    /* ── INIT ─────────────────────────────────────────────────────── */
-    function initApp() { fetchSettings(); fetchAnalytics(); }
+    // Helper : appel sécurisé avec failureHandler
+    function callServer(fn, params, successCb, errorMsg) {
+      const runner = google.script.run.withSuccessHandler(successCb).withFailureHandler(err => {
+        showToast(errorMsg + ': ' + err.message, 'error');
+      });
+      runner[fn].apply(runner, params);
+    }
 
-    /* ── SETTINGS ─────────────────────────────────────────────────── */
+    // Chargement des paramètres
     function fetchSettings() {
-      google.script.run.withSuccessHandler(function(res) {
-        if (!res.success) return showToast(res.error, 'error');
-        cachedPlayers    = res.players;
+      callServer('apiGetSettings', [], (res) => {
+        if (!res.success) { showToast(res.error, 'error'); return; }
+        cachedPlayers = res.players;
         cachedCategories = res.categories;
-        renderList('playersList',    'Players',    res.players,    'Avatar URL');
-        renderList('categoriesList', 'Categories', res.categories, 'Description');
-        if (document.getElementById('entryContainer').children.length === 0) addEntryRow();
-      }).apiGetSettings();
+        renderList(playersList, 'Players', cachedPlayers, 'Avatar URL');
+        renderList(categoriesList, 'Categories', cachedCategories, 'Description');
+        if (entryContainer.children.length === 0) addEntryRow();
+        updateHistoryFilters();
+      }, 'Erreur chargement settings');
     }
 
-    function escapeHtml(s) {
-      return String(s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    }
-    function escapeAttr(s) {
-      return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    }
-
-    function renderList(id, type, items, metaLabel) {
-      document.getElementById(id).innerHTML = items.map(function(i) {
-        var dName = escapeHtml(i.name);
-        var dMeta = escapeHtml(i.meta || '');
-        var aName = escapeAttr(i.name);
-        var aMeta = escapeAttr(i.meta || '');
-        var visual = '', metaDiv = '';
-
+    function renderList(ul, type, items, metaLabel) {
+      ul.innerHTML = '';
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'entity-item';
+        const header = document.createElement('div');
+        header.className = 'entity-header';
+        const leftDiv = document.createElement('div');
+        leftDiv.style.display = 'flex';
+        leftDiv.style.alignItems = 'center';
+        leftDiv.style.gap = '10px';
         if (type === 'Players') {
-          var fb  = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(i.name) + '&background=2a313d&color=e0e6ed&bold=true';
-          var src = i.meta ? escapeHtml(i.meta) : fb;
-          visual  = '<img src="' + src + '" class="avatar-img" onerror="this.onerror=null;this.src=\'' + escapeHtml(fb) + '\';">';
-        } else if (i.meta) {
-          metaDiv = '<div class="entity-meta">' + metaLabel + ' : ' + dMeta + '</div>';
+          const img = document.createElement('img');
+          const fb = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed&bold=true`;
+          img.src = item.meta || fb;
+          img.className = 'avatar-img';
+          img.onerror = function() { this.onerror = null; this.src = fb; };
+          leftDiv.appendChild(img);
         }
-
-        return '<li class="entity-item">' +
-          '<div class="entity-header">' +
-            '<div>' + visual + '<strong>' + dName + '</strong></div>' +
-            '<div class="entity-btns">' +
-              '<button class="small" onclick="promptRename(\'' + type + '\',\'' + aName + '\',\'' + aMeta + '\')">Éditer</button>' +
-              '<button class="small danger" onclick="manageEntity(\'DELETE\',\'' + type + '\',null,null,\'' + aName + '\')">✕</button>' +
-            '</div>' +
-          '</div>' +
-          metaDiv +
-        '</li>';
-      }).join('');
+        const strong = document.createElement('strong');
+        strong.textContent = item.name;
+        leftDiv.appendChild(strong);
+        header.appendChild(leftDiv);
+        const btnDiv = document.createElement('div');
+        btnDiv.className = 'entity-btns';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Éditer';
+        editBtn.className = 'small';
+        editBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openEditModal(type, item.name, item.meta || '');
+        });
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '✕';
+        deleteBtn.className = 'small danger';
+        deleteBtn.addEventListener('click', () => {
+          openConfirmModal(`Supprimer définitivement "${item.name}" ?`, () => {
+            callServer('apiManageEntity', ['DELETE', type, null, null, item.name], (res2) => {
+              if (res2.success) { fetchSettings(); fetchAnalytics(); showToast('Supprimé', 'success'); }
+              else showToast(res2.error, 'error');
+            }, 'Erreur suppression');
+          });
+        });
+        btnDiv.appendChild(editBtn);
+        btnDiv.appendChild(deleteBtn);
+        header.appendChild(btnDiv);
+        li.appendChild(header);
+        if (type !== 'Players' && item.meta) {
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'entity-meta';
+          metaDiv.textContent = `${metaLabel} : ${item.meta}`;
+          li.appendChild(metaDiv);
+        }
+        ul.appendChild(li);
+      });
     }
 
-    function manageEntity(act, type, idName, idMeta, oldN, newN, newM) {
-      var name = (act === 'ADD') ? document.getElementById(idName).value.trim() : oldN;
-      var meta = (act === 'ADD' && idMeta) ? document.getElementById(idMeta).value.trim() : null;
-      if (act === 'ADD' && !name) return;
-      if (act === 'DELETE' && !confirm("Supprimer définitivement '" + name + "' ?")) return;
-
-      google.script.run.withSuccessHandler(function(res) {
-        if (!res.success) return showToast(res.error, 'error');
-        if (idName) document.getElementById(idName).value = '';
-        if (idMeta) document.getElementById(idMeta).value = '';
-        document.getElementById('entryContainer').innerHTML = '';
-        fetchSettings(); fetchAnalytics();
-        showToast('Base de données mise à jour.', 'success');
-      }).apiManageEntity(act, type, newN || name, newM || meta, oldN);
+    // Modales custom (remplacent confirm/prompt)
+    let activeModal = null;
+    function closeModal() { if(activeModal) activeModal.remove(); activeModal = null; }
+    function openConfirmModal(message, onConfirm) {
+      closeModal();
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `<div class="modal-content"><p>${message}</p><div style="display:flex; gap:10px; margin-top:20px;"><button id="confirmYes">Oui</button><button id="confirmNo">Non</button></div></div>`;
+      document.body.appendChild(modal);
+      activeModal = modal;
+      modal.querySelector('#confirmYes').addEventListener('click', () => { onConfirm(); closeModal(); });
+      modal.querySelector('#confirmNo').addEventListener('click', closeModal);
+    }
+    function openEditModal(type, oldName, oldMeta) {
+      closeModal();
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `<div class="modal-content"><h3>Éditer ${oldName}</h3><input type="text" id="newName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom"><input type="text" id="newMeta" value="${escapeHtml(oldMeta)}" placeholder="${type === 'Players' ? 'URL avatar' : 'Description'}"><div style="display:flex; gap:10px; margin-top:20px;"><button id="saveEdit">Enregistrer</button><button id="cancelEdit">Annuler</button></div></div>`;
+      document.body.appendChild(modal);
+      activeModal = modal;
+      modal.querySelector('#saveEdit').addEventListener('click', () => {
+        const newName = modal.querySelector('#newName').value.trim();
+        const newMeta = modal.querySelector('#newMeta').value.trim();
+        if(!newName) return;
+        callServer('apiManageEntity', ['RENAME', type, newName, newMeta, oldName], (res) => {
+          if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Renommé', 'success'); closeModal(); }
+          else showToast(res.error, 'error');
+        }, 'Erreur renommage');
+      });
+      modal.querySelector('#cancelEdit').addEventListener('click', closeModal);
     }
 
-    function promptRename(type, oldName, oldMeta) {
-      var n = prompt('Nouveau nom pour ' + oldName + ' :', oldName);
-      if (!n) return;
-      var m = prompt(
-        type === 'Players' ? "URL de l'avatar pour " + n + ' :' : 'Description pour ' + n + ' :',
-        oldMeta || ''
-      );
-      manageEntity('RENAME', type, null, null, oldName, n, m);
-    }
-
-    /* ── LIGNES LOT ───────────────────────────────────────────────── */
-    function updateRowAvatar(sel) {
-      var opt = sel.options[sel.selectedIndex];
-      if (!opt) return;
-      var img = sel.parentElement.querySelector('.row-avatar');
-      if (!img) return;
-      var fb  = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(opt.value) + '&background=2a313d&color=e0e6ed&bold=true';
-      img.src = opt.getAttribute('data-img') || fb;
-      img.onerror = function() { this.onerror = null; this.src = fb; };
-    }
-
+    // Saisie lot (DOM sécurisé)
     function addEntryRow(preset) {
       if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-        var c = document.getElementById('entryContainer');
-        if (!c.querySelector('.empty-state')) {
-          var p = document.createElement('p');
+        if (!entryContainer.querySelector('.empty-state')) {
+          const p = document.createElement('p');
           p.className = 'empty-state';
-          p.textContent = "⚠️ Ajoutez d'abord des joueurs et des catégories dans l'onglet Paramètres.";
-          c.appendChild(p);
+          p.textContent = "⚠️ Ajoutez d'abord des joueurs et catégories.";
+          entryContainer.appendChild(p);
         }
         return;
       }
-
       rowCounter++;
-      var id  = 'row_' + rowCounter;
-      var div = document.createElement('div');
+      const div = document.createElement('div');
       div.className = 'entry-row';
-      div.id = id;
+      div.id = `row_${rowCounter}`;
 
-      var pOpts = cachedPlayers.map(function(p) {
-        return '<option value="' + escapeHtml(p.name) + '" data-img="' + escapeHtml(p.meta||'') + '">' + escapeHtml(p.name) + '</option>';
-      }).join('');
-      var cOpts = cachedCategories.map(function(c) {
-        return '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>';
-      }).join('');
+      const playerWrapper = document.createElement('div');
+      playerWrapper.className = 'player-select-wrapper';
+      const avatar = document.createElement('img');
+      avatar.style.cssText = 'width:26px;height:26px;border-radius:50%;object-fit:cover;margin-right:8px;';
+      avatar.className = 'row-avatar';
+      const pSelect = document.createElement('select');
+      pSelect.className = 'p-sel';
+      cachedPlayers.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        if(p.meta) opt.setAttribute('data-img', p.meta);
+        pSelect.appendChild(opt);
+      });
+      pSelect.addEventListener('change', () => updateRowAvatar(pSelect, avatar));
+      playerWrapper.appendChild(avatar);
+      playerWrapper.appendChild(pSelect);
+      div.appendChild(playerWrapper);
 
-      div.innerHTML =
-        '<div class="player-select-wrapper">' +
-          '<img class="row-avatar" src="" style="width:26px;height:26px;min-width:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#2a313d;">' +
-          '<select class="p-sel" onchange="updateRowAvatar(this)">' + pOpts + '</select>' +
-        '</div>' +
-        '<select class="c-sel">' + cOpts + '</select>' +
-        '<select class="pts-sel">' +
-          '<option value="1">1 pt</option>' +
-          '<option value="3">3 pts</option>' +
-          '<option value="5">5 pts</option>' +
-          '<option value="10">10 pts</option>' +
-        '</select>' +
-        '<input type="number" class="tms-in" value="1" min="1" placeholder="×" inputmode="numeric">' +
-        '<div class="row-actions">' +
-          '<button class="small" style="background:#3742fa;color:#fff;" onclick="duplicateRow(\'' + id + '\')">📋</button>' +
-          '<button class="small danger" onclick="document.getElementById(\'' + id + '\').remove()">✕</button>' +
-        '</div>';
+      const cSelect = document.createElement('select');
+      cSelect.className = 'c-sel';
+      cachedCategories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        cSelect.appendChild(opt);
+      });
+      div.appendChild(cSelect);
 
-      document.getElementById('entryContainer').appendChild(div);
+      const ptsInput = document.createElement('input');
+      ptsInput.type = 'number';
+      ptsInput.min = 1;
+      ptsInput.value = '1';
+      ptsInput.className = 'pts-sel';
+      ptsInput.setAttribute('list', 'pointsSuggestion');
+      div.appendChild(ptsInput);
+      const timesInput = document.createElement('input');
+      timesInput.type = 'number';
+      timesInput.min = 1;
+      timesInput.value = '1';
+      timesInput.className = 'tms-in';
+      div.appendChild(timesInput);
 
-      if (preset) {
-        var r = document.getElementById(id);
-        r.querySelector('.p-sel').value   = preset.player;
-        r.querySelector('.c-sel').value   = preset.category;
-        r.querySelector('.pts-sel').value = preset.points;
-        r.querySelector('.tms-in').value  = preset.times;
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'row-actions';
+      const dupBtn = document.createElement('button');
+      dupBtn.textContent = '📋';
+      dupBtn.className = 'small';
+      dupBtn.addEventListener('click', () => duplicateRow(div.id));
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕';
+      delBtn.className = 'small danger';
+      delBtn.addEventListener('click', () => div.remove());
+      actionsDiv.appendChild(dupBtn);
+      actionsDiv.appendChild(delBtn);
+      div.appendChild(actionsDiv);
+
+      entryContainer.appendChild(div);
+      if(preset) {
+        pSelect.value = preset.player;
+        cSelect.value = preset.category;
+        ptsInput.value = preset.points;
+        timesInput.value = preset.times;
       }
-      var s = document.getElementById(id).querySelector('.p-sel');
-      if (s) updateRowAvatar(s);
+      updateRowAvatar(pSelect, avatar);
+    }
+
+    function updateRowAvatar(select, img) {
+      const selected = select.options[select.selectedIndex];
+      if(!selected) return;
+      const fb = `https://ui-avatars.com/api/?name=${encodeURIComponent(selected.value)}&background=2a313d&color=e0e6ed&bold=true`;
+      img.src = selected.getAttribute('data-img') || fb;
+      img.onerror = function() { this.onerror = null; this.src = fb; };
     }
 
     function duplicateRow(rowId) {
-      var r = document.getElementById(rowId);
+      const original = document.getElementById(rowId);
+      if(!original) return;
       addEntryRow({
-        player:   r.querySelector('.p-sel').value,
-        category: r.querySelector('.c-sel').value,
-        points:   r.querySelector('.pts-sel').value,
-        times:    r.querySelector('.tms-in').value
+        player: original.querySelector('.p-sel').value,
+        category: original.querySelector('.c-sel').value,
+        points: original.querySelector('.pts-sel').value,
+        times: original.querySelector('.tms-in').value
       });
     }
 
-    function submitBulkData() {
-      var rows    = document.querySelectorAll('.entry-row');
-      var entries = [];
-      rows.forEach(function(r) {
+    function submitBulk() {
+      const rows = document.querySelectorAll('.entry-row');
+      const entries = [];
+      rows.forEach(r => {
         entries.push({
-          player:   r.querySelector('.p-sel').value,
+          player: r.querySelector('.p-sel').value,
           category: r.querySelector('.c-sel').value,
-          points:   r.querySelector('.pts-sel').value,
-          times:    r.querySelector('.tms-in').value
+          points: r.querySelector('.pts-sel').value,
+          times: r.querySelector('.tms-in').value
         });
       });
-      if (!entries.length) return showToast('Ajoutez au moins une ligne.', 'error');
-
-      var btn  = document.getElementById('submitBtn');
-      var date = document.getElementById('globalDateInput').value;
-      btn.innerHTML = '⏳ Écriture...'; btn.disabled = true;
-
-      google.script.run.withSuccessHandler(function(res) {
-        btn.innerHTML = '✓ Inscrire le Lot'; btn.disabled = false;
-        if (res.success) {
+      if(entries.length === 0) { showToast('Ajoutez au moins une ligne', 'error'); return; }
+      const date = document.getElementById('globalDateInput').value;
+      const btn = submitLotBtn;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Écriture...';
+      callServer('apiAddBulkScores', [entries, date], (res) => {
+        btn.disabled = false;
+        btn.innerHTML = '✓ Inscrire le Lot';
+        if(res.success) {
           document.getElementById('globalDateInput').value = '';
-          document.getElementById('entryContainer').innerHTML = '';
-          addEntryRow(); fetchAnalytics();
+          entryContainer.innerHTML = '';
+          addEntryRow();
+          fetchAnalytics();
           showToast('Lot enregistré !', 'success');
-        } else { showToast(res.error, 'error'); }
-      }).apiAddBulkScores(entries, date);
+        } else showToast(res.error, 'error');
+      }, 'Erreur enregistrement');
     }
 
-    /* ── ANALYTICS ────────────────────────────────────────────────── */
+    // Analytics
     function fetchAnalytics() {
-      document.getElementById('aiOutput').style.display = 'none';
-      google.script.run.withSuccessHandler(function(res) {
-        if (res.success) renderDashboard(res.data);
+      const year = yearFilter.value;
+      const month = monthFilter.value;
+      const wrapper = document.getElementById('chartWrapper');
+      const skeleton = document.getElementById('skeletonChart');
+      const canvas = document.getElementById('mainChart');
+      skeleton.style.display = 'block';
+      canvas.style.display = 'none';
+      callServer('apiGetData', [year, month], (res) => {
+        skeleton.style.display = 'none';
+        canvas.style.display = 'block';
+        if(res.success) renderDashboard(res.data);
         else showToast(res.error, 'error');
-      }).apiGetData(
-        document.getElementById('yearFilter').value,
-        document.getElementById('monthFilter').value
-      );
+      }, 'Erreur chargement données');
     }
 
     function renderDashboard(data) {
-      document.getElementById('reportOutput').innerText = data.insights;
-      var players  = Object.keys(data.scores);
-      var colors   = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
-      var datasets = data.categories.map(function(cat, i) {
-        return {
-          label:           cat,
-          data:            players.map(function(p) { return data.scores[p][cat] || 0; }),
-          backgroundColor: colors[i % colors.length],
-          borderRadius:    4
-        };
+      // Rapport HTML structuré
+      const insights = data.insights;
+      const lines = insights.split('\n');
+      let html = '';
+      lines.forEach(line => {
+        if(line.startsWith('•')) {
+          html += `<div>🔹 ${line.substring(1)}</div>`;
+        } else if(line.includes('🏆')) {
+          html += `<div class="winner-gold">${line}</div>`;
+        } else if(line.includes('⚠️')) {
+          html += `<div style="color:orange;">${line}</div>`;
+        } else {
+          html += `<div>${line}</div>`;
+        }
       });
-      var ctx = document.getElementById('mainChart').getContext('2d');
-      if (currentChart) currentChart.destroy();
+      reportDiv.innerHTML = html;
+
+      const players = Object.keys(data.scores);
+      const categories = data.categories;
+      const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+      const chartType = chartTypeSelect.value;
+      const datasets = categories.map((cat, i) => ({
+        label: cat,
+        data: players.map(p => data.scores[p][cat] || 0),
+        backgroundColor: colors[i % colors.length],
+        borderRadius: 4,
+        stack: chartType === 'stacked' ? 'stack' : undefined
+      }));
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      if(currentChart) currentChart.destroy();
       currentChart = new Chart(ctx, {
         type: 'bar',
         data: { labels: players, datasets: datasets },
@@ -634,53 +704,228 @@
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { stacked: true, grid: { color: '#2a313d' }, ticks: { color: '#8892b0', maxRotation: 45 } },
-            y: { stacked: true, grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } }
+            x: { stacked: chartType === 'stacked', grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } },
+            y: { stacked: chartType === 'stacked', grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } }
           },
-          plugins: { legend: { labels: { color: '#e0e6ed', font: { size: 12 } } } }
+          plugins: { legend: { labels: { color: '#e0e6ed' } } }
         }
       });
     }
 
-    /* ── IA ───────────────────────────────────────────────────────── */
     function generateAiQuote() {
-      var btn = document.getElementById('aiBtn');
-      btn.disabled = true; btn.innerHTML = '⏳ Connexion...';
-      google.script.run.withSuccessHandler(function(res) {
-        btn.disabled = false; btn.innerHTML = '🤖 Citation IA';
-        if (res.success) {
-          var out = document.getElementById('aiOutput');
-          out.innerText = '« ' + res.quote + ' »';
-          out.style.display = 'block';
-        } else { showToast(res.error, 'error'); }
-      }).apiGenerateAiQuote(
-        document.getElementById('yearFilter').value,
-        document.getElementById('monthFilter').value
-      );
+      const btn = aiBtn;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Connexion...';
+      callServer('apiGenerateAiQuote', [yearFilter.value, monthFilter.value], (res) => {
+        btn.disabled = false;
+        btn.innerHTML = '🤖 Citation IA';
+        if(res.success) {
+          aiOutputDiv.innerHTML = `« ${res.quote} »${res.isAi ? '' : ' (mode hors ligne)'}`;
+          aiOutputDiv.style.display = 'block';
+        } else showToast(res.error, 'error');
+      }, 'Erreur IA');
     }
 
-    /* ── EXPORT HTML ──────────────────────────────────────────────── */
-    function exportHtmlReport() {
-      var y   = document.getElementById('yearFilter').value;
-      var m   = document.getElementById('monthFilter').value;
-      var btn = document.querySelector('[onclick="exportHtmlReport()"]');
-      if (btn) { btn.innerHTML = '⏳ Génération...'; btn.disabled = true; }
-
-      google.script.run.withSuccessHandler(function(res) {
-        if (btn) { btn.innerHTML = '⬇️ Exporter HTML'; btn.disabled = false; }
-        if (res.success) {
-          var blob = new Blob([res.html], { type: 'text/html;charset=utf-8' });
-          var url  = URL.createObjectURL(blob);
-          var a    = document.createElement('a');
-          a.href = url; a.download = 'rapport_casseroles_' + y + '_' + m + '.html';
-          document.body.appendChild(a); a.click();
-          document.body.removeChild(a); URL.revokeObjectURL(url);
-          showToast('Rapport exporté !', 'success');
-        } else { showToast(res.error, 'error'); }
-      }).apiDownloadHtmlReport(y, m);
+    function exportHtml() {
+      const btn = exportBtn;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Génération...';
+      callServer('apiDownloadHtmlReport', [yearFilter.value, monthFilter.value], (res) => {
+        btn.disabled = false;
+        btn.innerHTML = '⬇️ Exporter HTML';
+        if(res.success) {
+          const blob = new Blob([res.html], {type: 'text/html;charset=utf-8'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `rapport_${yearFilter.value}_${monthFilter.value}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Rapport exporté', 'success');
+        } else showToast(res.error, 'error');
+      }, 'Erreur export');
     }
 
-    window.onload = initApp;
-  </script>
+    // Historique
+    function loadHistoryPage(page) {
+      const player = historyPlayerFilter.value;
+      const category = historyCategoryFilter.value;
+      callServer('apiGetHistoryPage', [page, PAGE_SIZE, player || '', category || ''], (res) => {
+        if(!res.success) { showToast(res.error, 'error'); return; }
+        const logs = res.logs;
+        const total = res.total;
+        totalHistoryPages = Math.ceil(total / PAGE_SIZE);
+        historyTableBody.innerHTML = '';
+        logs.forEach(log => {
+          const row = historyTableBody.insertRow();
+          row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString();
+          row.insertCell(1).textContent = log.player;
+          row.insertCell(2).textContent = log.category;
+          row.insertCell(3).textContent = log.points;
+          const delCell = row.insertCell(4);
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Supprimer';
+          delBtn.className = 'small danger';
+          delBtn.addEventListener('click', () => {
+            openConfirmModal('Supprimer cette entrée ?', () => {
+              callServer('apiDeleteHistoryEntry', [log.rowIndex], (res2) => {
+                if(res2.success) { loadHistoryPage(currentPage); showToast('Supprimée', 'success'); }
+                else showToast(res2.error, 'error');
+              }, 'Erreur suppression');
+            });
+          });
+          delCell.appendChild(delBtn);
+        });
+        renderPagination();
+      }, 'Erreur chargement historique');
+    }
+
+    function renderPagination() {
+      historyPagination.innerHTML = '';
+      for(let i=1; i<=totalHistoryPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'small';
+        if(i === currentPage) btn.style.fontWeight = 'bold';
+        btn.addEventListener('click', () => { currentPage = i; loadHistoryPage(currentPage); });
+        historyPagination.appendChild(btn);
+      }
+    }
+
+    function updateHistoryFilters() {
+      historyPlayerFilter.innerHTML = '<option value="">Tous joueurs</option>';
+      cachedPlayers.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        historyPlayerFilter.appendChild(opt);
+      });
+      historyCategoryFilter.innerHTML = '<option value="">Toutes catégories</option>';
+      cachedCategories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        historyCategoryFilter.appendChild(opt);
+      });
+    }
+
+    // Années dynamiques
+    function loadYears() {
+      callServer('apiGetAvailableYears', [], (res) => {
+        if(res.success) {
+          const years = res.years;
+          yearFilter.innerHTML = '<option value="All">Toutes les années</option>';
+          years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearFilter.appendChild(opt);
+          });
+          yearFilter.value = new Date().getFullYear().toString();
+          fetchAnalytics();
+        } else { showToast(res.error, 'error'); }
+      }, 'Erreur chargement années');
+    }
+
+    // Tendance
+    function showTrend() {
+      callServer('apiGetTrendData', [yearFilter.value, monthFilter.value], (res) => {
+        if(!res.success) { showToast(res.error, 'error'); return; }
+        const trend = res.trend;
+        const wrapper = document.getElementById('chartWrapper');
+        const existingCanvas = document.getElementById('mainChart');
+        existingCanvas.style.display = 'none';
+        let trendCanvas = document.getElementById('trendCanvas');
+        if(!trendCanvas) {
+          trendCanvas = document.createElement('canvas');
+          trendCanvas.id = 'trendCanvas';
+          wrapper.appendChild(trendCanvas);
+        } else trendCanvas.style.display = 'block';
+        if(currentTrendChart) currentTrendChart.destroy();
+        currentTrendChart = new Chart(trendCanvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: trend.labels, datasets: trend.datasets },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+        trendBtn.textContent = '📊 Retour barres';
+        trendBtn.onclick = () => {
+          trendCanvas.style.display = 'none';
+          existingCanvas.style.display = 'block';
+          if(currentTrendChart) currentTrendChart.destroy();
+          trendBtn.textContent = '📈 Voir tendance';
+          trendBtn.onclick = showTrend;
+        };
+      }, 'Erreur chargement tendance');
+    }
+
+    // Thème
+    function initTheme() {
+      const saved = localStorage.getItem('theme');
+      if(saved === 'light') document.body.classList.add('light');
+      themeToggle.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+      themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light');
+        const isLight = document.body.classList.contains('light');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        themeToggle.textContent = isLight ? '☀️' : '🌙';
+      });
+    }
+
+    // Navigation par clavier + ARIA
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.setAttribute('aria-selected', 'false'));
+      document.getElementById(tabId).classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      if(tabId === 'tab-history') loadHistoryPage(1);
+    }
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
+      btn.addEventListener('click', (e) => {
+        switchTab(btn.getAttribute('data-tab'), btn);
+      });
+    });
+
+    // Événements
+    yearFilter.addEventListener('change', fetchAnalytics);
+    monthFilter.addEventListener('change', fetchAnalytics);
+    chartTypeSelect.addEventListener('change', fetchAnalytics);
+    aiBtn.addEventListener('click', generateAiQuote);
+    exportBtn.addEventListener('click', exportHtml);
+    printBtn.addEventListener('click', () => window.print());
+    addRowBtn.addEventListener('click', () => addEntryRow());
+    submitLotBtn.addEventListener('click', submitBulk);
+    addPlayerBtn.addEventListener('click', () => {
+      const name = newPlayerName.value.trim();
+      if(!name) return;
+      callServer('apiManageEntity', ['ADD', 'Players', name, newPlayerMeta.value.trim(), null], (res) => {
+        if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Joueur ajouté', 'success'); newPlayerName.value = ''; newPlayerMeta.value = ''; }
+        else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+    addCategoryBtn.addEventListener('click', () => {
+      const name = newCategoryName.value.trim();
+      if(!name) return;
+      callServer('apiManageEntity', ['ADD', 'Categories', name, newCategoryMeta.value.trim(), null], (res) => {
+        if(res.success) { fetchSettings(); fetchAnalytics(); showToast('Catégorie ajoutée', 'success'); newCategoryName.value = ''; newCategoryMeta.value = ''; }
+        else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+    refreshHistoryBtn.addEventListener('click', () => { currentPage=1; loadHistoryPage(1); });
+    trendBtn.addEventListener('click', showTrend);
+    // Datalist suggestions
+    const datalist = document.createElement('datalist');
+    datalist.id = 'pointsSuggestion';
+    [1,3,5,10].forEach(v => { const opt = document.createElement('option'); opt.value = v; datalist.appendChild(opt); });
+    document.body.appendChild(datalist);
+
+    initTheme();
+    loadYears();
+    fetchSettings();
+  })();
+</script>
 </body>
 </html>
