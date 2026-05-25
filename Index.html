@@ -5,13 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionnaire de Casseroles</title>
-  <!-- Librairies -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
-    /* ===== VARIABLES THEMES ===== */
     :root {
       --bg: #0b0c10;
       --card: #1f2833;
@@ -35,7 +33,6 @@
       --text-muted: #4a5568;
       --btn-alt: #e2e8f0;
     }
-    /* ===== RESET ===== */
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -45,7 +42,6 @@
       padding: 0;
       transition: background 0.2s, color 0.2s;
     }
-    /* ===== NAVBAR ===== */
     .navbar {
       background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -90,7 +86,6 @@
       cursor: pointer;
       color: var(--text);
     }
-    /* ===== LAYOUT ===== */
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: block; }
@@ -105,7 +100,6 @@
     }
     h2 { margin: 0 0 18px 0; font-size: 1.3rem; }
     h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; margin-bottom: 12px; }
-    /* ===== FILTRES ===== */
     .filter-panel {
       display: flex;
       flex-wrap: wrap;
@@ -116,16 +110,8 @@
       border-radius: 12px;
       margin-bottom: 10px;
     }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 150px;
-    }
-    .filter-group label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
+    .filter-group label { font-size: 0.8rem; color: var(--text-muted); }
     .multi-select {
       min-width: 180px;
       height: auto;
@@ -143,33 +129,13 @@
       color: var(--text);
       font-size: 14px;
     }
-    button {
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    button.primary {
-      background: var(--accent);
-      color: white;
-      border: none;
-    }
+    button { cursor: pointer; transition: 0.2s; }
+    button.primary { background: var(--accent); color: white; border: none; }
     button.primary:hover { background: var(--accent-hover); }
-    button.secondary {
-      background: var(--btn-alt);
-      border: 1px solid var(--border);
-    }
-    button.small {
-      padding: 6px 12px;
-      font-size: 0.8rem;
-    }
-    button.danger {
-      background: rgba(255,71,87,0.2);
-      color: var(--error);
-      border-color: var(--error);
-    }
-    /* ===== GRAPHIQUE ===== */
-    .chart-container {
-      margin-top: 10px;
-    }
+    button.secondary { background: var(--btn-alt); border: 1px solid var(--border); }
+    button.small { padding: 6px 12px; font-size: 0.8rem; }
+    button.danger { background: rgba(255,71,87,0.2); color: var(--error); border-color: var(--error); }
+    .chart-container { margin-top: 10px; }
     .chart-header {
       display: flex;
       justify-content: space-between;
@@ -178,11 +144,7 @@
       flex-wrap: wrap;
       gap: 10px;
     }
-    .export-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
     .export-btn {
       background: var(--btn-alt);
       border: none;
@@ -192,12 +154,8 @@
       cursor: pointer;
       color: var(--text);
     }
-    .export-btn:hover {
-      background: var(--accent);
-      color: white;
-    }
+    .export-btn:hover { background: var(--accent); color: white; }
     canvas { max-width: 100%; height: auto; }
-    /* ===== SAISIE LOT ===== */
     .entry-row {
       display: grid;
       grid-template-columns: 2fr 2fr 1fr 1fr auto;
@@ -218,20 +176,8 @@
       color: var(--text-muted);
       font-size: 0.8rem;
     }
-    /* ===== PARAMETRES ===== */
-    .settings-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    .entity-list {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 12px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
     .entity-item {
       background: rgba(0,0,0,0.2);
       padding: 10px;
@@ -242,32 +188,11 @@
       flex-wrap: wrap;
       gap: 8px;
     }
-    .avatar-img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    /* ===== HISTORIQUE ===== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 8px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-    /* ===== TOASTS ===== */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 2000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .player-avatar-small { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 6px; object-fit: cover; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
     .toast {
       padding: 12px 20px;
       border-radius: 8px;
@@ -278,31 +203,10 @@
     }
     .toast.success { border-left-color: var(--success); color: var(--success); }
     .toast.error { border-left-color: var(--error); color: var(--error); }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    /* ===== MODAL ===== */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;
-    }
-    .modal-content {
-      background: var(--card);
-      padding: 24px;
-      border-radius: 16px;
-      min-width: 280px;
-      max-width: 90%;
-    }
-    /* ===== RESPONSIVE ===== */
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+    .modal-content { background: var(--card); padding: 24px; border-radius: 16px; min-width: 280px; max-width: 90%; }
+    .empty-chart-msg { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 1rem; }
     @media (max-width: 700px) {
       .filter-panel { flex-direction: column; align-items: stretch; }
       .multi-select { min-width: auto; }
@@ -329,7 +233,7 @@
 <div class="container">
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- ==================== DASHBOARD ==================== -->
+  <!-- DASHBOARD -->
   <div id="tab-dashboard" class="tab-content active">
     <div class="card">
       <h2>📊 Filtres croisés dynamiques</h2>
@@ -367,13 +271,16 @@
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
       </div>
-      <div style="height: 450px; position: relative;">
+      <div id="chartWrapper" style="height: 450px; position: relative;">
         <canvas id="mainChart"></canvas>
+        <div id="emptyChartMsg" class="empty-chart-msg" style="display:none;">
+          Aucune donnée à afficher pour les filtres sélectionnés.
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ==================== SAISIE LOT ==================== -->
+  <!-- SAISIE LOT -->
   <div id="tab-inject" class="tab-content">
     <div class="card">
       <h2>✍️ Constructeur de Lot</h2>
@@ -392,7 +299,7 @@
     </div>
   </div>
 
-  <!-- ==================== PARAMÈTRES ==================== -->
+  <!-- PARAMÈTRES -->
   <div id="tab-settings" class="tab-content">
     <div class="card">
       <h2>⚙️ Base & Paramètres</h2>
@@ -419,7 +326,7 @@
     </div>
   </div>
 
-  <!-- ==================== HISTORIQUE ==================== -->
+  <!-- HISTORIQUE -->
   <div id="tab-history" class="tab-content">
     <div class="card">
       <h2>📜 Historique des entrées</h2>
@@ -434,24 +341,29 @@
           <tbody id="historyTableBody"></tbody>
         </table>
       </div>
-      <div id="historyPagination" style="display:flex; gap:8px; margin-top:16px; justify-content:center;"></div>
+      <div id="historyPagination" style="display:flex; gap:8px; margin-top:16px; justify-content:center; flex-wrap:wrap;"></div>
     </div>
   </div>
 </div>
 
 <script>
-  // ==================== ÉTAT GLOBAL ====================
+  // ÉTAT GLOBAL
   let currentChart = null;
-  let currentChartData = null;     // données du graphique (labels + datasets)
-  let currentFilters = { players: [], categories: [], startDate: '', endDate: '' };
-  let cachedPlayers = [];
-  let cachedCategories = [];
+  let currentChartData = null;
+  let cachedPlayers = [];       // [{ name, meta }]
+  let cachedCategories = [];    // [{ name, meta }]
   let rowCounter = 0;
   let currentHistoryPage = 1;
   let totalHistoryPages = 1;
   const PAGE_SIZE = 20;
 
-  // DOM elements
+  // ✅ Map nom → URL avatar pour accès rapide dans l'historique
+  function getAvatarMapFromCache() {
+    const map = {};
+    cachedPlayers.forEach(p => { map[p.name] = getAvatarUrl(p.name, p.meta); });
+    return map;
+  }
+
   const playerSelect = document.getElementById('playerSelect');
   const categorySelect = document.getElementById('categorySelect');
   const startDateInput = document.getElementById('startDate');
@@ -464,7 +376,6 @@
   const categoriesList = document.getElementById('categoriesList');
   const themeToggle = document.getElementById('themeToggle');
 
-  // ==================== UTILITAIRES ====================
   function showToast(msg, type) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -474,15 +385,16 @@
   }
 
   function escapeHtml(str) {
-    return String(str).replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
+    return String(str).replace(/[&<>"']/g, function(m) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
     });
   }
 
-  // Appel serveur avec gestion d'erreur
+  function getAvatarUrl(name, meta) {
+    if (meta && meta.trim() !== '') return meta;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2a313d&color=e0e6ed&bold=true`;
+  }
+
   function callServer(fn, params, onSuccess, errorMsg) {
     google.script.run
       .withSuccessHandler(onSuccess)
@@ -490,104 +402,106 @@
       [fn](...params);
   }
 
-  // ==================== GESTION DES MODALES ====================
+  // MODALES
   let activeModal = null;
   function closeModal() { if (activeModal) activeModal.remove(); activeModal = null; }
+
   function openConfirmModal(msg, onConfirm) {
     closeModal();
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.innerHTML = `<div class="modal-content"><p>${msg}</p><div style="display:flex; gap:12px; margin-top:20px;"><button id="confirmYes">Oui</button><button id="confirmNo">Annuler</button></div></div>`;
+    modal.innerHTML = `<div class="modal-content"><p>${msg}</p><div style="display:flex;gap:12px;margin-top:20px;"><button id="confirmYes" class="primary">Oui</button><button id="confirmNo" class="secondary">Annuler</button></div></div>`;
     document.body.appendChild(modal);
     activeModal = modal;
     modal.querySelector('#confirmYes').onclick = () => { onConfirm(); closeModal(); };
     modal.querySelector('#confirmNo').onclick = closeModal;
   }
+
   function openEditModal(type, oldName, oldMeta) {
     closeModal();
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.innerHTML = `<div class="modal-content"><h3>Éditer ${escapeHtml(oldName)}</h3><input type="text" id="newName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom"><input type="text" id="newMeta" value="${escapeHtml(oldMeta)}" placeholder="${type === 'player' ? 'URL avatar' : 'Description'}"><div style="display:flex; gap:12px; margin-top:20px;"><button id="saveEdit">Enregistrer</button><button id="cancelEdit">Annuler</button></div></div>`;
+    modal.innerHTML = `<div class="modal-content"><h3>Éditer ${escapeHtml(oldName)}</h3>
+      <input type="text" id="editNewName" value="${escapeHtml(oldName)}" placeholder="Nouveau nom" style="width:100%;margin-bottom:8px;">
+      <input type="text" id="editNewMeta" value="${escapeHtml(oldMeta || '')}" placeholder="${type === 'player' ? 'URL avatar' : 'Description'}" style="width:100%;">
+      <div style="display:flex;gap:12px;margin-top:20px;">
+        <button id="saveEdit" class="primary">Enregistrer</button>
+        <button id="cancelEdit" class="secondary">Annuler</button>
+      </div></div>`;
     document.body.appendChild(modal);
     activeModal = modal;
     modal.querySelector('#saveEdit').onclick = () => {
-      const newName = modal.querySelector('#newName').value.trim();
-      const newMeta = modal.querySelector('#newMeta').value.trim();
+      const newName = modal.querySelector('#editNewName').value.trim();
+      const newMeta = modal.querySelector('#editNewMeta').value.trim();
       if (!newName) return;
       const entityType = (type === 'player') ? 'Players' : 'Categories';
       callServer('apiManageEntity', ['RENAME', entityType, newName, newMeta, oldName], (res) => {
-        if (res.success) { loadEntities(); applyFilters(); showToast('Renommé', 'success'); closeModal(); }
+        if (res.success) { loadEntities(); showToast('Renommé', 'success'); closeModal(); }
         else showToast(res.error, 'error');
       }, 'Erreur renommage');
     };
     modal.querySelector('#cancelEdit').onclick = closeModal;
   }
 
-  // ==================== CHARGEMENT DES ENTITÉS ====================
+  // ✅ CHARGEMENT DES ENTITÉS — charge puis déclenche le graphique par défaut
   function loadEntities() {
     callServer('apiGetSettings', [], (res) => {
       if (!res.success) { showToast(res.error, 'error'); return; }
-      cachedPlayers = res.players;
-      cachedCategories = res.categories;
-      // Remplir les selects multiples
+      cachedPlayers = res.players;       // [{ name, meta }]
+      cachedCategories = res.categories; // [{ name, meta }]
+
+      // Remplir selects multiples dashboard
       playerSelect.innerHTML = '';
       cachedPlayers.forEach(p => {
-        let opt = document.createElement('option');
+        const opt = document.createElement('option');
         opt.value = p.name;
         opt.textContent = p.name;
         playerSelect.appendChild(opt);
       });
       categorySelect.innerHTML = '';
       cachedCategories.forEach(c => {
-        let opt = document.createElement('option');
+        const opt = document.createElement('option');
         opt.value = c.name;
         opt.textContent = c.name;
         categorySelect.appendChild(opt);
       });
-      // Remplir les listes des paramètres
-      renderEntityList(playersList, cachedPlayers, 'player');
-      renderEntityList(categoriesList, cachedCategories, 'category');
-      // Mettre à jour les filtres de l'historique
+
+      renderSettingsList(playersList, cachedPlayers, 'player');
+      renderSettingsList(categoriesList, cachedCategories, 'category');
       updateHistoryFilters();
-      // Appliquer les filtres par défaut
+
+      // ✅ Charger le graphique par défaut (tous les joueurs, toutes catégories, période du mois)
       applyFilters();
     }, 'Erreur chargement settings');
   }
 
-  function renderEntityList(container, items, type) {
+  function renderSettingsList(container, items, type) {
     container.innerHTML = '';
     items.forEach(item => {
       const li = document.createElement('li');
       li.className = 'entity-item';
+      const avatarUrl = getAvatarUrl(item.name, item.meta);
       li.innerHTML = `
-        <div style="display:flex; align-items:center; gap:10px;">
-          ${type === 'player' ? `<img class="avatar-img" src="${escapeHtml(item.meta) || 'https://ui-avatars.com/api/?name='+encodeURIComponent(item.name)+'&background=2a313d&color=e0e6ed'}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed'">` : ''}
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${type === 'player' ? `<img class="avatar-img" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(item.name)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=2a313d&color=e0e6ed'">` : '🍳'}
           <strong>${escapeHtml(item.name)}</strong>
         </div>
-        <div>
+        <div style="display:flex;gap:6px;">
           <button class="small edit-entity" data-type="${type}" data-name="${escapeHtml(item.name)}" data-meta="${escapeHtml(item.meta || '')}">✏️</button>
           <button class="small danger delete-entity" data-type="${type}" data-name="${escapeHtml(item.name)}">🗑️</button>
-        </div>
-      `;
+        </div>`;
       container.appendChild(li);
     });
-    // Événements pour édition/suppression
-    document.querySelectorAll('.edit-entity').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const type = btn.dataset.type;
-        const name = btn.dataset.name;
-        const meta = btn.dataset.meta;
-        openEditModal(type, name, meta);
-      });
+
+    container.querySelectorAll('.edit-entity').forEach(btn => {
+      btn.addEventListener('click', () => openEditModal(btn.dataset.type, btn.dataset.name, btn.dataset.meta));
     });
-    document.querySelectorAll('.delete-entity').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const type = btn.dataset.type;
-        const name = btn.dataset.name;
-        const entityType = (type === 'player') ? 'Players' : 'Categories';
-        openConfirmModal(`Supprimer "${name}" ?`, () => {
-          callServer('apiManageEntity', ['DELETE', entityType, null, null, name], (res) => {
-            if (res.success) { loadEntities(); applyFilters(); showToast('Supprimé', 'success'); }
+    container.querySelectorAll('.delete-entity').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const entityType = (btn.dataset.type === 'player') ? 'Players' : 'Categories';
+        openConfirmModal(`Supprimer "${escapeHtml(btn.dataset.name)}" ?`, () => {
+          callServer('apiManageEntity', ['DELETE', entityType, null, null, btn.dataset.name], (res) => {
+            if (res.success) { loadEntities(); showToast('Supprimé', 'success'); }
             else showToast(res.error, 'error');
           }, 'Erreur suppression');
         });
@@ -595,14 +509,13 @@
     });
   }
 
-  // ==================== FILTRES ET GRAPHIQUE ====================
+  // ✅ GRAPHIQUE & FILTRES — aucune sélection = tous les éléments
   function applyFilters() {
     const selectedPlayers = Array.from(playerSelect.selectedOptions).map(opt => opt.value);
     const selectedCategories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
     const startDate = startDateInput.value;
     const endDate = endDateInput.value;
-    currentFilters = { players: selectedPlayers, categories: selectedCategories, startDate, endDate };
-    showToast('Chargement des données...', 'success');
+
     callServer('apiGetFilteredData', [selectedPlayers, selectedCategories, startDate, endDate], (res) => {
       if (!res.success) { showToast(res.error, 'error'); return; }
       currentChartData = res.chartData;
@@ -611,29 +524,50 @@
   }
 
   function renderChart(data) {
-    if (currentChart) currentChart.destroy();
+    const emptyMsg = document.getElementById('emptyChartMsg');
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+    // Vérifier s'il y a des données non nulles
+    const hasData = data && data.labels && data.labels.length > 0 &&
+      data.datasets && data.datasets.some(ds => ds.data.some(v => v > 0));
+
+    if (!hasData) {
+      chartCanvas.style.display = 'none';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+
+    chartCanvas.style.display = 'block';
+    emptyMsg.style.display = 'none';
+
     const ctx = chartCanvas.getContext('2d');
     currentChart = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: data.labels,
-        datasets: data.datasets
-      },
+      data: { labels: data.labels, datasets: data.datasets },
       options: {
         responsive: true,
         maintainAspectRatio: true,
         scales: {
-          x: { stacked: true, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } },
-          y: { stacked: true, beginAtZero: true, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } }
+          x: {
+            stacked: true,
+            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted').trim() },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted').trim() },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          }
         },
         plugins: {
-          legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text') } }
+          legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text').trim() } }
         }
       }
     });
   }
 
-  // ==================== EXPORTS CIBLÉS (GRAPHIQUE UNIQUEMENT) ====================
+  // EXPORTS
   async function exportAsImage(format) {
     try {
       const dataUrl = chartCanvas.toDataURL(`image/${format}`);
@@ -659,7 +593,7 @@
   }
   function exportAsHTML() {
     const imgData = chartCanvas.toDataURL('image/png');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Graphique exporté</title></head><body style="background:white; display:flex; justify-content:center; align-items:center;"><img src="${imgData}" style="max-width:100%; height:auto;"></body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Graphique exporté</title></head><body style="background:white;display:flex;justify-content:center;align-items:center;"><img src="${imgData}" style="max-width:100%;height:auto;"></body></html>`;
     const blob = new Blob([html], {type: 'text/html'});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -670,8 +604,7 @@
   }
   function exportAsCSV() {
     if (!currentChartData) { showToast('Aucune donnée à exporter', 'error'); return; }
-    const labels = currentChartData.labels;
-    const datasets = currentChartData.datasets;
+    const { labels, datasets } = currentChartData;
     let rows = [['Joueur', ...datasets.map(d => d.label)]];
     for (let i = 0; i < labels.length; i++) {
       rows.push([labels[i], ...datasets.map(d => d.data[i])]);
@@ -687,8 +620,7 @@
   }
   function exportAsExcel() {
     if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
-    const labels = currentChartData.labels;
-    const datasets = currentChartData.datasets;
+    const { labels, datasets } = currentChartData;
     const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
     for (let i = 0; i < labels.length; i++) {
       sheetData.push([labels[i], ...datasets.map(d => d.data[i])]);
@@ -700,61 +632,90 @@
     showToast('Export Excel réussi', 'success');
   }
 
-  // ==================== SAISIE LOT ====================
+  // SAISIE LOT
   function addEntryRow(preset) {
     if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-      if (!entryContainer.querySelector('.empty-state')) {
-        let p = document.createElement('p');
+      const existing = entryContainer.querySelector('.empty-state');
+      if (!existing) {
+        const p = document.createElement('p');
         p.className = 'empty-state';
-        p.textContent = "Ajoutez d'abord des joueurs et catégories.";
+        p.textContent = "Ajoutez d'abord des joueurs et catégories dans les paramètres.";
+        p.style.color = 'var(--text-muted)';
         entryContainer.appendChild(p);
       }
       return;
     }
+    // Supprimer le message vide si présent
+    const emptyState = entryContainer.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+
     rowCounter++;
     const id = `row_${rowCounter}`;
     const div = document.createElement('div');
     div.className = 'entry-row';
     div.id = id;
+
+    let playerOptions = cachedPlayers.map(p => {
+      const avatarUrl = getAvatarUrl(p.name, p.meta);
+      return `<option value="${escapeHtml(p.name)}" data-img="${escapeHtml(avatarUrl)}">${escapeHtml(p.name)}</option>`;
+    }).join('');
+
+    let categoryOptions = cachedCategories.map(c =>
+      `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`
+    ).join('');
+
     div.innerHTML = `
-      <select class="p-sel">${cachedPlayers.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('')}</select>
-      <select class="c-sel">${cachedCategories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}</select>
+      <div class="player-select-wrapper" style="display:flex;align-items:center;gap:6px;">
+        <img class="row-avatar" src="" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+        <select class="p-sel" style="flex:1;">${playerOptions}</select>
+      </div>
+      <select class="c-sel">${categoryOptions}</select>
       <input type="number" class="pts-sel" value="1" min="1" list="pointsSuggestion">
       <input type="number" class="tms-in" value="1" min="1">
-      <div class="row-actions"><button class="small duplicate-row">📋</button><button class="small danger remove-row">✕</button></div>
-    `;
+      <div class="row-actions" style="display:flex;gap:6px;">
+        <button class="small duplicate-row" title="Dupliquer">📋</button>
+        <button class="small danger remove-row" title="Supprimer">✕</button>
+      </div>`;
     entryContainer.appendChild(div);
+
+    const pSel = div.querySelector('.p-sel');
+    const avatar = div.querySelector('.row-avatar');
+    const updateAvatar = () => {
+      const opt = pSel.options[pSel.selectedIndex];
+      const imgUrl = opt ? (opt.getAttribute('data-img') || getAvatarUrl(pSel.value, '')) : getAvatarUrl(pSel.value, '');
+      avatar.src = imgUrl;
+      avatar.onerror = () => { avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(pSel.value)}&background=2a313d&color=e0e6ed`; };
+    };
+    pSel.addEventListener('change', updateAvatar);
+    updateAvatar();
+
     if (preset) {
-      div.querySelector('.p-sel').value = preset.player;
+      pSel.value = preset.player;
       div.querySelector('.c-sel').value = preset.category;
       div.querySelector('.pts-sel').value = preset.points;
       div.querySelector('.tms-in').value = preset.times;
+      updateAvatar();
     }
-    div.querySelector('.duplicate-row').onclick = () => duplicateRow(id);
+    div.querySelector('.duplicate-row').onclick = () => {
+      addEntryRow({
+        player: pSel.value,
+        category: div.querySelector('.c-sel').value,
+        points: div.querySelector('.pts-sel').value,
+        times: div.querySelector('.tms-in').value
+      });
+    };
     div.querySelector('.remove-row').onclick = () => div.remove();
   }
-  function duplicateRow(rowId) {
-    const orig = document.getElementById(rowId);
-    if (!orig) return;
-    addEntryRow({
-      player: orig.querySelector('.p-sel').value,
-      category: orig.querySelector('.c-sel').value,
-      points: orig.querySelector('.pts-sel').value,
-      times: orig.querySelector('.tms-in').value
-    });
-  }
+
   function submitBulk() {
     const rows = document.querySelectorAll('.entry-row');
-    const entries = [];
-    rows.forEach(r => {
-      entries.push({
-        player: r.querySelector('.p-sel').value,
-        category: r.querySelector('.c-sel').value,
-        points: r.querySelector('.pts-sel').value,
-        times: r.querySelector('.tms-in').value
-      });
-    });
-    if (!entries.length) { showToast('Ajoutez au moins une ligne', 'error'); return; }
+    if (!rows.length) { showToast('Ajoutez au moins une ligne', 'error'); return; }
+    const entries = Array.from(rows).map(r => ({
+      player: r.querySelector('.p-sel').value,
+      category: r.querySelector('.c-sel').value,
+      points: r.querySelector('.pts-sel').value,
+      times: r.querySelector('.tms-in').value
+    }));
     const date = document.getElementById('globalDateInput').value;
     const btn = document.getElementById('submitLotBtn');
     btn.disabled = true;
@@ -766,13 +727,13 @@
         document.getElementById('globalDateInput').value = '';
         entryContainer.innerHTML = '';
         addEntryRow();
-        applyFilters(); // met à jour le graphique
+        applyFilters();
         showToast('Lot enregistré !', 'success');
       } else showToast(res.error, 'error');
     }, 'Erreur envoi');
   }
 
-  // ==================== HISTORIQUE ====================
+  // ✅ HISTORIQUE — avatars récupérés depuis cachedPlayers
   function loadHistoryPage(page) {
     const player = document.getElementById('historyPlayerFilter').value;
     const category = document.getElementById('historyCategoryFilter').value;
@@ -780,15 +741,43 @@
       if (!res.success) { showToast(res.error, 'error'); return; }
       const logs = res.logs;
       const total = res.total;
-      totalHistoryPages = Math.ceil(total / PAGE_SIZE);
+      totalHistoryPages = Math.ceil(total / PAGE_SIZE) || 1;
       const tbody = document.getElementById('historyTableBody');
       tbody.innerHTML = '';
+
+      if (logs.length === 0) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell(0);
+        td.colSpan = 5;
+        td.textContent = 'Aucune entrée trouvée.';
+        td.style.textAlign = 'center';
+        td.style.color = 'var(--text-muted)';
+        td.style.padding = '20px';
+        renderPagination();
+        return;
+      }
+
+      // ✅ Construire la map avatar depuis le cache
+      const avatarMap = getAvatarMapFromCache();
+
       logs.forEach(log => {
         const row = tbody.insertRow();
-        row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString();
-        row.insertCell(1).textContent = log.player;
+        row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString('fr-FR');
+
+        // ✅ Cellule joueur avec avatar depuis avatarMap
+        const playerCell = row.insertCell(1);
+        const avatarUrl = avatarMap[log.player] || getAvatarUrl(log.player, '');
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.className = 'player-avatar-small';
+        img.alt = log.player;
+        img.onerror = () => { img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(log.player)}&background=2a313d&color=e0e6ed`; };
+        playerCell.appendChild(img);
+        playerCell.appendChild(document.createTextNode(log.player));
+
         row.insertCell(2).textContent = log.category;
         row.insertCell(3).textContent = log.points;
+
         const delCell = row.insertCell(4);
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Supprimer';
@@ -806,51 +795,51 @@
       renderPagination();
     }, 'Erreur historique');
   }
+
   function renderPagination() {
     const pagination = document.getElementById('historyPagination');
     pagination.innerHTML = '';
+    if (totalHistoryPages <= 1) return;
     for (let i = 1; i <= totalHistoryPages; i++) {
       const btn = document.createElement('button');
       btn.textContent = i;
-      btn.className = 'small';
-      if (i === currentHistoryPage) btn.style.fontWeight = 'bold';
-      btn.onclick = () => { currentHistoryPage = i; loadHistoryPage(currentHistoryPage); };
+      btn.className = 'small' + (i === currentHistoryPage ? ' primary' : ' secondary');
+      btn.onclick = () => { currentHistoryPage = i; loadHistoryPage(i); };
       pagination.appendChild(btn);
     }
   }
+
   function updateHistoryFilters() {
     const playerFilter = document.getElementById('historyPlayerFilter');
     const catFilter = document.getElementById('historyCategoryFilter');
     playerFilter.innerHTML = '<option value="">Tous joueurs</option>';
     cachedPlayers.forEach(p => {
-      let opt = document.createElement('option');
+      const opt = document.createElement('option');
       opt.value = p.name;
       opt.textContent = p.name;
       playerFilter.appendChild(opt);
     });
     catFilter.innerHTML = '<option value="">Toutes catégories</option>';
     cachedCategories.forEach(c => {
-      let opt = document.createElement('option');
+      const opt = document.createElement('option');
       opt.value = c.name;
       opt.textContent = c.name;
       catFilter.appendChild(opt);
     });
   }
 
-  // ==================== NAVIGATION ET THÈME ====================
-  function switchTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    btn.classList.add('active');
-    if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
-  }
+  // NAVIGATION & THÈME
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-tab');
-      switchTab(tabId, btn);
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+      if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
     });
   });
+
   function initTheme() {
     const saved = localStorage.getItem('theme');
     if (saved === 'light') document.body.classList.add('light');
@@ -864,45 +853,65 @@
     });
   }
 
-  // ==================== INITIALISATION ====================
+  // INITIALISATION
   window.onload = () => {
     initTheme();
-    // Éléments supplémentaires
+
+    // Datalist suggestions de points
     const datalist = document.createElement('datalist');
     datalist.id = 'pointsSuggestion';
-    [1,3,5,10].forEach(v => { let opt = document.createElement('option'); opt.value = v; datalist.appendChild(opt); });
+    [1,3,5,10].forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      datalist.appendChild(opt);
+    });
     document.body.appendChild(datalist);
-    // Événements UI
-    applyBtn.addEventListener('click', applyFilters);
-    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
-    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
-    document.getElementById('addPlayerBtn').addEventListener('click', () => {
-      let name = document.getElementById('newPlayerName').value.trim();
-      if (!name) return;
-      let meta = document.getElementById('newPlayerMeta').value.trim();
-      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], (res) => {
-        if (res.success) { loadEntities(); applyFilters(); showToast('Joueur ajouté', 'success'); document.getElementById('newPlayerName').value = ''; document.getElementById('newPlayerMeta').value = ''; }
-        else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-    document.getElementById('addCategoryBtn').addEventListener('click', () => {
-      let name = document.getElementById('newCategoryName').value.trim();
-      if (!name) return;
-      let meta = document.getElementById('newCategoryMeta').value.trim();
-      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], (res) => {
-        if (res.success) { loadEntities(); applyFilters(); showToast('Catégorie ajoutée', 'success'); document.getElementById('newCategoryName').value = ''; document.getElementById('newCategoryMeta').value = ''; }
-        else showToast(res.error, 'error');
-      }, 'Erreur ajout');
-    });
-    document.getElementById('refreshHistoryBtn').addEventListener('click', () => { currentHistoryPage = 1; loadHistoryPage(1); });
+
     // Dates par défaut : mois en cours
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     startDateInput.value = firstDay.toISOString().slice(0,10);
     endDateInput.value = today.toISOString().slice(0,10);
-    // Boutons d'export
+
+    applyBtn.addEventListener('click', applyFilters);
+    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
+    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
+
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      const name = document.getElementById('newPlayerName').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+      const meta = document.getElementById('newPlayerMeta').value.trim();
+      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], (res) => {
+        if (res.success) {
+          loadEntities();
+          showToast('Joueur ajouté', 'success');
+          document.getElementById('newPlayerName').value = '';
+          document.getElementById('newPlayerMeta').value = '';
+        } else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      const name = document.getElementById('newCategoryName').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+      const meta = document.getElementById('newCategoryMeta').value.trim();
+      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], (res) => {
+        if (res.success) {
+          loadEntities();
+          showToast('Catégorie ajoutée', 'success');
+          document.getElementById('newCategoryName').value = '';
+          document.getElementById('newCategoryMeta').value = '';
+        } else showToast(res.error, 'error');
+      }, 'Erreur ajout');
+    });
+
+    document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
+      currentHistoryPage = 1;
+      loadHistoryPage(1);
+    });
+
     document.querySelectorAll('.export-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const type = btn.getAttribute('data-export');
         if (type === 'png') exportAsImage('png');
         else if (type === 'jpeg') exportAsImage('jpeg');
@@ -912,9 +921,10 @@
         else if (type === 'xlsx') exportAsExcel();
       });
     });
-    // Chargement initial
+
+    // ✅ Chargement initial : déclenche tout (entités + graphique par défaut)
     loadEntities();
-    addEntryRow(); // ligne vide par défaut
+    addEntryRow();
   };
 </script>
 </body>

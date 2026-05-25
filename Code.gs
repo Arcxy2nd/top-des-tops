@@ -88,17 +88,12 @@ const SettingsService = {
     const data = sheet.getDataRange().getValues();
     let rowIndex = -1;
     for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === oldName) {
-        rowIndex = i;
-        break;
-      }
+      if (data[i][0] === oldName) { rowIndex = i; break; }
     }
     if (rowIndex === -1) throw new Error(`Erreur d'intégrité : ${oldName} introuvable.`);
 
-    // Mise à jour en batch
     sheet.getRange(rowIndex + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]);
 
-    // Cascade rename dans l'historique (batch par plages contiguës)
     const historySheet = ConfigService.getSheets().history;
     const colIndex = type === 'Players' ? 1 : 2;
     const lastRow = historySheet.getLastRow();
@@ -107,10 +102,7 @@ const SettingsService = {
       const values = range.getValues();
       let modified = false;
       for (let i = 0; i < values.length; i++) {
-        if (values[i][0] === oldName) {
-          values[i][0] = newName;
-          modified = true;
-        }
+        if (values[i][0] === oldName) { values[i][0] = newName; modified = true; }
       }
       if (modified) range.setValues(values);
     }
@@ -118,7 +110,7 @@ const SettingsService = {
 };
 
 /**
- * STORAGE SERVICE avec filtrage à la lecture
+ * STORAGE SERVICE
  */
 const StorageService = {
   appendBulkLogs: function(entries, customTimestamp) {
@@ -138,35 +130,41 @@ const StorageService = {
     history.getRange(history.getLastRow() + 1, 1, rowsToAppend.length, 4).setValues(rowsToAppend);
   },
 
-  // Nouveau : logs filtrés par année/mois, sans tout charger en mémoire
-  getFilteredLogs: function(filterYear, filterMonth) {
+  // ✅ getAllLogs : lecture complète sans filtre (utilisée par apiGetFilteredData)
+  getAllLogs: function() {
     const sheet = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return [];
-
-    // Lecture de toutes les données (nécessaire pour le filtre) mais au moins on peut optimiser si on ajoutait une colonne indexée
-    // Pour l'instant, on garde la lecture complète, mais on ajoute une optimisation future possible.
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
     const logs = [];
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       const d = new Date(row[0]);
       if (isNaN(d.getTime())) continue;
-      const year = d.getFullYear();
-      const month = d.getMonth();
-      if (filterYear !== "All" && year !== parseInt(filterYear, 10)) continue;
-      if (filterMonth !== "All" && month !== parseInt(filterMonth, 10)) continue;
       logs.push({
         timestamp: d,
         player: row[1],
         category: row[2],
-        points: parseInt(row[3], 10) || 1
+        points: parseInt(row[3], 10) || 0
       });
     }
     return logs;
   },
 
-  // Pour l'onglet Historique : logs paginés
+  getFilteredLogs: function(filterYear, filterMonth) {
+    const allLogs = this.getAllLogs();
+    const logs = [];
+    for (let i = 0; i < allLogs.length; i++) {
+      const log = allLogs[i];
+      const year = log.timestamp.getFullYear();
+      const month = log.timestamp.getMonth();
+      if (filterYear !== "All" && year !== parseInt(filterYear, 10)) continue;
+      if (filterMonth !== "All" && month !== parseInt(filterMonth, 10)) continue;
+      logs.push(log);
+    }
+    return logs;
+  },
+
   getHistoryPage: function(page, pageSize, filterPlayer, filterCategory) {
     const sheet = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
@@ -260,23 +258,17 @@ const AnalyticsService = {
     let ultimateWinners = [];
     let maxTop = 0;
     Object.keys(topOfTops).forEach(p => {
-      if (topOfTops[p] > maxTop) {
-        maxTop = topOfTops[p];
-        ultimateWinners = [p];
-      } else if (topOfTops[p] === maxTop && maxTop > 0) {
-        ultimateWinners.push(p);
-      }
+      if (topOfTops[p] > maxTop) { maxTop = topOfTops[p]; ultimateWinners = [p]; }
+      else if (topOfTops[p] === maxTop && maxTop > 0) { ultimateWinners.push(p); }
     });
 
     if (ultimateWinners.length > 0) {
       const winnerText = ultimateWinners.join(" et ");
       narrative.push(`\n🏆 VERDICT GENERAL : ${winnerText} ${ultimateWinners.length > 1 ? "sont co-" : "est "}sacré${ultimateWinners.length > 1 ? "s" : ""} "Top 1 des Tops" sur cette période.`);
     }
-
     if (orphanCount > 0) {
       narrative.push(`\n⚠️ ${orphanCount} entrée(s) historique(s) non attribuée(s) (joueur ou catégorie supprimé(e)).`);
     }
-
     return narrative.length > 0 ? narrative.join("\n") : "Aucune anomalie ou infraction détectée sur cette période de suivi.";
   },
 
@@ -284,25 +276,20 @@ const AnalyticsService = {
     const data = this.getAggregatedData(year, month);
     const key = ConfigService.getGeminiKey();
     if (!key) return { quote: this.getFallbackQuote(data), isAi: false };
-
     try {
       const catEntities = SettingsService.getEntities('Categories');
       let context = "Contexte :\n";
       catEntities.forEach(c => context += `- ${c.name} : ${c.meta || 'Sans description'}\n`);
       context += "\nScores :\n";
       Object.keys(data.scores).forEach(p => { context += `- ${p} : ${data.scores[p].total} points.\n`; });
-
       const prompt = `Tu es un commentateur sarcastique qui juge un groupe d'amis. Base-toi sur ces scores pour rédiger un paragraphe de 3 phrases max. Tacle le pire joueur, sois ironique mais amical. Parle en français.\n\n${context}`;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
       const payload = { contents: [{ parts: [{ text: prompt }] }] };
       const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
-
       const response = UrlFetchApp.fetch(url, options);
       if (response.getResponseCode() !== 200) return { quote: this.getFallbackQuote(data), isAi: false };
-
       const json = JSON.parse(response.getContentText());
       if (json.error || !json.candidates || json.candidates.length === 0) return { quote: this.getFallbackQuote(data), isAi: false };
-
       return { quote: json.candidates[0].content.parts[0].text, isAi: true };
     } catch(e) {
       return { quote: this.getFallbackQuote(data), isAi: false };
@@ -313,10 +300,7 @@ const AnalyticsService = {
     let ultimateWinner = "Quelqu'un";
     let maxScore = 0;
     Object.keys(data.scores).forEach(p => {
-      if (data.scores[p].total > maxScore) {
-        maxScore = data.scores[p].total;
-        ultimateWinner = p;
-      }
+      if (data.scores[p].total > maxScore) { maxScore = data.scores[p].total; ultimateWinner = p; }
     });
     const fallbackQuotes = [
       `Même sans l'aide de l'IA, tout le monde sait que ${ultimateWinner} a été particulièrement catastrophique cette fois-ci.`,
@@ -338,7 +322,6 @@ const AnalyticsService = {
   getTrendData: function(filterYear, filterMonth) {
     const logs = StorageService.getFilteredLogs(filterYear, filterMonth);
     const players = SettingsService.getEntities('Players').map(p => p.name);
-    // Groupement par semaine (timestamp début de semaine)
     const weeklyData = {};
     logs.forEach(log => {
       const date = log.timestamp;
@@ -346,7 +329,7 @@ const AnalyticsService = {
       const key = weekStart.toISOString().slice(0,10);
       if (!weeklyData[key]) weeklyData[key] = {};
       players.forEach(p => { if (!weeklyData[key][p]) weeklyData[key][p] = 0; });
-      weeklyData[key][p] += log.points;
+      if (weeklyData[key][log.player] !== undefined) weeklyData[key][log.player] += log.points;
     });
     const sortedWeeks = Object.keys(weeklyData).sort();
     const datasets = players.map(player => ({
@@ -361,7 +344,6 @@ const AnalyticsService = {
   buildHtmlReport: function(year, month) {
     const data = this.getAggregatedData(year, month);
     const players = JSON.stringify(Object.keys(data.scores));
-    const categories = JSON.stringify(data.categories);
     const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
     const datasets = data.categories.map((cat, i) => ({
       label: cat,
@@ -371,43 +353,18 @@ const AnalyticsService = {
     }));
     const datasetsJson = JSON.stringify(datasets);
     const orphanNote = data.orphanCount > 0 ? `<p>⚠️ ${data.orphanCount} entrées historiques non attribuées.</p>` : '';
-
     return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapport Analytique — Casseroles</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
-  <style>
-    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e8eaf6; padding: 40px; }
-    h1   { color: #ff4757; }
-    pre  { background: #1a1d27; padding: 20px; border-radius: 8px; white-space: pre-wrap; color: #00d4aa; line-height: 1.6; }
-    .chart-wrapper { max-width: 800px; margin: 30px 0; background: #1a1d27; padding: 20px; border-radius: 8px; }
-  </style>
-</head>
-<body>
-  <h1>📊 RAPPORT DES CASSEROLES</h1>
-  <p style="color:#8892b0">Période : ${year === 'All' ? 'Toutes années' : year} / ${month === 'All' ? 'Tous mois' : month}</p>
-  ${orphanNote}
-  <div class="chart-wrapper"><canvas id="reportChart"></canvas></div>
-  <pre>${data.insights}</pre>
-  <script>
-    new Chart(document.getElementById('reportChart').getContext('2d'), {
-      type: 'bar',
-      data: { labels: ${players}, datasets: ${datasetsJson} },
-      options: {
-        responsive: true,
-        scales: {
-          x: { stacked: true, grid: { color: '#2a2d3e' }, ticks: { color: '#e8eaf6' } },
-          y: { stacked: true, grid: { color: '#2a2d3e' }, ticks: { color: '#e8eaf6' } }
-        },
-        plugins: { legend: { labels: { color: '#e8eaf6' } } }
-      }
-    });
-  <\/script>
-</body>
-</html>`;
+<html lang="fr"><head><meta charset="UTF-8"><title>Rapport Analytique — Casseroles</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+<style>body{font-family:system-ui,sans-serif;background:#0f1117;color:#e8eaf6;padding:40px;}h1{color:#ff4757;}pre{background:#1a1d27;padding:20px;border-radius:8px;white-space:pre-wrap;color:#00d4aa;line-height:1.6;}.chart-wrapper{max-width:800px;margin:30px 0;background:#1a1d27;padding:20px;border-radius:8px;}</style>
+</head><body>
+<h1>📊 RAPPORT DES CASSEROLES</h1>
+<p style="color:#8892b0">Période : ${year === 'All' ? 'Toutes années' : year} / ${month === 'All' ? 'Tous mois' : month}</p>
+${orphanNote}
+<div class="chart-wrapper"><canvas id="reportChart"></canvas></div>
+<pre>${data.insights}</pre>
+<script>new Chart(document.getElementById('reportChart').getContext('2d'),{type:'bar',data:{labels:${players},datasets:${datasetsJson}},options:{responsive:true,scales:{x:{stacked:true,grid:{color:'#2a2d3e'},ticks:{color:'#e8eaf6'}},y:{stacked:true,grid:{color:'#2a2d3e'},ticks:{color:'#e8eaf6'}}},plugins:{legend:{labels:{color:'#e8eaf6'}}}}})<\/script>
+</body></html>`;
   }
 };
 
@@ -420,23 +377,18 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// API exposées avec paramètres explicites
 function apiAddBulkScores(entries, customTimestamp) {
   try {
     StorageService.appendBulkLogs(entries, customTimestamp);
     return { success: true };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGetData(year, month) {
   try {
     const data = AnalyticsService.getAggregatedData(year, month);
     return { success: true, data: data };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGetSettings() {
@@ -446,9 +398,7 @@ function apiGetSettings() {
       players: SettingsService.getEntities('Players'),
       categories: SettingsService.getEntities('Categories')
     };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiManageEntity(action, type, newName, newMeta, oldName) {
@@ -458,81 +408,68 @@ function apiManageEntity(action, type, newName, newMeta, oldName) {
     if (action === 'ADD') SettingsService.addEntity(type, newName, newMeta);
     else if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
     else if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta);
-    ConfigService.clearCache(); // Invalider cache après modif
+    ConfigService.clearCache();
     return { success: true };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiDownloadHtmlReport(year, month) {
   try {
     const html = AnalyticsService.buildHtmlReport(year, month);
     return { success: true, html: html };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGenerateAiQuote(year, month) {
   try {
     const result = AnalyticsService.generateAiQuote(year, month);
     return { success: true, quote: result.quote, isAi: result.isAi };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGetAvailableYears() {
   try {
     const years = AnalyticsService.getAvailableYears();
     return { success: true, years: years };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGetTrendData(year, month) {
   try {
     const trend = AnalyticsService.getTrendData(year, month);
     return { success: true, trend: trend };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiGetHistoryPage(page, pageSize, filterPlayer, filterCategory) {
   try {
     const result = StorageService.getHistoryPage(page, pageSize, filterPlayer, filterCategory);
     return { success: true, logs: result.logs, total: result.total };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
 
 function apiDeleteHistoryEntry(rowIndex) {
   try {
     StorageService.deleteHistoryEntry(rowIndex);
     return { success: true };
-  } catch(err) {
-    return { success: false, error: err.message };
-  }
+  } catch(err) { return { success: false, error: err.message }; }
 }
-// Ajouter à la fin du fichier (ne pas supprimer le code existant)
 
 /**
- * Récupère les données filtrées par joueur(s), catégorie(s) et plage de dates
- * @param {Array} players - Liste des joueurs sélectionnés (vide = tous)
- * @param {Array} categories - Liste des catégories sélectionnées (vide = toutes)
- * @param {string} startDate - YYYY-MM-DD ou vide
- * @param {string} endDate - YYYY-MM-DD ou vide
+ * ✅ CORRIGÉ : utilise StorageService.getAllLogs() qui existe maintenant
+ * Filtrage par joueur(s), catégorie(s) et plage de dates
  */
 function apiGetFilteredData(players, categories, startDate, endDate) {
   try {
-    const allLogs = StorageService.getAllLogs();
+    const allLogs = StorageService.getAllLogs(); // ✅ fonction existante
     let filtered = allLogs;
-    if (players && players.length) filtered = filtered.filter(log => players.includes(log.player));
-    if (categories && categories.length) filtered = filtered.filter(log => categories.includes(log.category));
+
+    if (players && players.length > 0) {
+      filtered = filtered.filter(log => players.includes(log.player));
+    }
+    if (categories && categories.length > 0) {
+      filtered = filtered.filter(log => categories.includes(log.category));
+    }
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0,0,0,0);
@@ -543,42 +480,66 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
       end.setHours(23,59,59,999);
       filtered = filtered.filter(log => log.timestamp <= end);
     }
+
     const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
     const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
+
+    // Respecter la sélection : si filtre actif, n'afficher que ces joueurs/catégories
+    const displayPlayers = (players && players.length > 0) ? players : allPlayers;
+    const displayCategories = (categories && categories.length > 0) ? categories : allCategories;
+
     let scores = {};
-    allPlayers.forEach(p => { scores[p] = {}; allCategories.forEach(c => scores[p][c] = 0); });
-    filtered.forEach(log => { if (scores[log.player] && scores[log.player][log.category] !== undefined) scores[log.player][log.category] += log.points; });
+    displayPlayers.forEach(p => {
+      scores[p] = {};
+      displayCategories.forEach(c => scores[p][c] = 0);
+    });
+
+    filtered.forEach(log => {
+      if (scores[log.player] && scores[log.player][log.category] !== undefined) {
+        scores[log.player][log.category] += log.points;
+      }
+    });
+
+    const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa','#eccc68','#1e90ff'];
     const chartData = {
-      labels: allPlayers,
-      datasets: allCategories.map((cat, idx) => ({
+      labels: displayPlayers,
+      datasets: displayCategories.map((cat, idx) => ({
         label: cat,
-        data: allPlayers.map(p => scores[p][cat]),
-        backgroundColor: `hsl(${idx * 45}, 70%, 60%)`
+        data: displayPlayers.map(p => scores[p][cat] || 0),
+        backgroundColor: colors[idx % colors.length]
       }))
     };
+
     return { success: true, chartData };
-  } catch(e) { return { success: false, error: e.message }; }
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
 }
 
 /**
- * Export des données brutes (CSV ou XLSX)
+ * Export des données brutes (CSV)
  */
 function apiGetExportData(players, categories, startDate, endDate, format) {
-  const result = apiGetFilteredData(players, categories, startDate, endDate);
-  if (!result.success) return result;
-  const logs = result.logs;
-  // Transformation en tableau 2D pour CSV
-  const rows = [["Date", "Joueur", "Catégorie", "Points"]];
-  logs.forEach(log => {
-    rows.push([log.timestamp.toISOString(), log.player, log.category, log.points]);
-  });
-  if (format === 'csv') {
+  try {
+    const allLogs = StorageService.getAllLogs();
+    let filtered = allLogs;
+    if (players && players.length > 0) filtered = filtered.filter(log => players.includes(log.player));
+    if (categories && categories.length > 0) filtered = filtered.filter(log => categories.includes(log.category));
+    if (startDate) {
+      const start = new Date(startDate); start.setHours(0,0,0,0);
+      filtered = filtered.filter(log => log.timestamp >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate); end.setHours(23,59,59,999);
+      filtered = filtered.filter(log => log.timestamp <= end);
+    }
+    const rows = [["Date", "Joueur", "Catégorie", "Points"]];
+    filtered.forEach(log => {
+      rows.push([log.timestamp.toISOString(), log.player, log.category, log.points]);
+    });
     const csv = rows.map(row => row.join(",")).join("\n");
     return { success: true, csv, filename: `export_${Date.now()}.csv` };
-  } else if (format === 'xlsx') {
-    // En GAS, on ne peut pas générer directement un vrai XLSX binaire sans lib externe.
-    // On renvoie le CSV et on laisse le frontend convertir via SheetJS (déjà présent)
-    const csv = rows.map(row => row.join(",")).join("\n");
-    return { success: true, csv, filename: `export_${Date.now()}.csv` };
+  } catch(e) {
+    return { success: false, error: e.message };
   }
 }
