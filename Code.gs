@@ -152,28 +152,42 @@ const StorageService = {
 
   // Pagination pour l'onglet Historique
   getHistoryPage(page, pageSize, filterPlayer, filterCategory) {
-    const all = this.getAllLogs();
-    // On inverse pour avoir le plus récent en premier
-    const sorted = all.slice().reverse();
-    const filtered = sorted.filter(log => {
-      if (filterPlayer   && log.player   !== filterPlayer)   return false;
-      if (filterCategory && log.category !== filterCategory) return false;
-      return true;
-    });
-    const total = filtered.length;
-    const start = ((page || 1) - 1) * (pageSize || 20);
-    const paged = filtered.slice(start, start + (pageSize || 20));
-    // On renvoie l'index réel dans le sheet (pour suppression) :
-    // comme on a inversé, il faut retrouver le rowIndex dans all
-    const logsWithIndex = paged.map(log => {
-      // rowIndex = position dans all (0-based) + 2 (header + 1-based)
-      const idx = all.findIndex(
-        l => l.timestamp.getTime() === log.timestamp.getTime() &&
-             l.player === log.player && l.category === log.category && l.points === log.points
-      );
-      return { ...log, rowIndex: idx + 2 };
-    });
-    return { logs: logsWithIndex, total };
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { logs: [], total: 0 };
+
+    // On lit les données brutes pour conserver les rowIndex corrects (1-based, ligne 2 = index 2)
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+    // Construire la liste avec rowIndex réel dès la lecture
+    let allWithIndex = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+      const d = new Date(row[0]);
+      if (isNaN(d.getTime())) continue;
+      const player   = row[1] ? row[1].toString() : '';
+      const category = row[2] ? row[2].toString() : '';
+      if (filterPlayer   && player   !== filterPlayer)   continue;
+      if (filterCategory && category !== filterCategory) continue;
+      allWithIndex.push({
+        // Sérialiser en ISO string — les objets Date GAS sont mal transmis via google.script.run
+        timestamp: d.toISOString(),
+        player,
+        category,
+        points:   parseInt(row[3], 10) || 0,
+        rowIndex: i + 2   // ligne réelle dans le sheet (header = ligne 1, data commence ligne 2)
+      });
+    }
+
+    // Plus récent en premier
+    allWithIndex.reverse();
+
+    const total = allWithIndex.length;
+    const ps    = pageSize || 20;
+    const start = ((page || 1) - 1) * ps;
+    const paged = allWithIndex.slice(start, start + ps);
+    return { logs: paged, total };
   },
 
   deleteHistoryEntry(rowIndex) {
