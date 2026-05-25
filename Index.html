@@ -2,402 +2,608 @@
 <html lang="fr">
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta charset="UTF-8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { 
-      --bg: #0b0c10; --card: #1f2833; --border: #2a313d; 
-      --accent: #ff4757; --accent-hover: #ff6b81; 
+    :root {
+      --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
+      --accent: #ff4757; --accent-hover: #ff6b81;
       --text: #e0e6ed; --text-muted: #8892b0;
-      --success: #2ed573; --error: #ff4757; --btn-alt: #353b48; 
+      --success: #2ed573; --error: #ff4757; --btn-alt: #353b48;
+      --tap-min: 44px;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 0; margin: 0; }
-    .navbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; justify-content: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-    .nav-container { display: flex; max-width: 900px; width: 100%; gap: 10px; }
-    .nav-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1rem; padding: 18px 20px; cursor: pointer; transition: 0.3s; font-weight: 500; border-bottom: 3px solid transparent; }
-    .nav-btn:hover { color: var(--text); }
+
+    /* ── RESET & BASE ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      padding: 0; margin: 0;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ── NAVBAR ─────────────────────────────────────────────────── */
+    .navbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0; display: flex; justify-content: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .navbar::-webkit-scrollbar { display: none; }
+    .nav-container {
+      display: flex; min-width: max-content;
+      width: 100%; max-width: 900px;
+    }
+    .nav-btn {
+      background: transparent; border: none; color: var(--text-muted);
+      font-size: 0.9rem; padding: 16px 18px;
+      cursor: pointer; transition: 0.3s; font-weight: 500;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap; min-height: var(--tap-min);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
-    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+    /* ── LAYOUT ──────────────────────────────────────────────────── */
+    .container { max-width: 900px; margin: 20px auto; padding: 0 16px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: flex; flex-direction: column; gap: 24px; }
+    .tab-content.active { display: flex; flex-direction: column; gap: 20px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
-    h2 { margin: 0 0 20px 0; font-size: 1.4rem; color: #fff; display: flex; align-items: center; gap: 10px; }
-    h3 { font-size: 1.1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
-    select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #353b48; background: #14171f; color: var(--text); font-size: 1rem; outline: none; transition: 0.2s; }
-    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
-    button { font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
-    button.primary { background: var(--accent); color: #fff; border: none; text-transform: uppercase; letter-spacing: 0.5px; }
-    button.primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
-    button.primary:active { transform: translateY(0); }
+
+    /* ── CARDS ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--card); padding: 20px;
+      border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    h2 { margin: 0 0 18px 0; font-size: 1.3rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+    h3 { font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; }
+
+    /* ── FORM CONTROLS ───────────────────────────────────────────── */
+    /* font-size 16px minimum sur mobile pour éviter le zoom iOS sur focus */
+    select, input, button {
+      padding: 12px; border-radius: 6px;
+      border: 1px solid #353b48; background: #14171f;
+      color: var(--text); font-size: 16px;
+      outline: none; transition: 0.2s;
+      width: 100%;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2);
+    }
+    button {
+      font-weight: bold; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; min-height: var(--tap-min);
+      -webkit-tap-highlight-color: transparent;
+      width: auto;
+    }
+    button.primary   { background: var(--accent); color: #fff; border: none; text-transform: uppercase; letter-spacing: 0.5px; }
+    button.primary:hover  { background: var(--accent-hover); }
+    button.primary:active { opacity: 0.85; }
     button.secondary { background: transparent; border: 1px solid var(--text-muted); color: var(--text); }
     button.secondary:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
-    button.ai { background: #9b59b6; color: #fff; border: none; text-transform: uppercase; }
-    button.ai:hover { background: #8e44ad; transform: translateY(-2px); }
-    button.small { padding: 8px; font-size: 0.9rem; border: none; background: var(--btn-alt); }
+    button.ai        { background: #9b59b6; color: #fff; border: none; text-transform: uppercase; }
+    button.ai:hover  { background: #8e44ad; }
+    button.small     { padding: 10px 12px; font-size: 0.9rem; border: none; background: var(--btn-alt); min-height: var(--tap-min); }
     button.small:hover { background: #57606f; }
-    button.danger { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); }
+    button.danger    { background: rgba(255, 71, 87, 0.1); color: var(--error); border: 1px solid var(--error); }
     button.danger:hover { background: var(--error); color: #fff; }
-    .player-select-wrapper { display: flex; align-items: center; background: #14171f; border: 1px solid #353b48; border-radius: 6px; padding: 0 10px; width: 100%; box-sizing: border-box; transition: 0.2s; }
-    .player-select-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2); }
-    .player-select-wrapper select { border: none; background: transparent; padding: 12px 0 12px 10px; width: 100%; outline: none; box-shadow: none; color: var(--text); }
-    .player-select-wrapper select:focus { box-shadow: none; border: none; }
-    .batch-header { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; padding: 0 10px; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: bold; text-transform: uppercase; }
-    #entryContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .entry-row { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1fr 1fr; gap: 10px; align-items: center; background: #14171f; padding: 10px; border-radius: 8px; border: 1px solid var(--border); transition: 0.2s; }
+
+    /* ── FILTERS ─────────────────────────────────────────────────── */
+    .filters {
+      display: flex; gap: 10px;
+      background: #14171f; padding: 12px;
+      border-radius: 8px; border: 1px solid var(--border);
+      margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .filters select { flex: 1; min-width: 130px; }
+
+    /* ── CHART ───────────────────────────────────────────────────── */
+    .chart-wrapper {
+      position: relative;
+      /* hauteur fixe desktop, dynamique mobile */
+      height: 350px;
+    }
+
+    /* ── RAPPORT ─────────────────────────────────────────────────── */
+    .report-box {
+      background: #0b0c10; padding: 16px; border-radius: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      white-space: pre-wrap; line-height: 1.6; color: #00d4aa;
+      border: 1px solid var(--border); font-size: 0.85rem;
+      overflow-x: auto;
+    }
+    .ai-quote-box {
+      margin-top: 15px; padding: 15px;
+      border-left: 4px solid #9b59b6;
+      background: rgba(155, 89, 182, 0.1);
+      color: #fff; font-style: italic;
+      display: none; border-radius: 4px;
+    }
+
+    /* ── ACTIONS BAR ─────────────────────────────────────────────── */
+    .actions-bar {
+      display: flex; gap: 10px; margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .actions-bar button { flex: 1; min-width: 120px; }
+
+    /* ── SAISIE LOT — DESKTOP ────────────────────────────────────── */
+    .batch-header {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
+      gap: 10px; padding: 0 10px; margin-bottom: 8px;
+      color: var(--text-muted); font-size: 0.8rem;
+      font-weight: bold; text-transform: uppercase;
+    }
+    #entryContainer { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+
+    .entry-row {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1.2fr 1fr auto;
+      gap: 10px; align-items: center;
+      background: #14171f; padding: 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
     .entry-row:hover { border-color: #4a5568; }
-    .row-actions { display: flex; gap: 5px; }
-    .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 20px; }
-    .filters { display: flex; gap: 15px; background: #14171f; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
-    .report-box { background: #0b0c10; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; line-height: 1.6; color: #00d4aa; border: 1px solid var(--border); font-size: 0.95rem; }
-    .ai-quote-box { margin-top: 15px; padding: 15px; border-left: 4px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color: #fff; font-style: italic; display: none; border-radius: 4px; }
-    .actions-bar { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-    .entity-list { list-style: none; padding: 0; margin: 0 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
-    .entity-item { display: flex; flex-direction: column; gap: 10px; background: #14171f; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
-    .entity-header { display: flex; justify-content: space-between; align-items: center; }
-    .entity-meta { font-size: 0.85rem; color: var(--text-muted); font-style: italic; word-break: break-all; }
-    .avatar-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #2a313d; }
-    #toastContainer { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
-    .toast { padding: 15px 25px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease forwards; display: flex; align-items: center; gap: 10px; }
+    .entry-row select, .entry-row input { font-size: 15px; }
+
+    .player-select-wrapper {
+      display: flex; align-items: center;
+      background: #14171f; border: 1px solid #353b48;
+      border-radius: 6px; padding: 0 8px;
+      width: 100%; transition: 0.2s;
+    }
+    .player-select-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.2);
+    }
+    .player-select-wrapper select {
+      border: none; background: transparent;
+      padding: 10px 0 10px 8px;
+      width: 100%; outline: none;
+      box-shadow: none; color: var(--text);
+      font-size: 15px;
+    }
+    .player-select-wrapper select:focus { box-shadow: none; border: none; }
+
+    .row-actions { display: flex; gap: 6px; }
+    .row-actions button { flex: 1; padding: 10px; }
+
+    /* ── SETTINGS ────────────────────────────────────────────────── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .entity-list {
+      list-style: none; padding: 0; margin: 0 0 12px 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .entity-item {
+      display: flex; flex-direction: column; gap: 8px;
+      background: #14171f; padding: 14px;
+      border-radius: 6px; border: 1px solid var(--border);
+    }
+    .entity-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .entity-header > div:first-child { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .entity-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entity-meta { font-size: 0.82rem; color: var(--text-muted); font-style: italic; word-break: break-all; }
+    .avatar-img {
+      width: 32px; height: 32px; min-width: 32px;
+      border-radius: 50%; object-fit: cover;
+      border: 2px solid var(--border); background: #2a313d;
+    }
+    .entity-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .entity-btns button { padding: 8px 12px; min-height: 36px; }
+
+    /* ── EMPTY STATE ─────────────────────────────────────────────── */
+    .empty-state {
+      color: var(--text-muted); font-style: italic;
+      text-align: center; padding: 20px;
+    }
+
+    /* ── TOASTS ──────────────────────────────────────────────────── */
+    #toastContainer {
+      position: fixed; bottom: 20px; right: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 1000; max-width: calc(100vw - 32px);
+    }
+    .toast {
+      padding: 14px 20px; border-radius: 8px; color: white;
+      font-weight: 500; font-size: 0.9rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease forwards;
+      display: flex; align-items: center; gap: 10px;
+    }
     .toast.success { background: var(--success); border: 1px solid #27ae60; color: #000; }
-    .toast.error { background: var(--error); border: 1px solid #c0392b; }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast.error   { background: var(--error);   border: 1px solid #c0392b; }
+    @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
-    @media (max-width: 768px) { 
+
+    /* ── MOBILE ≤ 600px ──────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .container { padding: 0 12px; margin: 12px auto; }
+      .card { padding: 16px; }
+      h2 { font-size: 1.1rem; }
+
+      /* Chart plus court sur mobile */
+      .chart-wrapper { height: 240px; }
+
+      /* Filtres empilés */
+      .filters { flex-direction: column; }
+      .filters select { min-width: unset; }
+
+      /* Batch header caché */
       .batch-header { display: none; }
-      .entry-row { grid-template-columns: 1fr 1fr; padding: 15px; }
-      .player-select-wrapper, .entry-row select, .entry-row input { width: 100%; box-sizing: border-box; }
-      /* FIX: grid-column corrigé pour mobile */
-      .row-actions { grid-column: 1 / -1; display: flex; }
+
+      /* Chaque ligne = carte empilée sur mobile */
+      .entry-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px; padding: 12px;
+      }
+      /* Joueur sur toute la largeur */
+      .entry-row .player-select-wrapper {
+        grid-column: 1 / -1;
+      }
+      /* Catégorie sur toute la largeur */
+      .entry-row .c-sel {
+        grid-column: 1 / -1;
+      }
+      /* Points + Fois côte à côte */
+      .entry-row .pts-sel { grid-column: 1; }
+      .entry-row .tms-in  { grid-column: 2; }
+      /* Actions sur toute la largeur */
+      .row-actions {
+        grid-column: 1 / -1;
+        display: flex; gap: 8px;
+      }
       .row-actions button { flex: 1; }
-      .settings-grid, .actions-bar, .filters { flex-direction: column; grid-template-columns: 1fr; }
+
+      /* Actions bar empilée */
+      .actions-bar { flex-direction: column; }
+      .actions-bar button { min-width: unset; }
+
+      /* Settings empilé */
+      .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+
+      /* Boutons de la navbar plus compacts */
+      .nav-btn { font-size: 0.8rem; padding: 14px 14px; }
+
+      /* Report box police plus petite */
+      .report-box { font-size: 0.78rem; }
+    }
+
+    /* ── TABLET 601–900px ────────────────────────────────────────── */
+    @media (min-width: 601px) and (max-width: 900px) {
+      .entry-row {
+        grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      }
+      .settings-grid { gap: 16px; }
     }
   </style>
 </head>
 <body>
+
   <nav class="navbar">
     <div class="nav-container">
       <button class="nav-btn active" onclick="switchTab('tab-dashboard', this)">📊 Tableau de Bord</button>
       <button class="nav-btn" onclick="switchTab('tab-inject', this)">✍️ Saisir un Lot</button>
-      <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Base & Paramètres</button>
+      <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Paramètres</button>
     </div>
   </nav>
 
   <div class="container">
     <div id="toastContainer"></div>
 
+    <!-- ═══ DASHBOARD ═══════════════════════════════════════════════ -->
     <div id="tab-dashboard" class="tab-content active">
       <div class="card">
-        <h2>Filtres & Matrice Visuelle</h2>
+        <h2>📊 Filtres & Matrice Visuelle</h2>
         <div class="filters">
-          <select id="yearFilter" onchange="fetchAnalytics()" style="flex:1;"><option value="All">Toutes les années</option><option value="2026" selected>2026</option><option value="2025">2025</option></select>
-          <select id="monthFilter" onchange="fetchAnalytics()" style="flex:1;"><option value="All" selected>Tous les mois</option><option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option><option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option><option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option><option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option></select>
+          <select id="yearFilter" onchange="fetchAnalytics()">
+            <option value="All">Toutes les années</option>
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <select id="monthFilter" onchange="fetchAnalytics()">
+            <option value="All" selected>Tous les mois</option>
+            <option value="0">Janvier</option><option value="1">Février</option>
+            <option value="2">Mars</option><option value="3">Avril</option>
+            <option value="4">Mai</option><option value="5">Juin</option>
+            <option value="6">Juillet</option><option value="7">Août</option>
+            <option value="8">Septembre</option><option value="9">Octobre</option>
+            <option value="10">Novembre</option><option value="11">Décembre</option>
+          </select>
         </div>
-        <div style="height: 400px; position: relative; width: 100%;"><canvas id="mainChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="mainChart"></canvas></div>
       </div>
+
       <div class="card">
-        <h2>Rapport Narratif & Export</h2>
+        <h2>📄 Rapport Narratif & Export</h2>
         <div class="report-box" id="reportOutput">Calcul des algorithmes en cours...</div>
         <div id="aiOutput" class="ai-quote-box"></div>
         <div class="actions-bar">
-          <button class="ai" style="flex:1" id="aiBtn" onclick="generateAiQuote()">🤖 Générer Citation IA</button>
-          <!-- FIX: exportHtmlReport() maintenant définie dans le JS -->
-          <button class="primary" style="flex:1" onclick="exportHtmlReport()">⬇️ Exporter HTML</button>
-          <button class="secondary" style="flex:1" onclick="window.print()">🖨️ Sauvegarder PDF</button>
+          <button class="ai" id="aiBtn" onclick="generateAiQuote()">🤖 Citation IA</button>
+          <button class="primary" onclick="exportHtmlReport()">⬇️ Exporter HTML</button>
+          <button class="secondary" onclick="window.print()">🖨️ PDF</button>
         </div>
       </div>
     </div>
 
+    <!-- ═══ SAISIE LOT ══════════════════════════════════════════════ -->
     <div id="tab-inject" class="tab-content">
       <div class="card">
-        <h2>Constructeur de Lot</h2>
-        <div style="margin-bottom: 25px; background: #14171f; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-          <label style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 8px;">Date appliquée au lot (vide = maintenant) :</label>
-          <input type="datetime-local" id="globalDateInput" style="width: 100%; box-sizing: border-box;">
+        <h2>✍️ Constructeur de Lot</h2>
+        <div style="margin-bottom:18px; background:#14171f; padding:14px; border-radius:8px; border:1px solid var(--border);">
+          <label style="color:var(--text-muted); font-size:0.85rem; display:block; margin-bottom:8px;">
+            Date appliquée au lot (vide = maintenant) :
+          </label>
+          <input type="datetime-local" id="globalDateInput">
         </div>
+
         <div class="batch-header">
-          <div>Cible (Joueur)</div><div>Type (Catégorie)</div><div>Valeur unitaire</div><div>Nombre de Fois</div><div>Actions</div>
+          <div>Cible (Joueur)</div>
+          <div>Type (Catégorie)</div>
+          <div>Valeur</div>
+          <div>Fois</div>
+          <div>Actions</div>
         </div>
+
         <div id="entryContainer"></div>
+
         <div class="actions-bar">
-          <button class="secondary" onclick="addEntryRow()">+ Nouvelle Ligne</button>
-          <button class="primary" style="flex:2" onclick="submitBulkData()" id="submitBtn">✓ Inscrire le Lot</button>
+          <button class="secondary" onclick="addEntryRow()" style="flex:0 0 auto;">+ Ligne</button>
+          <button class="primary" onclick="submitBulkData()" id="submitBtn" style="flex:1;">✓ Inscrire le Lot</button>
         </div>
       </div>
     </div>
 
+    <!-- ═══ PARAMÈTRES ══════════════════════════════════════════════ -->
     <div id="tab-settings" class="tab-content">
       <div class="card">
-        <h2>Gestion de la Matrice (Avatars & Contexte)</h2>
+        <h2>⚙️ Base & Paramètres</h2>
         <div class="settings-grid">
           <div>
             <h3>Profils Joueurs</h3>
             <ul class="entity-list" id="playersList"></ul>
-            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:15px; border-radius:8px;">
+            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:14px; border-radius:8px;">
               <input type="text" id="newPlayerName" placeholder="Nom du joueur...">
-              <input type="url" id="newPlayerMeta" placeholder="Lien de l'avatar (URL optionnelle)">
-              <button class="primary small" onclick="manageEntity('ADD', 'Players', 'newPlayerName', 'newPlayerMeta')">Ajouter</button>
+              <input type="url"  id="newPlayerMeta" placeholder="URL de l'avatar (optionnel)">
+              <button class="primary small" onclick="manageEntity('ADD','Players','newPlayerName','newPlayerMeta')">Ajouter</button>
             </div>
           </div>
           <div>
             <h3>Types de Casseroles</h3>
             <ul class="entity-list" id="categoriesList"></ul>
-            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:15px; border-radius:8px;">
+            <div style="display:flex; flex-direction:column; gap:10px; background:#14171f; padding:14px; border-radius:8px;">
               <input type="text" id="newCategoryName" placeholder="Nom de la catégorie...">
-              <input type="text" id="newCategoryMeta" placeholder="Description pour le contexte IA...">
-              <button class="primary small" onclick="manageEntity('ADD', 'Categories', 'newCategoryName', 'newCategoryMeta')">Ajouter</button>
+              <input type="text" id="newCategoryMeta" placeholder="Description pour l'IA...">
+              <button class="primary small" onclick="manageEntity('ADD','Categories','newCategoryName','newCategoryMeta')">Ajouter</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </div><!-- /.container -->
 
   <script>
-    let currentChart = null;
-    let cachedPlayers = [];
-    let cachedCategories = [];
-    let rowCounter = 0;
+    var currentChart    = null;
+    var cachedPlayers   = [];
+    var cachedCategories = [];
+    var rowCounter      = 0;
 
-    // ─── NAVIGATION ──────────────────────────────────────────────────────────
-    function switchTab(tabId, btnElement) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    /* ── NAVIGATION ───────────────────────────────────────────────── */
+    function switchTab(tabId, btnEl) {
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.nav-btn').forEach(function(el)      { el.classList.remove('active'); });
       document.getElementById(tabId).classList.add('active');
-      if (btnElement) btnElement.classList.add('active');
+      if (btnEl) btnEl.classList.add('active');
     }
 
-    // ─── TOASTS ───────────────────────────────────────────────────────────────
+    /* ── TOASTS ───────────────────────────────────────────────────── */
     function showToast(msg, type) {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = 'toast ' + type;
-      toast.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
+      var c = document.getElementById('toastContainer');
+      var t = document.createElement('div');
+      t.className = 'toast ' + type;
+      t.innerText = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
+      c.appendChild(t);
+      setTimeout(function() {
+        t.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(function() { t.remove(); }, 300);
       }, 4000);
     }
 
-    // ─── INIT ─────────────────────────────────────────────────────────────────
+    /* ── INIT ─────────────────────────────────────────────────────── */
     function initApp() { fetchSettings(); fetchAnalytics(); }
 
-    // ─── SETTINGS ─────────────────────────────────────────────────────────────
+    /* ── SETTINGS ─────────────────────────────────────────────────── */
     function fetchSettings() {
       google.script.run.withSuccessHandler(function(res) {
-        if (res.success) {
-          cachedPlayers = res.players;
-          cachedCategories = res.categories;
-          renderList('playersList', 'Players', res.players, 'Avatar URL');
-          renderList('categoriesList', 'Categories', res.categories, 'Description');
-          if (document.getElementById('entryContainer').children.length === 0) addEntryRow();
-        } else {
-          showToast(res.error, 'error');
-        }
+        if (!res.success) return showToast(res.error, 'error');
+        cachedPlayers    = res.players;
+        cachedCategories = res.categories;
+        renderList('playersList',    'Players',    res.players,    'Avatar URL');
+        renderList('categoriesList', 'Categories', res.categories, 'Description');
+        if (document.getElementById('entryContainer').children.length === 0) addEntryRow();
       }).apiGetSettings();
     }
 
-    // FIX: Échappement XSS complet pour l'affichage dans le HTML
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
-
-    // FIX: Échappement pour les valeurs dans les attributs onclick (guillemets simples)
-    function escapeAttr(str) {
-      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    function escapeAttr(s) {
+      return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     }
 
     function renderList(id, type, items, metaLabel) {
       document.getElementById(id).innerHTML = items.map(function(i) {
-        var displayName = escapeHtml(i.name);
-        var displayMeta = escapeHtml(i.meta || '');
-        var attrName    = escapeAttr(i.name);
-        var attrMeta    = escapeAttr(i.meta || '');
-
-        var visual = '';
-        var metaDisplay = '';
+        var dName = escapeHtml(i.name);
+        var dMeta = escapeHtml(i.meta || '');
+        var aName = escapeAttr(i.name);
+        var aMeta = escapeAttr(i.meta || '');
+        var visual = '', metaDiv = '';
 
         if (type === 'Players') {
-          var fallbackUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(i.name) + '&background=2a313d&color=e0e6ed&bold=true';
-          var avatarSrc = i.meta ? escapeHtml(i.meta) : fallbackUrl;
-          var fallbackEsc = escapeHtml(fallbackUrl);
-          visual = '<img src="' + avatarSrc + '" class="avatar-img" onerror="this.onerror=null; this.src=\'' + fallbackEsc + '\';">';
+          var fb  = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(i.name) + '&background=2a313d&color=e0e6ed&bold=true';
+          var src = i.meta ? escapeHtml(i.meta) : fb;
+          visual  = '<img src="' + src + '" class="avatar-img" onerror="this.onerror=null;this.src=\'' + escapeHtml(fb) + '\';">';
         } else if (i.meta) {
-          metaDisplay = '<div class="entity-meta">' + metaLabel + ': ' + displayMeta + '</div>';
+          metaDiv = '<div class="entity-meta">' + metaLabel + ' : ' + dMeta + '</div>';
         }
 
         return '<li class="entity-item">' +
           '<div class="entity-header">' +
-            '<div style="display:flex; align-items:center; gap:10px;">' + visual + ' <strong>' + displayName + '</strong></div>' +
-            '<div style="display:flex; gap:8px;">' +
-              '<button class="small" onclick="promptRename(\'' + type + '\', \'' + attrName + '\', \'' + attrMeta + '\')">Éditer</button>' +
-              '<button class="small danger" onclick="manageEntity(\'DELETE\', \'' + type + '\', null, null, \'' + attrName + '\')">X</button>' +
+            '<div>' + visual + '<strong>' + dName + '</strong></div>' +
+            '<div class="entity-btns">' +
+              '<button class="small" onclick="promptRename(\'' + type + '\',\'' + aName + '\',\'' + aMeta + '\')">Éditer</button>' +
+              '<button class="small danger" onclick="manageEntity(\'DELETE\',\'' + type + '\',null,null,\'' + aName + '\')">✕</button>' +
             '</div>' +
           '</div>' +
-          metaDisplay +
+          metaDiv +
         '</li>';
       }).join('');
     }
 
-    function manageEntity(act, type, idName, idMeta, fixedOldName, fixedNewName, fixedNewMeta) {
-      var name = (act === 'ADD') ? document.getElementById(idName).value.trim() : fixedOldName;
+    function manageEntity(act, type, idName, idMeta, oldN, newN, newM) {
+      var name = (act === 'ADD') ? document.getElementById(idName).value.trim() : oldN;
       var meta = (act === 'ADD' && idMeta) ? document.getElementById(idMeta).value.trim() : null;
       if (act === 'ADD' && !name) return;
       if (act === 'DELETE' && !confirm("Supprimer définitivement '" + name + "' ?")) return;
 
       google.script.run.withSuccessHandler(function(res) {
-        if (res.success) {
-          if (idName) document.getElementById(idName).value = '';
-          if (idMeta) document.getElementById(idMeta).value = '';
-          document.getElementById('entryContainer').innerHTML = '';
-          fetchSettings();
-          fetchAnalytics();
-          showToast('Base de données mise à jour.', 'success');
-        } else {
-          showToast(res.error, 'error');
-        }
-      }).apiManageEntity(act, type, fixedNewName || name, fixedNewMeta || meta, fixedOldName);
+        if (!res.success) return showToast(res.error, 'error');
+        if (idName) document.getElementById(idName).value = '';
+        if (idMeta) document.getElementById(idMeta).value = '';
+        document.getElementById('entryContainer').innerHTML = '';
+        fetchSettings(); fetchAnalytics();
+        showToast('Base de données mise à jour.', 'success');
+      }).apiManageEntity(act, type, newN || name, newM || meta, oldN);
     }
 
     function promptRename(type, oldName, oldMeta) {
-      var newName = prompt('Nouveau nom pour ' + oldName + ' :', oldName);
-      if (!newName) return;
-      var newMeta = prompt(
-        type === 'Players' ? "Lien de l'avatar pour " + newName + ' :' : 'Description pour ' + newName + ' :',
+      var n = prompt('Nouveau nom pour ' + oldName + ' :', oldName);
+      if (!n) return;
+      var m = prompt(
+        type === 'Players' ? "URL de l'avatar pour " + n + ' :' : 'Description pour ' + n + ' :',
         oldMeta || ''
       );
-      manageEntity('RENAME', type, null, null, oldName, newName, newMeta);
+      manageEntity('RENAME', type, null, null, oldName, n, m);
     }
 
-    // ─── LIGNE D'ENTRÉE ──────────────────────────────────────────────────────
-    function updateRowAvatar(selectElement) {
-      var selectedOption = selectElement.options[selectElement.selectedIndex];
-      if (!selectedOption) return;
-      var playerName = selectedOption.value;
-      var playerMeta = selectedOption.getAttribute('data-img');
-      var imgElement = selectElement.parentElement.querySelector('.row-avatar');
-      if (!imgElement) return;
-      var fallbackUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(playerName) + '&background=2a313d&color=e0e6ed&bold=true';
-      imgElement.src = playerMeta ? playerMeta : fallbackUrl;
-      imgElement.onerror = function() { this.onerror = null; this.src = fallbackUrl; };
+    /* ── LIGNES LOT ───────────────────────────────────────────────── */
+    function updateRowAvatar(sel) {
+      var opt = sel.options[sel.selectedIndex];
+      if (!opt) return;
+      var img = sel.parentElement.querySelector('.row-avatar');
+      if (!img) return;
+      var fb  = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(opt.value) + '&background=2a313d&color=e0e6ed&bold=true';
+      img.src = opt.getAttribute('data-img') || fb;
+      img.onerror = function() { this.onerror = null; this.src = fb; };
     }
 
     function addEntryRow(preset) {
-      // FIX: Garde-fou si joueurs/catégories pas encore chargés
       if (cachedPlayers.length === 0 || cachedCategories.length === 0) {
-        var container = document.getElementById('entryContainer');
-        if (!container.querySelector('.empty-state')) {
-          var msg = document.createElement('p');
-          msg.className = 'empty-state';
-          msg.textContent = "⚠️ Ajoutez d'abord des joueurs et des catégories dans l'onglet Paramètres.";
-          container.appendChild(msg);
+        var c = document.getElementById('entryContainer');
+        if (!c.querySelector('.empty-state')) {
+          var p = document.createElement('p');
+          p.className = 'empty-state';
+          p.textContent = "⚠️ Ajoutez d'abord des joueurs et des catégories dans l'onglet Paramètres.";
+          c.appendChild(p);
         }
         return;
       }
 
       rowCounter++;
-      var id = 'row_' + rowCounter;
+      var id  = 'row_' + rowCounter;
       var div = document.createElement('div');
       div.className = 'entry-row';
       div.id = id;
 
-      // FIX: Échappement des valeurs injectées dans les attributs HTML
-      var playerOptions = cachedPlayers.map(function(p) {
-        var sName = escapeHtml(p.name);
-        var sMeta = escapeHtml(p.meta || '');
-        return '<option value="' + sName + '" data-img="' + sMeta + '">' + sName + '</option>';
+      var pOpts = cachedPlayers.map(function(p) {
+        return '<option value="' + escapeHtml(p.name) + '" data-img="' + escapeHtml(p.meta||'') + '">' + escapeHtml(p.name) + '</option>';
       }).join('');
-
-      var catOptions = cachedCategories.map(function(c) {
-        var sName = escapeHtml(c.name);
-        return '<option value="' + sName + '">' + sName + '</option>';
+      var cOpts = cachedCategories.map(function(c) {
+        return '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>';
       }).join('');
 
       div.innerHTML =
         '<div class="player-select-wrapper">' +
-          '<img class="row-avatar" src="" style="width:26px; height:26px; min-width:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#2a313d;">' +
-          '<select class="p-sel" onchange="updateRowAvatar(this)">' + playerOptions + '</select>' +
+          '<img class="row-avatar" src="" style="width:26px;height:26px;min-width:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#2a313d;">' +
+          '<select class="p-sel" onchange="updateRowAvatar(this)">' + pOpts + '</select>' +
         '</div>' +
-        '<select class="c-sel" style="width:100%">' + catOptions + '</select>' +
-        '<select class="pts-sel" style="width:100%">' +
-          '<option value="1">1 Point</option>' +
-          '<option value="3">3 Points</option>' +
-          '<option value="5">5 Points</option>' +
-          '<option value="10">10 Points</option>' +
+        '<select class="c-sel">' + cOpts + '</select>' +
+        '<select class="pts-sel">' +
+          '<option value="1">1 pt</option>' +
+          '<option value="3">3 pts</option>' +
+          '<option value="5">5 pts</option>' +
+          '<option value="10">10 pts</option>' +
         '</select>' +
-        '<input type="number" class="tms-in" value="1" min="1" title="Multiplicateur" style="width:100%">' +
+        '<input type="number" class="tms-in" value="1" min="1" placeholder="×" inputmode="numeric">' +
         '<div class="row-actions">' +
-          '<button class="small" style="flex:1; background:#3742fa; color:#fff;" onclick="duplicateRow(\'' + id + '\')">📋</button>' +
-          '<button class="small danger" style="flex:1;" onclick="document.getElementById(\'' + id + '\').remove()">X</button>' +
+          '<button class="small" style="background:#3742fa;color:#fff;" onclick="duplicateRow(\'' + id + '\')">📋</button>' +
+          '<button class="small danger" onclick="document.getElementById(\'' + id + '\').remove()">✕</button>' +
         '</div>';
 
       document.getElementById('entryContainer').appendChild(div);
 
       if (preset) {
-        var newRow = document.getElementById(id);
-        newRow.querySelector('.p-sel').value   = preset.player;
-        newRow.querySelector('.c-sel').value   = preset.category;
-        newRow.querySelector('.pts-sel').value = preset.points;
-        newRow.querySelector('.tms-in').value  = preset.times;
+        var r = document.getElementById(id);
+        r.querySelector('.p-sel').value   = preset.player;
+        r.querySelector('.c-sel').value   = preset.category;
+        r.querySelector('.pts-sel').value = preset.points;
+        r.querySelector('.tms-in').value  = preset.times;
       }
-
-      var sel = document.getElementById(id).querySelector('.p-sel');
-      if (sel) updateRowAvatar(sel);
+      var s = document.getElementById(id).querySelector('.p-sel');
+      if (s) updateRowAvatar(s);
     }
 
     function duplicateRow(rowId) {
-      var row = document.getElementById(rowId);
+      var r = document.getElementById(rowId);
       addEntryRow({
-        player:   row.querySelector('.p-sel').value,
-        category: row.querySelector('.c-sel').value,
-        points:   row.querySelector('.pts-sel').value,
-        times:    row.querySelector('.tms-in').value
+        player:   r.querySelector('.p-sel').value,
+        category: r.querySelector('.c-sel').value,
+        points:   r.querySelector('.pts-sel').value,
+        times:    r.querySelector('.tms-in').value
       });
     }
 
     function submitBulkData() {
-      var rows = document.querySelectorAll('.entry-row');
+      var rows    = document.querySelectorAll('.entry-row');
       var entries = [];
-      rows.forEach(function(row) {
+      rows.forEach(function(r) {
         entries.push({
-          player:   row.querySelector('.p-sel').value,
-          category: row.querySelector('.c-sel').value,
-          points:   row.querySelector('.pts-sel').value,
-          times:    row.querySelector('.tms-in').value
+          player:   r.querySelector('.p-sel').value,
+          category: r.querySelector('.c-sel').value,
+          points:   r.querySelector('.pts-sel').value,
+          times:    r.querySelector('.tms-in').value
         });
       });
-      if (entries.length === 0) return showToast('Veuillez ajouter au moins une ligne.', 'error');
+      if (!entries.length) return showToast('Ajoutez au moins une ligne.', 'error');
 
       var btn  = document.getElementById('submitBtn');
       var date = document.getElementById('globalDateInput').value;
-      btn.innerHTML = '⏳ Écriture...';
-      btn.disabled  = true;
+      btn.innerHTML = '⏳ Écriture...'; btn.disabled = true;
 
       google.script.run.withSuccessHandler(function(res) {
-        btn.innerHTML = '✓ Inscrire le Lot';
-        btn.disabled  = false;
+        btn.innerHTML = '✓ Inscrire le Lot'; btn.disabled = false;
         if (res.success) {
           document.getElementById('globalDateInput').value = '';
           document.getElementById('entryContainer').innerHTML = '';
-          addEntryRow();
-          fetchAnalytics();
-          showToast('Lot enregistré avec succès !', 'success');
-        } else {
-          showToast(res.error, 'error');
-        }
+          addEntryRow(); fetchAnalytics();
+          showToast('Lot enregistré !', 'success');
+        } else { showToast(res.error, 'error'); }
       }).apiAddBulkScores(entries, date);
     }
 
-    // ─── ANALYTICS ──────────────────────────────────────────────────────────
+    /* ── ANALYTICS ────────────────────────────────────────────────── */
     function fetchAnalytics() {
+      document.getElementById('aiOutput').style.display = 'none';
       google.script.run.withSuccessHandler(function(res) {
         if (res.success) renderDashboard(res.data);
         else showToast(res.error, 'error');
@@ -405,13 +611,12 @@
         document.getElementById('yearFilter').value,
         document.getElementById('monthFilter').value
       );
-      document.getElementById('aiOutput').style.display = 'none';
     }
 
     function renderDashboard(data) {
       document.getElementById('reportOutput').innerText = data.insights;
       var players  = Object.keys(data.scores);
-      var colors   = ['#ff4757', '#00d4aa', '#ffd166', '#6c63ff', '#ff6b81', '#3742fa'];
+      var colors   = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
       var datasets = data.categories.map(function(cat, i) {
         return {
           label:           cat,
@@ -429,37 +634,32 @@
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { stacked: true, grid: { color: '#2a313d' } },
-            y: { stacked: true, grid: { color: '#2a313d' } }
+            x: { stacked: true, grid: { color: '#2a313d' }, ticks: { color: '#8892b0', maxRotation: 45 } },
+            y: { stacked: true, grid: { color: '#2a313d' }, ticks: { color: '#8892b0' } }
           },
-          plugins: { legend: { labels: { color: '#e0e6ed' } } }
+          plugins: { legend: { labels: { color: '#e0e6ed', font: { size: 12 } } } }
         }
       });
     }
 
-    // ─── IA ──────────────────────────────────────────────────────────────────
+    /* ── IA ───────────────────────────────────────────────────────── */
     function generateAiQuote() {
       var btn = document.getElementById('aiBtn');
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Connexion...';
-      var y = document.getElementById('yearFilter').value;
-      var m = document.getElementById('monthFilter').value;
-
+      btn.disabled = true; btn.innerHTML = '⏳ Connexion...';
       google.script.run.withSuccessHandler(function(res) {
-        btn.disabled = false;
-        btn.innerHTML = '🤖 Générer Citation IA';
+        btn.disabled = false; btn.innerHTML = '🤖 Citation IA';
         if (res.success) {
           var out = document.getElementById('aiOutput');
           out.innerText = '« ' + res.quote + ' »';
           out.style.display = 'block';
-        } else {
-          showToast(res.error, 'error');
-        }
-      }).apiGenerateAiQuote(y, m);
+        } else { showToast(res.error, 'error'); }
+      }).apiGenerateAiQuote(
+        document.getElementById('yearFilter').value,
+        document.getElementById('monthFilter').value
+      );
     }
 
-    // ─── EXPORT HTML ─────────────────────────────────────────────────────────
-    // FIX: cette fonction était absente dans la version originale
+    /* ── EXPORT HTML ──────────────────────────────────────────────── */
     function exportHtmlReport() {
       var y   = document.getElementById('yearFilter').value;
       var m   = document.getElementById('monthFilter').value;
@@ -472,16 +672,11 @@
           var blob = new Blob([res.html], { type: 'text/html;charset=utf-8' });
           var url  = URL.createObjectURL(blob);
           var a    = document.createElement('a');
-          a.href     = url;
-          a.download = 'rapport_casseroles_' + y + '_' + m + '.html';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          a.href = url; a.download = 'rapport_casseroles_' + y + '_' + m + '.html';
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a); URL.revokeObjectURL(url);
           showToast('Rapport exporté !', 'success');
-        } else {
-          showToast(res.error, 'error');
-        }
+        } else { showToast(res.error, 'error'); }
       }).apiDownloadHtmlReport(y, m);
     }
 
