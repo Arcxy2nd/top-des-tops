@@ -781,16 +781,26 @@
     // Points (input libre + datalist)
     const ptsInput = document.createElement('input');
     ptsInput.type = 'number'; ptsInput.className = 'pts-sel';
-    ptsInput.value = '1'; ptsInput.min = '1';
+    ptsInput.value = '1'; ptsInput.min = '1'; ptsInput.step = '1';
     ptsInput.setAttribute('list', 'pointsSuggestion');
     ptsInput.placeholder = 'Pts';
+    // Garde-fou : remet à 1 si valeur invalide ou <= 0
+    ptsInput.addEventListener('blur', () => {
+      const v = parseInt(ptsInput.value, 10);
+      if (isNaN(v) || v < 1) ptsInput.value = '1';
+    });
 
     // Fois
     const tmsInput = document.createElement('input');
     tmsInput.type = 'number'; tmsInput.className = 'tms-in';
-    tmsInput.value = '1'; tmsInput.min = '1';
+    tmsInput.value = '1'; tmsInput.min = '1'; tmsInput.step = '1';
     tmsInput.setAttribute('inputmode', 'numeric');
     tmsInput.placeholder = '×';
+    // Garde-fou : remet à 1 si valeur invalide ou <= 0
+    tmsInput.addEventListener('blur', () => {
+      const v = parseInt(tmsInput.value, 10);
+      if (isNaN(v) || v < 1) tmsInput.value = '1';
+    });
 
     // Boutons
     const actions = document.createElement('div');
@@ -840,6 +850,14 @@
       }
     });
     if (!entries.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
+
+    // Validation locale avant envoi
+    for (const e of entries) {
+      const pts = parseInt(e.points, 10);
+      const tms = parseInt(e.times,  10);
+      if (isNaN(pts) || pts < 1) { showToast('Les points doivent être ≥ 1 sur toutes les lignes.', 'error'); return; }
+      if (isNaN(tms) || tms < 1) { showToast('Le multiplicateur doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
+    }
 
     const btn  = document.getElementById('submitLotBtn');
     const date = document.getElementById('globalDateInput').value;

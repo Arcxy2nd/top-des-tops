@@ -108,7 +108,8 @@ const StorageService = {
       if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
       const pts = parseInt(e.points, 10);
       const tms = parseInt(e.times,  10);
-      if (isNaN(pts) || isNaN(tms) || tms < 1) throw new Error("Valeurs de score invalides.");
+      if (isNaN(pts) || pts < 1)              throw new Error("Les points doivent être ≥ 1.");
+      if (isNaN(tms) || tms < 1)              throw new Error("Le multiplicateur doit être ≥ 1.");
       return [targetDate, e.player, e.category, pts * tms];
     });
 
@@ -123,13 +124,17 @@ const StorageService = {
     if (lastRow <= 1) return [];
     return sheet.getRange(2, 1, lastRow - 1, 4).getValues()
       .map(row => {
-        const d = new Date(row[0]);
-        if (isNaN(d.getTime())) return null;
+        const d      = new Date(row[0]);
+        const points = parseInt(row[3], 10);
+        // Rejeter : date invalide, joueur/catégorie vide, points NaN ou <= 0
+        if (isNaN(d.getTime()))  return null;
+        if (!row[1] || !row[2])  return null;
+        if (isNaN(points) || points <= 0) return null;
         return {
           timestamp: d,
-          player:    row[1] ? row[1].toString() : '',
-          category:  row[2] ? row[2].toString() : '',
-          points:    parseInt(row[3], 10) || 0
+          player:    row[1].toString(),
+          category:  row[2].toString(),
+          points
         };
       })
       .filter(Boolean);
@@ -168,6 +173,10 @@ const StorageService = {
       if (isNaN(d.getTime())) continue;
       const player   = row[1] ? row[1].toString() : '';
       const category = row[2] ? row[2].toString() : '';
+      const points   = parseInt(row[3], 10);
+      // Rejeter lignes invalides : points NaN, <= 0, joueur ou catégorie vides
+      if (!player || !category)       continue;
+      if (isNaN(points) || points <= 0) continue;
       if (filterPlayer   && player   !== filterPlayer)   continue;
       if (filterCategory && category !== filterCategory) continue;
       allWithIndex.push({
@@ -175,7 +184,7 @@ const StorageService = {
         timestamp: d.toISOString(),
         player,
         category,
-        points:   parseInt(row[3], 10) || 0,
+        points,
         rowIndex: i + 2   // ligne réelle dans le sheet (header = ligne 1, data commence ligne 2)
       });
     }
