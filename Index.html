@@ -43,6 +43,7 @@
     .nav-container {
       display: flex; min-width: max-content;
       width: 100%; max-width: 1200px; gap: 2px;
+      align-items: center;
     }
     .nav-btn {
       background: transparent; border: none;
@@ -55,11 +56,28 @@
     }
     .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+    /* Bouton refresh + badge */
+    .nav-refresh-wrap {
+      display: flex; align-items: center; gap: 6px;
+      margin-left: auto; padding: 0 8px; flex-shrink: 0;
+    }
+    .nav-refresh-btn {
+      background: var(--btn-alt); border: none;
+      border-radius: 20px; font-size: 1rem; padding: 7px 11px;
+      cursor: pointer; color: var(--text); min-height: 36px;
+      transition: background 0.2s;
+    }
+    .nav-refresh-btn:hover { background: var(--accent); color: #fff; }
+    .refresh-badge {
+      font-size: 0.7rem; color: var(--text-muted);
+      white-space: nowrap;
+    }
     .theme-toggle {
-      margin-left: auto; background: var(--btn-alt); border: none;
+      background: var(--btn-alt); border: none;
       border-radius: 20px; font-size: 1.1rem; padding: 8px 12px;
-      cursor: pointer; color: var(--text); align-self: center;
-      margin-right: 12px; min-height: 36px;
+      cursor: pointer; color: var(--text);
+      min-height: 36px; margin-right: 8px;
     }
 
     /* ── LAYOUT ── */
@@ -79,11 +97,11 @@
     h3 { font-size: 0.95rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 0 0 12px 0; }
 
     /* ── FORM CONTROLS ── */
-    select, input {
+    select, input[type="text"], input[type="url"], input[type="date"], input[type="number"] {
       padding: 10px 12px; border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--bg); color: var(--text);
-      font-size: 16px; /* évite zoom iOS */
+      font-size: 16px;
       outline: none; transition: border-color 0.2s;
       width: 100%;
     }
@@ -116,16 +134,40 @@
     .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; flex: 1; }
     .filter-group label { font-size: 0.78rem; color: var(--text-muted); }
     .filter-group button { width: 100%; }
-    select[multiple] {
-      height: auto; padding: 6px;
-      background: var(--card);
-    }
+    select[multiple] { height: auto; padding: 6px; background: var(--card); }
     select[multiple] option { padding: 4px 6px; }
+
+    /* ── DATE SHORTCUTS ── */
+    .date-shortcuts {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+    }
+    .date-shortcut {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; padding: 4px 9px;
+      font-size: 0.75rem; cursor: pointer; color: var(--text);
+      min-height: 28px; font-weight: 500;
+      transition: background 0.15s;
+    }
+    .date-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── CHART TYPE SELECTOR ── */
+    .chart-type-bar {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+    }
+    .chart-type-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 12px;
+      font-size: 0.8rem; cursor: pointer; color: var(--text);
+      min-height: 34px; font-weight: 500;
+      transition: 0.15s;
+    }
+    .chart-type-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .chart-type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     /* ── CHART ── */
     .chart-header {
       display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+      align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;
     }
     .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
     .export-btn {
@@ -137,7 +179,7 @@
     .export-btn:hover { background: var(--accent); color: #fff; }
     .chart-wrapper { position: relative; height: 420px; }
 
-    /* ── SKELETON LOADER ── */
+    /* ── SKELETON ── */
     .skeleton {
       background: linear-gradient(90deg, var(--border) 25%, var(--btn-alt) 50%, var(--border) 75%);
       background-size: 200% 100%;
@@ -148,13 +190,13 @@
 
     /* ── SAISIE LOT ── */
     .batch-header {
-      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      display: grid; grid-template-columns: 2fr 2fr auto 1fr auto;
       gap: 10px; padding: 0 10px; margin-bottom: 8px;
       color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
       text-transform: uppercase;
     }
     .entry-row {
-      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto;
+      display: grid; grid-template-columns: 2fr 2fr auto 1fr auto;
       gap: 10px; align-items: center;
       background: rgba(0,0,0,0.15); padding: 10px;
       border-radius: 8px; border: 1px solid var(--border);
@@ -173,6 +215,21 @@
     .row-actions button { flex: 1; padding: 8px; }
     #entryContainer { min-height: 60px; }
     .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px; }
+
+    /* ── POINTS TOGGLE BUTTONS ── */
+    .pts-toggle-wrap {
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+    .pts-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; padding: 5px 8px;
+      font-size: 0.78rem; cursor: pointer; color: var(--text);
+      min-height: 32px; font-weight: 600;
+      transition: 0.15s; flex: 1; min-width: 30px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pts-btn:hover  { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pts-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     /* ── SETTINGS ── */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -201,6 +258,30 @@
     .pagination button { min-width: 36px; padding: 6px; }
     .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .history-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: var(--btn-alt); }
+
+    /* ── ONGLET OUTILS ── */
+    .health-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .health-stat {
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 12px; text-align: center;
+    }
+    .health-stat .stat-value { font-size: 2rem; font-weight: 700; }
+    .health-stat .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .health-stat.bad  .stat-value { color: var(--error); }
+    .health-stat.warn .stat-value { color: #ffd166; }
+    .health-stat.ok   .stat-value { color: var(--success); }
+    .tool-action {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+      background: rgba(0,0,0,0.15); padding: 14px 16px;
+      border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px;
+    }
+    .tool-action-info { flex: 1; }
+    .tool-action-info strong { display: block; margin-bottom: 4px; }
+    .tool-action-info span  { font-size: 0.82rem; color: var(--text-muted); }
 
     /* ── MODAL ── */
     .modal-backdrop {
@@ -250,14 +331,15 @@
       .batch-header { display: none; }
       .entry-row { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
       .player-sel-wrap { grid-column: 1 / -1; }
-      .entry-row .c-sel { grid-column: 1 / -1; }
-      .entry-row .pts-sel { grid-column: 1; }
-      .entry-row .tms-in  { grid-column: 2; }
+      .entry-row .c-sel  { grid-column: 1 / -1; }
+      .entry-row .pts-toggle-wrap { grid-column: 1; }
+      .entry-row .tms-in { grid-column: 2; }
       .row-actions { grid-column: 1 / -1; }
       .settings-grid { grid-template-columns: 1fr; gap: 16px; }
       .export-buttons { gap: 4px; }
       .export-btn { padding: 5px 7px; font-size: 0.7rem; }
       .history-filters { flex-direction: column; }
+      .health-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -269,6 +351,11 @@
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique</button>
+    <button class="nav-btn" data-tab="tab-tools">🔧 Outils</button>
+    <div class="nav-refresh-wrap">
+      <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
+      <span class="refresh-badge" id="refreshBadge"></span>
+    </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
   </div>
 </nav>
@@ -292,10 +379,12 @@
         <div class="filter-group">
           <label>Date début</label>
           <input type="date" id="startDate">
+          <div class="date-shortcuts" id="startDateShortcuts"></div>
         </div>
         <div class="filter-group">
           <label>Date fin</label>
           <input type="date" id="endDate">
+          <div class="date-shortcuts" id="endDateShortcuts"></div>
         </div>
         <div class="filter-group" style="min-width:110px; flex:0;">
           <label>&nbsp;</label>
@@ -316,7 +405,23 @@
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
       </div>
-      <!-- Skeleton visible pendant le chargement initial -->
+
+      <!-- Sélecteur de type de graphique -->
+      <div class="chart-type-bar" id="chartTypeBar">
+        <button class="chart-type-btn active" data-chart-type="stacked">📊 Barres</button>
+        <button class="chart-type-btn" data-chart-type="grouped">📊 Groupé</button>
+        <button class="chart-type-btn" data-chart-type="trend">📈 Courbes</button>
+        <button class="chart-type-btn" data-chart-type="radar">🕸️ Radar</button>
+        <button class="chart-type-btn" data-chart-type="doughnut">🍩 Donut</button>
+        <button class="chart-type-btn" data-chart-type="ranking">🏆 Classement</button>
+      </div>
+
+      <!-- Sélecteur joueur pour le Donut -->
+      <div id="donutPlayerWrap" style="display:none; margin-bottom:10px;">
+        <label style="font-size:0.78rem; color:var(--text-muted);">Joueur pour le Donut</label>
+        <select id="donutPlayerSelect" style="max-width:220px; margin-top:4px;"></select>
+      </div>
+
       <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
       <div class="chart-wrapper" id="chartWrapper" style="display:none;">
         <canvas id="mainChart"></canvas>
@@ -329,16 +434,18 @@
     <div class="card">
       <h2>✍️ Constructeur de Lot</h2>
       <div style="margin-bottom:16px;">
-        <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">Date appliquée (vide = maintenant)</label>
-        <input type="datetime-local" id="globalDateInput">
+        <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">
+          Date appliquée (vide = aujourd'hui à midi)
+        </label>
+        <!-- 4.1 — input type="date" uniquement -->
+        <input type="date" id="globalDateInput" style="max-width:220px;">
+        <!-- 4.2 — raccourcis de date pour la saisie -->
+        <div class="date-shortcuts" style="margin-top:8px;" id="injectDateShortcuts"></div>
       </div>
       <div class="batch-header">
         <div>Joueur</div><div>Catégorie</div><div>Points</div><div>×</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
-      <datalist id="pointsSuggestion">
-        <option value="1"><option value="3"><option value="5"><option value="10">
-      </datalist>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
         <button id="addRowBtn" class="secondary">+ Ligne</button>
         <button id="submitLotBtn" class="primary" style="flex:1;">✓ Inscrire le Lot</button>
@@ -378,8 +485,8 @@
     <div class="card">
       <h2>📜 Historique des entrées</h2>
       <div class="history-filters">
-        <select id="historyPlayerFilter" style="flex:1; min-width:140px;"><option value="">Tous joueurs</option></select>
-        <select id="historyCategoryFilter" style="flex:1; min-width:140px;"><option value="">Toutes catégories</option></select>
+        <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
+        <select id="historyCategoryFilter"><option value="">Toutes catégories</option></select>
         <button id="refreshHistoryBtn" class="secondary small">🔄 Rafraîchir</button>
       </div>
       <div class="table-wrap">
@@ -393,7 +500,60 @@
       <div id="historyPagination" class="pagination"></div>
     </div>
   </div>
-</div><!-- /.container -->
+
+  <!-- ══ OUTILS ════════════════════════════════════════════════════════ -->
+  <div id="tab-tools" class="tab-content">
+    <div class="card">
+      <h2>🔧 Rapport de santé</h2>
+      <div class="health-grid" id="healthGrid">
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+      </div>
+      <div style="text-align:right;">
+        <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛠️ Actions de nettoyage</h2>
+
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Supprimer les entrées à 0 point</strong>
+          <span>Supprime toutes les lignes dont le score est ≤ 0.</span>
+        </div>
+        <button class="danger small" id="fixZeroBtn">Nettoyer</button>
+      </div>
+
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Normaliser les dates à midi</strong>
+          <span>Met toutes les heures à 12:00:00 pour éviter les bugs de timezone.</span>
+        </div>
+        <button class="small" id="normalizeDatesBtn">Normaliser</button>
+      </div>
+
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Supprimer les entrées orphelines</strong>
+          <span>Supprime les entrées dont le joueur ou la catégorie n'existe plus.</span>
+        </div>
+        <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
+      </div>
+
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Supprimer les doublons</strong>
+          <span>Conserve la première occurrence, supprime les doublons exacts.</span>
+        </div>
+        <button class="danger small" id="deleteDuplicatesBtn">Dédupliquer</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MODAL ═══════════════════════════════════════════════════════════ -->
 <div id="modalBackdrop" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
@@ -404,12 +564,15 @@
   // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
   let currentChart     = null;
   let currentChartData = null;
+  let currentChartType = 'stacked';
   let cachedPlayers    = [];
   let cachedCategories = [];
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let totalHistoryEntries = 0;
+  let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
+  const PTS_VALUES = [1, 3, 5, 10, 25, 50];
 
   // ── UTILITAIRES ──────────────────────────────────────────────────────
   function escapeHtml(s) {
@@ -434,7 +597,56 @@
     }, 3500);
   }
 
-  // ── APPEL SERVEUR (avec withFailureHandler) ──────────────────────────
+  // ── DATE UTILS ───────────────────────────────────────────────────────
+  function toDateStr(d) { return d.toISOString().slice(0, 10); }
+
+  function getMondayOfWeek(d) {
+    const tmp = new Date(d);
+    tmp.setHours(0,0,0,0);
+    tmp.setDate(tmp.getDate() - ((tmp.getDay() + 6) % 7));
+    return tmp;
+  }
+
+  /** Retourne les raccourcis pour un champ date donné */
+  function buildDateShortcuts(targetInputId) {
+    const today   = new Date();
+    const monday  = getMondayOfWeek(today);
+    const lastMon = new Date(monday); lastMon.setDate(lastMon.getDate() - 7);
+    const firstDom = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstPrevMon = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const minus3m  = new Date(today); minus3m.setMonth(minus3m.getMonth() - 3);
+
+    const shortcuts = [
+      { label: "Aujourd'hui",    value: toDateStr(today) },
+      { label: "Hier",           value: toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)) },
+      { label: "Cette semaine",  value: toDateStr(monday) },
+      { label: "Semaine préc.",  value: toDateStr(lastMon) },
+      { label: "Ce mois",        value: toDateStr(firstDom) },
+      { label: "Mois préc.",     value: toDateStr(firstPrevMon) },
+      { label: "Il y a 3 mois",  value: toDateStr(minus3m) }
+    ];
+
+    const wrap = document.getElementById(targetInputId + 'Shortcuts') ||
+                 (() => {
+                   // fallback : shortcut injected in inject tab
+                   return null;
+                 })();
+    if (!wrap) return;
+
+    wrap.innerHTML = '';
+    shortcuts.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'date-shortcut';
+      btn.type = 'button';
+      btn.textContent = s.label;
+      btn.addEventListener('click', () => {
+        document.getElementById(targetInputId).value = s.value;
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  // ── APPEL SERVEUR ────────────────────────────────────────────────────
   function callServer(fn, params, onSuccess, errorLabel) {
     let runner = google.script.run
       .withSuccessHandler(res => {
@@ -448,6 +660,28 @@
         showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
       });
     runner[fn](...params);
+  }
+
+  // ── REFRESH GLOBAL ───────────────────────────────────────────────────
+  function globalRefresh() {
+    const activeTab = document.querySelector('.tab-content.active');
+    loadEntities();
+    applyFilters();
+    if (activeTab && activeTab.id === 'tab-history') {
+      loadHistoryPage(currentHistoryPage);
+    }
+    if (activeTab && activeTab.id === 'tab-tools') {
+      loadDataHealth();
+    }
+    lastRefreshTime = new Date();
+    updateRefreshBadge();
+  }
+
+  function updateRefreshBadge() {
+    if (!lastRefreshTime) return;
+    const diff = Math.round((new Date() - lastRefreshTime) / 60000);
+    const badge = document.getElementById('refreshBadge');
+    badge.textContent = diff < 1 ? 'À l\'instant' : `Il y a ${diff} min`;
   }
 
   // ── MODAL ────────────────────────────────────────────────────────────
@@ -493,7 +727,6 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  // Fermer modal en cliquant sur le backdrop
   document.getElementById('modalBackdrop').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
   });
@@ -504,7 +737,6 @@
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
 
-      // Selects multi dashboard
       const ps = document.getElementById('playerSelect');
       const cs = document.getElementById('categorySelect');
       const prevP = Array.from(ps.selectedOptions).map(o => o.value);
@@ -524,14 +756,12 @@
         cs.appendChild(o);
       });
 
-      // Listes paramètres
       renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
       renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
 
-      // Filtres historique
       updateHistoryFilters();
+      updateDonutPlayerSelect();
 
-      // Recharger les lignes de saisie si le container est vide
       if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
 
     }, 'Chargement settings');
@@ -549,10 +779,8 @@
     items.forEach(item => {
       const li = document.createElement('li');
       li.className = 'entity-item';
-
       const left = document.createElement('div');
       left.className = 'entity-left';
-
       if (type === 'Players') {
         const img = document.createElement('img');
         img.className = 'avatar-img';
@@ -561,74 +789,93 @@
         img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
         left.appendChild(img);
       }
-
       const strong = document.createElement('strong');
       strong.textContent = item.name;
       left.appendChild(strong);
-
       if (item.meta && type === 'Categories') {
         const meta = document.createElement('span');
         meta.className = 'entity-meta';
         meta.textContent = item.meta;
         left.appendChild(meta);
       }
-
       const btns = document.createElement('div');
       btns.className = 'entity-btns';
-
       const editBtn = document.createElement('button');
-      editBtn.className = 'small';
-      editBtn.textContent = '✏️';
-      editBtn.title = 'Éditer';
+      editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
       editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta));
-
       const delBtn = document.createElement('button');
-      delBtn.className = 'small danger';
-      delBtn.textContent = '🗑️';
-      delBtn.title = 'Supprimer';
+      delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
         openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
           callServer('apiManageEntity', ['DELETE', type, null, null, item.name], () => {
-            loadEntities();
-            applyFilters();
+            loadEntities(); applyFilters();
             showToast('Supprimé.', 'success');
           }, 'Suppression');
         });
       });
-
-      btns.appendChild(editBtn);
-      btns.appendChild(delBtn);
-      li.appendChild(left);
-      li.appendChild(btns);
+      btns.appendChild(editBtn); btns.appendChild(delBtn);
+      li.appendChild(left); li.appendChild(btns);
       container.appendChild(li);
     });
   }
 
   // ── GRAPHIQUE ────────────────────────────────────────────────────────
+  const CHART_COLORS = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+
+  function getChartColors() {
+    return {
+      text:  getComputedStyle(document.body).getPropertyValue('--text').trim()      || '#e0e6ed',
+      muted: getComputedStyle(document.body).getPropertyValue('--text-muted').trim()|| '#9aa5be',
+      grid:  getComputedStyle(document.body).getPropertyValue('--border').trim()    || '#2a313d'
+    };
+  }
+
   function applyFilters() {
     const selPlayers    = Array.from(document.getElementById('playerSelect').selectedOptions).map(o => o.value);
     const selCategories = Array.from(document.getElementById('categorySelect').selectedOptions).map(o => o.value);
     const startDate     = document.getElementById('startDate').value;
     const endDate       = document.getElementById('endDate').value;
 
-    // Afficher skeleton
     document.getElementById('chartSkeleton').style.display = 'block';
     document.getElementById('chartWrapper').style.display  = 'none';
 
-    callServer('apiGetFilteredData',
-      [selPlayers, selCategories, startDate, endDate],
-      res => {
-        currentChartData = res.chartData;
-        renderChart(res.chartData);
+    if (currentChartType === 'trend') {
+      // Courbe : requête séparée
+      callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
+        currentChartData = res.trendData;
+        renderTrendChart(res.trendData);
         document.getElementById('chartSkeleton').style.display = 'none';
         document.getElementById('chartWrapper').style.display  = 'block';
-      },
-      'Chargement graphique'
-    );
+      }, 'Chargement courbes');
+    } else {
+      callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
+        currentChartData = res.chartData;
+        renderChart(res.chartData, currentChartType);
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+      }, 'Chargement graphique');
+    }
   }
 
-  function renderChart(data) {
-    if (currentChart) currentChart.destroy();
+  function switchChartType(type) {
+    currentChartType = type;
+    document.querySelectorAll('.chart-type-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.chartType === type);
+    });
+    const donutWrap = document.getElementById('donutPlayerWrap');
+    donutWrap.style.display = type === 'doughnut' ? 'block' : 'none';
+
+    if (type === 'trend') {
+      // Besoin de nouvelles données temporelles
+      applyFilters();
+      return;
+    }
+    if (!currentChartData) { applyFilters(); return; }
+    renderChart(currentChartData, type);
+  }
+
+  function renderChart(data, type) {
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
 
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
@@ -640,26 +887,157 @@
       return;
     }
 
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim()      || '#e0e6ed';
-    const mutedColor= getComputedStyle(document.body).getPropertyValue('--text-muted').trim()|| '#9aa5be';
-    const gridColor = getComputedStyle(document.body).getPropertyValue('--border').trim()    || '#2a313d';
+    const c = getChartColors();
+    const baseOpts = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: c.text, font: { size: 12 } } },
+        tooltip: { mode: 'index', intersect: false }
+      }
+    };
 
+    if (type === 'doughnut') {
+      // Données pour un joueur sélectionné
+      const player = document.getElementById('donutPlayerSelect').value;
+      const playerData = data.datasets.map(ds => {
+        const idx = data.labels.indexOf(player);
+        return idx >= 0 ? ds.data[idx] : 0;
+      });
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: data.datasets.map(d => d.label),
+          datasets: [{ data: playerData, backgroundColor: CHART_COLORS }]
+        },
+        options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } }
+      });
+      return;
+    }
+
+    if (type === 'radar') {
+      const radarDatasets = data.labels.map((player, i) => ({
+        label: player,
+        data: data.datasets.map(ds => ds.data[i] || 0),
+        backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '33',
+        borderColor: CHART_COLORS[i % CHART_COLORS.length],
+        pointBackgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+        borderWidth: 2
+      }));
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'radar',
+        data: { labels: data.datasets.map(d => d.label), datasets: radarDatasets },
+        options: {
+          ...baseOpts,
+          scales: {
+            r: {
+              grid: { color: c.grid },
+              pointLabels: { color: c.muted },
+              ticks: { color: c.muted, backdropColor: 'transparent' }
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    if (type === 'ranking') {
+      // Total par joueur, trié
+      const totals = data.labels.map((p, i) => ({
+        player: p,
+        total: data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+      })).sort((a, b) => b.total - a.total);
+
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: totals.map(t => t.player),
+          datasets: [{
+            label: 'Total points',
+            data: totals.map(t => t.total),
+            backgroundColor: CHART_COLORS,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          ...baseOpts,
+          indexAxis: 'y',
+          scales: {
+            x: { grid: { color: c.grid }, ticks: { color: c.muted } },
+            y: { grid: { color: c.grid }, ticks: { color: c.muted } }
+          }
+        }
+      });
+      return;
+    }
+
+    // stacked ou grouped
+    const stacked = type !== 'grouped';
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
       type: 'bar',
       data: data,
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        ...baseOpts,
         scales: {
-          x: { stacked: true, grid: { color: gridColor }, ticks: { color: mutedColor, maxRotation: 40 } },
-          y: { stacked: true, beginAtZero: true, grid: { color: gridColor }, ticks: { color: mutedColor } }
+          x: { stacked, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
+          y: { stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
+        }
+      }
+    });
+  }
+
+  function renderTrendChart(trendData) {
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+    if (!trendData || !trendData.labels || !trendData.labels.length) {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = 'var(--text-muted)';
+      ctx.textAlign = 'center';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Aucune donnée temporelle pour cette sélection.', ctx.canvas.width / 2, 40);
+      return;
+    }
+
+    const c = getChartColors();
+    const players = Object.keys(trendData.series);
+    const datasets = players.map((p, i) => ({
+      label: p,
+      data: trendData.series[p],
+      borderColor: CHART_COLORS[i % CHART_COLORS.length],
+      backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '22',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4,
+      borderWidth: 2
+    }));
+
+    currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: trendData.labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
+          y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
         plugins: {
-          legend: { labels: { color: textColor, font: { size: 12 } } },
+          legend: { labels: { color: c.text, font: { size: 12 } } },
           tooltip: { mode: 'index', intersect: false }
         }
       }
     });
+  }
+
+  function updateDonutPlayerSelect() {
+    const sel = document.getElementById('donutPlayerSelect');
+    const prev = sel.value;
+    sel.innerHTML = '';
+    cachedPlayers.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      sel.appendChild(o);
+    });
+    if (prev) sel.value = prev;
   }
 
   // ── EXPORTS ──────────────────────────────────────────────────────────
@@ -730,9 +1108,30 @@
     img.onerror = () => { img.src = getAvatarUrl(opt.value, ''); };
   }
 
+  /** Crée les 6 boutons de points toggle, renvoie le wrapper */
+  function createPtsToggle(defaultVal) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pts-toggle-wrap';
+    wrap.dataset.selected = String(defaultVal || 1);
+
+    PTS_VALUES.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'pts-btn' + (v === (defaultVal || 1) ? ' active' : '');
+      btn.type = 'button';
+      btn.textContent = v;
+      btn.dataset.val = v;
+      btn.addEventListener('click', () => {
+        wrap.querySelectorAll('.pts-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        wrap.dataset.selected = v;
+      });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
   function addEntryRow(preset) {
     const container = document.getElementById('entryContainer');
-    // Supprimer l'éventuel message "empty-state"
     const es = container.querySelector('.empty-state');
     if (es) es.remove();
 
@@ -747,17 +1146,15 @@
     }
 
     rowCounter++;
-    const id  = 'row_' + rowCounter;
     const div = document.createElement('div');
     div.className = 'entry-row';
-    div.id = id;
+    div.id = 'row_' + rowCounter;
 
     // Wrapper joueur
     const wrap = document.createElement('div');
     wrap.className = 'player-sel-wrap';
     const img = document.createElement('img');
-    img.className = 'row-avatar';
-    img.alt = '';
+    img.className = 'row-avatar'; img.alt = '';
     const pSel = document.createElement('select');
     pSel.className = 'p-sel';
     cachedPlayers.forEach(p => {
@@ -766,8 +1163,7 @@
       pSel.appendChild(o);
     });
     pSel.addEventListener('change', () => updateRowAvatar(pSel, img));
-    wrap.appendChild(img);
-    wrap.appendChild(pSel);
+    wrap.appendChild(img); wrap.appendChild(pSel);
 
     // Catégorie
     const cSel = document.createElement('select');
@@ -778,31 +1174,21 @@
       cSel.appendChild(o);
     });
 
-    // Points (input libre + datalist)
-    const ptsInput = document.createElement('input');
-    ptsInput.type = 'number'; ptsInput.className = 'pts-sel';
-    ptsInput.value = '1'; ptsInput.min = '1'; ptsInput.step = '1';
-    ptsInput.setAttribute('list', 'pointsSuggestion');
-    ptsInput.placeholder = 'Pts';
-    // Garde-fou : remet à 1 si valeur invalide ou <= 0
-    ptsInput.addEventListener('blur', () => {
-      const v = parseInt(ptsInput.value, 10);
-      if (isNaN(v) || v < 1) ptsInput.value = '1';
-    });
+    // 3 — Boutons toggle points (remplace input number)
+    const ptsToggle = createPtsToggle(preset ? parseInt(preset.points, 10) || 1 : 1);
 
-    // Fois
+    // Multiplicateur (gardé en input)
     const tmsInput = document.createElement('input');
     tmsInput.type = 'number'; tmsInput.className = 'tms-in';
     tmsInput.value = '1'; tmsInput.min = '1'; tmsInput.step = '1';
     tmsInput.setAttribute('inputmode', 'numeric');
     tmsInput.placeholder = '×';
-    // Garde-fou : remet à 1 si valeur invalide ou <= 0
     tmsInput.addEventListener('blur', () => {
       const v = parseInt(tmsInput.value, 10);
       if (isNaN(v) || v < 1) tmsInput.value = '1';
     });
 
-    // Boutons
+    // Actions
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     const dupBtn = document.createElement('button');
@@ -810,30 +1196,27 @@
     dupBtn.addEventListener('click', () => addEntryRow({
       player:   pSel.value,
       category: cSel.value,
-      points:   ptsInput.value,
+      points:   ptsToggle.dataset.selected,
       times:    tmsInput.value
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
     delBtn.addEventListener('click', () => div.remove());
-    actions.appendChild(dupBtn);
-    actions.appendChild(delBtn);
+    actions.appendChild(dupBtn); actions.appendChild(delBtn);
 
     div.appendChild(wrap);
     div.appendChild(cSel);
-    div.appendChild(ptsInput);
+    div.appendChild(ptsToggle);
     div.appendChild(tmsInput);
     div.appendChild(actions);
     container.appendChild(div);
 
-    // Preset
     if (preset) {
-      pSel.value   = preset.player   || pSel.value;
-      cSel.value   = preset.category || cSel.value;
-      ptsInput.value = preset.points || 1;
-      tmsInput.value = preset.times  || 1;
+      if (preset.player)   pSel.value = preset.player;
+      if (preset.category) cSel.value = preset.category;
+      if (preset.times)    tmsInput.value = preset.times;
+      // points déjà gérés dans createPtsToggle
     }
-    // Init avatar
     updateRowAvatar(pSel, img);
   }
 
@@ -843,23 +1226,26 @@
     rows.forEach(r => {
       const pSel = r.querySelector('.p-sel');
       const cSel = r.querySelector('.c-sel');
-      const pts  = r.querySelector('.pts-sel');
+      const ptsWrap = r.querySelector('.pts-toggle-wrap');
       const tms  = r.querySelector('.tms-in');
-      if (pSel && cSel && pts && tms) {
-        entries.push({ player: pSel.value, category: cSel.value, points: pts.value, times: tms.value });
+      if (pSel && cSel && ptsWrap && tms) {
+        entries.push({
+          player:   pSel.value,
+          category: cSel.value,
+          points:   ptsWrap.dataset.selected,
+          times:    tms.value
+        });
       }
     });
     if (!entries.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
 
-    // Validation locale avant envoi
     for (const e of entries) {
-      const pts = parseInt(e.points, 10);
-      const tms = parseInt(e.times,  10);
-      if (isNaN(pts) || pts < 1) { showToast('Les points doivent être ≥ 1 sur toutes les lignes.', 'error'); return; }
+      const tms = parseInt(e.times, 10);
       if (isNaN(tms) || tms < 1) { showToast('Le multiplicateur doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
     }
 
     const btn  = document.getElementById('submitLotBtn');
+    // 4.1 — on envoie une chaîne "YYYY-MM-DD"
     const date = document.getElementById('globalDateInput').value;
     btn.disabled = true; btn.textContent = '⏳ Écriture...';
 
@@ -871,8 +1257,7 @@
       applyFilters();
       showToast('Lot enregistré !', 'success');
     }, 'Envoi lot');
-    // En cas de failure, re-activer le bouton
-    // (géré par withFailureHandler dans callServer qui affiche le toast)
+
     setTimeout(() => {
       if (btn.disabled) { btn.disabled = false; btn.textContent = '✓ Inscrire le Lot'; }
     }, 30000);
@@ -882,8 +1267,7 @@
   function updateHistoryFilters() {
     const pFilter = document.getElementById('historyPlayerFilter');
     const cFilter = document.getElementById('historyCategoryFilter');
-    const prevP = pFilter.value;
-    const prevC = cFilter.value;
+    const prevP = pFilter.value; const prevC = cFilter.value;
     pFilter.innerHTML = '<option value="">Tous joueurs</option>';
     cachedPlayers.forEach(p => {
       const o = document.createElement('option');
@@ -896,8 +1280,7 @@
       o.value = c.name; o.textContent = c.name;
       cFilter.appendChild(o);
     });
-    pFilter.value = prevP;
-    cFilter.value = prevC;
+    pFilter.value = prevP; cFilter.value = prevC;
   }
 
   function loadHistoryPage(page) {
@@ -925,12 +1308,11 @@
 
       logs.forEach(log => {
         const tr = tbody.insertRow();
-        // Date
+        // 4.3 — date sans heure, format jj/mm/aaaa
         const dateCell = tr.insertCell();
         const d = new Date(log.timestamp);
-        dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+        dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
 
-        // Joueur avec avatar
         const playerCell = tr.insertCell();
         const player = cachedPlayers.find(p => p.name === log.player);
         const img = document.createElement('img');
@@ -941,19 +1323,13 @@
         playerCell.appendChild(img);
         playerCell.appendChild(document.createTextNode(log.player));
 
-        // Catégorie
         tr.insertCell().textContent = log.category;
-
-        // Points
         const ptsCell = tr.insertCell();
-        ptsCell.textContent = log.points;
-        ptsCell.style.fontWeight = '700';
+        ptsCell.textContent = log.points; ptsCell.style.fontWeight = '700';
 
-        // Supprimer
         const actCell = tr.insertCell();
         const delBtn = document.createElement('button');
-        delBtn.className = 'small danger';
-        delBtn.textContent = 'Suppr.';
+        delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
         delBtn.addEventListener('click', () => {
           openConfirmModal('Supprimer cette entrée ?', () => {
             callServer('apiDeleteHistoryEntry', [log.rowIndex], () => {
@@ -983,6 +1359,43 @@
     }
   }
 
+  // ── OUTILS ───────────────────────────────────────────────────────────
+  function loadDataHealth() {
+    const grid = document.getElementById('healthGrid');
+    grid.innerHTML = `
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+    `;
+    callServer('apiGetDataHealth', [], res => {
+      const h = res.health;
+      grid.innerHTML = `
+        <div class="health-stat ok">
+          <div class="stat-value">${h.total}</div>
+          <div class="stat-label">Entrées totales</div>
+        </div>
+        <div class="health-stat ${h.zeros > 0 ? 'bad' : 'ok'}">
+          <div class="stat-value">${h.zeros}</div>
+          <div class="stat-label">Scores ≤ 0</div>
+        </div>
+        <div class="health-stat ${h.orphans > 0 ? 'warn' : 'ok'}">
+          <div class="stat-value">${h.orphans}</div>
+          <div class="stat-label">Orphelines</div>
+        </div>
+        <div class="health-stat ${h.duplicates > 0 ? 'warn' : 'ok'}">
+          <div class="stat-value">${h.duplicates}</div>
+          <div class="stat-label">Doublons</div>
+        </div>
+        <div class="health-stat ${h.datesWithTime > 0 ? 'warn' : 'ok'}">
+          <div class="stat-value">${h.datesWithTime}</div>
+          <div class="stat-label">Dates à normaliser</div>
+        </div>
+      `;
+    }, 'Chargement santé');
+  }
+
   // ── NAVIGATION ───────────────────────────────────────────────────────
   document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -992,6 +1405,7 @@
       document.getElementById(tabId).classList.add('active');
       btn.classList.add('active');
       if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
+      if (tabId === 'tab-tools')   { loadDataHealth(); }
     });
   });
 
@@ -1006,12 +1420,13 @@
       const isLight = document.body.classList.contains('light');
       localStorage.setItem('casseroles_theme', isLight ? 'light' : 'dark');
       btn.textContent = isLight ? '☀️' : '🌙';
-      if (currentChart && currentChartData) renderChart(currentChartData);
+      if (currentChart && currentChartData) renderChart(currentChartData, currentChartType);
     });
   }
 
-  // ── BOUTONS AJOUT ─────────────────────────────────────────────────────
-  function bindAddButtons() {
+  // ── BOUTONS ───────────────────────────────────────────────────────────
+  function bindButtons() {
+    // Entités
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
       const name = document.getElementById('newPlayerName').value.trim();
       const meta = document.getElementById('newPlayerMeta').value.trim();
@@ -1019,8 +1434,7 @@
       callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], () => {
         document.getElementById('newPlayerName').value = '';
         document.getElementById('newPlayerMeta').value = '';
-        loadEntities();
-        showToast('Joueur ajouté.', 'success');
+        loadEntities(); showToast('Joueur ajouté.', 'success');
       }, 'Ajout joueur');
     });
 
@@ -1031,20 +1445,78 @@
       callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], () => {
         document.getElementById('newCategoryName').value = '';
         document.getElementById('newCategoryMeta').value = '';
-        loadEntities();
-        showToast('Catégorie ajoutée.', 'success');
+        loadEntities(); showToast('Catégorie ajoutée.', 'success');
       }, 'Ajout catégorie');
     });
 
+    // Saisie lot
     document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+
+    // Historique
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
       currentHistoryPage = 1; loadHistoryPage(1);
     });
+
+    // Refresh global
+    document.getElementById('globalRefreshBtn').addEventListener('click', globalRefresh);
+    // Rafraîchir le badge toutes les minutes
+    setInterval(updateRefreshBadge, 60000);
+
+    // Types de graphique
+    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
+    });
+
+    // Donut player
+    document.getElementById('donutPlayerSelect').addEventListener('change', () => {
+      if (currentChartType === 'doughnut' && currentChartData) {
+        renderChart(currentChartData, 'doughnut');
+      }
+    });
+
+    // Outils
+    document.getElementById('reloadHealthBtn').addEventListener('click', loadDataHealth);
+
+    document.getElementById('fixZeroBtn').addEventListener('click', () => {
+      openConfirmModal('Supprimer toutes les entrées à 0 point ? Cette action est irréversible.', () => {
+        callServer('apiFixZeroPoints', [], res => {
+          showToast(`${res.deleted} entrée(s) supprimée(s).`, 'success');
+          loadDataHealth();
+        }, 'Nettoyage zéros');
+      });
+    });
+
+    document.getElementById('normalizeDatesBtn').addEventListener('click', () => {
+      openConfirmModal('Normaliser toutes les dates à 12:00:00 ?', () => {
+        callServer('apiNormalizeDates', [], res => {
+          showToast(`${res.modified} date(s) normalisée(s).`, 'success');
+          loadDataHealth();
+        }, 'Normalisation dates');
+      });
+    });
+
+    document.getElementById('deleteOrphansBtn').addEventListener('click', () => {
+      openConfirmModal('Supprimer les entrées orphelines (joueur/catégorie disparu) ? Irréversible.', () => {
+        callServer('apiDeleteOrphans', [], res => {
+          showToast(`${res.deleted} orphelin(s) supprimé(s).`, 'success');
+          loadDataHealth(); applyFilters();
+        }, 'Suppression orphelins');
+      });
+    });
+
+    document.getElementById('deleteDuplicatesBtn').addEventListener('click', () => {
+      openConfirmModal('Supprimer les doublons exacts ? La première occurrence est conservée.', () => {
+        callServer('apiDeleteDuplicates', [], res => {
+          showToast(`${res.deleted} doublon(s) supprimé(s).`, 'success');
+          loadDataHealth(); applyFilters();
+        }, 'Suppression doublons');
+      });
+    });
   }
 
-  // ── EXPORTS BOUTONS ───────────────────────────────────────────────────
+  // Exports
   function bindExportButtons() {
     document.querySelectorAll('.export-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1062,19 +1534,42 @@
   // ── INIT ─────────────────────────────────────────────────────────────
   window.onload = () => {
     initTheme();
-    bindAddButtons();
+    bindButtons();
     bindExportButtons();
 
-    // Dates par défaut : 1er jour du mois → aujourd'hui
+    // Raccourcis de date
+    buildDateShortcuts('startDate');
+    buildDateShortcuts('endDate');
+    // Raccourcis saisie lot
+    (() => {
+      // Pour la saisie, on réutilise la même logique mais le conteneur est différent
+      const wrap = document.getElementById('injectDateShortcuts');
+      const today   = new Date();
+      const monday  = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      [
+        { label: "Aujourd'hui", value: toDateStr(today) },
+        { label: "Hier",        value: toDateStr(yesterday) }
+      ].forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'date-shortcut'; btn.type = 'button'; btn.textContent = s.label;
+        btn.addEventListener('click', () => {
+          document.getElementById('globalDateInput').value = s.value;
+        });
+        wrap.appendChild(btn);
+      });
+    })();
+
+    // Dates par défaut dashboard
     const today    = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById('startDate').value = firstDay.toISOString().slice(0, 10);
     document.getElementById('endDate').value   = today.toISOString().slice(0, 10);
 
-    // Charger entités → appelle applyFilters() → affiche le graphique par défaut
+    lastRefreshTime = new Date();
+    updateRefreshBadge();
+
     loadEntities();
-    // applyFilters() sera appelé dans loadEntities() une fois les données prêtes
-    // mais on l'appelle aussi ici en sécurité
     applyFilters();
   };
 </script>

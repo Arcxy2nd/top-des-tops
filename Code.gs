@@ -34,7 +34,6 @@ const ConfigService = (() => {
   const getGeminiKey = () =>
     PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
-  // Invalider le cache après toute modification
   const clearCache = () => { _cache = null; };
 
   return { getSheets, getGeminiKey, clearCache };
@@ -80,7 +79,6 @@ const SettingsService = {
     if (idx === -1) throw new Error(`${oldName} introuvable.`);
     sheet.getRange(idx + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]);
 
-    // Cascade rename historique en batch (un seul setValues)
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
     if (lastRow > 1) {
@@ -99,17 +97,29 @@ const SettingsService = {
 // ─── STORAGE SERVICE ───────────────────────────────────────────────────────────
 const StorageService = {
 
-  appendBulkLogs(entries, customTimestamp) {
+  appendBulkLogs(entries, customDateStr) {
     if (!entries || !entries.length) throw new Error("Aucune donnée à injecter.");
-    const targetDate = customTimestamp ? new Date(customTimestamp) : new Date();
+
+    // 4.1 — On reçoit une chaîne "YYYY-MM-DD" (input type="date")
+    // On construit la date à midi pour éviter les bugs de timezone
+    let targetDate;
+    if (customDateStr && customDateStr.trim()) {
+      targetDate = new Date(customDateStr.trim() + 'T12:00:00');
+    } else {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      targetDate = new Date(
+        `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T12:00:00`
+      );
+    }
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
     const rows = entries.map(e => {
       if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
       const pts = parseInt(e.points, 10);
       const tms = parseInt(e.times,  10);
-      if (isNaN(pts) || pts < 1)              throw new Error("Les points doivent être ≥ 1.");
-      if (isNaN(tms) || tms < 1)              throw new Error("Le multiplicateur doit être ≥ 1.");
+      if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
+      if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
       return [targetDate, e.player, e.category, pts * tms];
     });
 
@@ -117,7 +127,6 @@ const StorageService = {
     history.getRange(history.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
   },
 
-  // Lecture complète (utilisée par AnalyticsService)
   getAllLogs() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
@@ -126,7 +135,6 @@ const StorageService = {
       .map(row => {
         const d      = new Date(row[0]);
         const points = parseInt(row[3], 10);
-        // Rejeter : date invalide, joueur/catégorie vide, points NaN ou <= 0
         if (isNaN(d.getTime()))  return null;
         if (!row[1] || !row[2])  return null;
         if (isNaN(points) || points <= 0) return null;
@@ -140,14 +148,13 @@ const StorageService = {
       .filter(Boolean);
   },
 
-  // Lecture filtrée (utilisée par apiGetFilteredData)
   getFilteredLogs(players, categories, startDate, endDate) {
     const all = this.getAllLogs();
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
 
     return all.filter(log => {
-      if (players   && players.length   && !players.includes(log.player))     return false;
+      if (players    && players.length    && !players.includes(log.player))     return false;
       if (categories && categories.length && !categories.includes(log.category)) return false;
       if (start && log.timestamp < start) return false;
       if (end   && log.timestamp > end)   return false;
@@ -155,16 +162,13 @@ const StorageService = {
     });
   },
 
-  // Pagination pour l'onglet Historique
   getHistoryPage(page, pageSize, filterPlayer, filterCategory) {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { logs: [], total: 0 };
 
-    // On lit les données brutes pour conserver les rowIndex corrects (1-based, ligne 2 = index 2)
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-    // Construire la liste avec rowIndex réel dès la lecture
     let allWithIndex = [];
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -174,22 +178,19 @@ const StorageService = {
       const player   = row[1] ? row[1].toString() : '';
       const category = row[2] ? row[2].toString() : '';
       const points   = parseInt(row[3], 10);
-      // Rejeter lignes invalides : points NaN, <= 0, joueur ou catégorie vides
-      if (!player || !category)       continue;
+      if (!player || !category)         continue;
       if (isNaN(points) || points <= 0) continue;
       if (filterPlayer   && player   !== filterPlayer)   continue;
       if (filterCategory && category !== filterCategory) continue;
       allWithIndex.push({
-        // Sérialiser en ISO string — les objets Date GAS sont mal transmis via google.script.run
         timestamp: d.toISOString(),
         player,
         category,
         points,
-        rowIndex: i + 2   // ligne réelle dans le sheet (header = ligne 1, data commence ligne 2)
+        rowIndex: i + 2
       });
     }
 
-    // Plus récent en premier
     allWithIndex.reverse();
 
     const total = allWithIndex.length;
@@ -201,13 +202,137 @@ const StorageService = {
 
   deleteHistoryEntry(rowIndex) {
     ConfigService.getSheets().history.deleteRow(rowIndex);
+  },
+
+  // ── OUTILS NETTOYAGE ────────────────────────────────────────────────
+
+  /** Retourne des stats de santé du sheet sans modifier quoi que ce soit */
+  getDataHealth() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { zeros: 0, orphans: 0, duplicates: 0, datesWithTime: 0, total: 0 };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+    const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
+    const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
+
+    let zeros = 0, orphans = 0, datesWithTime = 0;
+    const seen = {};
+    let duplicates = 0;
+
+    data.forEach(row => {
+      const d = new Date(row[0]);
+      if (isNaN(d.getTime())) return;
+      const pts = parseInt(row[3], 10);
+      const player = row[1] ? row[1].toString() : '';
+      const cat    = row[2] ? row[2].toString() : '';
+
+      if (isNaN(pts) || pts <= 0) zeros++;
+      if (player && !players.has(player))    orphans++;
+      else if (cat && !categories.has(cat))  orphans++;
+
+      // Date avec heure != midi
+      if (d.getHours() !== 12 || d.getMinutes() !== 0 || d.getSeconds() !== 0) datesWithTime++;
+
+      // Doublons
+      const key = `${d.toDateString()}|${player}|${cat}|${pts}`;
+      seen[key] = (seen[key] || 0) + 1;
+      if (seen[key] === 2) duplicates++; // compte les doublons (occurrences > 1)
+    });
+
+    return {
+      total:        data.length,
+      zeros,
+      orphans,
+      duplicates,
+      datesWithTime
+    };
+  },
+
+  /** Supprime les lignes avec points <= 0 */
+  fixZeroPoints() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { deleted: 0 };
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    let deleted = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      const pts = parseInt(data[i][3], 10);
+      if (isNaN(pts) || pts <= 0) {
+        sheet.deleteRow(i + 2);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+
+  /** Normalise toutes les dates à midi (YYYY-MM-DD T12:00:00) */
+  normalizeDates() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { modified: 0 };
+    const range = sheet.getRange(2, 1, lastRow - 1, 1);
+    const vals  = range.getValues();
+    let modified = 0;
+    for (let i = 0; i < vals.length; i++) {
+      const d = new Date(vals[i][0]);
+      if (isNaN(d.getTime())) continue;
+      if (d.getHours() !== 12 || d.getMinutes() !== 0 || d.getSeconds() !== 0) {
+        const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+        vals[i][0] = noon;
+        modified++;
+      }
+    }
+    if (modified > 0) range.setValues(vals);
+    return { modified };
+  },
+
+  /** Supprime les entrées dont le joueur ou la catégorie n'existe plus */
+  deleteOrphans() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { deleted: 0 };
+    const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
+    const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    let deleted = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      const player = data[i][1] ? data[i][1].toString() : '';
+      const cat    = data[i][2] ? data[i][2].toString() : '';
+      if (!players.has(player) || !categories.has(cat)) {
+        sheet.deleteRow(i + 2);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+
+  /** Supprime les doublons (même date+joueur+catégorie+score), garde la première occurrence */
+  deleteDuplicates() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { deleted: 0 };
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    const seen = new Set();
+    let deleted = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      const d   = new Date(data[i][0]);
+      const key = `${isNaN(d.getTime()) ? data[i][0] : d.toDateString()}|${data[i][1]}|${data[i][2]}|${data[i][3]}`;
+      if (seen.has(key)) {
+        sheet.deleteRow(i + 2);
+        deleted++;
+      } else {
+        seen.add(key);
+      }
+    }
+    return { deleted };
   }
 };
 
 // ─── ANALYTICS SERVICE ─────────────────────────────────────────────────────────
 const AnalyticsService = {
 
-  // Agrégation depuis les logs déjà filtrés (tableau d'objets)
   _aggregate(logs, players, categories) {
     const scores = {};
     players.forEach(p => {
@@ -237,8 +362,8 @@ const AnalyticsService = {
       let maxScore = 0, winners = [];
       Object.keys(scores).forEach(p => {
         const s = scores[p][cat];
-        if (s > maxScore)                   { maxScore = s; winners = [p]; }
-        else if (s === maxScore && s > 0)   { winners.push(p); }
+        if (s > maxScore)                  { maxScore = s; winners = [p]; }
+        else if (s === maxScore && s > 0)  { winners.push(p); }
       });
       if (maxScore > 0) {
         categoryWinners[cat] = { names: winners, score: maxScore };
@@ -252,7 +377,7 @@ const AnalyticsService = {
 
     let ultimateWinners = [], maxTop = 0;
     Object.keys(topOfTops).forEach(p => {
-      if (topOfTops[p] > maxTop)              { maxTop = topOfTops[p]; ultimateWinners = [p]; }
+      if (topOfTops[p] > maxTop)                    { maxTop = topOfTops[p]; ultimateWinners = [p]; }
       else if (topOfTops[p] === maxTop && maxTop > 0) { ultimateWinners.push(p); }
     });
     if (ultimateWinners.length) {
@@ -267,7 +392,6 @@ const AnalyticsService = {
       : "Aucune infraction détectée sur cette période.";
   },
 
-  // Appelé par apiGetData (dashboard classique, conservé pour compatibilité)
   getAggregatedData(filterYear, filterMonth) {
     const all = StorageService.getAllLogs();
     let logs  = all;
@@ -286,10 +410,9 @@ const AnalyticsService = {
     };
   },
 
-  // Appelé par apiGetFilteredData (filtres croisés dashboard)
   getFilteredChartData(players, categories, startDate, endDate) {
     const logs = StorageService.getFilteredLogs(
-      players && players.length   ? players    : null,
+      players    && players.length    ? players    : null,
       categories && categories.length ? categories : null,
       startDate || null,
       endDate   || null
@@ -298,7 +421,6 @@ const AnalyticsService = {
     const allPlayers    = SettingsService.getEntities('Players').map(p => p.name);
     const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
 
-    // Si des filtres sont actifs, on restreint les labels affichés
     const displayPlayers    = (players    && players.length)    ? players    : allPlayers;
     const displayCategories = (categories && categories.length) ? categories : allCategories;
 
@@ -313,6 +435,65 @@ const AnalyticsService = {
     }));
 
     return { labels: displayPlayers, datasets };
+  },
+
+  /**
+   * Données temporelles pour le graphique courbe.
+   * Retourne { labels: ['2024-01', ...], series: { joueur: [cumul, ...] } }
+   */
+  getTrendData(players, categories, startDate, endDate) {
+    const logs = StorageService.getFilteredLogs(
+      players    && players.length    ? players    : null,
+      categories && categories.length ? categories : null,
+      startDate || null,
+      endDate   || null
+    );
+
+    if (!logs.length) return { labels: [], series: {} };
+
+    // Déterminer le granularité : si la période > 90 jours → mois, sinon semaines
+    const start = startDate ? new Date(startDate + 'T00:00:00') : logs.reduce((m, l) => l.timestamp < m ? l.timestamp : m, logs[0].timestamp);
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : new Date();
+    const diffDays = (end - start) / (1000 * 86400);
+    const byMonth  = diffDays > 90;
+
+    const allPlayers = players && players.length
+      ? players
+      : SettingsService.getEntities('Players').map(p => p.name);
+
+    // Bucket key
+    const bucket = d => byMonth
+      ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      : (() => {
+          // ISO week start (lundi)
+          const tmp = new Date(d);
+          tmp.setHours(0,0,0,0);
+          tmp.setDate(tmp.getDate() - ((tmp.getDay() + 6) % 7));
+          return tmp.toISOString().slice(0,10);
+        })();
+
+    // Agréger par bucket + joueur
+    const bucketMap = {}; // { bucketKey: { player: points } }
+    logs.forEach(log => {
+      if (!allPlayers.includes(log.player)) return;
+      const k = bucket(log.timestamp);
+      if (!bucketMap[k]) bucketMap[k] = {};
+      bucketMap[k][log.player] = (bucketMap[k][log.player] || 0) + log.points;
+    });
+
+    const labels = Object.keys(bucketMap).sort();
+
+    // Cumul par joueur
+    const series = {};
+    allPlayers.forEach(p => {
+      let cum = 0;
+      series[p] = labels.map(k => {
+        cum += (bucketMap[k][p] || 0);
+        return cum;
+      });
+    });
+
+    return { labels, series };
   },
 
   generateAiQuote(year, month) {
@@ -413,7 +594,7 @@ function apiGetSettings() {
 
 function apiManageEntity(action, type, newName, newMeta, oldName) {
   try {
-    if (!SettingsService.VALID_TYPES.includes(type))    throw new Error("Type invalide.");
+    if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
     if (action === 'ADD')    SettingsService.addEntity(type, newName, newMeta);
     if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
@@ -423,14 +604,13 @@ function apiManageEntity(action, type, newName, newMeta, oldName) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiAddBulkScores(entries, customTimestamp) {
+function apiAddBulkScores(entries, customDateStr) {
   try {
-    StorageService.appendBulkLogs(entries, customTimestamp);
+    StorageService.appendBulkLogs(entries, customDateStr);
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-// Dashboard filtres croisés (appelé par applyFilters() dans le frontend)
 function apiGetFilteredData(players, categories, startDate, endDate) {
   try {
     const chartData = AnalyticsService.getFilteredChartData(players, categories, startDate, endDate);
@@ -438,14 +618,12 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-// Données agrégées classiques (conservé pour compatibilité)
 function apiGetData(year, month) {
   try {
     return { success: true, data: AnalyticsService.getAggregatedData(year, month) };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-// Historique paginé
 function apiGetHistoryPage(page, pageSize, filterPlayer, filterCategory) {
   try {
     const result = StorageService.getHistoryPage(page, pageSize, filterPlayer, filterCategory);
@@ -477,5 +655,53 @@ function apiDownloadHtmlReport(year, month) {
 function apiGetAvailableYears() {
   try {
     return { success: true, years: AnalyticsService.getAvailableYears() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── Données temporelles (graphique courbe)
+function apiGetTrendData(players, categories, startDate, endDate) {
+  try {
+    const trendData = AnalyticsService.getTrendData(players, categories, startDate, endDate);
+    return { success: true, trendData };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── Outils de nettoyage ──────────────────────────────────────────────────────
+
+function apiGetDataHealth() {
+  try {
+    return { success: true, health: StorageService.getDataHealth() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiFixZeroPoints() {
+  try {
+    const result = StorageService.fixZeroPoints();
+    ConfigService.clearCache();
+    return { success: true, deleted: result.deleted };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiNormalizeDates() {
+  try {
+    const result = StorageService.normalizeDates();
+    ConfigService.clearCache();
+    return { success: true, modified: result.modified };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteOrphans() {
+  try {
+    const result = StorageService.deleteOrphans();
+    ConfigService.clearCache();
+    return { success: true, deleted: result.deleted };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteDuplicates() {
+  try {
+    const result = StorageService.deleteDuplicates();
+    ConfigService.clearCache();
+    return { success: true, deleted: result.deleted };
   } catch(e) { return { success: false, error: e.message }; }
 }
