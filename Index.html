@@ -569,8 +569,16 @@
             </div>
           </div>
           <div class="date-shortcuts" style="margin-top:8px;" id="rangeShortcuts"></div>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-            Les mêmes lignes seront créées pour chaque jour de la plage.
+
+          <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin:12px 0 6px;">
+            Comment appliquer le lot sur la plage&nbsp;?
+          </label>
+          <div class="date-mode-toggle">
+            <button type="button" class="date-mode-btn active" id="fillDistribute">Répartir</button>
+            <button type="button" class="date-mode-btn" id="fillRepeat">Répéter</button>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;" id="rangeFillHelp">
+            <strong>Répartir</strong> : le total de chaque ligne est divisé sur les jours de la plage.
           </div>
         </div>
       </div>
@@ -744,7 +752,8 @@
   let currentHistoryPage = 1;
   let totalHistoryEntries = 0;
   let currentNotesPage = 1;
-  let dateMode         = 'single'; // 'single' | 'range'
+  let dateMode         = 'single';     // 'single' | 'range'
+  let rangeFill        = 'distribute'; // 'distribute' (répartir) | 'repeat' (répéter)
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
   const PTS_VALUES = [1, 3, 5, 10, 25, 50, 100];
@@ -828,23 +837,28 @@
     return tmp;
   }
 
-  function buildDateShortcuts(targetInputId) {
-    const today   = new Date();
-    const monday  = getMondayOfWeek(today);
+  // Liste canonique de raccourcis de date — utilisée pour TOUS les champs date
+  // (dashboard, saisie lot, notes) afin de garder exactement les mêmes choix partout.
+  function dateShortcutItems() {
+    const t = new Date();
+    const mk = (y, m, d) => toDateStr(new Date(y, m, d));
+    const monday  = getMondayOfWeek(t);
     const lastMon = new Date(monday); lastMon.setDate(lastMon.getDate() - 7);
-    const firstDom = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstPrevMon = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const minus3m  = new Date(today); minus3m.setMonth(minus3m.getMonth() - 3);
-
-    const shortcuts = [
-      { label: "Aujourd'hui",    value: toDateStr(today) },
-      { label: "Hier",           value: toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)) },
-      { label: "Cette semaine",  value: toDateStr(monday) },
-      { label: "Semaine préc.",  value: toDateStr(lastMon) },
-      { label: "Ce mois",        value: toDateStr(firstDom) },
-      { label: "Mois préc.",     value: toDateStr(firstPrevMon) },
-      { label: "Il y a 3 mois",  value: toDateStr(minus3m) }
+    const minus3m = new Date(t); minus3m.setMonth(minus3m.getMonth() - 3);
+    return [
+      { label: "Aujourd'hui",        value: toDateStr(t) },
+      { label: "Hier",               value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 1) },
+      { label: "Avant-hier",         value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 2) },
+      { label: "Lundi (cette sem.)", value: toDateStr(monday) },
+      { label: "Lundi (sem. préc.)", value: toDateStr(lastMon) },
+      { label: "1er du mois",        value: mk(t.getFullYear(), t.getMonth(), 1) },
+      { label: "1er mois préc.",     value: mk(t.getFullYear(), t.getMonth() - 1, 1) },
+      { label: "Il y a 3 mois",      value: toDateStr(minus3m) }
     ];
+  }
+
+  function buildDateShortcuts(targetInputId) {
+    const shortcuts = dateShortcutItems();
 
     const wrap = document.getElementById(targetInputId + 'Shortcuts') || null;
     if (!wrap) return;
@@ -1652,11 +1666,11 @@
 
     if (dateMode === 'single') {
       const date = document.getElementById('globalDateInput').value;
-      runBulkDates(entries, [date || ''], btn);
+      runBulkPlan([{ date: date || '', entries }], btn);
       return;
     }
 
-    // Mode plage : une écriture par jour de l'intervalle.
+    // Mode plage.
     const startStr = document.getElementById('rangeStartInput').value;
     const endStr   = document.getElementById('rangeEndInput').value;
     if (!startStr || !endStr) { showToast('Renseignez les deux dates de la plage.', 'error'); return; }
@@ -1664,9 +1678,22 @@
     if (!dates) { showToast('La date « Du » doit précéder la date « Au ».', 'error'); return; }
 
     const n = dates.length, m = entries.length;
-    openConfirmModal(`Vous allez créer ${n * m} entrées (${n} jour(s) × ${m} ligne(s)). Confirmer ?`, () => {
-      runBulkDates(entries, dates, btn);
-    });
+
+    if (rangeFill === 'repeat') {
+      // Le même lot, recopié à l'identique sur chaque jour.
+      const plan = dates.map(date => ({ date, entries }));
+      openConfirmModal(`Mode Répéter : ${n * m} entrées seront créées (${n} jours × ${m} lignes). Confirmer ?`, () => {
+        runBulkPlan(plan, btn);
+      });
+    } else {
+      // Répartir : le total de chaque ligne est divisé sur les jours.
+      const plan = distributeEntriesOverDates(entries, dates);
+      const created = plan.reduce((s, p) => s + p.entries.length, 0);
+      if (!created) { showToast('Rien à répartir (totaux nuls).', 'error'); return; }
+      openConfirmModal(`Mode Répartir : le total de chaque ligne sera divisé sur ${n} jours (${created} entrées créées). Confirmer ?`, () => {
+        runBulkPlan(plan, btn);
+      });
+    }
   }
 
   // Liste des dates "YYYY-MM-DD" de start à end inclus, ou null si invalide.
@@ -1683,23 +1710,49 @@
     return out;
   }
 
-  // Écrit le même lot pour chaque date, séquentiellement (un appel serveur par jour).
-  function runBulkDates(entries, dates, btn) {
-    const restore = startBtnLoading(btn, 'Écriture 1/' + dates.length);
+  /**
+   * Répartit chaque ligne sur les jours de la plage.
+   * Le total d'une ligne (points × multiplicateur) est divisé en parts entières
+   * dont la somme égale exactement le total. Les jours recevant 0 sont ignorés.
+   * Retourne un plan : [{ date, entries: [{player, category, points, times:1}] }].
+   */
+  function distributeEntriesOverDates(entries, dates) {
+    const n = dates.length;
+    const perDay = dates.map(() => []);
+    entries.forEach(e => {
+      const total = (parseInt(e.points, 10) || 0) * (parseInt(e.times, 10) || 0);
+      if (total <= 0) return;
+      const base = Math.floor(total / n);
+      const rem  = total % n;          // les `rem` premiers jours reçoivent +1
+      for (let k = 0; k < n; k++) {
+        const val = base + (k < rem ? 1 : 0);
+        if (val > 0) perDay[k].push({ player: e.player, category: e.category, points: val, times: 1 });
+      }
+    });
+    return dates.map((date, k) => ({ date, entries: perDay[k] })).filter(p => p.entries.length);
+  }
+
+  /**
+   * Exécute un plan d'écriture séquentiellement (un appel serveur par jour).
+   * plan : [{ date, entries }]. Les jours sans entrées sont déjà exclus.
+   */
+  function runBulkPlan(plan, btn) {
+    if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
+    const restore = startBtnLoading(btn, 'Écriture 1/' + plan.length);
     let i = 0;
     const next = () => {
-      if (i >= dates.length) {
+      if (i >= plan.length) {
         restore();
         flashSaved(btn);
         document.getElementById('globalDateInput').value = '';
         document.getElementById('entryContainer').innerHTML = '';
         addEntryRow();
         applyFilters();
-        showToast(dates.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${dates.length} jours).`, 'success');
+        showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} jours).`, 'success');
         return;
       }
-      btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + dates.length;
-      callServer('apiAddBulkScores', [entries, dates[i]], () => {
+      btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
+      callServer('apiAddBulkScores', [plan[i].entries, plan[i].date], () => {
         i++; next();
       }, 'Envoi lot', () => { restore(); });
     };
@@ -2184,6 +2237,17 @@
     // ── Mode date (Saisie Lot) ──
     document.getElementById('dateModeSingle').addEventListener('click', () => setDateMode('single'));
     document.getElementById('dateModeRange').addEventListener('click',  () => setDateMode('range'));
+    document.getElementById('fillDistribute').addEventListener('click', () => setRangeFill('distribute'));
+    document.getElementById('fillRepeat').addEventListener('click',     () => setRangeFill('repeat'));
+  }
+
+  function setRangeFill(mode) {
+    rangeFill = mode;
+    document.getElementById('fillDistribute').classList.toggle('active', mode === 'distribute');
+    document.getElementById('fillRepeat').classList.toggle('active', mode === 'repeat');
+    document.getElementById('rangeFillHelp').innerHTML = mode === 'distribute'
+      ? '<strong>Répartir</strong> : le total de chaque ligne est divisé sur les jours de la plage.'
+      : '<strong>Répéter</strong> : le lot complet est recopié à l\'identique sur chaque jour.';
   }
 
   function submitNote() {
@@ -2250,26 +2314,13 @@
     };
 
     (() => {
-      const t = new Date();
-      const mk = (y, m, d) => toDateStr(new Date(y, m, d));
-      const monday  = getMondayOfWeek(t);
-      const lastMon = new Date(monday); lastMon.setDate(lastMon.getDate() - 7);
-      const items = [
-        { label: "Aujourd'hui",       value: toDateStr(t) },
-        { label: "Hier",              value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 1) },
-        { label: "Avant-hier",        value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 2) },
-        { label: "Lundi (cette sem.)",value: toDateStr(monday) },
-        { label: "Lundi (sem. préc.)",value: toDateStr(lastMon) },
-        { label: "1er du mois",       value: mk(t.getFullYear(), t.getMonth(), 1) },
-        { label: "1er mois préc.",    value: mk(t.getFullYear(), t.getMonth() - 1, 1) }
-      ];
+      const items = dateShortcutItems();
       attachShortcuts('injectDateShortcuts', items, s => {
         document.getElementById('globalDateInput').value = s.value;
       });
-      attachShortcuts('noteDateShortcuts', [
-        { label: "Aujourd'hui", value: toDateStr(t) },
-        { label: "Hier",        value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 1) }
-      ], s => { document.getElementById('noteDate').value = s.value; });
+      attachShortcuts('noteDateShortcuts', items, s => {
+        document.getElementById('noteDate').value = s.value;
+      });
     })();
 
     // Raccourcis de plage (mode Plage de la Saisie Lot).
