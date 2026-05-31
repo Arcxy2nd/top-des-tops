@@ -2,7 +2,8 @@
  * STRUCTURE DU SPREADSHEET
  * History   : [0] Date | [1] Joueur | [2] Catégorie | [3] Points
  * Players   : [0] Nom  | [1] Avatar URL
- * Categories: [0] Nom  | [1] Description IA
+ * Categories: [0] Nom  | [1] Description
+ * Notes     : [0] Date | [1] Joueur | [2] Note (texte libre)
  */
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -24,19 +25,18 @@ const ConfigService = (() => {
       const categories = ss.getSheetByName('Categories');
       if (!history || !players || !categories)
         throw new Error("Onglets 'History', 'Players' ou 'Categories' manquants.");
-      _cache = { spreadsheet: ss, history, players, categories };
+      // La feuille Notes est optionnelle : null si absente (pas d'erreur bloquante).
+      const notes = ss.getSheetByName('Notes');
+      _cache = { spreadsheet: ss, history, players, categories, notes };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
     }
   };
 
-  const getGeminiKey = () =>
-    PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-
   const clearCache = () => { _cache = null; };
 
-  return { getSheets, getGeminiKey, clearCache };
+  return { getSheets, clearCache };
 })();
 
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
@@ -210,14 +210,14 @@ const StorageService = {
   getDataHealth() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { zeros: 0, orphans: 0, duplicates: 0, datesWithTime: 0, total: 0 };
+    if (lastRow <= 1) return { zeros: 0, orphans: 0, duplicates: 0, total: 0 };
 
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
     const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
     const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
 
-    let zeros = 0, orphans = 0, datesWithTime = 0;
+    let zeros = 0, orphans = 0;
     const seen = {};
     let duplicates = 0;
 
@@ -232,9 +232,6 @@ const StorageService = {
       if (player && !players.has(player))    orphans++;
       else if (cat && !categories.has(cat))  orphans++;
 
-      // Date avec heure != midi
-      if (d.getHours() !== 12 || d.getMinutes() !== 0 || d.getSeconds() !== 0) datesWithTime++;
-
       // Doublons
       const key = `${d.toDateString()}|${player}|${cat}|${pts}`;
       seen[key] = (seen[key] || 0) + 1;
@@ -245,8 +242,7 @@ const StorageService = {
       total:        data.length,
       zeros,
       orphans,
-      duplicates,
-      datesWithTime
+      duplicates
     };
   },
 
@@ -265,27 +261,6 @@ const StorageService = {
       }
     }
     return { deleted };
-  },
-
-  /** Normalise toutes les dates à midi (YYYY-MM-DD T12:00:00) */
-  normalizeDates() {
-    const sheet   = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { modified: 0 };
-    const range = sheet.getRange(2, 1, lastRow - 1, 1);
-    const vals  = range.getValues();
-    let modified = 0;
-    for (let i = 0; i < vals.length; i++) {
-      const d = new Date(vals[i][0]);
-      if (isNaN(d.getTime())) continue;
-      if (d.getHours() !== 12 || d.getMinutes() !== 0 || d.getSeconds() !== 0) {
-        const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
-        vals[i][0] = noon;
-        modified++;
-      }
-    }
-    if (modified > 0) range.setValues(vals);
-    return { modified };
   },
 
   /** Supprime les entrées dont le joueur ou la catégorie n'existe plus */
@@ -308,25 +283,149 @@ const StorageService = {
     return { deleted };
   },
 
-  /** Supprime les doublons (même date+joueur+catégorie+score), garde la première occurrence */
-  deleteDuplicates() {
+  /**
+   * Liste les groupes de doublons SANS rien supprimer.
+   * Retourne : [{ key, count, rows: [{date, player, category, points, rowIndex}] }]
+   * Seuls les groupes de 2 occurrences ou plus sont retournés.
+   */
+  listDuplicates() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { deleted: 0 };
+    if (lastRow <= 1) return [];
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    const seen = new Set();
-    let deleted = 0;
-    for (let i = data.length - 1; i >= 0; i--) {
-      const d   = new Date(data[i][0]);
-      const key = `${isNaN(d.getTime()) ? data[i][0] : d.toDateString()}|${data[i][1]}|${data[i][2]}|${data[i][3]}`;
-      if (seen.has(key)) {
-        sheet.deleteRow(i + 2);
-        deleted++;
-      } else {
-        seen.add(key);
-      }
+
+    const groups = {}; // key -> { key, rows: [...] }
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const d   = new Date(row[0]);
+      if (isNaN(d.getTime())) continue;
+      const player   = row[1] ? row[1].toString() : '';
+      const category = row[2] ? row[2].toString() : '';
+      const points   = parseInt(row[3], 10);
+      if (!player || !category || isNaN(points)) continue;
+      const key = `${d.toDateString()}|${player}|${category}|${points}`;
+      if (!groups[key]) groups[key] = { key, rows: [] };
+      groups[key].rows.push({
+        date:     d.toISOString(),
+        player,
+        category,
+        points,
+        rowIndex: i + 2
+      });
     }
-    return { deleted };
+
+    return Object.keys(groups)
+      .map(k => groups[k])
+      .filter(g => g.rows.length >= 2)
+      .map(g => ({ key: g.key, count: g.rows.length, rows: g.rows }));
+  },
+
+  /**
+   * Supprime les doublons (même date+joueur+catégorie+score), garde la première occurrence.
+   * @param {number[]} [excludedRowIndexes] rowIndex à PRÉSERVER (groupes ignorés par l'utilisateur).
+   */
+  deleteDuplicates(excludedRowIndexes) {
+    const excluded = new Set((excludedRowIndexes || []).map(Number));
+    const groups   = this.listDuplicates();
+
+    // Pour chaque groupe : on garde la 1re occurrence, les suivantes sont candidates à la suppression.
+    let toDelete = [];
+    groups.forEach(g => {
+      g.rows.slice(1).forEach(r => {
+        if (!excluded.has(r.rowIndex)) toDelete.push(r.rowIndex);
+      });
+    });
+
+    // Suppression du bas vers le haut pour conserver des index valides.
+    const sheet = ConfigService.getSheets().history;
+    toDelete.sort((a, b) => b - a);
+    toDelete.forEach(idx => sheet.deleteRow(idx));
+    return { deleted: toDelete.length };
+  }
+};
+
+// ─── NOTES SERVICE ─────────────────────────────────────────────────────────────
+const NotesService = {
+
+  _sheet() {
+    const notes = ConfigService.getSheets().notes;
+    if (!notes) throw new Error("La feuille 'Notes' n'existe pas. Initialisez-la depuis l'onglet Outils.");
+    return notes;
+  },
+
+  /** Crée la feuille Notes avec ses en-têtes si elle n'existe pas. */
+  initSheet() {
+    const ss = ConfigService.getSheets().spreadsheet;
+    let sheet = ss.getSheetByName('Notes');
+    if (!sheet) {
+      sheet = ss.insertSheet('Notes');
+      sheet.appendRow(['Date', 'Joueur', 'Note']);
+      sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    }
+    ConfigService.clearCache();
+    return { created: true };
+  },
+
+  getNotesPage(page, pageSize, filterPlayer) {
+    // Lecture tolérante : si la feuille n'existe pas, on ne bloque pas l'app.
+    const sheet = ConfigService.getSheets().notes;
+    if (!sheet) return { notes: [], total: 0, needsInit: true };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { notes: [], total: 0 };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+    let all = [];
+    for (let i = 0; i < data.length; i++) {
+      const row    = data[i];
+      const player = row[1] ? row[1].toString() : '';
+      const text   = row[2] ? row[2].toString() : '';
+      if (!player && !text) continue;
+      if (filterPlayer && player !== filterPlayer) continue;
+      const d = new Date(row[0]);
+      all.push({
+        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
+        player,
+        text,
+        rowIndex: i + 2
+      });
+    }
+
+    all.reverse(); // plus récentes d'abord
+
+    const total = all.length;
+    const ps    = pageSize || 20;
+    const start = ((page || 1) - 1) * ps;
+    return { notes: all.slice(start, start + ps), total };
+  },
+
+  addNote(player, text, dateStr) {
+    if (!player) throw new Error("Joueur manquant.");
+    if (!text || !text.trim()) throw new Error("La note ne peut pas être vide.");
+
+    let targetDate;
+    if (dateStr && dateStr.trim()) {
+      targetDate = new Date(dateStr.trim() + 'T12:00:00');
+    } else {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      targetDate = new Date(`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T12:00:00`);
+    }
+    if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
+
+    this._sheet().appendRow([targetDate, player, text.trim()]);
+  },
+
+  deleteNote(rowIndex) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    this._sheet().deleteRow(idx);
+  },
+
+  editNote(rowIndex, newText) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
+    this._sheet().getRange(idx, 3).setValue(newText.trim());
   }
 };
 
@@ -496,50 +595,6 @@ const AnalyticsService = {
     return { labels, series };
   },
 
-  generateAiQuote(year, month) {
-    const data = this.getAggregatedData(year, month);
-    const key  = ConfigService.getGeminiKey();
-
-    let ultimateWinner = "Quelqu'un", maxScore = 0;
-    Object.keys(data.scores).forEach(p => {
-      if (data.scores[p].total > maxScore) { maxScore = data.scores[p].total; ultimateWinner = p; }
-    });
-    const fallbacks = [
-      `Même sans IA, tout le monde sait que ${ultimateWinner} a été catastrophique.`,
-      `L'IA a planté — les scores de ${ultimateWinner} sont trop honteux à afficher.`,
-      `Pas besoin d'algorithme pour voir que ${ultimateWinner} tire le groupe vers le bas.`,
-      `Quota dépassé : l'ego de ${ultimateWinner} prend trop de place sur les serveurs.`,
-      `L'IA refuse de commenter. Elle a pitié de ${ultimateWinner}.`
-    ];
-    const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-    if (!key) return { quote: fallback, isAi: false };
-
-    try {
-      let context = "Contexte :\n";
-      SettingsService.getEntities('Categories').forEach(c => {
-        context += `- ${c.name} : ${c.meta || 'Sans description'}\n`;
-      });
-      context += "\nScores :\n";
-      Object.keys(data.scores).forEach(p => {
-        context += `- ${p} : ${data.scores[p].total} points.\n`;
-      });
-
-      const prompt = `Tu es un commentateur sarcastique d'un groupe d'amis. Rédige 3 phrases max, tacle le pire joueur, ironique mais amical, en français.\n\n${context}`;
-      const url    = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-      const resp   = UrlFetchApp.fetch(url, {
-        method: 'post', contentType: 'application/json',
-        payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        muteHttpExceptions: true
-      });
-      if (resp.getResponseCode() !== 200) return { quote: fallback, isAi: false };
-      const json = JSON.parse(resp.getContentText());
-      if (!json.candidates || !json.candidates.length) return { quote: fallback, isAi: false };
-      return { quote: json.candidates[0].content.parts[0].text, isAi: true };
-    } catch(e) {
-      return { quote: fallback, isAi: false };
-    }
-  },
-
   getAvailableYears() {
     const logs = StorageService.getAllLogs();
     const years = new Set();
@@ -547,38 +602,13 @@ const AnalyticsService = {
     const current = new Date().getFullYear();
     years.add(current);
     return Array.from(years).sort((a, b) => b - a);
-  },
-
-  buildHtmlReport(year, month) {
-    const data     = this.getAggregatedData(year, month);
-    const players  = JSON.stringify(Object.keys(data.scores));
-    const colors   = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
-    const datasets = JSON.stringify(data.categories.map((cat, i) => ({
-      label: cat,
-      data:  Object.keys(data.scores).map(p => data.scores[p][cat] || 0),
-      backgroundColor: colors[i % colors.length],
-      borderRadius: 4
-    })));
-
-    return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>Rapport Casseroles</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
-<style>body{font-family:system-ui;background:#0f1117;color:#e8eaf6;padding:40px;}h1{color:#ff4757;}pre{background:#1a1d27;padding:20px;border-radius:8px;white-space:pre-wrap;color:#00d4aa;}.wrap{max-width:800px;margin:30px 0;background:#1a1d27;padding:20px;border-radius:8px;}</style>
-</head><body>
-<h1>📊 RAPPORT DES CASSEROLES</h1>
-<p style="color:#8892b0">Période : ${year === 'All' ? 'Toutes années' : year} / ${month === 'All' ? 'Tous mois' : month}</p>
-${data.orphanCount > 0 ? `<p>⚠️ ${data.orphanCount} entrée(s) non attribuée(s).</p>` : ''}
-<div class="wrap"><canvas id="c"></canvas></div>
-<pre>${data.insights}</pre>
-<script>new Chart(document.getElementById('c'),{type:'bar',data:{labels:${players},datasets:${datasets}},options:{responsive:true,scales:{x:{stacked:true},y:{stacked:true}}}});<\/script>
-</body></html>`;
   }
 };
 
 // ─── API ENDPOINTS ─────────────────────────────────────────────────────────────
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('Gestionnaire de Casseroles')
+    .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -639,19 +669,6 @@ function apiDeleteHistoryEntry(rowIndex) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiGenerateAiQuote(year, month) {
-  try {
-    const result = AnalyticsService.generateAiQuote(year, month);
-    return { success: true, quote: result.quote, isAi: result.isAi };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
-function apiDownloadHtmlReport(year, month) {
-  try {
-    return { success: true, html: AnalyticsService.buildHtmlReport(year, month) };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
 function apiGetAvailableYears() {
   try {
     return { success: true, years: AnalyticsService.getAvailableYears() };
@@ -682,14 +699,6 @@ function apiFixZeroPoints() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiNormalizeDates() {
-  try {
-    const result = StorageService.normalizeDates();
-    ConfigService.clearCache();
-    return { success: true, modified: result.modified };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
 function apiDeleteOrphans() {
   try {
     const result = StorageService.deleteOrphans();
@@ -698,10 +707,53 @@ function apiDeleteOrphans() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiDeleteDuplicates() {
+function apiListDuplicates() {
   try {
-    const result = StorageService.deleteDuplicates();
+    return { success: true, groups: StorageService.listDuplicates() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteDuplicates(excludedRowIndexes) {
+  try {
+    const result = StorageService.deleteDuplicates(excludedRowIndexes);
     ConfigService.clearCache();
     return { success: true, deleted: result.deleted };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── Notes rapides ──────────────────────────────────────────────────────────────
+
+function apiInitNotesSheet() {
+  try {
+    NotesService.initSheet();
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiGetNotesPage(page, pageSize, filterPlayer) {
+  try {
+    const result = NotesService.getNotesPage(page, pageSize, filterPlayer);
+    return { success: true, notes: result.notes, total: result.total, needsInit: !!result.needsInit };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiAddNote(player, text, dateStr) {
+  try {
+    NotesService.addNote(player, text, dateStr);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteNote(rowIndex) {
+  try {
+    NotesService.deleteNote(rowIndex);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiEditNote(rowIndex, newText) {
+  try {
+    NotesService.editNote(rowIndex, newText);
+    return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
