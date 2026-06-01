@@ -146,16 +146,22 @@
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* ── FILTER PANEL ── */
+    /* align-items: stretch → toutes les colonnes prennent la même hauteur ;
+       les listes Joueurs/Tops s'étirent alors pour combler le vide. */
     .filter-panel {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start;
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch;
       background: rgba(0,0,0,0.15); padding: 16px;
       border-radius: 10px; margin-bottom: 16px;
     }
     .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; flex: 1; }
     .filter-group label { font-size: 0.78rem; color: var(--text-muted); }
     .filter-group button { width: 100%; }
+    /* Le bouton « Appliquer » se cale en bas de sa colonne. */
+    .filter-group.filter-apply { justify-content: flex-end; }
     select[multiple] { height: auto; padding: 6px; background: var(--card); }
     select[multiple] option { padding: 8px 6px; } /* Augmentation zone de clic multiple */
+    /* Les listes multi remplissent la hauteur disponible (plus de vide au-dessus/dessous). */
+    .filter-group select[multiple] { flex: 1 1 auto; min-height: 120px; }
 
     /* ── DATE SHORTCUTS ── */
     .date-shortcuts {
@@ -541,8 +547,7 @@
           <input type="date" id="endDate">
           <div class="date-shortcuts" id="endDateShortcuts"></div>
         </div>
-        <div class="filter-group" style="min-width:110px; flex:0;">
-          <label>&nbsp;</label>
+        <div class="filter-group filter-apply" style="min-width:110px; flex:0;">
           <button class="primary" id="applyFiltersBtn">Appliquer</button>
         </div>
       </div>
