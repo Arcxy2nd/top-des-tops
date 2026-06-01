@@ -211,7 +211,7 @@ const StorageService = {
   getDataHealth() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { zeros: 0, orphans: 0, duplicates: 0, total: 0 };
+    if (lastRow <= 1) return { zeros: 0, orphans: 0, total: 0 };
 
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
@@ -219,8 +219,6 @@ const StorageService = {
     const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
 
     let zeros = 0, orphans = 0;
-    const seen = {};
-    let duplicates = 0;
 
     data.forEach(row => {
       const d = new Date(row[0]);
@@ -232,18 +230,12 @@ const StorageService = {
       if (isNaN(pts) || pts <= 0) zeros++;
       if (player && !players.has(player))    orphans++;
       else if (cat && !categories.has(cat))  orphans++;
-
-      // Doublons
-      const key = `${d.toDateString()}|${player}|${cat}|${pts}`;
-      seen[key] = (seen[key] || 0) + 1;
-      if (seen[key] === 2) duplicates++; // compte les doublons (occurrences > 1)
     });
 
     return {
-      total:        data.length,
+      total:  data.length,
       zeros,
-      orphans,
-      duplicates
+      orphans
     };
   },
 
@@ -282,66 +274,6 @@ const StorageService = {
       }
     }
     return { deleted };
-  },
-
-  /**
-   * Liste les groupes de doublons SANS rien supprimer.
-   * Retourne : [{ key, count, rows: [{date, player, category, points, rowIndex}] }]
-   * Seuls les groupes de 2 occurrences ou plus sont retournés.
-   */
-  listDuplicates() {
-    const sheet   = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-
-    const groups = {}; // key -> { key, rows: [...] }
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const d   = new Date(row[0]);
-      if (isNaN(d.getTime())) continue;
-      const player   = row[1] ? row[1].toString() : '';
-      const category = row[2] ? row[2].toString() : '';
-      const points   = parseInt(row[3], 10);
-      if (!player || !category || isNaN(points)) continue;
-      const key = `${d.toDateString()}|${player}|${category}|${points}`;
-      if (!groups[key]) groups[key] = { key, rows: [] };
-      groups[key].rows.push({
-        date:     d.toISOString(),
-        player,
-        category,
-        points,
-        rowIndex: i + 2
-      });
-    }
-
-    return Object.keys(groups)
-      .map(k => groups[k])
-      .filter(g => g.rows.length >= 2)
-      .map(g => ({ key: g.key, count: g.rows.length, rows: g.rows }));
-  },
-
-  /**
-   * Supprime les doublons (même date+joueur+catégorie+score), garde la première occurrence.
-   * @param {number[]} [excludedRowIndexes] rowIndex à PRÉSERVER (groupes ignorés par l'utilisateur).
-   */
-  deleteDuplicates(excludedRowIndexes) {
-    const excluded = new Set((excludedRowIndexes || []).map(Number));
-    const groups   = this.listDuplicates();
-
-    // Pour chaque groupe : on garde la 1re occurrence, les suivantes sont candidates à la suppression.
-    let toDelete = [];
-    groups.forEach(g => {
-      g.rows.slice(1).forEach(r => {
-        if (!excluded.has(r.rowIndex)) toDelete.push(r.rowIndex);
-      });
-    });
-
-    // Suppression du bas vers le haut pour conserver des index valides.
-    const sheet = ConfigService.getSheets().history;
-    toDelete.sort((a, b) => b - a);
-    toDelete.forEach(idx => sheet.deleteRow(idx));
-    return { deleted: toDelete.length };
   }
 };
 
@@ -397,6 +329,32 @@ const NotesService = {
     const ps    = pageSize || 20;
     const start = ((page || 1) - 1) * ps;
     return { notes: all.slice(start, start + ps), total };
+  },
+
+  /** Toutes les notes (récentes d'abord). { notes, needsInit } */
+  getAllNotes() {
+    const sheet = ConfigService.getSheets().notes;
+    if (!sheet) return { notes: [], needsInit: true };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { notes: [] };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+    const out = [];
+    for (let i = 0; i < data.length; i++) {
+      const row    = data[i];
+      const player = row[1] ? row[1].toString() : '';
+      const text   = row[2] ? row[2].toString() : '';
+      if (!player && !text) continue;
+      const d = new Date(row[0]);
+      out.push({
+        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
+        player,
+        text,
+        rowIndex: i + 2
+      });
+    }
+    out.reverse();
+    return { notes: out };
   },
 
   addNote(player, text, dateStr) {
@@ -708,20 +666,6 @@ function apiDeleteOrphans() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiListDuplicates() {
-  try {
-    return { success: true, groups: StorageService.listDuplicates() };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
-function apiDeleteDuplicates(excludedRowIndexes) {
-  try {
-    const result = StorageService.deleteDuplicates(excludedRowIndexes);
-    ConfigService.clearCache();
-    return { success: true, deleted: result.deleted };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
 // ── Notes rapides ──────────────────────────────────────────────────────────────
 
 function apiInitNotesSheet() {
@@ -735,6 +679,13 @@ function apiGetNotesPage(page, pageSize, filterPlayer) {
   try {
     const result = NotesService.getNotesPage(page, pageSize, filterPlayer);
     return { success: true, notes: result.notes, total: result.total, needsInit: !!result.needsInit };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiGetAllNotes() {
+  try {
+    const result = NotesService.getAllNotes();
+    return { success: true, notes: result.notes, needsInit: !!result.needsInit };
   } catch(e) { return { success: false, error: e.message }; }
 }
 

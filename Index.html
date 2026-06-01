@@ -147,7 +147,7 @@
 
     /* ── FILTER PANEL ── */
     .filter-panel {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start;
       background: rgba(0,0,0,0.15); padding: 16px;
       border-radius: 10px; margin-bottom: 16px;
     }
@@ -275,7 +275,29 @@
     .pagination { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
     .pagination button { min-width: 36px; padding: 6px; }
     .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .history-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: var(--btn-alt); }
+    .history-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; background: var(--btn-alt); box-shadow: 0 0 0 2px var(--player-color, transparent); }
+
+    /* Repères visuels de l'historique */
+    .hist-player-cell { white-space: nowrap; }
+    .hist-player-name { font-weight: 600; }
+    td.hist-accent { border-left: 5px solid var(--player-color, transparent); }
+    .hist-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+      background: var(--pill-bg, rgba(255,255,255,0.06));
+      border: 1px solid var(--pill-bd, var(--border));
+      color: var(--text);
+    }
+    .hist-pill .pill-emoji { font-size: 1rem; line-height: 1; }
+    .hist-pts {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 34px; padding: 4px 10px; border-radius: 8px;
+      font-weight: 800; font-variant-numeric: tabular-nums;
+      background: var(--pts-bg, rgba(255,255,255,0.06));
+      border: 1px solid var(--pts-bd, var(--border));
+      color: var(--pts-fg, var(--text));
+    }
 
     /* ── ONGLET OUTILS ── */
     .health-grid {
@@ -366,7 +388,17 @@
       .export-btn { padding: 8px 10px; font-size: 0.75rem; flex: 1; text-align: center; }
       .history-filters { flex-direction: column; align-items: stretch; }
       .health-grid { grid-template-columns: 1fr 1fr; }
-      .notes-form-grid { grid-template-columns: 1fr !important; }
+
+      /* Notes : saisie empilée et confortable au pouce */
+      .npb-add { flex-direction: column; align-items: stretch; }
+      .npb-add textarea, .npb-add input[type="date"], .npb-add button { width: 100%; }
+
+      /* Barre d'options du graphique : chaque contrôle sur sa largeur */
+      .chart-controls { gap: 10px 14px; }
+      .chart-control select { flex: 1; }
+
+      /* Mode Plage : champs Du/Au pleine largeur */
+      .range-inputs .filter-group { min-width: 100%; }
     }
 
     /* ── BADGE COMPTEUR NAV ── */
@@ -416,6 +448,25 @@
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     .note-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+
+    /* ── NOTES : un bloc par joueur ── */
+    .note-player-block {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; margin-bottom: 16px; background: rgba(0,0,0,0.10);
+    }
+    .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .npb-head img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
+    .npb-head .npb-name { font-weight: 700; font-size: 1.02rem; }
+    .npb-head .npb-count { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+    .npb-add { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .npb-add textarea {
+      flex: 1; min-width: 180px; padding: 9px 11px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-size: 16px; resize: vertical;
+    }
+    .npb-add input[type="date"] { width: auto; min-width: 150px; }
+    .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
 
     /* ── BARRE DE TRI / OPTIONS GRAPHIQUE ── */
     .chart-controls {
@@ -624,35 +675,11 @@
   <!-- ══ NOTES ═════════════════════════════════════════════════════════ -->
   <div id="tab-notes" class="tab-content">
     <div class="card">
-      <h2>📝 Note rapide</h2>
-      <div class="notes-form-grid">
-        <div class="player-sel-wrap" style="height:fit-content;">
-          <img class="row-avatar" id="noteAvatar" alt="">
-          <select id="notePlayerSelect" class="p-sel"></select>
-        </div>
-        <div>
-          <textarea id="noteText" rows="3" placeholder="Ajoute une note…"
-            style="width:100%; padding:10px 12px; border-radius:6px; border:1px solid var(--border);
-                   background:var(--bg); color:var(--text); font-size:16px; resize:vertical;"></textarea>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:8px;">
-            <div class="filter-group" style="min-width:160px; flex:0;">
-              <label>Date</label>
-              <input type="date" id="noteDate">
-            </div>
-            <div class="date-shortcuts" id="noteDateShortcuts" style="margin:0;"></div>
-            <button class="primary" id="addNoteBtn" style="margin-left:auto;">+ Ajouter</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="history-filters">
-        <select id="notesPlayerFilter"><option value="">Tous joueurs</option></select>
+      <div class="chart-header">
+        <h2 style="margin:0;">📝 Notes par joueur</h2>
         <button id="refreshNotesBtn" class="secondary small">🔄 Rafraîchir</button>
       </div>
-      <div id="notesList" class="notes-list"></div>
-      <div id="notesPagination" class="pagination"></div>
+      <div id="notesPlayersContainer"></div>
     </div>
   </div>
 
@@ -685,7 +712,6 @@
         <div class="health-stat skeleton" style="height:90px;"></div>
         <div class="health-stat skeleton" style="height:90px;"></div>
         <div class="health-stat skeleton" style="height:90px;"></div>
-        <div class="health-stat skeleton" style="height:90px;"></div>
       </div>
       <div style="text-align:right;">
         <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
@@ -711,13 +737,6 @@
         <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
       </div>
 
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Gérer les doublons</strong>
-          <span>Affiche les doublons exacts groupés. Vous choisissez ceux à ignorer avant suppression.</span>
-        </div>
-        <button class="small" id="viewDuplicatesBtn">Voir les doublons</button>
-      </div>
     </div>
 
     <div class="card">
@@ -752,7 +771,6 @@
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let totalHistoryEntries = 0;
-  let currentNotesPage = 1;
   let dateMode         = 'single';     // 'single' | 'range'
   let rangeFill        = 'distribute'; // 'distribute' (répartir) | 'repeat' (répéter)
   let lastRefreshTime  = null;
@@ -791,6 +809,34 @@
   function catDisplay(name) {
     const ic = catIcon(name);
     return ic ? ic + ' ' + name : name;
+  }
+
+  // ── COULEURS STABLES (repères visuels) ───────────────────────────────
+  // Palette large pour distinguer beaucoup de joueurs sans répétition rapide.
+  const PALETTE = [
+    '#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa',
+    '#ff9f43','#10ac84','#5f27cd','#ee5253','#48dbfb','#1dd1a1',
+    '#f368e0','#54a0ff','#feca57','#ff6348'
+  ];
+  // Couleur déterministe à partir d'un texte (même nom → toujours même couleur,
+  // même si l'ordre des joueurs change).
+  function hashColor(str) {
+    let h = 0;
+    const s = String(str || '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return PALETTE[h % PALETTE.length];
+  }
+  function playerColor(name) { return hashColor('P|' + name); }
+  function categoryColor(name) {
+    // Si le Top existe, on suit son rang (cohérent avec les graphiques) ; sinon hash.
+    const i = cachedCategories.findIndex(c => c.name === name);
+    return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
+  }
+  // Convertit un hex (#rrggbb) en rgba avec alpha (pour des fonds teintés légers).
+  function tint(hex, alpha) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+    if (!m) return 'rgba(255,255,255,' + alpha + ')';
+    return 'rgba(' + parseInt(m[1],16) + ',' + parseInt(m[2],16) + ',' + parseInt(m[3],16) + ',' + alpha + ')';
   }
 
   function showToast(msg, type, duration) {
@@ -911,7 +957,7 @@
     loadEntities();                          // Joueurs + catégories → repeuple tous les selects
     applyFilters();                          // Dashboard graphique
     loadHistoryPage(currentHistoryPage);     // Historique (toujours, pas seulement si actif)
-    loadNotesPage(currentNotesPage);         // Notes
+    loadNotes();                             // Notes
     loadDataHealth();                        // Outils
     lastRefreshTime = new Date();
     updateRefreshBadge();
@@ -1008,7 +1054,8 @@
 
       updateHistoryFilters();
       updateDonutPlayerSelect();
-      updateNotesPlayerSelects();
+      // Les notes dépendent de la liste des joueurs : on rafraîchit si l'onglet est ouvert.
+      if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
 
       if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
 
@@ -1096,18 +1143,19 @@
     if (currentChartType === 'trend') {
       callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
         currentChartData = res.trendData;
-        renderTrendChart(res.trendData);
-        renderChartControls('trend');
+        // On affiche d'abord le conteneur (sinon un graphique en courbes s'initialise à taille zéro).
         document.getElementById('chartSkeleton').style.display = 'none';
         document.getElementById('chartWrapper').style.display  = 'block';
+        renderTrendChart(res.trendData);
+        renderChartControls('trend');
       }, 'Chargement courbes');
     } else {
       callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
         currentChartData = res.chartData;
-        renderChart(res.chartData, currentChartType);
-        renderChartControls(currentChartType);
         document.getElementById('chartSkeleton').style.display = 'none';
         document.getElementById('chartWrapper').style.display  = 'block';
+        renderChart(res.chartData, currentChartType);
+        renderChartControls(currentChartType);
       }, 'Chargement graphique');
     }
   }
@@ -1832,23 +1880,55 @@
 
       logs.forEach(log => {
         const tr = tbody.insertRow();
+        const pColor = playerColor(log.player);
+
+        // 1) DATE — porte la barre de couleur du joueur (repère le plus fort à gauche).
         const dateCell = tr.insertCell();
+        dateCell.className = 'hist-accent';
+        dateCell.style.setProperty('--player-color', pColor);
         const d = new Date(log.timestamp);
         dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
 
+        // 2) JOUEUR — avatar cerclé de sa couleur + nom.
         const playerCell = tr.insertCell();
+        playerCell.className = 'hist-player-cell';
+        playerCell.style.setProperty('--player-color', pColor);
         const player = cachedPlayers.find(p => p.name === log.player);
         const img = document.createElement('img');
         img.className = 'history-avatar';
         img.src = getAvatarUrl(log.player, player ? player.meta : '');
         img.alt = log.player;
         img.onerror = () => { img.src = getAvatarUrl(log.player, ''); };
+        const pName = document.createElement('span');
+        pName.className = 'hist-player-name'; pName.textContent = log.player;
         playerCell.appendChild(img);
-        playerCell.appendChild(document.createTextNode(log.player));
+        playerCell.appendChild(pName);
 
-        tr.insertCell().textContent = catDisplay(log.category);
+        // 3) TOP — pastille colorée avec l'emoji.
+        const catCell = tr.insertCell();
+        const cColor = categoryColor(log.category);
+        const pill = document.createElement('span');
+        pill.className = 'hist-pill';
+        pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+        pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+        const ic = catIcon(log.category);
+        if (ic) {
+          const em = document.createElement('span');
+          em.className = 'pill-emoji'; em.textContent = ic;
+          pill.appendChild(em);
+        }
+        pill.appendChild(document.createTextNode(log.category));
+        catCell.appendChild(pill);
+
+        // 4) POINTS — badge dont l'intensité grandit avec le score.
         const ptsCell = tr.insertCell();
-        ptsCell.textContent = log.points; ptsCell.style.fontWeight = '700';
+        const badge = document.createElement('span');
+        badge.className = 'hist-pts';
+        const intensity = Math.min(0.10 + Math.log10(log.points + 1) * 0.22, 0.9);
+        badge.style.setProperty('--pts-bg', tint(pColor, intensity));
+        badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+        badge.textContent = log.points;
+        ptsCell.appendChild(badge);
 
         const actCell = tr.insertCell();
         const delBtn = document.createElement('button');
@@ -1883,120 +1963,126 @@
     }
   }
 
-  // ── NOTES ────────────────────────────────────────────────────────────
-  function updateNotesPlayerSelects() {
-    const filter = document.getElementById('notesPlayerFilter');
-    const form   = document.getElementById('notePlayerSelect');
-    if (filter) {
-      const prev = filter.value;
-      filter.innerHTML = '<option value="">Tous joueurs</option>';
-      cachedPlayers.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.name; o.textContent = p.name;
-        filter.appendChild(o);
-      });
-      filter.value = prev;
-    }
-    if (form) {
-      const prev = form.value;
-      form.innerHTML = '';
-      cachedPlayers.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.name; o.textContent = p.name;
-        form.appendChild(o);
-      });
-      if (prev) form.value = prev;
-      updateNoteAvatar();
-    }
-  }
-
-  function updateNoteAvatar() {
-    const sel = document.getElementById('notePlayerSelect');
-    const img = document.getElementById('noteAvatar');
-    if (!sel || !img || !sel.value) { if (img) img.removeAttribute('src'); return; }
-    const player = cachedPlayers.find(p => p.name === sel.value);
-    img.src = getAvatarUrl(sel.value, player ? player.meta : '');
-    img.onerror = () => { img.src = getAvatarUrl(sel.value, ''); };
-  }
-
-  function loadNotesPage(page) {
-    currentNotesPage = page;
-    const filter = document.getElementById('notesPlayerFilter').value;
-    const list = document.getElementById('notesList');
-
-    callServer('apiGetNotesPage', [page, PAGE_SIZE, filter || null], res => {
-      const notes = res.notes || [];
-      list.innerHTML = '';
-
-      if (!notes.length) {
-        list.innerHTML = res.needsInit
-          ? emptyIllustration('🗂️', 'La feuille « Notes » n\'existe pas encore. Allez dans Outils → « Initialiser la feuille Notes ».')
-          : emptyIllustration('📝', 'Aucune note pour le moment.');
-        document.getElementById('notesPagination').innerHTML = '';
-        return;
-      }
-
-      notes.forEach(note => {
-        const player = cachedPlayers.find(p => p.name === note.player);
-        const d = note.timestamp ? new Date(note.timestamp) : null;
-        const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
-
-        const card = document.createElement('div');
-        card.className = 'note-card';
-
-        const head = document.createElement('div');
-        head.className = 'note-card-head';
-        const img = document.createElement('img');
-        img.className = 'note-avatar';
-        img.src = getAvatarUrl(note.player, player ? player.meta : '');
-        img.onerror = () => { img.src = getAvatarUrl(note.player, ''); };
-        const nm = document.createElement('span');
-        nm.className = 'note-player'; nm.textContent = note.player || '—';
-        const dt = document.createElement('span');
-        dt.className = 'note-date'; dt.textContent = dateStr;
-        head.appendChild(img); head.appendChild(nm); head.appendChild(dt);
-
-        const txt = document.createElement('div');
-        txt.className = 'note-text'; txt.textContent = note.text;
-
-        const actions = document.createElement('div');
-        actions.className = 'note-actions';
-        const editBtn = document.createElement('button');
-        editBtn.className = 'small'; editBtn.textContent = '✏️ Éditer';
-        editBtn.addEventListener('click', () => openEditNoteModal(note));
-        const delBtn = document.createElement('button');
-        delBtn.className = 'small danger'; delBtn.textContent = '🗑️ Supprimer';
-        delBtn.addEventListener('click', () => {
-          openConfirmModal('Supprimer cette note ?', () => {
-            buzz();
-            callServer('apiDeleteNote', [note.rowIndex], () => {
-              loadNotesPage(currentNotesPage);
-              showToast('Note supprimée.', 'success');
-            }, 'Suppression note');
-          });
-        });
-        actions.appendChild(editBtn); actions.appendChild(delBtn);
-
-        card.appendChild(head); card.appendChild(txt); card.appendChild(actions);
-        list.appendChild(card);
-      });
-
-      renderNotesPagination(res.total || 0);
+  // ── NOTES (une zone permanente par joueur) ───────────────────────────
+  function loadNotes() {
+    callServer('apiGetAllNotes', [], res => {
+      renderNotesUI(res.notes || [], res.needsInit);
     }, 'Chargement notes');
   }
 
-  function renderNotesPagination(total) {
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-    const pg = document.getElementById('notesPagination');
-    pg.innerHTML = '';
-    if (totalPages <= 1) return;
-    for (let i = 1; i <= totalPages; i++) {
-      const btn = document.createElement('button');
-      btn.textContent = i;
-      btn.className = 'small' + (i === currentNotesPage ? ' active' : '');
-      btn.addEventListener('click', () => loadNotesPage(i));
-      pg.appendChild(btn);
+  function renderNotesUI(notes, needsInit) {
+    const container = document.getElementById('notesPlayersContainer');
+    container.innerHTML = '';
+
+    if (needsInit) {
+      container.innerHTML = emptyIllustration('🗂️',
+        'La feuille « Notes » n\'existe pas encore. Allez dans Outils → « Initialiser la feuille Notes ».');
+      return;
     }
+    if (!cachedPlayers.length) {
+      container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
+      return;
+    }
+
+    // Regrouper les notes par joueur (elles arrivent déjà des plus récentes aux plus anciennes).
+    const byPlayer = {};
+    notes.forEach(n => { (byPlayer[n.player] = byPlayer[n.player] || []).push(n); });
+
+    cachedPlayers.forEach(p => {
+      container.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
+    });
+  }
+
+  function buildPlayerNoteBlock(player, notes) {
+    const block = document.createElement('div');
+    block.className = 'note-player-block';
+
+    // En-tête : avatar + nom + compteur
+    const head = document.createElement('div');
+    head.className = 'npb-head';
+    const img = document.createElement('img');
+    img.src = getAvatarUrl(player.name, player.meta);
+    img.alt = player.name;
+    img.onerror = () => { img.src = getAvatarUrl(player.name, ''); };
+    const name = document.createElement('span');
+    name.className = 'npb-name'; name.textContent = player.name;
+    const count = document.createElement('span');
+    count.className = 'npb-count';
+    count.textContent = notes.length + ' note' + (notes.length > 1 ? 's' : '');
+    head.appendChild(img); head.appendChild(name); head.appendChild(count);
+
+    // Formulaire d'ajout propre à ce joueur
+    const add = document.createElement('div');
+    add.className = 'npb-add';
+    const ta = document.createElement('textarea');
+    ta.rows = 2; ta.placeholder = 'Ajoute une note pour ' + player.name + '…';
+    const date = document.createElement('input');
+    date.type = 'date';
+    const btn = document.createElement('button');
+    btn.className = 'primary small'; btn.textContent = '+ Ajouter';
+    btn.addEventListener('click', () => {
+      const text = ta.value.trim();
+      if (!text) { showToast('La note est vide.', 'error'); return; }
+      const restore = startBtnLoading(btn, '…');
+      callServer('apiAddNote', [player.name, text, date.value], () => {
+        restore(); flashSaved(btn);
+        showToast('Note ajoutée.', 'success');
+        loadNotes();
+      }, 'Ajout note', () => restore());
+    });
+    add.appendChild(ta); add.appendChild(date); add.appendChild(btn);
+
+    // Liste des notes du joueur
+    const listEl = document.createElement('div');
+    listEl.className = 'npb-notes';
+    if (!notes.length) {
+      const e = document.createElement('div');
+      e.className = 'npb-empty'; e.textContent = 'Aucune note pour le moment.';
+      listEl.appendChild(e);
+    } else {
+      notes.forEach(note => listEl.appendChild(buildNoteCard(note)));
+    }
+
+    block.appendChild(head); block.appendChild(add); block.appendChild(listEl);
+    return block;
+  }
+
+  function buildNoteCard(note) {
+    const d = note.timestamp ? new Date(note.timestamp) : null;
+    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+
+    const card = document.createElement('div');
+    card.className = 'note-card';
+
+    const headc = document.createElement('div');
+    headc.className = 'note-card-head';
+    const dt = document.createElement('span');
+    dt.className = 'note-date'; dt.textContent = dateStr;
+    headc.appendChild(dt);
+
+    const txt = document.createElement('div');
+    txt.className = 'note-text'; txt.textContent = note.text;
+
+    const actions = document.createElement('div');
+    actions.className = 'note-actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'small'; editBtn.textContent = '✏️ Éditer';
+    editBtn.addEventListener('click', () => openEditNoteModal(note));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '🗑️ Supprimer';
+    delBtn.addEventListener('click', () => {
+      openConfirmModal('Supprimer cette note ?', () => {
+        buzz();
+        callServer('apiDeleteNote', [note.rowIndex], () => {
+          loadNotes();
+          showToast('Note supprimée.', 'success');
+        }, 'Suppression note');
+      });
+    });
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
+
+    card.appendChild(headc); card.appendChild(txt); card.appendChild(actions);
+    return card;
   }
 
   function openEditNoteModal(note) {
@@ -2015,7 +2101,7 @@
       if (!v) return;
       closeModal();
       callServer('apiEditNote', [note.rowIndex, v], () => {
-        loadNotesPage(currentNotesPage);
+        loadNotes();
         showToast('Note modifiée.', 'success');
       }, 'Édition note');
     };
@@ -2027,7 +2113,6 @@
   function loadDataHealth() {
     const grid = document.getElementById('healthGrid');
     grid.innerHTML = `
-      <div class="health-stat skeleton" style="height:90px;"></div>
       <div class="health-stat skeleton" style="height:90px;"></div>
       <div class="health-stat skeleton" style="height:90px;"></div>
       <div class="health-stat skeleton" style="height:90px;"></div>
@@ -2047,102 +2132,8 @@
           <div class="stat-value">${h.orphans}</div>
           <div class="stat-label">Orphelines</div>
         </div>
-        <div class="health-stat ${h.duplicates > 0 ? 'warn' : 'ok'}">
-          <div class="stat-value">${h.duplicates}</div>
-          <div class="stat-label">Doublons</div>
-        </div>
       `;
     }, 'Chargement santé');
-  }
-
-  // ── DOUBLONS : affichage avant suppression ───────────────────────────
-  const IGNORED_DUPS_KEY = 'topsdestops_ignoredDups';
-  function getIgnoredDups() {
-    try { return new Set(JSON.parse(localStorage.getItem(IGNORED_DUPS_KEY) || '[]')); }
-    catch(e) { return new Set(); }
-  }
-  function setIgnoredDups(set) {
-    localStorage.setItem(IGNORED_DUPS_KEY, JSON.stringify(Array.from(set)));
-  }
-
-  function openDuplicatesModal() {
-    const btn = document.getElementById('viewDuplicatesBtn');
-    const restore = startBtnLoading(btn, 'Analyse…');
-    callServer('apiListDuplicates', [], res => {
-      restore();
-      renderDuplicatesModal(res.groups || []);
-    }, 'Liste doublons', () => restore());
-  }
-
-  function renderDuplicatesModal(groups) {
-    const box = document.getElementById('modalBox');
-    box.style.maxWidth = '560px';
-
-    if (!groups.length) {
-      box.innerHTML = '<h3>Doublons</h3>' + emptyIllustration('✅', 'Aucun doublon détecté.') +
-        '<div class="modal-actions"><button id="mCancel" class="secondary">Fermer</button></div>';
-      document.getElementById('mCancel').onclick = () => { box.style.maxWidth = ''; closeModal(); };
-      document.getElementById('modalBackdrop').style.display = 'flex';
-      return;
-    }
-
-    const ignored = getIgnoredDups();
-    let rowsHtml = '';
-    groups.forEach(g => {
-      const first = g.rows[0];
-      const d = first.date ? new Date(first.date).toLocaleDateString('fr-FR') : '—';
-      const checked = ignored.has(g.key) ? ' checked' : '';
-      rowsHtml +=
-        '<div style="background:rgba(0,0,0,0.15); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">' +
-          '<div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
-            '<strong>' + escapeHtml(first.player) + ' — ' + escapeHtml(catDisplay(first.category)) + '</strong>' +
-            '<span style="color:var(--text-muted); font-size:0.8rem;">' + d + ' · ' + first.points + ' pts · ' + g.count + ' occurrences</span>' +
-          '</div>' +
-          '<label class="chart-control toggle" style="margin-top:8px; font-size:0.8rem;">' +
-            '<input type="checkbox" class="dup-ignore" data-key="' + escapeHtml(g.key) + '"' + checked + '> Ignorer ce groupe' +
-          '</label>' +
-        '</div>';
-    });
-
-    box.innerHTML =
-      '<h3>Doublons détectés (' + groups.length + ' groupe(s))</h3>' +
-      '<p style="font-size:0.82rem; color:var(--text-muted);">La 1re occurrence de chaque groupe est toujours conservée. Cochez « Ignorer » pour protéger un groupe entier.</p>' +
-      '<div style="max-height:46vh; overflow:auto; margin-bottom:12px;">' + rowsHtml + '</div>' +
-      '<div class="modal-actions">' +
-        '<button id="mDelDups" class="danger">Supprimer les doublons non ignorés</button>' +
-        '<button id="mResetIgnored" class="secondary">Réinitialiser les ignorés</button>' +
-        '<button id="mCancel" class="secondary">Fermer</button>' +
-      '</div>';
-
-    // Persistance des cases « ignorer ».
-    box.querySelectorAll('.dup-ignore').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const set = getIgnoredDups();
-        if (cb.checked) set.add(cb.dataset.key); else set.delete(cb.dataset.key);
-        setIgnoredDups(set);
-      });
-    });
-
-    document.getElementById('mResetIgnored').onclick = () => {
-      setIgnoredDups(new Set());
-      renderDuplicatesModal(groups);
-    };
-
-    document.getElementById('mDelDups').onclick = () => {
-      const set = getIgnoredDups();
-      // rowIndex à préserver = toutes les lignes des groupes ignorés.
-      const excluded = [];
-      groups.forEach(g => { if (set.has(g.key)) g.rows.forEach(r => excluded.push(r.rowIndex)); });
-      buzz();
-      box.style.maxWidth = ''; closeModal();
-      callServer('apiDeleteDuplicates', [excluded], res => {
-        showToast(`${res.deleted} doublon(s) supprimé(s).`, 'success');
-        loadDataHealth(); applyFilters();
-      }, 'Suppression doublons');
-    };
-
-    document.getElementById('mCancel').onclick = () => { box.style.maxWidth = ''; closeModal(); };
-    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
   // ── NAVIGATION ───────────────────────────────────────────────────────
@@ -2154,7 +2145,7 @@
       document.getElementById(tabId).classList.add('active');
       btn.classList.add('active');
       if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
-      if (tabId === 'tab-notes')   { currentNotesPage = 1; loadNotesPage(1); }
+      if (tabId === 'tab-notes')   { loadNotes(); }
       if (tabId === 'tab-tools')   { loadDataHealth(); }
     });
   });
@@ -2246,23 +2237,18 @@
       });
     });
 
-    document.getElementById('viewDuplicatesBtn').addEventListener('click', openDuplicatesModal);
-
     document.getElementById('initNotesBtn').addEventListener('click', () => {
       const btn = document.getElementById('initNotesBtn');
       const restore = startBtnLoading(btn, '…');
       callServer('apiInitNotesSheet', [], () => {
         restore(); flashSaved(btn);
         showToast('Feuille Notes prête.', 'success');
-        loadNotesPage(1);
+        loadNotes();
       }, 'Init Notes', () => restore());
     });
 
     // ── Notes ──
-    document.getElementById('addNoteBtn').addEventListener('click', submitNote);
-    document.getElementById('refreshNotesBtn').addEventListener('click', () => { currentNotesPage = 1; loadNotesPage(1); });
-    document.getElementById('notesPlayerFilter').addEventListener('change', () => { currentNotesPage = 1; loadNotesPage(1); });
-    document.getElementById('notePlayerSelect').addEventListener('change', updateNoteAvatar);
+    document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
 
     // ── Mode date (Saisie Lot) ──
     document.getElementById('dateModeSingle').addEventListener('click', () => setDateMode('single'));
@@ -2278,25 +2264,6 @@
     document.getElementById('rangeFillHelp').innerHTML = mode === 'distribute'
       ? '<strong>Répartir</strong> : le total de chaque ligne est divisé sur les jours de la plage.'
       : '<strong>Répéter</strong> : le lot complet est recopié à l\'identique sur chaque jour.';
-  }
-
-  function submitNote() {
-    const player = document.getElementById('notePlayerSelect').value;
-    const text   = document.getElementById('noteText').value.trim();
-    const date   = document.getElementById('noteDate').value;
-    if (!player) { showToast('Sélectionnez un joueur.', 'error'); return; }
-    if (!text)   { showToast('La note est vide.', 'error'); return; }
-
-    const btn = document.getElementById('addNoteBtn');
-    const restore = startBtnLoading(btn, 'Ajout…');
-    callServer('apiAddNote', [player, text, date], () => {
-      restore(); flashSaved(btn);
-      document.getElementById('noteText').value = '';
-      document.getElementById('noteDate').value = '';
-      currentNotesPage = 1;
-      loadNotesPage(1);
-      showToast('Note ajoutée.', 'success');
-    }, 'Ajout note', () => restore());
   }
 
   function setDateMode(mode) {
@@ -2347,9 +2314,6 @@
       const items = dateShortcutItems();
       attachShortcuts('injectDateShortcuts', items, s => {
         document.getElementById('globalDateInput').value = s.value;
-      });
-      attachShortcuts('noteDateShortcuts', items, s => {
-        document.getElementById('noteDate').value = s.value;
       });
     })();
 
