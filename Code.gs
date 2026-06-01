@@ -2,7 +2,7 @@
  * STRUCTURE DU SPREADSHEET
  * History   : [0] Date | [1] Joueur | [2] Catégorie | [3] Points
  * Players   : [0] Nom  | [1] Avatar URL
- * Categories: [0] Nom  | [1] Description
+ * Categories: [0] Nom  | [1] Description | [2] Icône (emoji)
  * Notes     : [0] Date | [1] Joueur | [2] Note (texte libre)
  */
 
@@ -49,13 +49,14 @@ const SettingsService = {
     const data  = sheet.getDataRange().getValues();
     return data.filter(r => r[0]).map(r => ({
       name: r[0].toString(),
-      meta: r[1] ? r[1].toString() : ""
+      meta: r[1] ? r[1].toString() : "",
+      icon: r[2] ? r[2].toString() : ""   // emoji (catégories)
     }));
   },
 
-  addEntity(type, name, meta) {
+  addEntity(type, name, meta, icon) {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
-    ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || ""]);
+    ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", icon || ""]);
   },
 
   deleteEntity(type, name) {
@@ -68,7 +69,7 @@ const SettingsService = {
     if (!deleted) throw new Error(`${name} introuvable.`);
   },
 
-  renameEntity(type, oldName, newName, newMeta) {
+  renameEntity(type, oldName, newName, newMeta, newIcon) {
     if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
@@ -77,7 +78,7 @@ const SettingsService = {
       if (data[i][0] === oldName) { idx = i; break; }
     }
     if (idx === -1) throw new Error(`${oldName} introuvable.`);
-    sheet.getRange(idx + 1, 1, 1, 2).setValues([[newName, newMeta || ""]]);
+    sheet.getRange(idx + 1, 1, 1, 3).setValues([[newName, newMeta || "", newIcon || ""]]);
 
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
@@ -622,13 +623,13 @@ function apiGetSettings() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiManageEntity(action, type, newName, newMeta, oldName) {
+function apiManageEntity(action, type, newName, newMeta, oldName, newIcon) {
   try {
     if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
-    if (action === 'ADD')    SettingsService.addEntity(type, newName, newMeta);
+    if (action === 'ADD')    SettingsService.addEntity(type, newName, newMeta, newIcon);
     if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
-    if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta);
+    if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta, newIcon);
     ConfigService.clearCache();
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }

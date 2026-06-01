@@ -477,7 +477,7 @@
           <select id="playerSelect" multiple size="4"></select>
         </div>
         <div class="filter-group">
-          <label>Catégories (Ctrl+clic = multi)</label>
+          <label>Tops (Ctrl+clic = multi)</label>
           <select id="categorySelect" multiple size="4"></select>
         </div>
         <div class="filter-group">
@@ -499,7 +499,7 @@
 
     <div class="card">
       <div class="chart-header">
-        <h2 style="margin:0;">📈 Scores par catégorie</h2>
+        <h2 style="margin:0;">📈 Scores par Top</h2>
         <div class="export-buttons">
           <button class="export-btn" data-export="png">📸 PNG</button>
           <button class="export-btn" data-export="jpeg">🖼️ JPEG</button>
@@ -583,7 +583,7 @@
         </div>
       </div>
       <div class="batch-header">
-        <div>Joueur</div><div>Catégorie</div><div>Points</div><div>×</div><div>Actions</div>
+        <div>Joueur</div><div>Top</div><div>Points</div><div>×</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
@@ -608,12 +608,13 @@
           </div>
         </div>
         <div>
-          <h3>Types de Casseroles</h3>
+          <h3>Tops</h3>
           <ul id="categoriesList" class="entity-list"></ul>
           <div class="add-form">
-            <input type="text" id="newCategoryName" placeholder="Nom de la catégorie">
+            <input type="text" id="newCategoryName" placeholder="Nom du Top">
             <input type="text" id="newCategoryMeta" placeholder="Description (optionnel)">
-            <button id="addCategoryBtn" class="primary small">Ajouter la catégorie</button>
+            <input type="text" id="newCategoryIcon" placeholder="Icône emoji (ex : 🍺) — optionnel" maxlength="8" style="max-width:240px;">
+            <button id="addCategoryBtn" class="primary small">Ajouter le Top</button>
           </div>
         </div>
       </div>
@@ -661,13 +662,13 @@
       <h2>📜 Historique des entrées</h2>
       <div class="history-filters">
         <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
-        <select id="historyCategoryFilter"><option value="">Toutes catégories</option></select>
+        <select id="historyCategoryFilter"><option value="">Tous les Tops</option></select>
         <button id="refreshHistoryBtn" class="secondary small">🔄 Rafraîchir</button>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Date</th><th>Joueur</th><th>Catégorie</th><th>Pts</th><th></th></tr>
+            <tr><th>Date</th><th>Joueur</th><th>Top</th><th>Pts</th><th></th></tr>
           </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
@@ -705,7 +706,7 @@
       <div class="tool-action">
         <div class="tool-action-info">
           <strong>Supprimer les entrées orphelines</strong>
-          <span>Supprime les entrées dont le joueur ou la catégorie n'existe plus.</span>
+          <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
         </div>
         <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
       </div>
@@ -779,6 +780,17 @@
     if (meta && meta.trim()) return meta.trim();
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
            '&background=2a313d&color=e0e6ed&bold=true&size=64';
+  }
+
+  // ── ICÔNES DE CATÉGORIE (emoji) ──────────────────────────────────────
+  function catIcon(name) {
+    const c = cachedCategories.find(x => x.name === name);
+    return (c && c.icon) ? c.icon.trim() : '';
+  }
+  // Nom affichable d'une catégorie : « 🍺 Apéro » si une icône est définie, sinon « Apéro ».
+  function catDisplay(name) {
+    const ic = catIcon(name);
+    return ic ? ic + ' ' + name : name;
   }
 
   function showToast(msg, type, duration) {
@@ -932,13 +944,17 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  function openEditModal(entityType, oldName, oldMeta) {
+  function openEditModal(entityType, oldName, oldMeta, oldIcon) {
     const box = document.getElementById('modalBox');
-    const label = entityType === 'Players' ? 'URL avatar' : 'Description IA';
+    const isCat = entityType === 'Categories';
+    const label = entityType === 'Players' ? 'URL avatar' : 'Description';
     box.innerHTML =
       '<h3>Éditer : ' + escapeHtml(oldName) + '</h3>' +
       '<input type="text" id="mNewName" value="' + escapeHtml(oldName) + '" placeholder="Nom">' +
       '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + label + '">' +
+      (isCat
+        ? '<input type="text" id="mNewIcon" value="' + escapeHtml(oldIcon || '') + '" placeholder="Icône emoji (ex : 🍺)" maxlength="8">'
+        : '') +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
         '<button id="mCancel" class="secondary">Annuler</button>' +
@@ -946,9 +962,10 @@
     document.getElementById('mSave').onclick = () => {
       const n = document.getElementById('mNewName').value.trim();
       const m = document.getElementById('mNewMeta').value.trim();
+      const ic = isCat ? document.getElementById('mNewIcon').value.trim() : '';
       if (!n) return;
       closeModal();
-      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName], () => {
+      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic], () => {
         loadEntities();
         showToast('Renommé avec succès.', 'success');
       }, 'Erreur renommage');
@@ -981,7 +998,7 @@
       cs.innerHTML = '';
       cachedCategories.forEach(c => {
         const o = document.createElement('option');
-        o.value = c.name; o.textContent = c.name;
+        o.value = c.name; o.textContent = catDisplay(c.name);
         if (prevC.includes(c.name)) o.selected = true;
         cs.appendChild(o);
       });
@@ -1019,6 +1036,11 @@
         img.alt = item.name;
         img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
         left.appendChild(img);
+      } else if (type === 'Categories' && item.icon) {
+        const ic = document.createElement('span');
+        ic.style.cssText = 'font-size:1.3rem; min-width:28px; text-align:center;';
+        ic.textContent = item.icon;
+        left.appendChild(ic);
       }
       const strong = document.createElement('strong');
       strong.textContent = item.name;
@@ -1033,7 +1055,7 @@
       btns.className = 'entity-btns';
       const editBtn = document.createElement('button');
       editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
-      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta));
+      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon));
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
@@ -1123,7 +1145,7 @@
     const playerSort = { label: 'Joueurs', choices: [
       { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
     ]};
-    const catSort = { label: 'Catégories', choices: [
+    const catSort = { label: 'Tops', choices: [
       { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
     ]};
 
@@ -1266,7 +1288,7 @@
 
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: segLabels, datasets: [{ data: segValues, backgroundColor: segColors }] },
+        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors }] },
         options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } },
         plugins: [centerPlugin]
       });
@@ -1284,7 +1306,7 @@
       }));
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'radar',
-        data: { labels: data.datasets.map(d => d.label), datasets: radarDatasets },
+        data: { labels: data.datasets.map(d => catDisplay(d.label)), datasets: radarDatasets },
         options: {
           ...baseOpts,
           scales: {
@@ -1313,7 +1335,7 @@
       let datasets;
       if (chartOptions.detailed) {
         datasets = data.datasets.map((ds, ci) => ({
-          label: ds.label,
+          label: catDisplay(ds.label),
           data:  totals.map(t => ds.data[t.index] || 0),
           backgroundColor: CHART_COLORS[ci % CHART_COLORS.length],
           borderRadius: 3
@@ -1379,9 +1401,15 @@
       ? { type: 'logarithmic', stacked, grid: { color: c.grid }, ticks: { color: c.muted } }
       : { stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } };
 
+    // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
+    const displayData = {
+      labels: sorted.labels,
+      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
+    };
+
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
       type: 'bar',
-      data: sorted,
+      data: displayData,
       options: {
         ...baseOpts,
         layout: chartOptions.showTotals ? { padding: { top: 22 } } : {},
@@ -1563,7 +1591,7 @@
       if (!container.querySelector('.empty-state')) {
         const p = document.createElement('p');
         p.className = 'empty-state';
-        p.textContent = "⚠ Ajoutez d'abord des joueurs et des catégories dans Paramètres.";
+        p.textContent = "⚠ Ajoutez d'abord des joueurs et des Tops dans Paramètres.";
         container.appendChild(p);
       }
       return;
@@ -1592,7 +1620,7 @@
     cSel.className = 'c-sel';
     cachedCategories.forEach(c => {
       const o = document.createElement('option');
-      o.value = c.name; o.textContent = c.name;
+      o.value = c.name; o.textContent = catDisplay(c.name);
       cSel.appendChild(o);
     });
 
@@ -1770,10 +1798,10 @@
       o.value = p.name; o.textContent = p.name;
       pFilter.appendChild(o);
     });
-    cFilter.innerHTML = '<option value="">Toutes catégories</option>';
+    cFilter.innerHTML = '<option value="">Tous les Tops</option>';
     cachedCategories.forEach(c => {
       const o = document.createElement('option');
-      o.value = c.name; o.textContent = c.name;
+      o.value = c.name; o.textContent = catDisplay(c.name);
       cFilter.appendChild(o);
     });
     pFilter.value = prevP; cFilter.value = prevC;
@@ -1818,7 +1846,7 @@
         playerCell.appendChild(img);
         playerCell.appendChild(document.createTextNode(log.player));
 
-        tr.insertCell().textContent = log.category;
+        tr.insertCell().textContent = catDisplay(log.category);
         const ptsCell = tr.insertCell();
         ptsCell.textContent = log.points; ptsCell.style.fontWeight = '700';
 
@@ -2067,7 +2095,7 @@
       rowsHtml +=
         '<div style="background:rgba(0,0,0,0.15); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">' +
           '<div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
-            '<strong>' + escapeHtml(first.player) + ' — ' + escapeHtml(first.category) + '</strong>' +
+            '<strong>' + escapeHtml(first.player) + ' — ' + escapeHtml(catDisplay(first.category)) + '</strong>' +
             '<span style="color:var(--text-muted); font-size:0.8rem;">' + d + ' · ' + first.points + ' pts · ' + g.count + ' occurrences</span>' +
           '</div>' +
           '<label class="chart-control toggle" style="margin-top:8px; font-size:0.8rem;">' +
@@ -2165,12 +2193,14 @@
     document.getElementById('addCategoryBtn').addEventListener('click', () => {
       const name = document.getElementById('newCategoryName').value.trim();
       const meta = document.getElementById('newCategoryMeta').value.trim();
+      const icon = document.getElementById('newCategoryIcon').value.trim();
       if (!name) { showToast('Nom requis.', 'error'); return; }
-      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null], () => {
+      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null, icon], () => {
         document.getElementById('newCategoryName').value = '';
         document.getElementById('newCategoryMeta').value = '';
-        loadEntities(); showToast('Catégorie ajoutée.', 'success');
-      }, 'Ajout catégorie');
+        document.getElementById('newCategoryIcon').value = '';
+        loadEntities(); showToast('Top ajouté.', 'success');
+      }, 'Ajout Top');
     });
 
     document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
@@ -2207,7 +2237,7 @@
     });
 
     document.getElementById('deleteOrphansBtn').addEventListener('click', () => {
-      openConfirmModal('Supprimer les entrées orphelines (joueur/catégorie disparu) ? Irréversible.', () => {
+      openConfirmModal('Supprimer les entrées orphelines (joueur/Top disparu) ? Irréversible.', () => {
         buzz();
         callServer('apiDeleteOrphans', [], res => {
           showToast(`${res.deleted} orphelin(s) supprimé(s).`, 'success');
