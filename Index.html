@@ -215,18 +215,31 @@
 
     /* ── SAISIE LOT ── */
     .batch-header {
-      display: grid; grid-template-columns: 2fr 2fr auto 1fr auto;
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr auto auto;
       gap: 10px; padding: 0 10px; margin-bottom: 8px;
       color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
       text-transform: uppercase;
     }
     .entry-row {
-      display: grid; grid-template-columns: 2fr 2fr auto 1fr auto;
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr auto auto;
       gap: 10px; align-items: center;
       background: rgba(0,0,0,0.15); padding: 10px;
       border-radius: 8px; border: 1px solid var(--border);
       margin-bottom: 8px; transition: border-color 0.2s;
     }
+    .entry-row .d-in { width: 100%; min-width: 130px; }
+    /* Cellule date d'une ligne : début + fin optionnelle (Du → Au) */
+    .d-range { display: flex; flex-direction: column; gap: 3px; min-width: 130px; }
+    .d-range input { width: 100%; }
+    .d-range .mini { font-size: 0.62rem; color: var(--text-muted); }
+    /* Bascule Répartir / Répéter */
+    .seg-toggle { display: inline-flex; gap: 6px; margin: 6px 0; }
+    .seg-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 12px; font-size: 0.78rem;
+      cursor: pointer; color: var(--text); min-height: 32px; font-weight: 500;
+    }
+    .seg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .entry-row:hover { border-color: var(--accent); }
     .player-sel-wrap {
       display: flex; align-items: center; gap: 7px;
@@ -402,9 +415,6 @@
       /* Barre d'options du graphique : chaque contrôle sur sa largeur */
       .chart-controls { gap: 10px 14px; }
       .chart-control select { flex: 1; }
-
-      /* Mode Plage : champs Du/Au pleine largeur */
-      .range-inputs .filter-group { min-width: 100%; }
     }
 
     /* ── BADGE COMPTEUR NAV ── */
@@ -490,17 +500,6 @@
       font-size: 0.8rem; color: var(--text);
     }
     .chart-control.toggle input { width: auto; min-width: 0; margin: 0; }
-
-    /* ── MODE PLAGE (Saisie Lot) ── */
-    .date-mode-toggle { display: flex; gap: 6px; margin: 8px 0; }
-    .date-mode-btn {
-      background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: 6px; padding: 6px 14px; font-size: 0.8rem;
-      cursor: pointer; color: var(--text); min-height: 34px; font-weight: 500;
-    }
-    .date-mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .range-inputs { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-    .range-inputs .filter-group { min-width: 160px; }
   </style>
 </head>
 <body>
@@ -598,48 +597,30 @@
       <h2>✍️ Constructeur de Lot</h2>
       <div style="margin-bottom:16px;">
         <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">
-          Date appliquée
+          Date par défaut des nouvelles lignes
         </label>
-        <div class="date-mode-toggle">
-          <button type="button" class="date-mode-btn active" id="dateModeSingle">Date unique</button>
-          <button type="button" class="date-mode-btn" id="dateModeRange">Plage</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <input type="date" id="defaultDateInput" style="max-width:220px;">
+          <button type="button" class="secondary small" id="applyDateAllBtn">📅 Appliquer à toutes les lignes</button>
+        </div>
+        <div class="date-shortcuts" style="margin-top:8px;" id="injectDateShortcuts"></div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+          Chaque ligne a sa propre date. Renseigne aussi « Au » sur une ligne pour qu'elle couvre plusieurs jours. Vide = aujourd'hui.
         </div>
 
-        <!-- Mode date unique -->
-        <div id="dateSingleWrap">
-          <input type="date" id="globalDateInput" style="max-width:220px;">
-          <div class="date-shortcuts" style="margin-top:8px;" id="injectDateShortcuts"></div>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">Vide = aujourd'hui à midi.</div>
+        <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin:12px 0 4px;">
+          Quand une ligne couvre plusieurs jours (Du → Au) :
+        </label>
+        <div class="seg-toggle">
+          <button type="button" class="seg-btn active" id="lineFillRepeat">Répéter</button>
+          <button type="button" class="seg-btn" id="lineFillDistribute">Répartir</button>
         </div>
-
-        <!-- Mode plage -->
-        <div id="dateRangeWrap" style="display:none;">
-          <div class="range-inputs">
-            <div class="filter-group">
-              <label>Du</label>
-              <input type="date" id="rangeStartInput">
-            </div>
-            <div class="filter-group">
-              <label>Au</label>
-              <input type="date" id="rangeEndInput">
-            </div>
-          </div>
-          <div class="date-shortcuts" style="margin-top:8px;" id="rangeShortcuts"></div>
-
-          <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin:12px 0 6px;">
-            Comment appliquer le lot sur la plage&nbsp;?
-          </label>
-          <div class="date-mode-toggle">
-            <button type="button" class="date-mode-btn active" id="fillDistribute">Répartir</button>
-            <button type="button" class="date-mode-btn" id="fillRepeat">Répéter</button>
-          </div>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;" id="rangeFillHelp">
-            <strong>Répartir</strong> : le total de chaque ligne est divisé sur les jours de la plage.
-          </div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="lineFillHelp">
+          <strong>Répéter</strong> : la ligne est recréée à l'identique chaque jour de son intervalle.
         </div>
       </div>
       <div class="batch-header">
-        <div>Joueur</div><div>Top</div><div>Points</div><div>×</div><div>Actions</div>
+        <div>Joueur</div><div>Top</div><div>Points</div><div>×</div><div>Date</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
@@ -743,17 +724,6 @@
       </div>
 
     </div>
-
-    <div class="card">
-      <h2>📝 Notes rapides</h2>
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Initialiser la feuille Notes</strong>
-          <span>Crée la feuille « Notes » (Date | Joueur | Note) si elle n'existe pas encore.</span>
-        </div>
-        <button class="small" id="initNotesBtn">Initialiser</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -776,8 +746,7 @@
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let totalHistoryEntries = 0;
-  let dateMode         = 'single';     // 'single' | 'range'
-  let rangeFill        = 'distribute'; // 'distribute' (répartir) | 'repeat' (répéter)
+  let lineFill         = 'repeat'; // 'repeat' | 'distribute' — étalement d'une ligne sur son intervalle
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
   const PTS_VALUES = [1, 3, 5, 10, 25, 50, 100];
@@ -1690,6 +1659,21 @@
       if (isNaN(v) || v < 1) tmsInput.value = '1';
     });
 
+    // Date propre à la ligne : début (Du) + fin optionnelle (Au).
+    const defDate = document.getElementById('defaultDateInput');
+    const dateWrap = document.createElement('div');
+    dateWrap.className = 'd-range';
+    const lblDu = document.createElement('span'); lblDu.className = 'mini'; lblDu.textContent = 'Du';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date'; dateInput.className = 'd-in';
+    dateInput.value = (preset && preset.date) || (defDate && defDate.value) || toDateStr(new Date());
+    const lblAu = document.createElement('span'); lblAu.className = 'mini'; lblAu.textContent = 'Au (option.)';
+    const dateEnd = document.createElement('input');
+    dateEnd.type = 'date'; dateEnd.className = 'd-end';
+    if (preset && preset.dateEnd) dateEnd.value = preset.dateEnd;
+    dateWrap.appendChild(lblDu); dateWrap.appendChild(dateInput);
+    dateWrap.appendChild(lblAu); dateWrap.appendChild(dateEnd);
+
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     const dupBtn = document.createElement('button');
@@ -1698,7 +1682,9 @@
       player:   pSel.value,
       category: cSel.value,
       points:   ptsToggle.dataset.selected,
-      times:    tmsInput.value
+      times:    tmsInput.value,
+      date:     dateInput.value,
+      dateEnd:  dateEnd.value
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
@@ -1709,6 +1695,7 @@
     div.appendChild(cSel);
     div.appendChild(ptsToggle);
     div.appendChild(tmsInput);
+    div.appendChild(dateWrap);
     div.appendChild(actions);
     container.appendChild(div);
 
@@ -1720,103 +1707,91 @@
     updateRowAvatar(pSel, img);
   }
 
+  // Dates "YYYY-MM-DD" de start à end inclus ; [start] si end vide/invalide.
+  function lineDates(startStr, endStr) {
+    const start = startStr || toDateStr(new Date());
+    if (!endStr) return [start];
+    const a = new Date(start + 'T12:00:00'), b = new Date(endStr + 'T12:00:00');
+    if (isNaN(a) || isNaN(b) || b <= a) return [start];
+    const out = [];
+    const d = new Date(a);
+    while (d <= b) { out.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+
   function submitBulk() {
     const rows = document.querySelectorAll('.entry-row');
-    const entries = [];
+    const items = [];
     rows.forEach(r => {
       const pSel = r.querySelector('.p-sel');
       const cSel = r.querySelector('.c-sel');
       const ptsWrap = r.querySelector('.pts-toggle-wrap');
       const tms  = r.querySelector('.tms-in');
+      const dIn  = r.querySelector('.d-in');
+      const dEnd = r.querySelector('.d-end');
       if (pSel && cSel && ptsWrap && tms) {
-        entries.push({
-          player:   pSel.value,
-          category: cSel.value,
-          points:   ptsWrap.dataset.selected,
-          times:    tms.value
+        items.push({
+          dateStart: (dIn && dIn.value) || '',
+          dateEnd:   (dEnd && dEnd.value) || '',
+          player:    pSel.value,
+          category:  cSel.value,
+          points:    ptsWrap.dataset.selected,
+          times:     tms.value
         });
       }
     });
-    if (!entries.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
+    if (!items.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
 
-    for (const e of entries) {
+    for (const e of items) {
       const tms = parseInt(e.times, 10);
       if (isNaN(tms) || tms < 1) { showToast('Le multiplicateur doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
     }
 
-    const btn = document.getElementById('submitLotBtn');
+    // Chaque ligne est étalée sur son intervalle (Du→Au) selon le mode choisi,
+    // puis tout est regroupé par date → un appel serveur par date distincte.
+    const byDate = {};   // dateKey -> [entries]
+    let hasRange = false;
+    items.forEach(it => {
+      const dates = lineDates(it.dateStart, it.dateEnd);
+      if (dates.length > 1) hasRange = true;
 
-    if (dateMode === 'single') {
-      const date = document.getElementById('globalDateInput').value;
-      runBulkPlan([{ date: date || '', entries }], btn);
-      return;
-    }
-
-    // Mode plage.
-    const startStr = document.getElementById('rangeStartInput').value;
-    const endStr   = document.getElementById('rangeEndInput').value;
-    if (!startStr || !endStr) { showToast('Renseignez les deux dates de la plage.', 'error'); return; }
-    const dates = datesInRange(startStr, endStr);
-    if (!dates) { showToast('La date « Du » doit précéder la date « Au ».', 'error'); return; }
-
-    const n = dates.length, m = entries.length;
-
-    if (rangeFill === 'repeat') {
-      // Le même lot, recopié à l'identique sur chaque jour.
-      const plan = dates.map(date => ({ date, entries }));
-      openConfirmModal(`Mode Répéter : ${n * m} entrées seront créées (${n} jours × ${m} lignes). Confirmer ?`, () => {
-        runBulkPlan(plan, btn);
-      });
-    } else {
-      // Répartir : le total de chaque ligne est divisé sur les jours.
-      const plan = distributeEntriesOverDates(entries, dates);
-      const created = plan.reduce((s, p) => s + p.entries.length, 0);
-      if (!created) { showToast('Rien à répartir (totaux nuls).', 'error'); return; }
-      openConfirmModal(`Mode Répartir : le total de chaque ligne sera divisé sur ${n} jours (${created} entrées créées). Confirmer ?`, () => {
-        runBulkPlan(plan, btn);
-      });
-    }
-  }
-
-  // Liste des dates "YYYY-MM-DD" de start à end inclus, ou null si invalide.
-  function datesInRange(startStr, endStr) {
-    const start = new Date(startStr + 'T12:00:00');
-    const end   = new Date(endStr   + 'T12:00:00');
-    if (isNaN(start) || isNaN(end) || start > end) return null;
-    const out = [];
-    const d = new Date(start);
-    while (d <= end) {
-      out.push(toDateStr(d));
-      d.setDate(d.getDate() + 1);
-    }
-    return out;
-  }
-
-  /**
-   * Répartit chaque ligne sur les jours de la plage.
-   * Le total d'une ligne (points × multiplicateur) est divisé en parts entières
-   * dont la somme égale exactement le total. Les jours recevant 0 sont ignorés.
-   * Retourne un plan : [{ date, entries: [{player, category, points, times:1}] }].
-   */
-  function distributeEntriesOverDates(entries, dates) {
-    const n = dates.length;
-    const perDay = dates.map(() => []);
-    entries.forEach(e => {
-      const total = (parseInt(e.points, 10) || 0) * (parseInt(e.times, 10) || 0);
-      if (total <= 0) return;
-      const base = Math.floor(total / n);
-      const rem  = total % n;          // les `rem` premiers jours reçoivent +1
-      for (let k = 0; k < n; k++) {
-        const val = base + (k < rem ? 1 : 0);
-        if (val > 0) perDay[k].push({ player: e.player, category: e.category, points: val, times: 1 });
+      if (dates.length === 1 || lineFill === 'repeat') {
+        // Répéter : la ligne complète sur chaque jour de l'intervalle.
+        dates.forEach(dk => {
+          (byDate[dk] = byDate[dk] || []).push({
+            player: it.player, category: it.category, points: it.points, times: it.times
+          });
+        });
+      } else {
+        // Répartir : le total de la ligne divisé en parts entières sur les jours.
+        const total = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
+        const n = dates.length, base = Math.floor(total / n), rem = total % n;
+        dates.forEach((dk, k) => {
+          const val = base + (k < rem ? 1 : 0);
+          if (val > 0) (byDate[dk] = byDate[dk] || []).push({
+            player: it.player, category: it.category, points: val, times: 1
+          });
+        });
       }
     });
-    return dates.map((date, k) => ({ date, entries: perDay[k] })).filter(p => p.entries.length);
+
+    const plan = Object.keys(byDate).sort().map(date => ({ date, entries: byDate[date] }));
+    if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
+    const totalEntries = plan.reduce((s, p) => s + p.entries.length, 0);
+    const btn = document.getElementById('submitLotBtn');
+
+    // Confirmation seulement si au moins une ligne couvre plusieurs jours.
+    if (hasRange) {
+      openConfirmModal(`Vous allez créer ${totalEntries} entrées sur ${plan.length} date(s). Confirmer ?`,
+        () => runBulkPlan(plan, btn));
+    } else {
+      runBulkPlan(plan, btn);
+    }
   }
 
   /**
-   * Exécute un plan d'écriture séquentiellement (un appel serveur par jour).
-   * plan : [{ date, entries }]. Les jours sans entrées sont déjà exclus.
+   * Exécute un plan d'écriture séquentiellement (un appel serveur par date).
+   * plan : [{ date, entries }].
    */
   function runBulkPlan(plan, btn) {
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
@@ -1826,11 +1801,10 @@
       if (i >= plan.length) {
         restore();
         flashSaved(btn);
-        document.getElementById('globalDateInput').value = '';
         document.getElementById('entryContainer').innerHTML = '';
         addEntryRow();
         applyFilters();
-        showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} jours).`, 'success');
+        showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
         return;
       }
       btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
@@ -1972,19 +1946,14 @@
   // ── NOTES (une zone permanente par joueur) ───────────────────────────
   function loadNotes() {
     callServer('apiGetAllNotes', [], res => {
-      renderNotesUI(res.notes || [], res.needsInit);
+      renderNotesUI(res.notes || []);
     }, 'Chargement notes');
   }
 
-  function renderNotesUI(notes, needsInit) {
+  function renderNotesUI(notes) {
     const container = document.getElementById('notesPlayersContainer');
     container.innerHTML = '';
 
-    if (needsInit) {
-      container.innerHTML = emptyIllustration('🗂️',
-        'La feuille « Notes » n\'existe pas encore. Allez dans Outils → « Initialiser la feuille Notes ».');
-      return;
-    }
     if (!cachedPlayers.length) {
       container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
       return;
@@ -2204,6 +2173,28 @@
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
 
+    // Applique la « date par défaut » au champ Du de toutes les lignes déjà saisies.
+    document.getElementById('applyDateAllBtn').addEventListener('click', () => {
+      const v = document.getElementById('defaultDateInput').value;
+      if (!v) { showToast('Choisis d\'abord une date par défaut.', 'error'); return; }
+      const rows = document.querySelectorAll('.entry-row .d-in');
+      if (!rows.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
+      rows.forEach(inp => { inp.value = v; });
+      showToast(`Date appliquée à ${rows.length} ligne(s).`, 'success');
+    });
+
+    // Bascule Répéter / Répartir (étalement d'une ligne sur son intervalle Du→Au).
+    const setLineFill = mode => {
+      lineFill = mode;
+      document.getElementById('lineFillRepeat').classList.toggle('active', mode === 'repeat');
+      document.getElementById('lineFillDistribute').classList.toggle('active', mode === 'distribute');
+      document.getElementById('lineFillHelp').innerHTML = mode === 'repeat'
+        ? '<strong>Répéter</strong> : la ligne est recréée à l\'identique chaque jour de son intervalle.'
+        : '<strong>Répartir</strong> : le total de la ligne est divisé sur les jours de son intervalle.';
+    };
+    document.getElementById('lineFillRepeat').addEventListener('click', () => setLineFill('repeat'));
+    document.getElementById('lineFillDistribute').addEventListener('click', () => setLineFill('distribute'));
+
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
       currentHistoryPage = 1; loadHistoryPage(1);
     });
@@ -2243,41 +2234,8 @@
       });
     });
 
-    document.getElementById('initNotesBtn').addEventListener('click', () => {
-      const btn = document.getElementById('initNotesBtn');
-      const restore = startBtnLoading(btn, '…');
-      callServer('apiInitNotesSheet', [], () => {
-        restore(); flashSaved(btn);
-        showToast('Feuille Notes prête.', 'success');
-        loadNotes();
-      }, 'Init Notes', () => restore());
-    });
-
     // ── Notes ──
     document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
-
-    // ── Mode date (Saisie Lot) ──
-    document.getElementById('dateModeSingle').addEventListener('click', () => setDateMode('single'));
-    document.getElementById('dateModeRange').addEventListener('click',  () => setDateMode('range'));
-    document.getElementById('fillDistribute').addEventListener('click', () => setRangeFill('distribute'));
-    document.getElementById('fillRepeat').addEventListener('click',     () => setRangeFill('repeat'));
-  }
-
-  function setRangeFill(mode) {
-    rangeFill = mode;
-    document.getElementById('fillDistribute').classList.toggle('active', mode === 'distribute');
-    document.getElementById('fillRepeat').classList.toggle('active', mode === 'repeat');
-    document.getElementById('rangeFillHelp').innerHTML = mode === 'distribute'
-      ? '<strong>Répartir</strong> : le total de chaque ligne est divisé sur les jours de la plage.'
-      : '<strong>Répéter</strong> : le lot complet est recopié à l\'identique sur chaque jour.';
-  }
-
-  function setDateMode(mode) {
-    dateMode = mode;
-    document.getElementById('dateModeSingle').classList.toggle('active', mode === 'single');
-    document.getElementById('dateModeRange').classList.toggle('active', mode === 'range');
-    document.getElementById('dateSingleWrap').style.display = mode === 'single' ? 'block' : 'none';
-    document.getElementById('dateRangeWrap').style.display  = mode === 'range'  ? 'block' : 'none';
   }
 
   function bindExportButtons() {
@@ -2316,26 +2274,11 @@
       });
     };
 
+    // Les raccourcis pré-remplissent la « date par défaut » des nouvelles lignes du lot.
     (() => {
       const items = dateShortcutItems();
       attachShortcuts('injectDateShortcuts', items, s => {
-        document.getElementById('globalDateInput').value = s.value;
-      });
-    })();
-
-    // Raccourcis de plage (mode Plage de la Saisie Lot).
-    (() => {
-      const t = new Date();
-      const mk = (y, m, d) => new Date(y, m, d);
-      const ranges = [
-        { label: '7 derniers jours',  from: mk(t.getFullYear(), t.getMonth(), t.getDate() - 6),  to: t },
-        { label: '30 derniers jours', from: mk(t.getFullYear(), t.getMonth(), t.getDate() - 29), to: t },
-        { label: 'Ce mois',           from: mk(t.getFullYear(), t.getMonth(), 1),                 to: t },
-        { label: 'Mois précédent',    from: mk(t.getFullYear(), t.getMonth() - 1, 1),             to: mk(t.getFullYear(), t.getMonth(), 0) }
-      ];
-      attachShortcuts('rangeShortcuts', ranges, r => {
-        document.getElementById('rangeStartInput').value = toDateStr(r.from);
-        document.getElementById('rangeEndInput').value   = toDateStr(r.to);
+        document.getElementById('defaultDateInput').value = s.value;
       });
     })();
 

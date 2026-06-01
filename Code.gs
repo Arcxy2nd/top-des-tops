@@ -280,61 +280,22 @@ const StorageService = {
 // ─── NOTES SERVICE ─────────────────────────────────────────────────────────────
 const NotesService = {
 
+  /** Renvoie la feuille Notes, en la CRÉANT automatiquement si elle n'existe pas. */
   _sheet() {
-    const notes = ConfigService.getSheets().notes;
-    if (!notes) throw new Error("La feuille 'Notes' n'existe pas. Initialisez-la depuis l'onglet Outils.");
-    return notes;
-  },
-
-  /** Crée la feuille Notes avec ses en-têtes si elle n'existe pas. */
-  initSheet() {
+    let sheet = ConfigService.getSheets().notes;
+    if (sheet) return sheet;
     const ss = ConfigService.getSheets().spreadsheet;
-    let sheet = ss.getSheetByName('Notes');
-    if (!sheet) {
-      sheet = ss.insertSheet('Notes');
-      sheet.appendRow(['Date', 'Joueur', 'Note']);
-      sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
-    }
+    sheet = ss.insertSheet('Notes');
+    sheet.appendRow(['Date', 'Joueur', 'Note']);
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
     ConfigService.clearCache();
-    return { created: true };
+    return sheet;
   },
 
-  getNotesPage(page, pageSize, filterPlayer) {
-    // Lecture tolérante : si la feuille n'existe pas, on ne bloque pas l'app.
-    const sheet = ConfigService.getSheets().notes;
-    if (!sheet) return { notes: [], total: 0, needsInit: true };
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { notes: [], total: 0 };
-
-    const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
-    let all = [];
-    for (let i = 0; i < data.length; i++) {
-      const row    = data[i];
-      const player = row[1] ? row[1].toString() : '';
-      const text   = row[2] ? row[2].toString() : '';
-      if (!player && !text) continue;
-      if (filterPlayer && player !== filterPlayer) continue;
-      const d = new Date(row[0]);
-      all.push({
-        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
-        player,
-        text,
-        rowIndex: i + 2
-      });
-    }
-
-    all.reverse(); // plus récentes d'abord
-
-    const total = all.length;
-    const ps    = pageSize || 20;
-    const start = ((page || 1) - 1) * ps;
-    return { notes: all.slice(start, start + ps), total };
-  },
-
-  /** Toutes les notes (récentes d'abord). { notes, needsInit } */
+  /** Toutes les notes (récentes d'abord). Lecture tolérante : pas de feuille → liste vide. */
   getAllNotes() {
     const sheet = ConfigService.getSheets().notes;
-    if (!sheet) return { notes: [], needsInit: true };
+    if (!sheet) return { notes: [] };   // pas encore de feuille (aucune note créée)
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { notes: [] };
 
@@ -682,24 +643,10 @@ function apiDeleteOrphans() {
 
 // ── Notes rapides ──────────────────────────────────────────────────────────────
 
-function apiInitNotesSheet() {
-  try {
-    NotesService.initSheet();
-    return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
-function apiGetNotesPage(page, pageSize, filterPlayer) {
-  try {
-    const result = NotesService.getNotesPage(page, pageSize, filterPlayer);
-    return { success: true, notes: result.notes, total: result.total, needsInit: !!result.needsInit };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
 function apiGetAllNotes() {
   try {
     const result = NotesService.getAllNotes();
-    return { success: true, notes: result.notes, needsInit: !!result.needsInit };
+    return { success: true, notes: result.notes };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
