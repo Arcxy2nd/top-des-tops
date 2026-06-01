@@ -509,44 +509,58 @@ const AnalyticsService = {
 
     if (!logs.length) return { labels: [], series: {} };
 
-    // Déterminer le granularité : si la période > 90 jours → mois, sinon semaines
-    const start = startDate ? new Date(startDate + 'T00:00:00') : logs.reduce((m, l) => l.timestamp < m ? l.timestamp : m, logs[0].timestamp);
-    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dayKey   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const monthKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    const startOfWeek = d => {
+      const t = new Date(d); t.setHours(0,0,0,0);
+      t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); // lundi
+      return t;
+    };
+
+    // Bornes de la plage : paramètres si fournis, sinon min/max des données.
+    const minLog = logs.reduce((m, l) => l.timestamp < m ? l.timestamp : m, logs[0].timestamp);
+    const maxLog = logs.reduce((m, l) => l.timestamp > m ? l.timestamp : m, logs[0].timestamp);
+    const start = startDate ? new Date(startDate + 'T00:00:00') : new Date(minLog);
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : new Date(maxLog);
     const diffDays = (end - start) / (1000 * 86400);
-    const byMonth  = diffDays > 90;
+
+    // Granularité adaptée pour avoir assez de points sans en avoir trop.
+    const gran = diffDays <= 31 ? 'day' : (diffDays <= 183 ? 'week' : 'month');
+    const keyFor = d => gran === 'day' ? dayKey(d) : (gran === 'week' ? dayKey(startOfWeek(d)) : monthKey(d));
 
     const allPlayers = players && players.length
       ? players
       : SettingsService.getEntities('Players').map(p => p.name);
 
-    // Bucket key
-    const bucket = d => byMonth
-      ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-      : (() => {
-          // ISO week start (lundi)
-          const tmp = new Date(d);
-          tmp.setHours(0,0,0,0);
-          tmp.setDate(tmp.getDate() - ((tmp.getDay() + 6) % 7));
-          return tmp.toISOString().slice(0,10);
-        })();
+    // 1) On génère TOUS les créneaux de la plage (même vides) → courbe continue.
+    const labels = [];
+    if (gran === 'month') {
+      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const last = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cur <= last) { labels.push(monthKey(cur)); cur.setMonth(cur.getMonth() + 1); }
+    } else {
+      const step = gran === 'week' ? 7 : 1;
+      const cur  = gran === 'week' ? startOfWeek(start) : new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const last = gran === 'week' ? startOfWeek(end)   : new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      while (cur <= last) { labels.push(dayKey(cur)); cur.setDate(cur.getDate() + step); }
+    }
 
-    // Agréger par bucket + joueur
-    const bucketMap = {}; // { bucketKey: { player: points } }
+    // 2) Agrégation des points par créneau + joueur.
+    const bucketMap = {}; // { key: { player: points } }
     logs.forEach(log => {
       if (!allPlayers.includes(log.player)) return;
-      const k = bucket(log.timestamp);
+      const k = keyFor(log.timestamp);
       if (!bucketMap[k]) bucketMap[k] = {};
       bucketMap[k][log.player] = (bucketMap[k][log.player] || 0) + log.points;
     });
 
-    const labels = Object.keys(bucketMap).sort();
-
-    // Cumul par joueur
+    // 3) Cumul par joueur sur l'axe complet (les créneaux vides reportent le cumul).
     const series = {};
     allPlayers.forEach(p => {
       let cum = 0;
       series[p] = labels.map(k => {
-        cum += (bucketMap[k][p] || 0);
+        cum += (bucketMap[k] && bucketMap[k][p]) || 0;
         return cum;
       });
     });

@@ -1523,7 +1523,8 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
-          x: { grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
+          // offset:true → les points ne sont pas collés au bord gauche (utile quand il y en a peu).
+          x: { offset: true, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
           y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
         plugins: {
@@ -2338,10 +2339,11 @@
       });
     })();
 
-    const today    = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById('startDate').value = firstDay.toISOString().slice(0, 10);
-    document.getElementById('endDate').value   = today.toISOString().slice(0, 10);
+    // Période par défaut : 30 derniers jours (assez large pour une vraie courbe).
+    const today      = new Date();
+    const monthAgo   = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
+    document.getElementById('startDate').value = toDateStr(monthAgo);
+    document.getElementById('endDate').value   = toDateStr(today);
 
     lastRefreshTime = new Date();
     updateRefreshBadge();
