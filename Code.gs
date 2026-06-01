@@ -617,6 +617,37 @@ function apiGetTrendData(players, categories, startDate, endDate) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
+// ── Total global par joueur (tous tops inclus, même supprimés) ──────────
+function apiGetPlayerTotals(players, startDate, endDate) {
+  try {
+    const allPlayers     = SettingsService.getEntities('Players').map(p => p.name);
+    const displayPlayers = (players && players.length) ? players : allPlayers;
+
+    const logs = StorageService.getFilteredLogs(
+      displayPlayers,
+      null,              // aucun filtre catégorie → tous les tops comptés
+      startDate || null,
+      endDate   || null
+    );
+
+    const totals = {};
+    displayPlayers.forEach(p => { totals[p] = 0; });
+    logs.forEach(log => {
+      if (Object.prototype.hasOwnProperty.call(totals, log.player)) {
+        totals[log.player] += log.points;
+      }
+    });
+
+    return {
+      success:   true,
+      chartData: {
+        labels:   displayPlayers,
+        datasets: [{ label: 'Total global', data: displayPlayers.map(p => totals[p] || 0) }]
+      }
+    };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
 // ── Outils de nettoyage ──────────────────────────────────────────────────────
 
 function apiGetDataHealth() {

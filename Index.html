@@ -215,14 +215,14 @@
 
     /* ── SAISIE LOT ── */
     .batch-header {
-      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr auto auto;
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr minmax(180px, 1.5fr) auto;
       gap: 10px; padding: 0 10px; margin-bottom: 8px;
       color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
       text-transform: uppercase;
     }
     .entry-row {
-      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr auto auto;
-      gap: 10px; align-items: center;
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr minmax(180px, 1.5fr) auto;
+      gap: 10px; align-items: start;
       background: rgba(0,0,0,0.15); padding: 10px;
       border-radius: 8px; border: 1px solid var(--border);
       margin-bottom: 8px; transition: border-color 0.2s;
@@ -491,6 +491,29 @@
     .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
     .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
 
+    /* ── CELLULE DATE INLINE (par ligne de saisie) ── */
+    .d-cell { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+    .d-cell .d-start, .d-cell .d-end { width: 100%; }
+    .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
+    .row-shortcut {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 3px; padding: 2px 6px;
+      font-size: 0.67rem; cursor: pointer; color: var(--text);
+      min-height: 22px; font-weight: 500; white-space: nowrap;
+      transition: background 0.12s; line-height: 1.4;
+    }
+    .row-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .row-range-toggle {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; color: var(--text-muted); cursor: pointer;
+      user-select: none; margin-top: 2px;
+    }
+    .row-range-toggle input[type="checkbox"] { width: auto; min-width: 0; margin: 0; }
+    .row-range-details {
+      display: none; flex-direction: column; gap: 4px;
+      border-left: 2px solid var(--accent); padding-left: 8px; margin-top: 2px;
+    }
+
     /* ── BARRE DE TRI / OPTIONS GRAPHIQUE ── */
     .chart-controls {
       display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
@@ -561,7 +584,7 @@
 
     <div class="card">
       <div class="chart-header">
-        <h2 style="margin:0;">📈 Scores par Top</h2>
+        <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
         <div class="export-buttons">
           <button class="export-btn" data-export="png">📸 PNG</button>
           <button class="export-btn" data-export="jpeg">🖼️ JPEG</button>
@@ -574,12 +597,12 @@
 
       <!-- Sélecteur de type de graphique -->
       <div class="chart-type-bar" id="chartTypeBar">
-        <button class="chart-type-btn active" data-chart-type="stacked">📊 Barres</button>
+        <button class="chart-type-btn" data-chart-type="stacked">📊 Barres</button>
         <button class="chart-type-btn" data-chart-type="grouped">📊 Groupé</button>
         <button class="chart-type-btn" data-chart-type="trend">📈 Courbes</button>
         <button class="chart-type-btn" data-chart-type="radar">🕸️ Radar</button>
         <button class="chart-type-btn" data-chart-type="doughnut">🍩 Donut</button>
-        <button class="chart-type-btn" data-chart-type="ranking">🏆 Classement</button>
+        <button class="chart-type-btn active" data-chart-type="ranking">🏆 Classement</button>
       </div>
 
       <!-- Barre de tri / options contextuelle au type de graphique -->
@@ -604,16 +627,16 @@
       <h2>✍️ Constructeur de Lot</h2>
       <div style="margin-bottom:16px;">
         <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">
-          Date par défaut des nouvelles lignes
+          Date / plage par défaut (nouvelles lignes)
         </label>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <input type="date" id="defaultDateInput" style="max-width:220px;">
+          <button type="button" class="d-btn small" id="defaultDateBtn" style="min-width:180px;"></button>
           <button type="button" class="secondary small" id="applyDateAllBtn">📅 Appliquer à toutes les lignes</button>
         </div>
-        <div class="date-shortcuts" style="margin-top:8px;" id="injectDateShortcuts"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-          Chaque ligne a sa propre date. Renseigne « Au » pour couvrir plusieurs jours, et choisis
-          <strong>Répéter</strong> (même score chaque jour) ou <strong>Répartir</strong> (total divisé sur les jours) — par ligne. Vide = aujourd'hui.
+          Définit la date (ou la plage + Répéter/Répartir) des <strong>nouvelles</strong> lignes.
+          « Appliquer à toutes les lignes » la copie sur toutes les lignes déjà saisies.
+          Chaque ligne reste modifiable individuellement via son bouton 📅.
         </div>
       </div>
       <div class="batch-header">
@@ -737,7 +760,7 @@
   // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
   let currentChart     = null;
   let currentChartData = null;
-  let currentChartType = 'stacked';
+  let currentChartType = 'ranking';
   let cachedPlayers    = [];
   let cachedCategories = [];
   let rowCounter       = 0;
@@ -918,6 +941,33 @@
       { label: 'Cette année',       from: mk(y, 0, 1),      to: mk(y, m, d) },
       { label: 'Année préc.',       from: mk(y - 1, 0, 1),  to: mk(y - 1, 11, 31) }
     ];
+  }
+
+  // Remplit un conteneur de chips de sélection rapide pour un input date (date unique).
+  function buildRowDateShortcuts(el, targetInput) {
+    dateShortcutItems().forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = s.label;
+      b.addEventListener('click', () => { targetInput.value = s.value; });
+      el.appendChild(b);
+    });
+  }
+
+  // Remplit un conteneur de chips de plage (7j, 30j…) — remplit les deux inputs + active la case Plage.
+  function buildRowRangePresets(el, startInput, endInput, rangeCb, rangeDetails) {
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = r.label;
+      b.addEventListener('click', () => {
+        startInput.value = r.from;
+        endInput.value   = r.to;
+        if (!rangeCb.checked) {
+          rangeCb.checked = true;
+          rangeDetails.style.display = 'flex';
+        }
+      });
+      el.appendChild(b);
+    });
   }
 
   // Boutons de période du Dashboard (incluent « Tout » = sans filtre).
@@ -1152,21 +1202,33 @@
     if (currentChartType === 'trend') {
       callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
         currentChartData = res.trendData;
-        // On affiche d'abord le conteneur (sinon un graphique en courbes s'initialise à taille zéro).
         document.getElementById('chartSkeleton').style.display = 'none';
         document.getElementById('chartWrapper').style.display  = 'block';
         renderTrendChart(res.trendData);
         renderChartControls('trend');
       }, 'Chargement courbes');
-    } else {
-      callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
+      return;
+    }
+
+    // Total global : tous les tops comptés (même supprimés) — pas de filtre catégorie
+    if (currentChartType === 'ranking' && !chartOptions.detailed) {
+      callServer('apiGetPlayerTotals', [selPlayers, startDate, endDate], res => {
         currentChartData = res.chartData;
         document.getElementById('chartSkeleton').style.display = 'none';
         document.getElementById('chartWrapper').style.display  = 'block';
-        renderChart(res.chartData, currentChartType);
-        renderChartControls(currentChartType);
-      }, 'Chargement graphique');
+        renderChart(res.chartData, 'ranking');
+        renderChartControls('ranking');
+      }, 'Chargement total global');
+      return;
     }
+
+    callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
+      currentChartData = res.chartData;
+      document.getElementById('chartSkeleton').style.display = 'none';
+      document.getElementById('chartWrapper').style.display  = 'block';
+      renderChart(res.chartData, currentChartType);
+      renderChartControls(currentChartType);
+    }, 'Chargement graphique');
   }
 
   function switchChartType(type) {
@@ -1177,7 +1239,7 @@
     const donutWrap = document.getElementById('donutPlayerWrap');
     donutWrap.style.display = type === 'doughnut' ? 'block' : 'none';
 
-    if (type === 'trend') {
+    if (type === 'trend' || type === 'ranking') {
       applyFilters();
       return;
     }
@@ -1190,6 +1252,20 @@
   function renderChartControls(type) {
     const bar = document.getElementById('chartControls');
     const parts = [];
+
+    // Met à jour le titre du graphique selon le type actif
+    const titleEl = document.getElementById('chartTitle');
+    if (titleEl) {
+      const titles = {
+        stacked:  '📈 Scores par Top',
+        grouped:  '📈 Scores par Top (groupé)',
+        trend:    '📈 Évolution temporelle',
+        radar:    '🕸️ Radar des scores',
+        doughnut: '🍩 Répartition par Top',
+        ranking:  chartOptions.detailed ? '🏆 Classement (tops actifs)' : '🏆 Total global'
+      };
+      titleEl.textContent = titles[type] || '📈 Scores';
+    }
 
     const sortSelect = (id, value, opts) =>
       '<div class="chart-control"><label>' + opts.label + '</label><select id="' + id + '">' +
@@ -1215,7 +1291,10 @@
       parts.push(sortSelect('ctrlSortBy', chartOptions.sortBy, { label: 'Trier par', choices: [
         { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
       ]}));
-      parts.push(toggle('ctrlDetailed', chartOptions.detailed, 'Scores détaillés'));
+      parts.push(toggle('ctrlDetailed', chartOptions.detailed, 'Scores par top actifs'));
+      if (!chartOptions.detailed) {
+        parts.push('<span style="font-size:0.72rem;color:var(--text-muted);padding:0 4px;align-self:center;">← Vue actuelle : tous les tops inclus (même supprimés)</span>');
+      }
     } else if (type === 'doughnut') {
       parts.push(sortSelect('ctrlSortCat', chartOptions.sortCat, { label: 'Segments', choices: [
         { v: 'total-desc', t: 'Valeur ↓' }, { v: 'total-asc', t: 'Valeur ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
@@ -1237,8 +1316,10 @@
     bar.innerHTML = parts.join('');
     bar.style.display = 'flex';
 
-    const rerender = () => {
+    const rerender = (prop) => {
       if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      // Le toggle 'detailed' sur ranking change la source de données → re-fetch obligatoire
+      else if (currentChartType === 'ranking' && prop === 'detailed') applyFilters();
       else renderChart(currentChartData, currentChartType);
     };
     const bind = (id, prop, isCheckbox) => {
@@ -1246,7 +1327,7 @@
       if (!el) return;
       el.addEventListener('change', () => {
         chartOptions[prop] = isCheckbox ? el.checked : el.value;
-        rerender();
+        rerender(prop);
       });
     };
     bind('ctrlSortBy', 'sortBy'); bind('ctrlSortCat', 'sortCat');
@@ -1681,6 +1762,7 @@
     div.className = 'entry-row';
     div.id = 'row_' + rowCounter;
 
+    // ── Joueur ──────────────────────────────────────────────────────────
     const wrap = document.createElement('div');
     wrap.className = 'player-sel-wrap';
     const img = document.createElement('img');
@@ -1695,6 +1777,7 @@
     pSel.addEventListener('change', () => updateRowAvatar(pSel, img));
     wrap.appendChild(img); wrap.appendChild(pSel);
 
+    // ── Top ─────────────────────────────────────────────────────────────
     const cSel = document.createElement('select');
     cSel.className = 'c-sel';
     cachedCategories.forEach(c => {
@@ -1703,8 +1786,10 @@
       cSel.appendChild(o);
     });
 
+    // ── Points ──────────────────────────────────────────────────────────
     const ptsToggle = createPtsToggle(preset ? parseInt(preset.points, 10) || 1 : 1);
 
+    // ── Multiplicateur ──────────────────────────────────────────────────
     const tmsInput = document.createElement('input');
     tmsInput.type = 'number'; tmsInput.className = 'tms-in';
     tmsInput.value = '1'; tmsInput.min = '1'; tmsInput.step = '1';
@@ -1715,16 +1800,66 @@
       if (isNaN(v) || v < 1) tmsInput.value = '1';
     });
 
-    // Date propre à la ligne : un bouton qui ouvre l'éditeur (jour unique ou plage).
-    const defDate = document.getElementById('defaultDateInput');
-    const dateBtn = document.createElement('button');
-    dateBtn.type = 'button'; dateBtn.className = 'd-btn small';
-    dateBtn.dataset.start = (preset && preset.date) || (defDate && defDate.value) || toDateStr(new Date());
-    dateBtn.dataset.end   = (preset && preset.dateEnd) || '';
-    dateBtn.dataset.fill  = (preset && preset.fill) || 'repeat';
-    updateDateBtnLabel(dateBtn);
-    dateBtn.addEventListener('click', () => openLineDateModal(dateBtn));
+    // ── Cellule date inline ──────────────────────────────────────────────
+    const defBtn  = document.getElementById('defaultDateBtn');
+    const defStart = (defBtn && defBtn.dataset.start) || toDateStr(new Date());
+    const defEnd   = (defBtn && defBtn.dataset.end)   || '';
+    const defFill  = (defBtn && defBtn.dataset.fill)  || 'repeat';
 
+    const dateCell = document.createElement('div');
+    dateCell.className = 'd-cell';
+
+    // Date de début (toujours visible)
+    const startInput = document.createElement('input');
+    startInput.type = 'date'; startInput.className = 'd-start';
+    startInput.value = (preset && preset.date) || defStart;
+
+    const startShortcuts = document.createElement('div');
+    startShortcuts.className = 'row-shortcuts';
+    buildRowDateShortcuts(startShortcuts, startInput);
+
+    // Case à cocher Plage
+    const rangeLabel = document.createElement('label');
+    rangeLabel.className = 'row-range-toggle';
+    const rangeCb = document.createElement('input');
+    rangeCb.type = 'checkbox'; rangeCb.className = 'range-cb';
+    const hasRange = preset ? (preset.dateEnd != null && preset.dateEnd !== '') : !!defEnd;
+    rangeCb.checked = hasRange;
+    rangeLabel.appendChild(rangeCb);
+    rangeLabel.appendChild(document.createTextNode(' Plage'));
+
+    // Détails de la plage (masqués par défaut si pas de plage)
+    const rangeDetails = document.createElement('div');
+    rangeDetails.className = 'row-range-details';
+    rangeDetails.style.display = hasRange ? 'flex' : 'none';
+
+    const endInput = document.createElement('input');
+    endInput.type = 'date'; endInput.className = 'd-end';
+    endInput.value = (preset && preset.dateEnd != null) ? preset.dateEnd : defEnd;
+
+    const endShortcuts = document.createElement('div');
+    endShortcuts.className = 'row-shortcuts';
+
+    const fillToggle = createFillToggle((preset && preset.fill) || defFill);
+
+    rangeDetails.appendChild(endInput);
+    rangeDetails.appendChild(endShortcuts);
+    rangeDetails.appendChild(fillToggle);
+
+    // Les chips de plage remplissent les deux inputs + activent la case
+    buildRowRangePresets(endShortcuts, startInput, endInput, rangeCb, rangeDetails);
+
+    rangeCb.addEventListener('change', () => {
+      rangeDetails.style.display = rangeCb.checked ? 'flex' : 'none';
+      if (!rangeCb.checked) endInput.value = '';
+    });
+
+    dateCell.appendChild(startInput);
+    dateCell.appendChild(startShortcuts);
+    dateCell.appendChild(rangeLabel);
+    dateCell.appendChild(rangeDetails);
+
+    // ── Actions ─────────────────────────────────────────────────────────
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     const dupBtn = document.createElement('button');
@@ -1734,9 +1869,9 @@
       category: cSel.value,
       points:   ptsToggle.dataset.selected,
       times:    tmsInput.value,
-      date:     dateBtn.dataset.start,
-      dateEnd:  dateBtn.dataset.end,
-      fill:     dateBtn.dataset.fill
+      date:     startInput.value,
+      dateEnd:  rangeCb.checked ? endInput.value : '',
+      fill:     fillToggle.dataset.fill
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
@@ -1747,7 +1882,7 @@
     div.appendChild(cSel);
     div.appendChild(ptsToggle);
     div.appendChild(tmsInput);
-    div.appendChild(dateBtn);
+    div.appendChild(dateCell);
     div.appendChild(actions);
     container.appendChild(div);
 
@@ -1866,12 +2001,15 @@
       const cSel = r.querySelector('.c-sel');
       const ptsWrap = r.querySelector('.pts-toggle-wrap');
       const tms  = r.querySelector('.tms-in');
-      const dBtn = r.querySelector('.d-btn');
-      if (pSel && cSel && ptsWrap && tms && dBtn) {
+      const dStart  = r.querySelector('.d-start');
+      const dEnd    = r.querySelector('.d-end');
+      const rangeCb = r.querySelector('.range-cb');
+      const fillTg  = r.querySelector('.line-fill');
+      if (pSel && cSel && ptsWrap && tms && dStart) {
         items.push({
-          dateStart: dBtn.dataset.start || '',
-          dateEnd:   dBtn.dataset.end || '',
-          fill:      dBtn.dataset.fill || 'repeat',
+          dateStart: dStart.value || '',
+          dateEnd:   (rangeCb && rangeCb.checked && dEnd) ? dEnd.value : '',
+          fill:      fillTg ? fillTg.dataset.fill : 'repeat',
           player:    pSel.value,
           category:  cSel.value,
           points:    ptsWrap.dataset.selected,
@@ -2312,14 +2450,39 @@
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
 
-    // Applique la « date par défaut » au « Du » de toutes les lignes (sans toucher aux plages).
+    // Applique la date/plage par défaut à toutes les lignes déjà saisies.
     document.getElementById('applyDateAllBtn').addEventListener('click', () => {
-      const v = document.getElementById('defaultDateInput').value;
-      if (!v) { showToast('Choisis d\'abord une date par défaut.', 'error'); return; }
-      const btns = document.querySelectorAll('.entry-row .d-btn');
-      if (!btns.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
-      btns.forEach(b => { b.dataset.start = v; updateDateBtnLabel(b); });
-      showToast(`Date appliquée à ${btns.length} ligne(s).`, 'success');
+      const def      = document.getElementById('defaultDateBtn');
+      const defStart = def.dataset.start || toDateStr(new Date());
+      const defEnd   = def.dataset.end   || '';
+      const defFill  = def.dataset.fill  || 'repeat';
+      const isRange  = !!defEnd;
+
+      const rows = document.querySelectorAll('.entry-row');
+      if (!rows.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
+
+      rows.forEach(row => {
+        const startInp = row.querySelector('.d-start');
+        const endInp   = row.querySelector('.d-end');
+        const cb       = row.querySelector('.range-cb');
+        const details  = row.querySelector('.row-range-details');
+        const fillTog  = row.querySelector('.line-fill');
+
+        if (startInp) startInp.value = defStart;
+        if (endInp)   endInp.value   = defEnd;
+        if (cb)       cb.checked     = isRange;
+        if (details)  details.style.display = isRange ? 'flex' : 'none';
+        if (fillTog) {
+          fillTog.dataset.fill = defFill;
+          fillTog.querySelectorAll('.seg-btn').forEach(b => {
+            const bVal = b.textContent === 'Répéter' ? 'repeat' : 'distribute';
+            b.classList.toggle('active', bVal === defFill);
+          });
+        }
+      });
+
+      const what = isRange ? 'Plage' : 'Date';
+      showToast(`${what} appliquée à ${rows.length} ligne(s).`, 'success');
     });
 
 
@@ -2386,25 +2549,14 @@
     bindButtons();
     bindExportButtons();
 
-    // Petit utilitaire : ajoute des boutons raccourci dans un conteneur.
-    const attachShortcuts = (wrapId, items, onPick) => {
-      const wrap = document.getElementById(wrapId);
-      if (!wrap) return;
-      wrap.innerHTML = '';
-      items.forEach(s => {
-        const btn = document.createElement('button');
-        btn.className = 'date-shortcut'; btn.type = 'button'; btn.textContent = s.label;
-        btn.addEventListener('click', () => onPick(s));
-        wrap.appendChild(btn);
-      });
-    };
-
-    // Les raccourcis pré-remplissent la « date par défaut » des nouvelles lignes du lot.
+    // Bouton « date/plage par défaut » du lot : ouvre le même éditeur que les lignes.
     (() => {
-      const items = dateShortcutItems();
-      attachShortcuts('injectDateShortcuts', items, s => {
-        document.getElementById('defaultDateInput').value = s.value;
-      });
+      const def = document.getElementById('defaultDateBtn');
+      def.dataset.start = toDateStr(new Date());
+      def.dataset.end   = '';
+      def.dataset.fill  = 'repeat';
+      updateDateBtnLabel(def);
+      def.addEventListener('click', () => openLineDateModal(def));
     })();
 
     // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
