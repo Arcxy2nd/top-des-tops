@@ -228,6 +228,13 @@
       margin-bottom: 8px; transition: border-color 0.2s;
     }
     .entry-row .d-in { width: 100%; min-width: 130px; }
+    /* Bouton-date d'une ligne (ouvre l'éditeur jour unique / plage). */
+    .entry-row .d-btn {
+      width: 100%; min-width: 150px; justify-content: flex-start;
+      font-weight: 600; white-space: normal; text-align: left;
+      background: var(--bg); border: 1px solid var(--border);
+    }
+    .entry-row .d-btn:hover { border-color: var(--accent); }
     /* Cellule date d'une ligne : début + fin optionnelle (Du → Au) */
     .d-range { display: flex; flex-direction: column; gap: 3px; min-width: 130px; }
     .d-range input { width: 100%; }
@@ -539,17 +546,17 @@
         <div class="filter-group">
           <label>Date début</label>
           <input type="date" id="startDate">
-          <div class="date-shortcuts" id="startDateShortcuts"></div>
         </div>
         <div class="filter-group">
           <label>Date fin</label>
           <input type="date" id="endDate">
-          <div class="date-shortcuts" id="endDateShortcuts"></div>
         </div>
         <div class="filter-group filter-apply" style="min-width:110px; flex:0;">
           <button class="primary" id="applyFiltersBtn">Appliquer</button>
         </div>
       </div>
+      <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">Période rapide :</div>
+      <div class="date-shortcuts" id="rangePresets"></div>
     </div>
 
     <div class="card">
@@ -894,6 +901,45 @@
         document.getElementById(targetInputId).value = s.value;
       });
       wrap.appendChild(btn);
+    });
+  }
+
+  // Plages prédéfinies (réutilisées par le Dashboard et par l'éditeur de date des lignes).
+  function rangePresetItems() {
+    const t = new Date();
+    const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+    const mk = (yy, mm, dd) => toDateStr(new Date(yy, mm, dd));
+    return [
+      { label: '7 derniers jours',  from: mk(y, m, d - 6),  to: mk(y, m, d) },
+      { label: '30 derniers jours', from: mk(y, m, d - 29), to: mk(y, m, d) },
+      { label: 'Ce mois',           from: mk(y, m, 1),      to: mk(y, m, d) },
+      { label: 'Mois précédent',    from: mk(y, m - 1, 1),  to: mk(y, m, 0) },
+      { label: '3 derniers mois',   from: mk(y, m - 3, d),  to: mk(y, m, d) },
+      { label: 'Cette année',       from: mk(y, 0, 1),      to: mk(y, m, d) },
+      { label: 'Année préc.',       from: mk(y - 1, 0, 1),  to: mk(y - 1, 11, 31) }
+    ];
+  }
+
+  // Boutons de période du Dashboard (incluent « Tout » = sans filtre).
+  function buildRangePresets() {
+    const wrap = document.getElementById('rangePresets');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const setRange = (from, to) => {
+      document.getElementById('startDate').value = from || '';
+      document.getElementById('endDate').value   = to   || '';
+      applyFilters();
+    };
+    const all = document.createElement('button');
+    all.className = 'date-shortcut'; all.type = 'button'; all.textContent = 'Tout';
+    all.title = 'Toutes les années (aucun filtre de date)';
+    all.addEventListener('click', () => setRange('', ''));
+    wrap.appendChild(all);
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.className = 'date-shortcut'; b.type = 'button'; b.textContent = r.label;
+      b.addEventListener('click', () => setRange(r.from, r.to));
+      wrap.appendChild(b);
     });
   }
 
@@ -1669,22 +1715,15 @@
       if (isNaN(v) || v < 1) tmsInput.value = '1';
     });
 
-    // Date propre à la ligne : début (Du) + fin optionnelle (Au).
+    // Date propre à la ligne : un bouton qui ouvre l'éditeur (jour unique ou plage).
     const defDate = document.getElementById('defaultDateInput');
-    const dateWrap = document.createElement('div');
-    dateWrap.className = 'd-range';
-    const lblDu = document.createElement('span'); lblDu.className = 'mini'; lblDu.textContent = 'Du';
-    const dateInput = document.createElement('input');
-    dateInput.type = 'date'; dateInput.className = 'd-in';
-    dateInput.value = (preset && preset.date) || (defDate && defDate.value) || toDateStr(new Date());
-    const lblAu = document.createElement('span'); lblAu.className = 'mini'; lblAu.textContent = 'Au (option.)';
-    const dateEnd = document.createElement('input');
-    dateEnd.type = 'date'; dateEnd.className = 'd-end';
-    if (preset && preset.dateEnd) dateEnd.value = preset.dateEnd;
-    const fillToggle = createFillToggle(preset ? preset.fill : 'repeat');
-    dateWrap.appendChild(lblDu); dateWrap.appendChild(dateInput);
-    dateWrap.appendChild(lblAu); dateWrap.appendChild(dateEnd);
-    dateWrap.appendChild(fillToggle);
+    const dateBtn = document.createElement('button');
+    dateBtn.type = 'button'; dateBtn.className = 'd-btn small';
+    dateBtn.dataset.start = (preset && preset.date) || (defDate && defDate.value) || toDateStr(new Date());
+    dateBtn.dataset.end   = (preset && preset.dateEnd) || '';
+    dateBtn.dataset.fill  = (preset && preset.fill) || 'repeat';
+    updateDateBtnLabel(dateBtn);
+    dateBtn.addEventListener('click', () => openLineDateModal(dateBtn));
 
     const actions = document.createElement('div');
     actions.className = 'row-actions';
@@ -1695,9 +1734,9 @@
       category: cSel.value,
       points:   ptsToggle.dataset.selected,
       times:    tmsInput.value,
-      date:     dateInput.value,
-      dateEnd:  dateEnd.value,
-      fill:     fillToggle.dataset.fill
+      date:     dateBtn.dataset.start,
+      dateEnd:  dateBtn.dataset.end,
+      fill:     dateBtn.dataset.fill
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
@@ -1708,7 +1747,7 @@
     div.appendChild(cSel);
     div.appendChild(ptsToggle);
     div.appendChild(tmsInput);
-    div.appendChild(dateWrap);
+    div.appendChild(dateBtn);
     div.appendChild(actions);
     container.appendChild(div);
 
@@ -1718,6 +1757,93 @@
       if (preset.times)    tmsInput.value = preset.times;
     }
     updateRowAvatar(pSel, img);
+  }
+
+  function fmtFr(s) {
+    if (!s) return '';
+    const d = new Date(s + 'T12:00:00');
+    return isNaN(d) ? s : d.toLocaleDateString('fr-FR');
+  }
+
+  // Met à jour le libellé du bouton-date d'une ligne selon son état (jour unique ou plage).
+  function updateDateBtnLabel(btn) {
+    const s = btn.dataset.start, e = btn.dataset.end;
+    if (!e) {
+      btn.textContent = '📅 ' + fmtFr(s);
+    } else {
+      const mode = btn.dataset.fill === 'distribute' ? 'Répartir' : 'Répéter';
+      btn.textContent = '📅 ' + fmtFr(s) + ' → ' + fmtFr(e) + ' · ' + mode;
+    }
+  }
+
+  // Éditeur de date d'une ligne : jour unique OU plage, avec boutons rapides et Répéter/Répartir.
+  function openLineDateModal(btn) {
+    const box = document.getElementById('modalBox');
+    const isRange = !!btn.dataset.end;
+    box.innerHTML =
+      '<h3>Date de la ligne</h3>' +
+      '<label class="chart-control toggle" style="margin-bottom:10px;">' +
+        '<input type="checkbox" id="mIsRange"' + (isRange ? ' checked' : '') + '> Plage de dates (plusieurs jours)' +
+      '</label>' +
+      '<div class="mini">Du</div>' +
+      '<input type="date" id="mStart" value="' + escapeHtml(btn.dataset.start) + '">' +
+      '<div class="date-shortcuts" id="mStartChips" style="margin:6px 0;"></div>' +
+      '<div id="mRangeBox" style="' + (isRange ? '' : 'display:none;') + '">' +
+        '<div class="mini">Au</div>' +
+        '<input type="date" id="mEnd" value="' + escapeHtml(btn.dataset.end) + '">' +
+        '<div class="date-shortcuts" id="mRangeChips" style="margin:6px 0;"></div>' +
+        '<div class="mini" style="margin-top:8px;">Étalement sur l\'intervalle :</div>' +
+        '<div id="mFillSlot" style="margin-top:4px;"></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">OK</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+
+    const cb = document.getElementById('mIsRange');
+    const rangeBox = document.getElementById('mRangeBox');
+    cb.addEventListener('change', () => { rangeBox.style.display = cb.checked ? 'block' : 'none'; });
+
+    // Boutons rapides "jour unique" → remplissent Du.
+    const sc = document.getElementById('mStartChips');
+    dateShortcutItems().forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = s.label;
+      b.addEventListener('click', () => { document.getElementById('mStart').value = s.value; });
+      sc.appendChild(b);
+    });
+
+    // Boutons rapides "plage" → remplissent Du + Au et activent la plage.
+    const rc = document.getElementById('mRangeChips');
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = r.label;
+      b.addEventListener('click', () => {
+        document.getElementById('mStart').value = r.from;
+        document.getElementById('mEnd').value   = r.to;
+      });
+      rc.appendChild(b);
+    });
+
+    // Choix Répéter / Répartir.
+    const fillToggle = createFillToggle(btn.dataset.fill);
+    document.getElementById('mFillSlot').appendChild(fillToggle);
+
+    document.getElementById('mSave').onclick = () => {
+      const start = document.getElementById('mStart').value || toDateStr(new Date());
+      let end = '';
+      if (cb.checked) {
+        const e = document.getElementById('mEnd').value;
+        if (e && new Date(e + 'T12:00:00') > new Date(start + 'T12:00:00')) end = e;
+      }
+      btn.dataset.start = start;
+      btn.dataset.end   = end;
+      btn.dataset.fill  = fillToggle.dataset.fill;
+      updateDateBtnLabel(btn);
+      closeModal();
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
   // Dates "YYYY-MM-DD" de start à end inclus ; [start] si end vide/invalide.
@@ -1740,14 +1866,12 @@
       const cSel = r.querySelector('.c-sel');
       const ptsWrap = r.querySelector('.pts-toggle-wrap');
       const tms  = r.querySelector('.tms-in');
-      const dIn  = r.querySelector('.d-in');
-      const dEnd = r.querySelector('.d-end');
-      const fillWrap = r.querySelector('.line-fill');
-      if (pSel && cSel && ptsWrap && tms) {
+      const dBtn = r.querySelector('.d-btn');
+      if (pSel && cSel && ptsWrap && tms && dBtn) {
         items.push({
-          dateStart: (dIn && dIn.value) || '',
-          dateEnd:   (dEnd && dEnd.value) || '',
-          fill:      (fillWrap && fillWrap.dataset.fill) || 'repeat',
+          dateStart: dBtn.dataset.start || '',
+          dateEnd:   dBtn.dataset.end || '',
+          fill:      dBtn.dataset.fill || 'repeat',
           player:    pSel.value,
           category:  cSel.value,
           points:    ptsWrap.dataset.selected,
@@ -2188,14 +2312,14 @@
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
 
-    // Applique la « date par défaut » au champ Du de toutes les lignes déjà saisies.
+    // Applique la « date par défaut » au « Du » de toutes les lignes (sans toucher aux plages).
     document.getElementById('applyDateAllBtn').addEventListener('click', () => {
       const v = document.getElementById('defaultDateInput').value;
       if (!v) { showToast('Choisis d\'abord une date par défaut.', 'error'); return; }
-      const rows = document.querySelectorAll('.entry-row .d-in');
-      if (!rows.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
-      rows.forEach(inp => { inp.value = v; });
-      showToast(`Date appliquée à ${rows.length} ligne(s).`, 'success');
+      const btns = document.querySelectorAll('.entry-row .d-btn');
+      if (!btns.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
+      btns.forEach(b => { b.dataset.start = v; updateDateBtnLabel(b); });
+      showToast(`Date appliquée à ${btns.length} ligne(s).`, 'success');
     });
 
 
@@ -2262,9 +2386,6 @@
     bindButtons();
     bindExportButtons();
 
-    buildDateShortcuts('startDate');
-    buildDateShortcuts('endDate');
-    
     // Petit utilitaire : ajoute des boutons raccourci dans un conteneur.
     const attachShortcuts = (wrapId, items, onPick) => {
       const wrap = document.getElementById(wrapId);
@@ -2286,11 +2407,10 @@
       });
     })();
 
-    // Période par défaut : 30 derniers jours (assez large pour une vraie courbe).
-    const today      = new Date();
-    const monthAgo   = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
-    document.getElementById('startDate').value = toDateStr(monthAgo);
-    document.getElementById('endDate').value   = toDateStr(today);
+    // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value   = '';
+    buildRangePresets();
 
     lastRefreshTime = new Date();
     updateRefreshBadge();
