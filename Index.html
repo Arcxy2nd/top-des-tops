@@ -605,18 +605,8 @@
         </div>
         <div class="date-shortcuts" style="margin-top:8px;" id="injectDateShortcuts"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-          Chaque ligne a sa propre date. Renseigne aussi « Au » sur une ligne pour qu'elle couvre plusieurs jours. Vide = aujourd'hui.
-        </div>
-
-        <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin:12px 0 4px;">
-          Quand une ligne couvre plusieurs jours (Du → Au) :
-        </label>
-        <div class="seg-toggle">
-          <button type="button" class="seg-btn active" id="lineFillRepeat">Répéter</button>
-          <button type="button" class="seg-btn" id="lineFillDistribute">Répartir</button>
-        </div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="lineFillHelp">
-          <strong>Répéter</strong> : la ligne est recréée à l'identique chaque jour de son intervalle.
+          Chaque ligne a sa propre date. Renseigne « Au » pour couvrir plusieurs jours, et choisis
+          <strong>Répéter</strong> (même score chaque jour) ou <strong>Répartir</strong> (total divisé sur les jours) — par ligne. Vide = aujourd'hui.
         </div>
       </div>
       <div class="batch-header">
@@ -746,7 +736,6 @@
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let totalHistoryEntries = 0;
-  let lineFill         = 'repeat'; // 'repeat' | 'distribute' — étalement d'une ligne sur son intervalle
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
   const PTS_VALUES = [1, 3, 5, 10, 25, 50, 100];
@@ -1605,6 +1594,27 @@
     return wrap;
   }
 
+  // Petit sélecteur Répéter/Répartir propre à une ligne. Sa valeur est dans dataset.fill.
+  function createFillToggle(defaultMode) {
+    const wrap = document.createElement('div');
+    wrap.className = 'seg-toggle line-fill';
+    wrap.dataset.fill = defaultMode || 'repeat';
+    [['repeat', 'Répéter'], ['distribute', 'Répartir']].forEach(([val, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'seg-btn' + (val === wrap.dataset.fill ? ' active' : '');
+      b.textContent = label;
+      b.title = val === 'repeat' ? 'Même score chaque jour' : 'Total divisé sur les jours';
+      b.addEventListener('click', () => {
+        wrap.dataset.fill = val;
+        wrap.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
   function addEntryRow(preset) {
     const container = document.getElementById('entryContainer');
     const es = container.querySelector('.empty-state');
@@ -1671,8 +1681,10 @@
     const dateEnd = document.createElement('input');
     dateEnd.type = 'date'; dateEnd.className = 'd-end';
     if (preset && preset.dateEnd) dateEnd.value = preset.dateEnd;
+    const fillToggle = createFillToggle(preset ? preset.fill : 'repeat');
     dateWrap.appendChild(lblDu); dateWrap.appendChild(dateInput);
     dateWrap.appendChild(lblAu); dateWrap.appendChild(dateEnd);
+    dateWrap.appendChild(fillToggle);
 
     const actions = document.createElement('div');
     actions.className = 'row-actions';
@@ -1684,7 +1696,8 @@
       points:   ptsToggle.dataset.selected,
       times:    tmsInput.value,
       date:     dateInput.value,
-      dateEnd:  dateEnd.value
+      dateEnd:  dateEnd.value,
+      fill:     fillToggle.dataset.fill
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
@@ -1729,10 +1742,12 @@
       const tms  = r.querySelector('.tms-in');
       const dIn  = r.querySelector('.d-in');
       const dEnd = r.querySelector('.d-end');
+      const fillWrap = r.querySelector('.line-fill');
       if (pSel && cSel && ptsWrap && tms) {
         items.push({
           dateStart: (dIn && dIn.value) || '',
           dateEnd:   (dEnd && dEnd.value) || '',
+          fill:      (fillWrap && fillWrap.dataset.fill) || 'repeat',
           player:    pSel.value,
           category:  cSel.value,
           points:    ptsWrap.dataset.selected,
@@ -1755,7 +1770,7 @@
       const dates = lineDates(it.dateStart, it.dateEnd);
       if (dates.length > 1) hasRange = true;
 
-      if (dates.length === 1 || lineFill === 'repeat') {
+      if (dates.length === 1 || it.fill === 'repeat') {
         // Répéter : la ligne complète sur chaque jour de l'intervalle.
         dates.forEach(dk => {
           (byDate[dk] = byDate[dk] || []).push({
@@ -2183,17 +2198,6 @@
       showToast(`Date appliquée à ${rows.length} ligne(s).`, 'success');
     });
 
-    // Bascule Répéter / Répartir (étalement d'une ligne sur son intervalle Du→Au).
-    const setLineFill = mode => {
-      lineFill = mode;
-      document.getElementById('lineFillRepeat').classList.toggle('active', mode === 'repeat');
-      document.getElementById('lineFillDistribute').classList.toggle('active', mode === 'distribute');
-      document.getElementById('lineFillHelp').innerHTML = mode === 'repeat'
-        ? '<strong>Répéter</strong> : la ligne est recréée à l\'identique chaque jour de son intervalle.'
-        : '<strong>Répartir</strong> : le total de la ligne est divisé sur les jours de son intervalle.';
-    };
-    document.getElementById('lineFillRepeat').addEventListener('click', () => setLineFill('repeat'));
-    document.getElementById('lineFillDistribute').addEventListener('click', () => setLineFill('distribute'));
 
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
       currentHistoryPage = 1; loadHistoryPage(1);
