@@ -1,9 +1,9 @@
 /**
- * STRUCTURE DU SPREADSHEET
- * History   : [0] Date | [1] Joueur | [2] Catégorie | [3] Points
- * Players   : [0] Nom  | [1] Avatar URL
- * Categories: [0] Nom  | [1] Description | [2] Icône (emoji)
- * Notes     : [0] Date | [1] Joueur | [2] Note (texte libre)
+ * SPREADSHEET STRUCTURE
+ * History   : [0] Date | [1] Player | [2] Category | [3] Points
+ * Players   : [0] Name | [1] Avatar URL | [2] Hex color
+ * Categories: [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
+ * Notes     : [0] Date | [1] Player | [2] Note text
  */
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -47,16 +47,46 @@ const SettingsService = {
   getEntities(type) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
-    return data.filter(r => r[0]).map(r => ({
-      name: r[0].toString(),
-      meta: r[1] ? r[1].toString() : "",
-      icon: r[2] ? r[2].toString() : ""   // emoji (catégories)
-    }));
+    return data.filter(r => r[0]).map(r => {
+      if (type === 'Players') {
+        // Players : [0] Name | [1] Avatar URL | [2] Hex color
+        return {
+          name:  r[0].toString(),
+          meta:  r[1] ? r[1].toString() : "",
+          icon:  "",
+          color: r[2] ? r[2].toString() : ""
+        };
+      } else {
+        // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
+        return {
+          name:  r[0].toString(),
+          meta:  r[1] ? r[1].toString() : "",
+          icon:  r[2] ? r[2].toString() : "",
+          color: r[3] ? r[3].toString() : ""
+        };
+      }
+    });
   },
 
   addEntity(type, name, meta, icon) {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
-    ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", icon || ""]);
+    if (type === 'Players') {
+      ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", ""]);
+    } else {
+      ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", icon || "", ""]);
+    }
+  },
+
+  setEntityColor(type, name, color) {
+    const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    const data  = sheet.getDataRange().getValues();
+    let idx = -1;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] === name) { idx = i; break; }
+    }
+    if (idx === -1) throw new Error(`${name} introuvable.`);
+    const colIndex = type === 'Players' ? 3 : 4;
+    sheet.getRange(idx + 1, colIndex).setValue(color || "");
   },
 
   deleteEntity(type, name) {
@@ -78,7 +108,13 @@ const SettingsService = {
       if (data[i][0] === oldName) { idx = i; break; }
     }
     if (idx === -1) throw new Error(`${oldName} introuvable.`);
-    sheet.getRange(idx + 1, 1, 1, 3).setValues([[newName, newMeta || "", newIcon || ""]]);
+    if (type === 'Players') {
+      const existingColor = data[idx][2] ? data[idx][2].toString() : "";
+      sheet.getRange(idx + 1, 1, 1, 3).setValues([[newName, newMeta || "", existingColor]]);
+    } else {
+      const existingColor = data[idx][3] ? data[idx][3].toString() : "";
+      sheet.getRange(idx + 1, 1, 1, 4).setValues([[newName, newMeta || "", newIcon || "", existingColor]]);
+    }
 
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
@@ -437,19 +473,23 @@ const AnalyticsService = {
       endDate   || null
     );
 
-    const allPlayers    = SettingsService.getEntities('Players').map(p => p.name);
-    const allCategories = SettingsService.getEntities('Categories').map(c => c.name);
+    const allPlayers    = SettingsService.getEntities('Players');
+    const allCategories = SettingsService.getEntities('Categories');
+    const allPlayerNames    = allPlayers.map(p => p.name);
+    const allCategoryNames  = allCategories.map(c => c.name);
 
-    const displayPlayers    = (players    && players.length)    ? players    : allPlayers;
-    const displayCategories = (categories && categories.length) ? categories : allCategories;
+    const displayPlayers    = (players    && players.length)    ? players    : allPlayerNames;
+    const displayCategories = (categories && categories.length) ? categories : allCategoryNames;
 
     const { scores } = this._aggregate(logs, displayPlayers, displayCategories);
 
-    const colors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+    const defaultColors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+    const catColorMap = {};
+    allCategories.forEach(c => { if (c.color) catColorMap[c.name] = c.color; });
     const datasets = displayCategories.map((cat, i) => ({
       label:           cat,
       data:            displayPlayers.map(p => (scores[p] && scores[p][cat]) || 0),
-      backgroundColor: colors[i % colors.length],
+      backgroundColor: catColorMap[cat] || defaultColors[i % defaultColors.length],
       borderRadius:    4
     }));
 
@@ -553,6 +593,15 @@ function apiGetSettings() {
       players:    SettingsService.getEntities('Players'),
       categories: SettingsService.getEntities('Categories')
     };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiSetColor(type, name, color) {
+  try {
+    if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
+    SettingsService.setEntityColor(type, name, color);
+    ConfigService.clearCache();
+    return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 

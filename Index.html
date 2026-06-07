@@ -837,11 +837,12 @@
     return PALETTE[h % PALETTE.length];
   }
   function playerColor(name) {
-    return localStorage.getItem('playerColor:' + name) || hashColor('P|' + name);
+    const p = cachedPlayers.find(p => p.name === name);
+    return (p && p.color) || hashColor('P|' + name);
   }
   function categoryColor(name) {
-    const custom = localStorage.getItem('catColor:' + name);
-    if (custom) return custom;
+    const c = cachedCategories.find(c => c.name === name);
+    if (c && c.color) return c.color;
     const i = cachedCategories.findIndex(c => c.name === name);
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
@@ -1257,7 +1258,7 @@
         img.alt = item.name;
         img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
         left.appendChild(img);
-        // Pastille couleur cliquable
+        // Color swatch — opens native color picker on click
         const colorLbl = document.createElement('label');
         colorLbl.title = 'Changer la couleur du joueur';
         colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
@@ -1265,13 +1266,19 @@
         colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:' + playerColor(item.name) + ';';
         const colorIn = document.createElement('input');
         colorIn.type = 'color';
-        colorIn.value = localStorage.getItem('playerColor:' + item.name) || hashColor('P|' + item.name);
+        colorIn.value = item.color || hashColor('P|' + item.name);
         colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
         colorIn.addEventListener('input', () => {
           colorDot.style.background = colorIn.value;
-          localStorage.setItem('playerColor:' + item.name, colorIn.value);
         });
-        colorIn.addEventListener('change', refreshColorDependentViews);
+        colorIn.addEventListener('change', () => {
+          const p = cachedPlayers.find(p => p.name === item.name);
+          if (p) p.color = colorIn.value;
+          callServer('apiSetColor', ['Players', item.name, colorIn.value], res => {
+            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
+          }, 'Color save');
+          refreshColorDependentViews();
+        });
         colorLbl.appendChild(colorDot);
         colorLbl.appendChild(colorIn);
         left.appendChild(colorLbl);
@@ -1282,7 +1289,7 @@
         left.appendChild(ic);
       }
       if (type === 'Categories') {
-        // Pastille couleur cliquable
+        // Color swatch — opens native color picker on click
         const colorLbl = document.createElement('label');
         colorLbl.title = 'Changer la couleur du Top';
         colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
@@ -1290,13 +1297,19 @@
         colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,0.25);background:' + categoryColor(item.name) + ';';
         const colorIn = document.createElement('input');
         colorIn.type = 'color';
-        colorIn.value = localStorage.getItem('catColor:' + item.name) || categoryColor(item.name);
+        colorIn.value = item.color || categoryColor(item.name);
         colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
         colorIn.addEventListener('input', () => {
           colorDot.style.background = colorIn.value;
-          localStorage.setItem('catColor:' + item.name, colorIn.value);
         });
-        colorIn.addEventListener('change', refreshColorDependentViews);
+        colorIn.addEventListener('change', () => {
+          const c = cachedCategories.find(c => c.name === item.name);
+          if (c) c.color = colorIn.value;
+          callServer('apiSetColor', ['Categories', item.name, colorIn.value], res => {
+            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
+          }, 'Color save');
+          refreshColorDependentViews();
+        });
         colorLbl.appendChild(colorDot);
         colorLbl.appendChild(colorIn);
         left.appendChild(colorLbl);
@@ -1557,7 +1570,7 @@
       segLabels = order.map(i => segLabels[i]);
       segValues = order.map(i => segValues[i]);
       const origLabels = data.datasets.map(d => d.label);
-      const segColors = order.map(i => localStorage.getItem('catColor:' + origLabels[i]) || CHART_COLORS[i % CHART_COLORS.length]);
+      const segColors = order.map(i => categoryColor(origLabels[i]));
 
       const total = segValues.reduce((s, v) => s + v, 0);
       const centerPlugin = {
@@ -1629,7 +1642,7 @@
         datasets = data.datasets.map((ds, ci) => ({
           label: catDisplay(ds.label),
           data:  totals.map(t => ds.data[t.index] || 0),
-          backgroundColor: localStorage.getItem('catColor:' + ds.label) || CHART_COLORS[ci % CHART_COLORS.length],
+          backgroundColor: categoryColor(ds.label),
           borderRadius: 3
         }));
       } else {
@@ -1660,10 +1673,6 @@
     // ── Barres empilées / groupées ──
     const stacked = type !== 'grouped';
     const sorted  = getSortedBarData(data);
-    sorted.datasets.forEach(ds => {
-      const custom = localStorage.getItem('catColor:' + ds.label);
-      if (custom) ds.backgroundColor = custom;
-    });
 
     // Plugin manuel : total au sommet de chaque barre.
     const totalsPlugin = {
