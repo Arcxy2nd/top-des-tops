@@ -556,7 +556,7 @@
     <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
-    <button class="nav-btn" data-tab="tab-notes">📝 Notes</button>
+    <button class="nav-btn" data-tab="tab-notes">📝 Notes<span class="nav-count" id="notesCount"></span></button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique<span class="nav-count" id="historyCount"></span></button>
     <button class="nav-btn" data-tab="tab-tools">🔧 Outils</button>
     <div class="nav-refresh-wrap">
@@ -836,11 +836,21 @@
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
     return PALETTE[h % PALETTE.length];
   }
-  function playerColor(name) { return hashColor('P|' + name); }
+  function playerColor(name) {
+    return localStorage.getItem('playerColor:' + name) || hashColor('P|' + name);
+  }
   function categoryColor(name) {
-    // Si le Top existe, on suit son rang (cohérent avec les graphiques) ; sinon hash.
+    const custom = localStorage.getItem('catColor:' + name);
+    if (custom) return custom;
     const i = cachedCategories.findIndex(c => c.name === name);
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
+  }
+  function refreshColorDependentViews() {
+    if (currentChart) {
+      if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      else renderChart(currentChartData, currentChartType);
+    }
+    if (document.getElementById('tab-history').classList.contains('active')) loadHistoryPage(currentHistoryPage || 1);
   }
   // Convertit un hex (#rrggbb) en rgba avec alpha (pour des fonds teintés légers).
   function tint(hex, alpha) {
@@ -1247,11 +1257,49 @@
         img.alt = item.name;
         img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
         left.appendChild(img);
+        // Pastille couleur cliquable
+        const colorLbl = document.createElement('label');
+        colorLbl.title = 'Changer la couleur du joueur';
+        colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
+        const colorDot = document.createElement('span');
+        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:' + playerColor(item.name) + ';';
+        const colorIn = document.createElement('input');
+        colorIn.type = 'color';
+        colorIn.value = localStorage.getItem('playerColor:' + item.name) || hashColor('P|' + item.name);
+        colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
+        colorIn.addEventListener('input', () => {
+          colorDot.style.background = colorIn.value;
+          localStorage.setItem('playerColor:' + item.name, colorIn.value);
+        });
+        colorIn.addEventListener('change', refreshColorDependentViews);
+        colorLbl.appendChild(colorDot);
+        colorLbl.appendChild(colorIn);
+        left.appendChild(colorLbl);
       } else if (type === 'Categories' && item.icon) {
         const ic = document.createElement('span');
         ic.style.cssText = 'font-size:1.3rem; min-width:28px; text-align:center;';
         ic.textContent = item.icon;
         left.appendChild(ic);
+      }
+      if (type === 'Categories') {
+        // Pastille couleur cliquable
+        const colorLbl = document.createElement('label');
+        colorLbl.title = 'Changer la couleur du Top';
+        colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
+        const colorDot = document.createElement('span');
+        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,0.25);background:' + categoryColor(item.name) + ';';
+        const colorIn = document.createElement('input');
+        colorIn.type = 'color';
+        colorIn.value = localStorage.getItem('catColor:' + item.name) || categoryColor(item.name);
+        colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
+        colorIn.addEventListener('input', () => {
+          colorDot.style.background = colorIn.value;
+          localStorage.setItem('catColor:' + item.name, colorIn.value);
+        });
+        colorIn.addEventListener('change', refreshColorDependentViews);
+        colorLbl.appendChild(colorDot);
+        colorLbl.appendChild(colorIn);
+        left.appendChild(colorLbl);
       }
       const strong = document.createElement('strong');
       strong.textContent = item.name;
@@ -1508,7 +1556,8 @@
       const order = sortIndices(segValues, chartOptions.sortCat, segLabels);
       segLabels = order.map(i => segLabels[i]);
       segValues = order.map(i => segValues[i]);
-      const segColors = order.map(i => CHART_COLORS[i % CHART_COLORS.length]);
+      const origLabels = data.datasets.map(d => d.label);
+      const segColors = order.map(i => localStorage.getItem('catColor:' + origLabels[i]) || CHART_COLORS[i % CHART_COLORS.length]);
 
       const total = segValues.reduce((s, v) => s + v, 0);
       const centerPlugin = {
@@ -1542,9 +1591,9 @@
       const radarDatasets = data.labels.map((player, i) => ({
         label: player,
         data: data.datasets.map(ds => ds.data[i] || 0),
-        backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '33',
-        borderColor: CHART_COLORS[i % CHART_COLORS.length],
-        pointBackgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+        backgroundColor: playerColor(player) + '33',
+        borderColor: playerColor(player),
+        pointBackgroundColor: playerColor(player),
         borderWidth: 2
       }));
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
@@ -1580,14 +1629,14 @@
         datasets = data.datasets.map((ds, ci) => ({
           label: catDisplay(ds.label),
           data:  totals.map(t => ds.data[t.index] || 0),
-          backgroundColor: CHART_COLORS[ci % CHART_COLORS.length],
+          backgroundColor: localStorage.getItem('catColor:' + ds.label) || CHART_COLORS[ci % CHART_COLORS.length],
           borderRadius: 3
         }));
       } else {
         datasets = [{
           label: 'Total points',
           data:  totals.map(t => t.total),
-          backgroundColor: totals.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+          backgroundColor: totals.map(t => playerColor(t.player)),
           borderRadius: 4
         }];
       }
@@ -1611,6 +1660,10 @@
     // ── Barres empilées / groupées ──
     const stacked = type !== 'grouped';
     const sorted  = getSortedBarData(data);
+    sorted.datasets.forEach(ds => {
+      const custom = localStorage.getItem('catColor:' + ds.label);
+      if (custom) ds.backgroundColor = custom;
+    });
 
     // Plugin manuel : total au sommet de chaque barre.
     const totalsPlugin = {
@@ -1699,8 +1752,8 @@
     const datasets = players.map((p, i) => ({
       label: p,
       data: seriesFor(p),
-      borderColor: CHART_COLORS[i % CHART_COLORS.length],
-      backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '22',
+      borderColor: playerColor(p),
+      backgroundColor: playerColor(p) + '22',
       fill: chartOptions.trendMode !== 'period',
       tension: 0.3,
       pointRadius: 4,
@@ -2355,6 +2408,8 @@
   function renderNotesUI(notes) {
     const container = document.getElementById('notesPlayersContainer');
     container.innerHTML = '';
+    const totalNotes = notes.length;
+    document.getElementById('notesCount').textContent = totalNotes ? totalNotes : '';
 
     if (!cachedPlayers.length) {
       container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
