@@ -1,9 +1,10 @@
 /**
  * SPREADSHEET STRUCTURE
- * History   : [0] Date | [1] Player | [2] Category | [3] Points
+ * History   : [0] Date | [1] Player   | [2] Category  | [3] Points
  * Players   : [0] Name | [1] Avatar URL | [2] Hex color
  * Categories: [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
- * Notes     : [0] Date | [1] Player | [2] Note text
+ * Notes     : [0] Date | [1] Player   | [2] Note text
+ * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
  */
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -26,8 +27,9 @@ const ConfigService = (() => {
       if (!history || !players || !categories)
         throw new Error("Onglets 'History', 'Players' ou 'Categories' manquants.");
       // La feuille Notes est optionnelle : null si absente (pas d'erreur bloquante).
-      const notes = ss.getSheetByName('Notes');
-      _cache = { spreadsheet: ss, history, players, categories, notes };
+      const notes  = ss.getSheetByName('Notes')  || null;
+      const bareme = ss.getSheetByName('Bareme') || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -70,10 +72,11 @@ const SettingsService = {
 
   addEntity(type, name, meta, icon) {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
+    const sheet = ConfigService.getSheets()[type.toLowerCase()];
     if (type === 'Players') {
-      ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", ""]);
+      sheet.appendRow([name, meta || "", ""]);
     } else {
-      ConfigService.getSheets()[type.toLowerCase()].appendRow([name, meta || "", icon || "", ""]);
+      sheet.appendRow([name, meta || "", icon || "", ""]);
     }
   },
 
@@ -593,6 +596,78 @@ function apiGetSettings() {
       players:    SettingsService.getEntities('Players'),
       categories: SettingsService.getEntities('Categories')
     };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ─── BAREME SERVICE ────────────────────────────────────────────────────────────
+const BaremeService = {
+  _getOrCreateSheet() {
+    const cache = ConfigService.getSheets();
+    if (cache.bareme) return cache.bareme;
+    const sheet = cache.spreadsheet.insertSheet('Bareme');
+    sheet.appendRow(['Action', 'Points']);
+    ConfigService.clearCache();
+    return ConfigService.getSheets().bareme;
+  },
+
+  /** Returns all entries with 1-based row indices (row 1 = header). */
+  getEntries() {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    return data.slice(1).filter(r => r[0] !== "" && r[0] !== undefined).map((r, i) => ({
+      rowIndex: i + 2,
+      action:   r[0].toString(),
+      pts:      r[1] !== "" && r[1] !== undefined ? Number(r[1]) : 0
+    }));
+  },
+
+  addEntry(action, pts) {
+    if (!action || !action.trim()) throw new Error("Action vide.");
+    this._getOrCreateSheet().appendRow([action.trim(), Number(pts) || 0]);
+  },
+
+  updateEntry(rowIndex, action, pts) {
+    if (!action || !action.trim()) throw new Error("Action vide.");
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) throw new Error("Feuille Bareme introuvable.");
+    sheet.getRange(rowIndex, 1, 1, 2).setValues([[action.trim(), Number(pts) || 0]]);
+  },
+
+  deleteEntry(rowIndex) {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) throw new Error("Feuille Bareme introuvable.");
+    sheet.deleteRow(rowIndex);
+  }
+};
+
+function apiGetBareme() {
+  try {
+    return { success: true, entries: BaremeService.getEntries() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiAddBaremeEntry(action, pts) {
+  try {
+    BaremeService.addEntry(action, pts);
+    ConfigService.clearCache();
+    return { success: true, entries: BaremeService.getEntries() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiUpdateBaremeEntry(rowIndex, action, pts) {
+  try {
+    BaremeService.updateEntry(rowIndex, action, pts);
+    ConfigService.clearCache();
+    return { success: true, entries: BaremeService.getEntries() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeleteBaremeEntry(rowIndex) {
+  try {
+    BaremeService.deleteEntry(rowIndex);
+    ConfigService.clearCache();
+    return { success: true, entries: BaremeService.getEntries() };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
