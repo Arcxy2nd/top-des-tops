@@ -600,12 +600,13 @@ function apiGetSettings() {
 }
 
 // ─── BAREME SERVICE ────────────────────────────────────────────────────────────
+// Sheet "Bareme" : [0] Top (category name) | [1] Action | [2] Points
 const BaremeService = {
   _getOrCreateSheet() {
     const cache = ConfigService.getSheets();
     if (cache.bareme) return cache.bareme;
     const sheet = cache.spreadsheet.insertSheet('Bareme');
-    sheet.appendRow(['Action', 'Points']);
+    sheet.appendRow(['Top', 'Action', 'Points']);
     ConfigService.clearCache();
     return ConfigService.getSheets().bareme;
   },
@@ -615,23 +616,27 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
-    return data.slice(1).filter(r => r[0] !== "" && r[0] !== undefined).map((r, i) => ({
-      rowIndex: i + 2,
-      action:   r[0].toString(),
-      pts:      r[1] !== "" && r[1] !== undefined ? Number(r[1]) : 0
-    }));
+    return data.slice(1)
+      .filter(r => r[0] !== "" && r[0] !== undefined)
+      .map((r, i) => ({
+        rowIndex: i + 2,
+        top:      r[0].toString(),
+        action:   r[1] ? r[1].toString() : "",
+        pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0
+      }));
   },
 
-  addEntry(action, pts) {
+  addEntry(top, action, pts) {
+    if (!top   || !top.trim())    throw new Error("Top manquant.");
     if (!action || !action.trim()) throw new Error("Action vide.");
-    this._getOrCreateSheet().appendRow([action.trim(), Number(pts) || 0]);
+    this._getOrCreateSheet().appendRow([top.trim(), action.trim(), Number(pts) || 0]);
   },
 
   updateEntry(rowIndex, action, pts) {
     if (!action || !action.trim()) throw new Error("Action vide.");
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
-    sheet.getRange(rowIndex, 1, 1, 2).setValues([[action.trim(), Number(pts) || 0]]);
+    sheet.getRange(rowIndex, 2, 1, 2).setValues([[action.trim(), Number(pts) || 0]]);
   },
 
   deleteEntry(rowIndex) {
@@ -647,9 +652,9 @@ function apiGetBareme() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiAddBaremeEntry(action, pts) {
+function apiAddBaremeEntry(top, action, pts) {
   try {
-    BaremeService.addEntry(action, pts);
+    BaremeService.addEntry(top, action, pts);
     ConfigService.clearCache();
     return { success: true, entries: BaremeService.getEntries() };
   } catch(e) { return { success: false, error: e.message }; }

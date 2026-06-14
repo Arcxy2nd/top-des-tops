@@ -617,6 +617,39 @@
       scrollbar-width: thin;
     }
 
+    /* ── BARÈME SETTINGS ── */
+    .bareme-settings-section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .bareme-settings-section h3 { margin: 0 0 14px; font-size: 0.95rem; }
+    .bsect { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .bsect-head {
+      display: flex; align-items: center; gap: 9px; padding: 9px 13px;
+      background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border);
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .bsect-head .bsect-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bsect-entries { display: flex; flex-direction: column; }
+    .bsect-entry {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 13px; border-bottom: 1px solid var(--border);
+      font-size: 0.86rem;
+    }
+    .bsect-entry:last-child { border-bottom: none; }
+    .bsect-entry .bsect-pts {
+      flex-shrink: 0; min-width: 44px; text-align: center;
+      background: var(--accent); color: #fff;
+      font-size: 0.73rem; font-weight: 700;
+      border-radius: 20px; padding: 2px 7px;
+    }
+    .bsect-entry .bsect-action { flex: 1; }
+    .bsect-entry .bsect-btns   { display: flex; gap: 4px; flex-shrink: 0; }
+    .bsect-add {
+      display: flex; gap: 6px; padding: 8px 13px; flex-wrap: wrap; align-items: center;
+      background: rgba(0,0,0,0.08);
+    }
+    .bsect-add input[type="number"] { width: 64px; padding: 5px 6px; font-size: 0.82rem; text-align: center; }
+    .bsect-add input[type="text"]   { flex: 1; min-width: 120px; padding: 5px 8px; font-size: 0.84rem; }
+    .bsect-empty { padding: 7px 13px; font-style: italic; font-size: 0.8rem; color: var(--text-muted); }
+
     /* Entry row (read mode) */
     .bareme-entry {
       display: flex; align-items: center; gap: 10px;
@@ -797,6 +830,10 @@
             <button id="addCategoryBtn" class="primary small">Ajouter le Top</button>
           </div>
         </div>
+      </div>
+      <div class="bareme-settings-section">
+        <h3>⚖️ Barème par Top</h3>
+        <div id="baremeSettingsList"></div>
       </div>
     </div>
   </div>
@@ -1348,6 +1385,7 @@
 
       renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
       renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
+      loadBaremeSettings();
 
       updateHistoryFilters();
       updateDonutPlayerSelect();
@@ -2883,6 +2921,142 @@
     applyFilters();
   };
 
+  // ── BARÈME SETTINGS ─────────────────────────────────────────────────
+  function loadBaremeSettings() {
+    const container = document.getElementById('baremeSettingsList');
+    if (!container) return;
+    if (!cachedCategories.length) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;font-style:italic;">Ajoutez d\'abord des Tops dans Paramètres.</p>';
+      return;
+    }
+    container.innerHTML = '<div class="bareme-skel" style="height:60px;margin-bottom:10px;"></div>'.repeat(Math.min(cachedCategories.length, 3));
+    callServer('apiGetBareme', [], res => {
+      if (!res.success) { container.innerHTML = '<p style="color:var(--error)">Erreur de chargement.</p>'; return; }
+      baremeEntries = res.entries;
+      renderBaremeSettings(res.entries);
+      if (document.getElementById('baremeDrawer').classList.contains('open')) renderBaremeDrawer(res.entries);
+    }, 'Barème settings');
+  }
+
+  function renderBaremeSettings(entries) {
+    const container = document.getElementById('baremeSettingsList');
+    if (!container) return;
+    container.innerHTML = '';
+    cachedCategories.forEach(cat => {
+      const catEntries = entries.filter(e => e.top === cat.name);
+      const col        = categoryColor(cat.name);
+      const block      = document.createElement('div');
+      block.className  = 'bsect';
+
+      // Header
+      const head = document.createElement('div');
+      head.className = 'bsect-head';
+      const dot = document.createElement('span');
+      dot.className = 'bsect-dot'; dot.style.background = col;
+      const label = document.createElement('span');
+      label.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+      head.appendChild(dot); head.appendChild(label);
+      block.appendChild(head);
+
+      // Entries
+      const entriesCont = document.createElement('div');
+      entriesCont.className = 'bsect-entries';
+      if (!catEntries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'bsect-empty'; empty.textContent = 'Aucune règle.';
+        entriesCont.appendChild(empty);
+      } else {
+        catEntries.forEach(e => entriesCont.appendChild(buildBsectRow(e, entriesCont, entries)));
+      }
+      block.appendChild(entriesCont);
+
+      // Add form
+      block.appendChild(buildBsectAddForm(cat.name, entries));
+      container.appendChild(block);
+    });
+  }
+
+  function buildBsectRow(entry, entriesCont, allEntries) {
+    const row = document.createElement('div');
+    row.className = 'bsect-entry';
+
+    const pts = document.createElement('span');
+    pts.className = 'bsect-pts';
+    pts.textContent = entry.pts + ' pt' + (entry.pts > 1 ? 's' : '');
+
+    const action = document.createElement('span');
+    action.className = 'bsect-action'; action.textContent = entry.action;
+
+    const btns = document.createElement('div');
+    btns.className = 'bsect-btns';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'small'; editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', () => {
+      row.innerHTML = '';
+      row.style.flexWrap = 'wrap';
+      const ptsIn = document.createElement('input');
+      ptsIn.type = 'number'; ptsIn.value = entry.pts; ptsIn.style.cssText = 'width:64px;padding:4px 6px;font-size:0.82rem;text-align:center;';
+      const actIn = document.createElement('input');
+      actIn.type = 'text'; actIn.value = entry.action; actIn.style.cssText = 'flex:1;min-width:120px;padding:4px 8px;font-size:0.84rem;';
+      const ok = document.createElement('button');
+      ok.className = 'small primary'; ok.textContent = '✓';
+      ok.addEventListener('click', () => {
+        if (!actIn.value.trim()) { showToast('Action vide.', 'error'); return; }
+        const restore = startBtnLoading(ok, '…');
+        callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value], res => {
+          restore();
+          if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+          else showToast('Erreur sauvegarde.', 'error');
+        }, 'Update barème');
+      });
+      const cancel = document.createElement('button');
+      cancel.className = 'small'; cancel.textContent = '✕';
+      cancel.addEventListener('click', () => row.replaceWith(buildBsectRow(entry, entriesCont, allEntries)));
+      row.appendChild(ptsIn); row.appendChild(actIn); row.appendChild(ok); row.appendChild(cancel);
+      actIn.focus();
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', () => {
+      const restore = startBtnLoading(delBtn, '…');
+      callServer('apiDeleteBaremeEntry', [entry.rowIndex], res => {
+        restore();
+        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+        else showToast('Erreur suppression.', 'error');
+      }, 'Suppr. barème');
+    });
+
+    btns.appendChild(editBtn); btns.appendChild(delBtn);
+    row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
+    return row;
+  }
+
+  function buildBsectAddForm(topName, entries) {
+    const form = document.createElement('div');
+    form.className = 'bsect-add';
+    const ptsIn = document.createElement('input');
+    ptsIn.type = 'number'; ptsIn.placeholder = 'Pts';
+    const actIn = document.createElement('input');
+    actIn.type = 'text'; actIn.placeholder = 'Décrire l\'action…';
+    const addBtn = document.createElement('button');
+    addBtn.className = 'primary small'; addBtn.textContent = '+ Ajouter';
+    const submit = () => {
+      if (!actIn.value.trim()) { showToast('Action vide.', 'error'); actIn.focus(); return; }
+      const restore = startBtnLoading(addBtn, '…');
+      callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value], res => {
+        restore();
+        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+        else showToast('Erreur ajout.', 'error');
+      }, 'Ajout barème');
+    };
+    addBtn.addEventListener('click', submit);
+    actIn.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    form.appendChild(ptsIn); form.appendChild(actIn); form.appendChild(addBtn);
+    return form;
+  }
+
   // ── BARÈME ───────────────────────────────────────────────────────────
   let baremeEntries = null; // cache: array of {rowIndex, action, pts}
 
@@ -2891,7 +3065,7 @@
     document.getElementById('baremeBackdrop').classList.add('open');
     document.getElementById('baremeBtn').setAttribute('aria-expanded', 'true');
     if (!baremeEntries) loadBareme();
-    else renderBareme(baremeEntries);
+    else renderBaremeDrawer(baremeEntries);
   }
 
   function closeBareme() {
@@ -2904,129 +3078,52 @@
     const body = document.getElementById('baremeBody');
     body.innerHTML = [1,2,3].map(() => '<div class="bareme-skel"></div>').join('');
     callServer('apiGetBareme', [], res => {
-      if (res.success) { baremeEntries = res.entries; renderBareme(res.entries); }
+      if (res.success) { baremeEntries = res.entries; renderBaremeDrawer(res.entries); }
       else body.innerHTML = '<p class="bareme-empty">Erreur de chargement.</p>';
     }, 'Barème');
   }
 
-  function renderBareme(entries) {
+  // Read-only drawer — grouped by Top
+  function renderBaremeDrawer(entries) {
     const body = document.getElementById('baremeBody');
     body.innerHTML = '';
-
-    if (!entries.length) {
-      body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Ajoutez-en une ci-dessous.</p>';
-    } else {
-      entries.forEach(entry => body.appendChild(buildBaremeRow(entry)));
+    if (!cachedCategories.length) {
+      body.innerHTML = '<p class="bareme-empty">Aucun Top configuré.</p>';
+      return;
     }
+    let hasAny = false;
+    cachedCategories.forEach(cat => {
+      const catEntries = entries.filter(e => e.top === cat.name);
+      if (!catEntries.length) return;
+      hasAny = true;
+      const col     = categoryColor(cat.name);
+      const section = document.createElement('div');
+      section.style.cssText = 'margin-bottom:14px;';
 
-    body.appendChild(buildBaremeAddForm());
-  }
+      const head = document.createElement('div');
+      head.style.cssText = 'display:flex;align-items:center;gap:7px;font-weight:700;font-size:0.85rem;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border);';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:9px;height:9px;border-radius:50%;background:' + col + ';flex-shrink:0;';
+      const lbl = document.createElement('span');
+      lbl.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+      head.appendChild(dot); head.appendChild(lbl);
+      section.appendChild(head);
 
-  function buildBaremeRow(entry) {
-    const row = document.createElement('div');
-    row.className = 'bareme-entry';
-    row.dataset.rowIndex = entry.rowIndex;
-
-    const pts = document.createElement('span');
-    pts.className = 'bareme-pts-badge';
-    pts.textContent = entry.pts + ' pt' + (entry.pts > 1 ? 's' : '');
-
-    const action = document.createElement('span');
-    action.className = 'bareme-action-text';
-    action.textContent = entry.action;
-
-    const btns = document.createElement('div');
-    btns.className = 'bareme-row-btns';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Modifier';
-    editBtn.addEventListener('click', () => switchToEditRow(row, entry));
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
-    delBtn.addEventListener('click', () => {
-      const restore = startBtnLoading(delBtn, '…');
-      callServer('apiDeleteBaremeEntry', [entry.rowIndex], res => {
-        restore();
-        if (res.success) { baremeEntries = res.entries; renderBareme(res.entries); }
-        else showToast('Erreur suppression.', 'error');
-      }, 'Suppr. barème');
+      catEntries.forEach(e => {
+        const row = document.createElement('div');
+        row.className = 'bareme-entry';
+        const badge = document.createElement('span');
+        badge.className = 'bareme-pts-badge';
+        badge.style.background = col;
+        badge.textContent = e.pts + ' pt' + (e.pts > 1 ? 's' : '');
+        const txt = document.createElement('span');
+        txt.className = 'bareme-action-text'; txt.textContent = e.action;
+        row.appendChild(badge); row.appendChild(txt);
+        section.appendChild(row);
+      });
+      body.appendChild(section);
     });
-
-    btns.appendChild(editBtn); btns.appendChild(delBtn);
-    row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
-    return row;
-  }
-
-  function switchToEditRow(row, entry) {
-    row.innerHTML = '';
-    row.className = 'bareme-entry bareme-entry-edit';
-
-    const ptsIn = document.createElement('input');
-    ptsIn.type = 'number'; ptsIn.min = '0'; ptsIn.step = '1';
-    ptsIn.value = entry.pts; ptsIn.className = 'bareme-edit-pts';
-
-    const actionIn = document.createElement('input');
-    actionIn.type = 'text'; actionIn.value = entry.action;
-    actionIn.className = 'bareme-edit-action';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'small primary'; saveBtn.textContent = '✓';
-    saveBtn.addEventListener('click', () => {
-      const newAction = actionIn.value.trim();
-      const newPts    = ptsIn.value;
-      if (!newAction) { showToast('Action vide.', 'error'); return; }
-      const restore = startBtnLoading(saveBtn, '…');
-      callServer('apiUpdateBaremeEntry', [entry.rowIndex, newAction, newPts], res => {
-        restore();
-        if (res.success) { baremeEntries = res.entries; renderBareme(res.entries); }
-        else showToast('Erreur sauvegarde.', 'error');
-      }, 'Update barème');
-    });
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'small'; cancelBtn.textContent = '✕';
-    cancelBtn.addEventListener('click', () => {
-      row.replaceWith(buildBaremeRow(entry));
-    });
-
-    row.appendChild(ptsIn); row.appendChild(actionIn);
-    row.appendChild(saveBtn); row.appendChild(cancelBtn);
-    actionIn.focus();
-  }
-
-  function buildBaremeAddForm() {
-    const form = document.createElement('div');
-    form.className = 'bareme-add-form';
-
-    const ptsIn = document.createElement('input');
-    ptsIn.type = 'number'; ptsIn.min = '0'; ptsIn.step = '1';
-    ptsIn.placeholder = 'Pts'; ptsIn.className = 'bareme-edit-pts';
-
-    const actionIn = document.createElement('input');
-    actionIn.type = 'text'; actionIn.placeholder = 'Décrire l\'action…';
-    actionIn.className = 'bareme-edit-action';
-
-    const addBtn = document.createElement('button');
-    addBtn.className = 'primary small'; addBtn.textContent = '+ Ajouter';
-
-    const submit = () => {
-      const action = actionIn.value.trim();
-      const pts    = ptsIn.value;
-      if (!action) { showToast('Action vide.', 'error'); actionIn.focus(); return; }
-      const restore = startBtnLoading(addBtn, '…');
-      callServer('apiAddBaremeEntry', [action, pts], res => {
-        restore();
-        if (res.success) { baremeEntries = res.entries; renderBareme(res.entries); }
-        else showToast('Erreur ajout.', 'error');
-      }, 'Ajout barème');
-    };
-
-    addBtn.addEventListener('click', submit);
-    actionIn.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-
-    form.appendChild(ptsIn); form.appendChild(actionIn); form.appendChild(addBtn);
-    return form;
+    if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans Paramètres.</p>';
   }
 
   document.getElementById('baremeBtn').addEventListener('click', () => {
