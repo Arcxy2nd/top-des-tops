@@ -620,72 +620,124 @@
     /* ── BARÈME SETTINGS ── */
     .bareme-settings-section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
     .bareme-settings-section h3 { margin: 0 0 14px; font-size: 0.95rem; }
-    .bsect { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .bsect { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
     .bsect-head {
-      display: flex; align-items: center; gap: 9px; padding: 9px 13px;
+      display: flex; align-items: center; gap: 9px; padding: 10px 14px;
       background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border);
-      font-weight: 700; font-size: 0.9rem;
+      border-left: 4px solid var(--bsect-col, var(--accent));
+      font-weight: 700; font-size: 0.88rem;
     }
-    .bsect-head .bsect-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bsect-head .bsect-count {
+      margin-left: auto; font-size: 0.7rem; font-weight: 600;
+      color: var(--text-muted); background: rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 20px;
+    }
     .bsect-entries { display: flex; flex-direction: column; }
     .bsect-entry {
-      display: flex; align-items: center; gap: 9px;
-      padding: 7px 13px; border-bottom: 1px solid var(--border);
-      font-size: 0.86rem;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px; border-bottom: 1px solid var(--border);
+      font-size: 0.86rem; transition: background 0.1s;
     }
     .bsect-entry:last-child { border-bottom: none; }
+    .bsect-entry:hover { background: rgba(255,255,255,0.03); }
     .bsect-entry .bsect-pts {
-      flex-shrink: 0; min-width: 44px; text-align: center;
-      background: var(--accent); color: #fff;
-      font-size: 0.73rem; font-weight: 700;
-      border-radius: 20px; padding: 2px 7px;
+      flex-shrink: 0; min-width: 46px; text-align: center;
+      color: #fff; font-size: 0.73rem; font-weight: 700;
+      border-radius: 20px; padding: 3px 8px;
     }
     .bsect-entry .bsect-action { flex: 1; }
     .bsect-entry .bsect-btns   { display: flex; gap: 4px; flex-shrink: 0; }
     .bsect-add {
-      display: flex; gap: 6px; padding: 8px 13px; flex-wrap: wrap; align-items: center;
-      background: rgba(0,0,0,0.08);
+      display: flex; gap: 6px; padding: 9px 14px; flex-wrap: wrap; align-items: center;
+      background: rgba(0,0,0,0.1); border-top: 1px dashed var(--border);
     }
     .bsect-add input[type="number"] { width: 64px; padding: 5px 6px; font-size: 0.82rem; text-align: center; }
     .bsect-add input[type="text"]   { flex: 1; min-width: 120px; padding: 5px 8px; font-size: 0.84rem; }
-    .bsect-empty { padding: 7px 13px; font-style: italic; font-size: 0.8rem; color: var(--text-muted); }
+    .bsect-empty { padding: 9px 14px; font-style: italic; font-size: 0.8rem; color: var(--text-muted); }
 
-    /* Entry row (read mode) */
-    .bareme-entry {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
-      border-radius: 9px; padding: 9px 11px;
-      transition: background 0.12s;
+    /* ── BARÈME DRAWER ENTRIES ── */
+    .bd-sect { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+    .bd-head {
+      display: flex; align-items: center; gap: 9px;
+      padding: 11px 14px;
+      background: rgba(0,0,0,0.18);
+      border-left: 4px solid var(--bd-col, var(--accent));
+      font-weight: 700; font-size: 0.87rem;
     }
-    .bareme-entry:hover { background: rgba(255,255,255,0.04); }
-    .bareme-pts-badge {
-      flex-shrink: 0; min-width: 46px; text-align: center;
-      background: var(--accent); color: #fff;
-      font-size: 0.78rem; font-weight: 700;
-      border-radius: 20px; padding: 3px 8px;
+    .bd-name { flex: 1; }
+    .bd-count {
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 20px;
     }
-    .bareme-action-text { flex: 1; font-size: 0.88rem; line-height: 1.4; word-break: break-word; }
-    .bareme-row-btns    { display: flex; gap: 4px; flex-shrink: 0; }
-
-    /* Entry row (edit mode) */
-    .bareme-entry-edit { flex-wrap: wrap; gap: 6px; }
-    .bareme-edit-pts   { width: 62px; padding: 5px 7px; font-size: 0.82rem; text-align: center; flex-shrink: 0; }
-    .bareme-edit-action { flex: 1; min-width: 120px; padding: 5px 8px; font-size: 0.85rem; }
-
-    /* Add form */
-    .bareme-add-form {
-      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
-      padding: 10px 0 2px; border-top: 1px dashed var(--border); margin-top: 4px;
+    .bd-entry { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--border); transition: background 0.1s; }
+    .bd-entry:hover { background: rgba(255,255,255,0.03); }
+    .bd-badge {
+      flex-shrink: 0; min-width: 50px; text-align: center;
+      color: #fff; font-size: 0.75rem; font-weight: 700;
+      border-radius: 20px; padding: 3px 9px; letter-spacing: 0.01em;
     }
-    .bareme-add-form .bareme-edit-action { flex: 1; min-width: 140px; }
+    .bd-txt { flex: 1; font-size: 0.87rem; line-height: 1.4; word-break: break-word; }
+    .bd-none { padding: 9px 14px; font-style: italic; font-size: 0.79rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
-    .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 28px 16px; font-size: 0.88rem; }
+    .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 32px 16px; font-size: 0.88rem; }
 
     @keyframes bareme-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.6; } }
     .bareme-skel {
-      height: 68px; border-radius: 11px; background: var(--btn-alt);
+      height: 60px; border-radius: 11px; background: var(--btn-alt);
       animation: bareme-pulse 1.4s ease-in-out infinite;
     }
+
+    /* ── EXPORT MODAL ── */
+    .export-modal-overlay {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .export-modal-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      width: 100%; max-width: 520px; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .export-modal-box h3 { margin: 0; font-size: 1.05rem; }
+    .export-opt-group { display: flex; flex-direction: column; gap: 6px; }
+    .export-opt-group label { font-size: 0.8rem; color: var(--text-muted); }
+    .export-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .export-pill {
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      background: var(--btn-alt); color: var(--text); transition: all 0.12s;
+    }
+    .export-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .export-preview-wrap { background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+    .export-preview-wrap canvas, .export-preview-wrap img { max-width: 100%; max-height: 220px; border-radius: 6px; }
+
+    /* ── HISTORY SELECTION ── */
+    .hist-sel-th { width: 36px; text-align: center; }
+    input.hist-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    tr.hist-selected td { background: rgba(255, 71, 87, 0.07); }
+
+    .hist-bulk-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 14px; margin-top: 10px;
+      background: var(--card); border: 1px solid var(--accent);
+      border-radius: 10px;
+    }
+    .hist-bulk-bar #histBulkCount { font-weight: 600; font-size: 0.88rem; flex: 1; }
+
+    /* ── TOP STATS STRIP ── */
+    #topStatsStrip {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 10px; min-height: 0;
+    }
+    .top-stat-pill {
+      display: inline-flex; flex-direction: column; align-items: center;
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid; cursor: default;
+    }
+    .top-stat-pill .tsp-pts { font-size: 0.88rem; font-weight: 800; }
+    .top-stat-pill .tsp-name { font-size: 0.68rem; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -742,10 +794,7 @@
       <div class="chart-header">
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
         <div class="export-buttons">
-          <button class="export-btn" data-export="png">📸 PNG</button>
-          <button class="export-btn" data-export="jpeg">🖼️ JPEG</button>
-          <button class="export-btn" data-export="pdf">📄 PDF</button>
-          <button class="export-btn" data-export="html">🌐 HTML</button>
+          <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
           <button class="export-btn" data-export="csv">📊 CSV</button>
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
@@ -753,12 +802,12 @@
 
       <!-- Sélecteur de type de graphique -->
       <div class="chart-type-bar" id="chartTypeBar">
-        <button class="chart-type-btn" data-chart-type="stacked">📊 Barres</button>
-        <button class="chart-type-btn" data-chart-type="grouped">📊 Groupé</button>
-        <button class="chart-type-btn" data-chart-type="trend">📈 Courbes</button>
-        <button class="chart-type-btn" data-chart-type="radar">🕸️ Radar</button>
-        <button class="chart-type-btn" data-chart-type="doughnut">🍩 Donut</button>
-        <button class="chart-type-btn active" data-chart-type="ranking">🏆 Classement</button>
+        <button class="chart-type-btn" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
+        <button class="chart-type-btn" data-chart-type="grouped" title="Barres côte à côte — compare les Tops entre joueurs">📊 Groupé</button>
+        <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
+        <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
+        <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
+        <button class="chart-type-btn active" data-chart-type="ranking" title="Podium et classement général">🏆 Classement</button>
       </div>
 
       <!-- Barre de tri / options contextuelle au type de graphique -->
@@ -774,6 +823,7 @@
       <div class="chart-wrapper" id="chartWrapper" style="display:none;">
         <canvas id="mainChart"></canvas>
       </div>
+      <div id="topStatsStrip"></div>
     </div>
   </div>
 
@@ -857,16 +907,23 @@
         <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
         <select id="historyCategoryFilter"><option value="">Tous les Tops</option></select>
         <button id="refreshHistoryBtn" class="secondary small">🔄 Rafraîchir</button>
+        <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Date</th><th>Joueur</th><th>Top</th><th>Pts</th><th></th></tr>
+            <tr><th id="histSelAllTh" class="hist-sel-th" style="display:none;"></th><th>Date</th><th>Joueur</th><th>Top</th><th>Pts</th><th></th></tr>
           </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
       </div>
       <div id="historyPagination" class="pagination"></div>
+      <div id="histBulkBar" class="hist-bulk-bar" style="display:none;">
+        <span id="histBulkCount">0 sélectionné(s)</span>
+        <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
+        <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
+        <button id="histBulkCancel" class="secondary small">✕ Annuler</button>
+      </div>
     </div>
   </div>
 
@@ -945,6 +1002,11 @@
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
   const PTS_VALUES = [1, 3, 5, 10, 25, 50, 100];
+
+  // History bulk-selection state
+  let histSelectMode = false;
+  let histSelected   = new Set(); // stores rowIndex values
+  let histVisibleRows = [];       // rowIndexes of the current page
 
   // ── Options & tri du dashboard (appliqués côté front uniquement) ──────
   const chartOptions = {
@@ -1532,6 +1594,7 @@
         document.getElementById('chartWrapper').style.display  = 'block';
         renderTrendChart(res.trendData);
         renderChartControls('trend');
+        clearTopStatsStrip();
       }, 'Chargement courbes');
       return;
     }
@@ -1544,6 +1607,7 @@
         document.getElementById('chartWrapper').style.display  = 'block';
         renderChart(res.chartData, 'ranking');
         renderChartControls('ranking');
+        clearTopStatsStrip();
       }, 'Chargement total global');
       return;
     }
@@ -1554,6 +1618,11 @@
       document.getElementById('chartWrapper').style.display  = 'block';
       renderChart(res.chartData, currentChartType);
       renderChartControls(currentChartType);
+      if (currentChartType === 'stacked' || currentChartType === 'grouped') {
+        renderTopStatsStrip(res.chartData);
+      } else {
+        clearTopStatsStrip();
+      }
     }, 'Chargement graphique');
   }
 
@@ -1572,6 +1641,11 @@
     if (!currentChartData || currentChartData.series) { applyFilters(); return; }
     renderChart(currentChartData, type);
     renderChartControls(type);
+    if (type === 'stacked' || type === 'grouped') {
+      renderTopStatsStrip(currentChartData);
+    } else {
+      clearTopStatsStrip();
+    }
   }
 
   // ── BARRE DE TRI / OPTIONS CONTEXTUELLE ──────────────────────────────
@@ -1609,6 +1683,8 @@
     ]};
 
     if (type === 'stacked' || type === 'grouped') {
+      // Default totals to visible for stacked/grouped charts
+      if (!chartOptions.showTotals) chartOptions.showTotals = true;
       parts.push(sortSelect('ctrlSortBy',  chartOptions.sortBy,  playerSort));
       parts.push(sortSelect('ctrlSortCat', chartOptions.sortCat, catSort));
       parts.push(toggle('ctrlShowTotals', chartOptions.showTotals, 'Afficher les totaux'));
@@ -1662,6 +1738,45 @@
     bind('ctrlLogScale', 'logScale', true);
     bind('ctrlDetailed', 'detailed', true);
     bind('ctrlDonutCenter', 'donutCenter', true);
+  }
+
+  // ── TOP STATS STRIP (below stacked/grouped charts) ───────────────────
+  function renderTopStatsStrip(data) {
+    const strip = document.getElementById('topStatsStrip');
+    if (!strip) return;
+    strip.innerHTML = '';
+    if (!data || !data.datasets || !data.datasets.length) return;
+
+    const topTotals = data.datasets.map(ds => ({
+      name:  ds.label,
+      total: (ds.data || []).reduce((s, v) => s + (Number(v) || 0), 0),
+      color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || '#ff4757')
+    })).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
+
+    topTotals.forEach(t => {
+      const pill = document.createElement('div');
+      pill.className = 'top-stat-pill';
+      pill.style.background = tint(t.color, 0.15);
+      pill.style.borderColor = tint(t.color, 0.5);
+      pill.style.color = 'var(--text)';
+
+      const pts = document.createElement('span');
+      pts.className = 'tsp-pts';
+      pts.textContent = t.total + ' pts';
+
+      const name = document.createElement('span');
+      name.className = 'tsp-name';
+      name.textContent = t.name.length > 14 ? t.name.slice(0, 13) + '…' : t.name;
+
+      pill.appendChild(pts);
+      pill.appendChild(name);
+      strip.appendChild(pill);
+    });
+  }
+
+  function clearTopStatsStrip() {
+    const strip = document.getElementById('topStatsStrip');
+    if (strip) strip.innerHTML = '';
   }
 
   // ── TRIS (côté front, sans appel serveur) ────────────────────────────
@@ -1960,36 +2075,241 @@
   }
 
   // ── EXPORTS ──────────────────────────────────────────────────────────
-  function exportAsImage(format) {
-    const dataUrl = document.getElementById('mainChart').toDataURL('image/' + format);
-    const a = document.createElement('a');
-    a.href = dataUrl; a.download = 'tops-des-tops.' + format; a.click();
-    showToast('Export ' + format.toUpperCase() + ' OK', 'success');
+
+  // Helper: draw a rounded rectangle path (no native support in older browsers)
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 
-  function exportAsPDF() {
-    try {
-      const imgData = document.getElementById('mainChart').toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('landscape');
-      const w = pdf.internal.pageSize.getWidth();
-      const props = pdf.getImageProperties(imgData);
-      pdf.addImage(imgData, 'PNG', 0, 0, w, (props.height * w) / props.width);
-      pdf.save('tops-des-tops.pdf');
-      showToast('Export PDF OK', 'success');
-    } catch(e) { showToast('Erreur PDF : ' + e.message, 'error'); }
+  function buildInfographicCanvas(opts, forceScale) {
+    const S = forceScale !== undefined ? forceScale : opts.scale;
+    const W = Math.round(1200 * S);
+    const H = Math.round(700 * S);
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+
+    const isDark = opts.theme === 'dark';
+    const BG    = isDark ? '#0b0c10' : '#f0f2f5';
+    const CARD  = isDark ? '#1f2833' : '#ffffff';
+    const FG    = isDark ? '#e0e6ed' : '#1a202c';
+    const MUTED = isDark ? '#9aa5be' : '#4a5568';
+    const ACCENT = '#ff4757';
+
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+
+    let yOff = 0;
+
+    // Header band
+    if (opts.title) {
+      const hH = Math.round(64 * S);
+      ctx.fillStyle = CARD;
+      ctx.fillRect(0, 0, W, hH);
+      // Accent left bar
+      ctx.fillStyle = ACCENT;
+      ctx.fillRect(0, 0, Math.round(4 * S), hH);
+      // App name
+      ctx.fillStyle = FG;
+      ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('Tops des Tops', Math.round(18 * S), Math.round(24 * S));
+      // Chart label
+      const chartTitleEl = document.getElementById('chartTitle');
+      const chartLabel = chartTitleEl ? chartTitleEl.textContent : '';
+      ctx.fillStyle = MUTED;
+      ctx.font = Math.round(13 * S) + 'px sans-serif';
+      ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
+      // Period (right-aligned)
+      if (opts.period) {
+        const sd = document.getElementById('startDate').value;
+        const ed = document.getElementById('endDate').value;
+        const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
+        ctx.textAlign = 'right';
+        ctx.fillText(periodTxt, W - Math.round(18 * S), Math.round(42 * S));
+        ctx.textAlign = 'left';
+      }
+      yOff = hH + Math.round(8 * S);
+    }
+
+    // Reserve space for stats strip and footer
+    const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
+      ? Math.round(52 * S) : 0;
+    const footH = Math.round(24 * S);
+
+    // Chart image
+    const chartCv = document.getElementById('mainChart');
+    if (chartCv) {
+      const chartH = H - yOff - statsH - footH - Math.round(8 * S);
+      ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
+      yOff += chartH + Math.round(6 * S);
+    }
+
+    // Stats strip — top totals as pills
+    if (statsH && currentChartData && currentChartData.datasets) {
+      const topTotals = currentChartData.datasets.map(ds => ({
+        name:  ds.label,
+        total: (ds.data || []).reduce((s, v) => s + (Number(v) || 0), 0),
+        color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || ACCENT)
+      })).sort((a, b) => b.total - a.total).slice(0, 6);
+
+      const pillW = Math.round((W - 20 * S) / Math.max(topTotals.length, 1));
+      topTotals.forEach((t, i) => {
+        const px = Math.round(10 * S) + i * pillW;
+        const py = yOff;
+        const pw = pillW - Math.round(6 * S);
+        const ph = Math.round(38 * S);
+        // Pill background (tinted)
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = 0.18;
+        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Pill border
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = Math.round(1.5 * S);
+        ctx.globalAlpha = 0.5;
+        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Pill text
+        ctx.fillStyle = FG;
+        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
+        ctx.fillStyle = MUTED;
+        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
+        ctx.textAlign = 'left';
+      });
+      yOff += statsH;
+    }
+
+    // Footer
+    ctx.fillStyle = MUTED;
+    ctx.font = Math.round(10 * S) + 'px sans-serif';
+    ctx.fillText('Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
+
+    return cv;
   }
 
-  function exportAsHTML() {
-    const imgData = document.getElementById('mainChart').toDataURL('image/png');
-    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Export</title></head>' +
-      '<body style="background:#111;display:flex;justify-content:center;padding:20px;">' +
-      '<img src="' + imgData + '" style="max-width:100%;height:auto;"></body></html>';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([html], {type:'text/html'}));
-    a.download = 'tops-des-tops.html'; a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('Export HTML OK', 'success');
+  function generateInfographic(opts) {
+    const canvas = buildInfographicCanvas(opts, opts.scale);
+    if (opts.format === 'pdf') {
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('landscape', 'px', [canvas.width / opts.scale, canvas.height / opts.scale]);
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / opts.scale, canvas.height / opts.scale);
+        pdf.save('tops-des-tops-infographie.pdf');
+        showToast('PDF généré !', 'success');
+      } catch(e) { showToast('Erreur PDF : ' + e.message, 'error'); }
+    } else {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/' + opts.format);
+      a.download = 'tops-des-tops-infographie.' + opts.format;
+      a.click();
+      showToast('Export OK', 'success');
+    }
+  }
+
+  function openExportModal() {
+    if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
+
+    // Modal state
+    let exportOpts = { format: 'png', theme: 'dark', title: true, period: true, stats: true, scale: 1 };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'export-modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'export-modal-box';
+
+    // Helper: pill group builder
+    const pillGroup = (label, options, key) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'export-opt-group';
+      const lbl = document.createElement('label'); lbl.textContent = label;
+      const pills = document.createElement('div'); pills.className = 'export-pills';
+      options.forEach(({ v, t }) => {
+        const p = document.createElement('button');
+        p.className = 'export-pill' + (exportOpts[key] === v ? ' active' : '');
+        p.textContent = t; p.type = 'button';
+        p.addEventListener('click', () => {
+          exportOpts[key] = v;
+          pills.querySelectorAll('.export-pill').forEach(x => x.classList.remove('active'));
+          p.classList.add('active');
+          updatePreview();
+        });
+        pills.appendChild(p);
+      });
+      wrap.appendChild(lbl); wrap.appendChild(pills);
+      return wrap;
+    };
+
+    // Helper: checkbox option builder
+    const checkOpt = (label, key) => {
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;';
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = exportOpts[key];
+      chk.addEventListener('change', () => { exportOpts[key] = chk.checked; updatePreview(); });
+      wrap.appendChild(chk); wrap.appendChild(document.createTextNode(label));
+      return wrap;
+    };
+
+    const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une infographie';
+    box.appendChild(titleEl);
+    box.appendChild(pillGroup('Format', [{v:'png',t:'PNG'},{v:'jpeg',t:'JPEG'},{v:'pdf',t:'PDF'}], 'format'));
+    box.appendChild(pillGroup('Thème', [{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
+    box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'}], 'scale'));
+
+    const optsGroup = document.createElement('div');
+    optsGroup.className = 'export-opt-group';
+    const optsLbl = document.createElement('label'); optsLbl.textContent = 'Options';
+    optsGroup.appendChild(optsLbl);
+    optsGroup.appendChild(checkOpt('Inclure le titre', 'title'));
+    optsGroup.appendChild(checkOpt('Inclure la période', 'period'));
+    optsGroup.appendChild(checkOpt('Inclure les stats', 'stats'));
+    box.appendChild(optsGroup);
+
+    // Preview area
+    const prevWrap = document.createElement('div');
+    prevWrap.className = 'export-preview-wrap';
+    const prevImg = document.createElement('img'); prevImg.alt = 'Aperçu';
+    prevWrap.appendChild(prevImg);
+    box.appendChild(prevWrap);
+
+    // Action buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Annuler'; cancelBtn.type = 'button';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'primary'; dlBtn.textContent = '⬇️ Télécharger'; dlBtn.type = 'button';
+    dlBtn.addEventListener('click', () => { generateInfographic(exportOpts); overlay.remove(); });
+    btnRow.appendChild(cancelBtn); btnRow.appendChild(dlBtn);
+    box.appendChild(btnRow);
+
+    overlay.appendChild(box);
+    // Close on backdrop click
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    // Live preview (always at 1x for speed)
+    function updatePreview() {
+      const canvas = buildInfographicCanvas(exportOpts, 1);
+      prevImg.src = canvas.toDataURL('image/png');
+    }
+    updatePreview();
   }
 
   function exportAsCSV() {
@@ -2440,6 +2760,47 @@
     next();
   }
 
+  // ── HISTORY BULK SELECTION ───────────────────────────────────────────
+  function toggleHistSelectMode(force) {
+    histSelectMode = force !== undefined ? force : !histSelectMode;
+    histSelected.clear();
+    histVisibleRows = [];
+    const selTh   = document.getElementById('histSelAllTh');
+    const bulkBar = document.getElementById('histBulkBar');
+    const btn     = document.getElementById('histSelectBtn');
+    if (selTh)   selTh.style.display   = histSelectMode ? '' : 'none';
+    if (bulkBar) bulkBar.style.display  = histSelectMode ? 'flex' : 'none';
+    if (btn) {
+      btn.classList.toggle('active', histSelectMode);
+      btn.textContent = histSelectMode ? '✕ Annuler sélection' : '☑ Sélectionner';
+    }
+    loadHistoryPage(currentHistoryPage);
+  }
+
+  function updateHistBulkBar() {
+    const count = document.getElementById('histBulkCount');
+    if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '');
+  }
+
+  function confirmBulkDelete() {
+    if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+    openConfirmModal(
+      'Supprimer ' + histSelected.size + ' entrée(s) ? Cette action est irréversible.',
+      () => {
+        buzz();
+        callServer('apiDeleteHistoryEntries', [[...histSelected]], res => {
+          if (res.success) {
+            histSelected.clear();
+            loadHistoryPage(currentHistoryPage);
+            showToast('Entrées supprimées.', 'success');
+          } else {
+            showToast('Erreur lors de la suppression.', 'error');
+          }
+        }, 'Suppression groupée');
+      }
+    );
+  }
+
   // ── HISTORIQUE ───────────────────────────────────────────────────────
   function updateHistoryFilters() {
     const pFilter = document.getElementById('historyPlayerFilter');
@@ -2477,15 +2838,35 @@
       if (!logs.length) {
         const tr = tbody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 5;
+        td.colSpan = histSelectMode ? 6 : 5;
         td.innerHTML = emptyIllustration('📭', 'Aucune entrée trouvée.');
         document.getElementById('historyPagination').innerHTML = '';
+        histVisibleRows = [];
         return;
       }
+
+      // Track visible row indexes for select-all
+      histVisibleRows = logs.map(l => l.rowIndex);
 
       logs.forEach(log => {
         const tr = tbody.insertRow();
         const pColor = playerColor(log.player);
+
+        // Checkbox cell (selection mode only)
+        if (histSelectMode) {
+          const selCell = tr.insertCell();
+          selCell.className = 'hist-sel-th';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox'; chk.className = 'hist-chk';
+          chk.checked = histSelected.has(log.rowIndex);
+          if (chk.checked) tr.classList.add('hist-selected');
+          chk.addEventListener('change', () => {
+            if (chk.checked) { histSelected.add(log.rowIndex); tr.classList.add('hist-selected'); }
+            else { histSelected.delete(log.rowIndex); tr.classList.remove('hist-selected'); }
+            updateHistBulkBar();
+          });
+          selCell.appendChild(chk);
+        }
 
         // 1) DATE — porte la barre de couleur du joueur (repère le plus fort à gauche).
         const dateCell = tr.insertCell();
@@ -2877,17 +3258,29 @@
 
     // ── Notes ──
     document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
+
+    // ── History bulk selection ──
+    document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
+    document.getElementById('histBulkDelete').addEventListener('click', confirmBulkDelete);
+    document.getElementById('histBulkCancel').addEventListener('click', () => toggleHistSelectMode(false));
+    document.getElementById('histBulkSelectAll').addEventListener('click', () => {
+      const allSelected = histVisibleRows.every(ri => histSelected.has(ri));
+      if (allSelected) {
+        histVisibleRows.forEach(ri => histSelected.delete(ri));
+      } else {
+        histVisibleRows.forEach(ri => histSelected.add(ri));
+      }
+      loadHistoryPage(currentHistoryPage);
+      updateHistBulkBar();
+    });
   }
 
   function bindExportButtons() {
-    document.querySelectorAll('.export-btn').forEach(btn => {
+    document.getElementById('exportInfographicBtn').addEventListener('click', openExportModal);
+    document.querySelectorAll('.export-btn[data-export]').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.dataset.export;
-        if      (t === 'png')  exportAsImage('png');
-        else if (t === 'jpeg') exportAsImage('jpeg');
-        else if (t === 'pdf')  exportAsPDF();
-        else if (t === 'html') exportAsHTML();
-        else if (t === 'csv')  exportAsCSV();
+        if      (t === 'csv')  exportAsCSV();
         else if (t === 'xlsx') exportAsExcel();
       });
     });
@@ -2943,7 +3336,7 @@
     if (!container) return;
     container.innerHTML = '';
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name);
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => a.pts - b.pts);
       const col        = categoryColor(cat.name);
       const block      = document.createElement('div');
       block.className  = 'bsect';
@@ -2951,11 +3344,13 @@
       // Header
       const head = document.createElement('div');
       head.className = 'bsect-head';
-      const dot = document.createElement('span');
-      dot.className = 'bsect-dot'; dot.style.background = col;
+      head.style.setProperty('--bsect-col', col);
       const label = document.createElement('span');
       label.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
-      head.appendChild(dot); head.appendChild(label);
+      const countPill = document.createElement('span');
+      countPill.className = 'bsect-count';
+      countPill.textContent = catEntries.length + ' règle' + (catEntries.length !== 1 ? 's' : '');
+      head.appendChild(label); head.appendChild(countPill);
       block.appendChild(head);
 
       // Entries
@@ -2977,12 +3372,14 @@
   }
 
   function buildBsectRow(entry, entriesCont, allEntries) {
+    const col = categoryColor(entry.top);
     const row = document.createElement('div');
     row.className = 'bsect-entry';
 
     const pts = document.createElement('span');
     pts.className = 'bsect-pts';
-    pts.textContent = entry.pts + ' pt' + (entry.pts > 1 ? 's' : '');
+    pts.style.background = col;
+    pts.textContent = entry.pts + ' pt' + (Math.abs(entry.pts) !== 1 ? 's' : '');
 
     const action = document.createElement('span');
     action.className = 'bsect-action'; action.textContent = entry.action;
@@ -3083,7 +3480,7 @@
     }, 'Barème');
   }
 
-  // Read-only drawer — grouped by Top
+  // Read-only drawer — grouped by Top, sorted by pts ascending
   function renderBaremeDrawer(entries) {
     const body = document.getElementById('baremeBody');
     body.innerHTML = '';
@@ -3093,37 +3490,40 @@
     }
     let hasAny = false;
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name);
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => a.pts - b.pts);
       if (!catEntries.length) return;
       hasAny = true;
-      const col     = categoryColor(cat.name);
-      const section = document.createElement('div');
-      section.style.cssText = 'margin-bottom:14px;';
+      const col  = categoryColor(cat.name);
+      const sect = document.createElement('div');
+      sect.className = 'bd-sect';
 
       const head = document.createElement('div');
-      head.style.cssText = 'display:flex;align-items:center;gap:7px;font-weight:700;font-size:0.85rem;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border);';
-      const dot = document.createElement('span');
-      dot.style.cssText = 'width:9px;height:9px;border-radius:50%;background:' + col + ';flex-shrink:0;';
-      const lbl = document.createElement('span');
-      lbl.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
-      head.appendChild(dot); head.appendChild(lbl);
-      section.appendChild(head);
+      head.className = 'bd-head';
+      head.style.setProperty('--bd-col', col);
+      const name = document.createElement('span');
+      name.className = 'bd-name';
+      name.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+      const count = document.createElement('span');
+      count.className = 'bd-count';
+      count.textContent = catEntries.length + ' règle' + (catEntries.length !== 1 ? 's' : '');
+      head.appendChild(name); head.appendChild(count);
+      sect.appendChild(head);
 
       catEntries.forEach(e => {
         const row = document.createElement('div');
-        row.className = 'bareme-entry';
+        row.className = 'bd-entry';
         const badge = document.createElement('span');
-        badge.className = 'bareme-pts-badge';
+        badge.className = 'bd-badge';
         badge.style.background = col;
-        badge.textContent = e.pts + ' pt' + (e.pts > 1 ? 's' : '');
+        badge.textContent = e.pts + ' pt' + (Math.abs(e.pts) !== 1 ? 's' : '');
         const txt = document.createElement('span');
-        txt.className = 'bareme-action-text'; txt.textContent = e.action;
+        txt.className = 'bd-txt'; txt.textContent = e.action;
         row.appendChild(badge); row.appendChild(txt);
-        section.appendChild(row);
+        sect.appendChild(row);
       });
-      body.appendChild(section);
+      body.appendChild(sect);
     });
-    if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans Paramètres.</p>';
+    if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans ⚙️ Paramètres.</p>';
   }
 
   document.getElementById('baremeBtn').addEventListener('click', () => {

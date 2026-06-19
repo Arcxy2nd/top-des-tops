@@ -732,6 +732,18 @@ function apiDeleteHistoryEntry(rowIndex) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
+function apiDeleteHistoryEntries(rowIndexes) {
+  try {
+    const { history } = ConfigService.getSheets();
+    const sorted = [...rowIndexes].sort((a, b) => b - a);
+    sorted.forEach(ri => history.deleteRow(ri));
+    ConfigService.clearCache();
+    return { success: true };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
 function apiGetAvailableYears() {
   try {
     return { success: true, years: AnalyticsService.getAvailableYears() };
