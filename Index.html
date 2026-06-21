@@ -148,20 +148,41 @@
     /* ── FILTER PANEL ── */
     /* align-items: stretch → toutes les colonnes prennent la même hauteur ;
        les listes Joueurs/Tops s'étirent alors pour combler le vide. */
+    /* ── FILTER PANEL V2 (chips) ── */
     .filter-panel {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch;
-      background: rgba(0,0,0,0.15); padding: 16px;
-      border-radius: 10px; margin-bottom: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 14px;
     }
-    .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; flex: 1; }
-    .filter-group label { font-size: 0.78rem; color: var(--text-muted); }
-    .filter-group button { width: 100%; }
-    /* Le bouton « Appliquer » se cale en bas de sa colonne. */
-    .filter-group.filter-apply { justify-content: flex-end; }
-    select[multiple] { height: auto; padding: 6px; background: var(--card); }
-    select[multiple] option { padding: 8px 6px; } /* Augmentation zone de clic multiple */
-    /* Les listes multi remplissent la hauteur disponible (plus de vide au-dessus/dessous). */
-    .filter-group select[multiple] { flex: 1 1 auto; min-height: 120px; }
+    .fp-section { display: flex; flex-direction: column; gap: 7px; }
+    .fp-label {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .fchip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fchip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--btn-alt); color: var(--text);
+      transition: background 0.13s, border-color 0.13s, color 0.13s;
+      min-height: 32px; user-select: none;
+    }
+    .fchip:hover { filter: brightness(1.18); }
+    .fchip.active {
+      background: var(--fchip-col, var(--accent));
+      border-color: var(--fchip-col, var(--accent));
+      color: #fff;
+    }
+    .fchip-all.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .fchip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+    /* Date row */
+    .fp-date-row { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+    .fp-date-field { display: flex; flex-direction: column; gap: 3px; }
+    .fp-date-field span { font-size: 0.68rem; color: var(--text-muted); }
+    .fp-date-field input[type="date"] { padding: 5px 8px; font-size: 0.82rem; }
+    .fp-date-sep { color: var(--text-muted); padding-bottom: 6px; }
 
     /* ── DATE SHORTCUTS ── */
     .date-shortcuts {
@@ -392,8 +413,8 @@
       .card { padding: 14px; }
       h2 { font-size: 1.1rem; }
       .chart-wrapper { height: 280px; }
-      .filter-panel { flex-direction: column; align-items: stretch; }
-      .filter-group { min-width: 100%; width: 100%; }
+      .fp-date-row { flex-wrap: wrap; }
+      .fchip { font-size: 0.78rem; padding: 4px 10px; }
       .batch-header { display: none; }
       
       /* Disposition verticale optimisée pour la Saisie Lot */
@@ -406,7 +427,7 @@
       }
       .player-sel-wrap, .c-sel { width: 100%; }
       .pts-toggle-wrap { width: 100%; justify-content: space-between; }
-      .entry-row .tms-in { width: 100%; text-align: center; }
+      .entry-row .custom-pts-in { width: 100%; text-align: center; }
       .row-actions { width: 100%; }
       
       .settings-grid { grid-template-columns: 1fr; gap: 20px; }
@@ -491,6 +512,16 @@
     .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
     .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
 
+    /* ── DESCRIPTION PAR LIGNE DE SAISIE ── */
+    .row-desc { grid-column: 1 / -1; margin-top: 2px; }
+    .row-desc .desc-in {
+      font-size: 0.84rem; border-style: dashed; background: rgba(0,0,0,0.08);
+      color: var(--text-muted); transition: border-color 0.2s, color 0.2s, border-style 0.2s, background 0.2s;
+    }
+    .row-desc .desc-in::placeholder { font-style: italic; }
+    .row-desc .desc-in:focus { border-style: solid; color: var(--text); background: var(--bg); }
+    .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); border-style: solid; background: var(--bg); }
+
     /* ── CELLULE DATE INLINE (par ligne de saisie) ── */
     .d-cell { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
     .d-cell .d-start, .d-cell .d-end { width: 100%; }
@@ -533,20 +564,25 @@
 
     /* ── BARRE DE TRI / OPTIONS GRAPHIQUE ── */
     .chart-controls {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
       background: rgba(0,0,0,0.12); border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
     }
-    .chart-control { display: flex; align-items: center; gap: 6px; }
-    .chart-control label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
-    .chart-control select {
-      width: auto; min-width: 120px; padding: 6px 8px; font-size: 0.82rem;
+    .chart-control { display: flex; align-items: center; gap: 7px; }
+    .chart-control .cc-lbl { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cc-pills { display: flex; gap: 4px; }
+    .cc-pill {
+      padding: 4px 11px; border-radius: 20px; cursor: pointer;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--btn-alt); color: var(--text);
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
     }
-    .chart-control.toggle {
-      cursor: pointer; user-select: none;
-      font-size: 0.8rem; color: var(--text);
+    .cc-pill:hover { filter: brightness(1.2); }
+    .cc-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chart-control.cc-toggle {
+      cursor: pointer; user-select: none; font-size: 0.8rem; color: var(--text);
     }
-    .chart-control.toggle input { width: auto; min-width: 0; margin: 0; }
+    .chart-control.cc-toggle input { width: auto; min-width: 0; margin: 0; }
 
     /* ── BARÈME FAB ── */
     .bareme-fab {
@@ -641,11 +677,12 @@
     .bsect-entry:last-child { border-bottom: none; }
     .bsect-entry:hover { background: rgba(255,255,255,0.03); }
     .bsect-entry .bsect-pts {
-      flex-shrink: 0; min-width: 46px; text-align: center;
-      color: #fff; font-size: 0.73rem; font-weight: 700;
-      border-radius: 20px; padding: 3px 8px;
+      flex-shrink: 0; min-width: 58px; text-align: center;
+      color: #fff; font-size: 0.78rem; font-weight: 800;
+      border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
-    .bsect-entry .bsect-action { flex: 1; }
+    .bsect-entry .bsect-action { flex: 1; font-size: 0.88rem; }
     .bsect-entry .bsect-btns   { display: flex; gap: 4px; flex-shrink: 0; }
     .bsect-add {
       display: flex; gap: 6px; padding: 9px 14px; flex-wrap: wrap; align-items: center;
@@ -672,9 +709,10 @@
     .bd-entry { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--border); transition: background 0.1s; }
     .bd-entry:hover { background: rgba(255,255,255,0.03); }
     .bd-badge {
-      flex-shrink: 0; min-width: 50px; text-align: center;
-      color: #fff; font-size: 0.75rem; font-weight: 700;
-      border-radius: 20px; padding: 3px 9px; letter-spacing: 0.01em;
+      flex-shrink: 0; min-width: 58px; text-align: center;
+      color: #fff; font-size: 0.78rem; font-weight: 800;
+      border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
     .bd-txt { flex: 1; font-size: 0.87rem; line-height: 1.4; word-break: break-word; }
     .bd-none { padding: 9px 14px; font-style: italic; font-size: 0.79rem; color: var(--text-muted); border-top: 1px solid var(--border); }
@@ -766,28 +804,32 @@
     <div class="card">
       <h2>🔍 Filtres croisés</h2>
       <div class="filter-panel">
-        <div class="filter-group">
-          <label>Joueurs (Ctrl+clic = multi)</label>
-          <select id="playerSelect" multiple size="4"></select>
+        <div class="fp-section">
+          <div class="fp-label">Joueurs</div>
+          <div class="fchip-row" id="playerChips"></div>
         </div>
-        <div class="filter-group">
-          <label>Tops (Ctrl+clic = multi)</label>
-          <select id="categorySelect" multiple size="4"></select>
+        <div class="fp-section">
+          <div class="fp-label">Tops</div>
+          <div class="fchip-row" id="categoryChips"></div>
         </div>
-        <div class="filter-group">
-          <label>Date début</label>
-          <input type="date" id="startDate">
-        </div>
-        <div class="filter-group">
-          <label>Date fin</label>
-          <input type="date" id="endDate">
-        </div>
-        <div class="filter-group filter-apply" style="min-width:110px; flex:0;">
-          <button class="primary" id="applyFiltersBtn">Appliquer</button>
+        <div class="fp-section">
+          <div class="fp-label">Période</div>
+          <div class="date-shortcuts" id="rangePresets"></div>
+          <div class="fp-date-row">
+            <div class="fp-date-field">
+              <span>Du</span>
+              <input type="date" id="startDate">
+            </div>
+            <div class="fp-date-sep">→</div>
+            <div class="fp-date-field">
+              <span>Au</span>
+              <input type="date" id="endDate">
+            </div>
+            <button class="secondary small" id="clearDatesBtn" title="Effacer les dates">✕ Dates</button>
+            <button class="primary small" id="applyFiltersBtn">Appliquer</button>
+          </div>
         </div>
       </div>
-      <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">Période rapide :</div>
-      <div class="date-shortcuts" id="rangePresets"></div>
     </div>
 
     <div class="card">
@@ -846,7 +888,7 @@
         </div>
       </div>
       <div class="batch-header">
-        <div>Joueur</div><div>Top</div><div>Points</div><div>×</div><div>Date</div><div>Actions</div>
+        <div>Joueur</div><div>Top</div><div>Raccourcis</div><div>Valeur</div><div>Date</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
@@ -1001,12 +1043,16 @@
   let totalHistoryEntries = 0;
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
-  const PTS_VALUES = [1, 3, 5, 10, 25, 50, 100];
+  const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
 
   // History bulk-selection state
-  let histSelectMode = false;
-  let histSelected   = new Set(); // stores rowIndex values
-  let histVisibleRows = [];       // rowIndexes of the current page
+  let histSelectMode  = false;
+  let histSelected    = new Set();
+  let histVisibleRows = [];
+
+  // Dashboard filter chip state (empty Set = "all")
+  let selectedPlayerChips   = new Set();
+  let selectedCategoryChips = new Set();
 
   // ── Options & tri du dashboard (appliqués côté front uniquement) ──────
   const chartOptions = {
@@ -1307,6 +1353,72 @@
     });
   }
 
+  // ── FILTER CHIPS ─────────────────────────────────────────────────────
+  function makeFilterChip(label, color, extraClass, onClick) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'fchip' + (extraClass ? ' ' + extraClass : '');
+    chip.textContent = label;
+    if (color) chip.style.setProperty('--fchip-col', color);
+    chip.addEventListener('click', onClick);
+    return chip;
+  }
+
+  function renderPlayerChips() {
+    const row = document.getElementById('playerChips');
+    if (!row) return;
+    row.innerHTML = '';
+    const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
+      selectedPlayerChips.clear();
+      renderPlayerChips();
+      applyFilters();
+    });
+    if (!selectedPlayerChips.size) allChip.classList.add('active');
+    row.appendChild(allChip);
+    cachedPlayers.forEach(p => {
+      const col = playerColor(p.name);
+      const chip = makeFilterChip(p.name, col, '', () => {
+        if (selectedPlayerChips.has(p.name)) selectedPlayerChips.delete(p.name);
+        else selectedPlayerChips.add(p.name);
+        renderPlayerChips();
+        applyFilters();
+      });
+      if (selectedPlayerChips.has(p.name)) chip.classList.add('active');
+      if (p.meta) {
+        const img = document.createElement('img');
+        img.src = getAvatarUrl(p.name, p.meta);
+        img.onerror = () => img.remove();
+        chip.prepend(img);
+      }
+      row.appendChild(chip);
+    });
+  }
+
+  function renderCategoryChips() {
+    const row = document.getElementById('categoryChips');
+    if (!row) return;
+    row.innerHTML = '';
+    const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
+      selectedCategoryChips.clear();
+      renderCategoryChips();
+      applyFilters();
+    });
+    if (!selectedCategoryChips.size) allChip.classList.add('active');
+    row.appendChild(allChip);
+    cachedCategories.forEach(c => {
+      const col = categoryColor(c.name);
+      const label = (c.icon ? c.icon + ' ' : '') + c.name;
+      const chip = makeFilterChip(label, col, '', () => {
+        if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
+        else selectedCategoryChips.add(c.name);
+        renderCategoryChips();
+        applyFilters();
+      });
+      if (selectedCategoryChips.has(c.name)) chip.classList.add('active');
+      row.appendChild(chip);
+    });
+  }
+
   // Boutons de période du Dashboard (incluent « Tout » = sans filtre).
   function buildRangePresets() {
     const wrap = document.getElementById('rangePresets');
@@ -1426,24 +1538,11 @@
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
 
-      const ps = document.getElementById('playerSelect');
-      const cs = document.getElementById('categorySelect');
-      const prevP = Array.from(ps.selectedOptions).map(o => o.value);
-      const prevC = Array.from(cs.selectedOptions).map(o => o.value);
-      ps.innerHTML = '';
-      cachedPlayers.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.name; o.textContent = p.name;
-        if (prevP.includes(p.name)) o.selected = true;
-        ps.appendChild(o);
-      });
-      cs.innerHTML = '';
-      cachedCategories.forEach(c => {
-        const o = document.createElement('option');
-        o.value = c.name; o.textContent = catDisplay(c.name);
-        if (prevC.includes(c.name)) o.selected = true;
-        cs.appendChild(o);
-      });
+      // Remove any players/categories that no longer exist from chip selection
+      selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
+      selectedCategoryChips.forEach(n => { if (!cachedCategories.find(c => c.name === n)) selectedCategoryChips.delete(n); });
+      renderPlayerChips();
+      renderCategoryChips();
 
       renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
       renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
@@ -1579,8 +1678,8 @@
   }
 
   function applyFilters() {
-    const selPlayers    = Array.from(document.getElementById('playerSelect').selectedOptions).map(o => o.value);
-    const selCategories = Array.from(document.getElementById('categorySelect').selectedOptions).map(o => o.value);
+    const selPlayers    = selectedPlayerChips.size   ? [...selectedPlayerChips]   : [];
+    const selCategories = selectedCategoryChips.size ? [...selectedCategoryChips] : [];
     const startDate     = document.getElementById('startDate').value;
     const endDate       = document.getElementById('endDate').value;
 
@@ -1651,7 +1750,7 @@
   // ── BARRE DE TRI / OPTIONS CONTEXTUELLE ──────────────────────────────
   function renderChartControls(type) {
     const bar = document.getElementById('chartControls');
-    const parts = [];
+    bar.innerHTML = '';
 
     // Met à jour le titre du graphique selon le type actif
     const titleEl = document.getElementById('chartTitle');
@@ -1667,77 +1766,85 @@
       titleEl.textContent = titles[type] || '📈 Scores';
     }
 
-    const sortSelect = (id, value, opts) =>
-      '<div class="chart-control"><label>' + opts.label + '</label><select id="' + id + '">' +
-      opts.choices.map(c => '<option value="' + c.v + '"' + (c.v === value ? ' selected' : '') + '>' + c.t + '</option>').join('') +
-      '</select></div>';
+    // Pill-group builder — appends a DOM node to bar directly (not innerHTML)
+    const pillGroup = (label, prop, choices) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'chart-control';
+      const lbl = document.createElement('span');
+      lbl.className = 'cc-lbl'; lbl.textContent = label;
+      const pills = document.createElement('div');
+      pills.className = 'cc-pills';
+      choices.forEach(c => {
+        const p = document.createElement('button');
+        p.type = 'button'; p.className = 'cc-pill' + (chartOptions[prop] === c.v ? ' active' : '');
+        p.textContent = c.t;
+        p.addEventListener('click', () => {
+          chartOptions[prop] = c.v;
+          pills.querySelectorAll('.cc-pill').forEach(x => x.classList.remove('active'));
+          p.classList.add('active');
+          rerender(prop);
+        });
+        pills.appendChild(p);
+      });
+      wrap.appendChild(lbl); wrap.appendChild(pills);
+      return wrap;
+    };
 
-    const toggle = (id, checked, label) =>
-      '<label class="chart-control toggle"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '> ' + label + '</label>';
+    const toggleCtrl = (label, prop) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'chart-control cc-toggle';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.checked = !!chartOptions[prop];
+      chk.addEventListener('change', () => { chartOptions[prop] = chk.checked; rerender(prop); });
+      wrap.appendChild(chk);
+      wrap.appendChild(document.createTextNode(' ' + label));
+      return wrap;
+    };
 
-    const playerSort = { label: 'Joueurs', choices: [
-      { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
-    ]};
-    const catSort = { label: 'Tops', choices: [
-      { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
-    ]};
+    const rerender = (prop) => {
+      if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      else if (currentChartType === 'ranking' && prop === 'detailed') applyFilters();
+      else renderChart(currentChartData, currentChartType);
+    };
+
+    const sortChoices = [
+      { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'A→Z' }
+    ];
 
     if (type === 'stacked' || type === 'grouped') {
-      // Default totals to visible for stacked/grouped charts
       if (!chartOptions.showTotals) chartOptions.showTotals = true;
-      parts.push(sortSelect('ctrlSortBy',  chartOptions.sortBy,  playerSort));
-      parts.push(sortSelect('ctrlSortCat', chartOptions.sortCat, catSort));
-      parts.push(toggle('ctrlShowTotals', chartOptions.showTotals, 'Afficher les totaux'));
-      parts.push(toggle('ctrlLogScale',   chartOptions.logScale,   'Échelle log.'));
+      bar.appendChild(pillGroup('Joueurs', 'sortBy',  sortChoices));
+      bar.appendChild(pillGroup('Tops',    'sortCat', sortChoices));
+      bar.appendChild(toggleCtrl('Totaux', 'showTotals'));
+      bar.appendChild(toggleCtrl('Échelle log.', 'logScale'));
     } else if (type === 'ranking') {
-      parts.push(sortSelect('ctrlSortBy', chartOptions.sortBy, { label: 'Trier par', choices: [
-        { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
-      ]}));
-      parts.push(toggle('ctrlDetailed', chartOptions.detailed, 'Scores par top actifs'));
+      bar.appendChild(pillGroup('Trier', 'sortBy', sortChoices));
+      bar.appendChild(toggleCtrl('Scores par top actifs', 'detailed'));
       if (!chartOptions.detailed) {
-        parts.push('<span style="font-size:0.72rem;color:var(--text-muted);padding:0 4px;align-self:center;">← Vue actuelle : tous les tops inclus (même supprimés)</span>');
+        const hint = document.createElement('span');
+        hint.style.cssText = 'font-size:0.72rem;color:var(--text-muted);align-self:center;';
+        hint.textContent = '← Tous les tops inclus (même supprimés)';
+        bar.appendChild(hint);
       }
     } else if (type === 'doughnut') {
-      parts.push(sortSelect('ctrlSortCat', chartOptions.sortCat, { label: 'Segments', choices: [
-        { v: 'total-desc', t: 'Valeur ↓' }, { v: 'total-asc', t: 'Valeur ↑' }, { v: 'name-asc', t: 'Nom A→Z' }
-      ]}));
-      parts.push(toggle('ctrlDonutCenter', chartOptions.donutCenter, 'Total au centre'));
+      bar.appendChild(pillGroup('Segments', 'sortCat', [
+        { v: 'total-desc', t: 'Valeur ↓' }, { v: 'total-asc', t: 'Valeur ↑' }, { v: 'name-asc', t: 'A→Z' }
+      ]));
+      bar.appendChild(toggleCtrl('Total au centre', 'donutCenter'));
     } else if (type === 'trend') {
-      parts.push(sortSelect('ctrlSortBy', chartOptions.sortBy, { label: 'Légende', choices: [
-        { v: 'total-desc', t: 'Total final ↓' }, { v: 'total-asc', t: 'Total final ↑' }, { v: 'name-asc', t: 'Joueur A→Z' }
-      ]}));
-      parts.push(sortSelect('ctrlTrendMode', chartOptions.trendMode, { label: 'Mode', choices: [
+      bar.appendChild(pillGroup('Légende', 'sortBy', [
+        { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'A→Z' }
+      ]));
+      bar.appendChild(pillGroup('Mode', 'trendMode', [
         { v: 'cumul', t: 'Cumulé' }, { v: 'period', t: 'Par période' }
-      ]}));
-    } else { // radar : pas de tri pertinent
+      ]));
+    } else {
       bar.style.display = 'none';
       bar.innerHTML = '';
       return;
     }
 
-    bar.innerHTML = parts.join('');
     bar.style.display = 'flex';
-
-    const rerender = (prop) => {
-      if (currentChartType === 'trend') renderTrendChart(currentChartData);
-      // Le toggle 'detailed' sur ranking change la source de données → re-fetch obligatoire
-      else if (currentChartType === 'ranking' && prop === 'detailed') applyFilters();
-      else renderChart(currentChartData, currentChartType);
-    };
-    const bind = (id, prop, isCheckbox) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener('change', () => {
-        chartOptions[prop] = isCheckbox ? el.checked : el.value;
-        rerender(prop);
-      });
-    };
-    bind('ctrlSortBy', 'sortBy'); bind('ctrlSortCat', 'sortCat');
-    bind('ctrlTrendMode', 'trendMode');
-    bind('ctrlShowTotals', 'showTotals', true);
-    bind('ctrlLogScale', 'logScale', true);
-    bind('ctrlDetailed', 'detailed', true);
-    bind('ctrlDonutCenter', 'donutCenter', true);
   }
 
   // ── TOP STATS STRIP (below stacked/grouped charts) ───────────────────
@@ -2433,18 +2540,34 @@
       cSel.appendChild(o);
     });
 
-    // ── Points ──────────────────────────────────────────────────────────
-    const ptsToggle = createPtsToggle(preset ? parseInt(preset.points, 10) || 1 : 1);
+    // ── Raccourcis Points ────────────────────────────────────────────────
+    const defaultPts = parseInt((preset && (preset.customPts || preset.points)) || '1', 10) || 1;
+    const ptsToggle = createPtsToggle(defaultPts);
 
-    // ── Multiplicateur ──────────────────────────────────────────────────
-    const tmsInput = document.createElement('input');
-    tmsInput.type = 'number'; tmsInput.className = 'tms-in';
-    tmsInput.value = '1'; tmsInput.min = '1'; tmsInput.step = '1';
-    tmsInput.setAttribute('inputmode', 'numeric');
-    tmsInput.placeholder = '×';
-    tmsInput.addEventListener('blur', () => {
-      const v = parseInt(tmsInput.value, 10);
-      if (isNaN(v) || v < 1) tmsInput.value = '1';
+    // ── Valeur personnalisée (synchronisée avec les raccourcis) ──────────
+    const customPtsInput = document.createElement('input');
+    customPtsInput.type = 'number'; customPtsInput.className = 'custom-pts-in';
+    customPtsInput.value = String(defaultPts); customPtsInput.min = '1'; customPtsInput.step = '1';
+    customPtsInput.setAttribute('inputmode', 'numeric');
+    customPtsInput.placeholder = 'Pts…';
+    customPtsInput.title = 'Valeur exacte des points';
+    // Raccourci → input
+    ptsToggle.querySelectorAll('.pts-btn').forEach(btn => {
+      btn.addEventListener('click', () => { customPtsInput.value = btn.dataset.val; });
+    });
+    // Input → raccourcis (surligne si valeur standard, sinon tout désactivé)
+    customPtsInput.addEventListener('input', () => {
+      const v = parseInt(customPtsInput.value, 10);
+      ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
+        b.classList.toggle('active', !isNaN(v) && parseInt(b.dataset.val, 10) === v);
+      });
+    });
+    customPtsInput.addEventListener('blur', () => {
+      const v = parseInt(customPtsInput.value, 10);
+      if (isNaN(v) || v < 1) {
+        customPtsInput.value = '1';
+        ptsToggle.querySelectorAll('.pts-btn').forEach(b => b.classList.toggle('active', b.dataset.val === '1'));
+      }
     });
 
     // ── Cellule date inline ──────────────────────────────────────────────
@@ -2509,20 +2632,30 @@
     dateCell.appendChild(rangeLabel);
     dateCell.appendChild(rangeDetails);
 
+    // ── Description (champ pleine largeur, sous les contrôles principaux) ─
+    const descDiv = document.createElement('div');
+    descDiv.className = 'row-desc';
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.className = 'desc-in';
+    descInput.placeholder = '📝 Description (optionnelle)…';
+    descInput.value = (preset && preset.description) || '';
+    descDiv.appendChild(descInput);
+
     // ── Actions ─────────────────────────────────────────────────────────
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     const dupBtn = document.createElement('button');
     dupBtn.className = 'small'; dupBtn.textContent = '📋'; dupBtn.title = 'Dupliquer';
     dupBtn.addEventListener('click', () => addEntryRow({
-      player:   pSel.value,
-      category: cSel.value,
-      points:   ptsToggle.dataset.selected,
-      times:    tmsInput.value,
-      date:     startInput.value,
-      dateEnd:  rangeCb.checked ? endInput.value : '',
-      fill:     fillToggle.dataset.fill,
-      days:     JSON.parse(dayPickerWrap.dataset.days || '[]')
+      player:      pSel.value,
+      category:    cSel.value,
+      customPts:   customPtsInput.value,
+      date:        startInput.value,
+      dateEnd:     rangeCb.checked ? endInput.value : '',
+      fill:        fillToggle.dataset.fill,
+      days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
+      description: descInput.value
     }));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
@@ -2532,15 +2665,15 @@
     div.appendChild(wrap);
     div.appendChild(cSel);
     div.appendChild(ptsToggle);
-    div.appendChild(tmsInput);
+    div.appendChild(customPtsInput);
     div.appendChild(dateCell);
     div.appendChild(actions);
+    div.appendChild(descDiv);
     container.appendChild(div);
 
     if (preset) {
       if (preset.player)   pSel.value = preset.player;
       if (preset.category) cSel.value = preset.category;
-      if (preset.times)    tmsInput.value = preset.times;
     }
     updateRowAvatar(pSel, img);
   }
@@ -2650,32 +2783,33 @@
     rows.forEach(r => {
       const pSel = r.querySelector('.p-sel');
       const cSel = r.querySelector('.c-sel');
-      const ptsWrap = r.querySelector('.pts-toggle-wrap');
-      const tms  = r.querySelector('.tms-in');
+      const customPtsEl  = r.querySelector('.custom-pts-in');
       const dStart       = r.querySelector('.d-start');
       const dEnd         = r.querySelector('.d-end');
       const rangeCb      = r.querySelector('.range-cb');
       const fillTg       = r.querySelector('.line-fill');
       const dayPickerWr  = r.querySelector('.day-picker-wrap');
+      const descEl       = r.querySelector('.desc-in');
       const isRange      = rangeCb && rangeCb.checked;
-      if (pSel && cSel && ptsWrap && tms && dStart) {
+      if (pSel && cSel && customPtsEl && dStart) {
         items.push({
-          dateStart: dStart.value || '',
-          dateEnd:   (isRange && dEnd) ? dEnd.value : '',
-          fill:      fillTg ? fillTg.dataset.fill : 'repeat',
-          days:      (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
-          player:    pSel.value,
-          category:  cSel.value,
-          points:    ptsWrap.dataset.selected,
-          times:     tms.value
+          dateStart:   dStart.value || '',
+          dateEnd:     (isRange && dEnd) ? dEnd.value : '',
+          fill:        fillTg ? fillTg.dataset.fill : 'repeat',
+          days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
+          player:      pSel.value,
+          category:    cSel.value,
+          points:      customPtsEl.value || '1',
+          times:       '1',
+          description: descEl ? descEl.value.trim() : ''
         });
       }
     });
     if (!items.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
 
     for (const e of items) {
-      const tms = parseInt(e.times, 10);
-      if (isNaN(tms) || tms < 1) { showToast('Le multiplicateur doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
+      const pts = parseInt(e.points, 10);
+      if (isNaN(pts) || pts < 1) { showToast('La valeur des points doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
     }
 
     // Chaque ligne est étalée sur son intervalle (Du→Au) selon le mode choisi,
@@ -2700,7 +2834,8 @@
         // Répéter : la ligne complète sur chaque jour de l'intervalle.
         dates.forEach(dk => {
           (byDate[dk] = byDate[dk] || []).push({
-            player: it.player, category: it.category, points: it.points, times: it.times
+            player: it.player, category: it.category, points: it.points, times: it.times,
+            description: it.description
           });
         });
       } else {
@@ -2710,7 +2845,8 @@
         dates.forEach((dk, k) => {
           const val = base + (k < rem ? 1 : 0);
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
-            player: it.player, category: it.category, points: val, times: 1
+            player: it.player, category: it.category, points: val, times: 1,
+            description: it.description
           });
         });
       }
@@ -2890,7 +3026,7 @@
         playerCell.appendChild(img);
         playerCell.appendChild(pName);
 
-        // 3) TOP — pastille colorée avec l'emoji.
+        // 3) TOP — pastille colorée avec l'emoji + description optionnelle en dessous.
         const catCell = tr.insertCell();
         const cColor = categoryColor(log.category);
         const pill = document.createElement('span');
@@ -2905,6 +3041,13 @@
         }
         pill.appendChild(document.createTextNode(log.category));
         catCell.appendChild(pill);
+        if (log.description) {
+          const descEl = document.createElement('div');
+          descEl.style.cssText = 'font-size:0.74rem;color:var(--text-muted);font-style:italic;margin-top:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help;';
+          descEl.title = log.description;
+          descEl.textContent = log.description;
+          catCell.appendChild(descEl);
+        }
 
         // 4) POINTS — badge dont l'intensité grandit avec le score.
         const ptsCell = tr.insertCell();
@@ -2917,6 +3060,13 @@
         ptsCell.appendChild(badge);
 
         const actCell = tr.insertCell();
+        actCell.style.cssText = 'white-space:nowrap;';
+        const editDescBtn = document.createElement('button');
+        editDescBtn.className = 'small';
+        editDescBtn.textContent = '📝';
+        editDescBtn.title = log.description ? 'Modifier la description' : 'Ajouter une description';
+        editDescBtn.style.marginRight = '4px';
+        editDescBtn.addEventListener('click', () => openEditDescModal(log));
         const delBtn = document.createElement('button');
         delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
         delBtn.addEventListener('click', () => {
@@ -2928,6 +3078,7 @@
             }, 'Suppression historique');
           });
         });
+        actCell.appendChild(editDescBtn);
         actCell.appendChild(delBtn);
       });
 
@@ -3092,6 +3243,37 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
+  function openEditDescModal(log) {
+    const box = document.getElementById('modalBox');
+    const d = log.timestamp ? new Date(log.timestamp) : null;
+    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+    box.innerHTML =
+      '<h3>Description de l\'entrée</h3>' +
+      '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">' +
+        escapeHtml(dateStr) + ' — ' + escapeHtml(log.player) +
+        ' · ' + escapeHtml(log.category) +
+        ' <strong>(' + escapeHtml(String(log.points)) + ' pts)</strong>' +
+      '</p>' +
+      '<input type="text" id="mDescText" value="' + escapeHtml(log.description || '') +
+        '" placeholder="Description (optionnelle)…">' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mSave').onclick = () => {
+      const v = document.getElementById('mDescText').value.trim();
+      closeModal();
+      callServer('apiUpdateHistoryDescription', [log.rowIndex, v], () => {
+        log.description = v;
+        loadHistoryPage(currentHistoryPage);
+        showToast('Description mise à jour.', 'success');
+      }, 'Description');
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+    setTimeout(() => { const el = document.getElementById('mDescText'); if (el) el.focus(); }, 50);
+  }
+
   // ── OUTILS ───────────────────────────────────────────────────────────
   function loadDataHealth() {
     const grid = document.getElementById('healthGrid');
@@ -3180,6 +3362,13 @@
     document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+    document.getElementById('clearDatesBtn').addEventListener('click', () => {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value   = '';
+      applyFilters();
+    });
+    document.getElementById('startDate').addEventListener('change', applyFilters);
+    document.getElementById('endDate').addEventListener('change', applyFilters);
 
     // Applique la date/plage par défaut à toutes les lignes déjà saisies.
     document.getElementById('applyDateAllBtn').addEventListener('click', () => {
@@ -3336,7 +3525,7 @@
     if (!container) return;
     container.innerHTML = '';
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => a.pts - b.pts);
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
       const col        = categoryColor(cat.name);
       const block      = document.createElement('div');
       block.className  = 'bsect';
@@ -3375,6 +3564,8 @@
     const col = categoryColor(entry.top);
     const row = document.createElement('div');
     row.className = 'bsect-entry';
+    row.style.borderLeft = '3px solid ' + tint(col, 0.5);
+    row.style.background = tint(col, 0.05);
 
     const pts = document.createElement('span');
     pts.className = 'bsect-pts';
@@ -3480,7 +3671,7 @@
     }, 'Barème');
   }
 
-  // Read-only drawer — grouped by Top, sorted by pts ascending
+  // Read-only drawer — grouped by Top, sorted by pts descending
   function renderBaremeDrawer(entries) {
     const body = document.getElementById('baremeBody');
     body.innerHTML = '';
@@ -3490,7 +3681,7 @@
     }
     let hasAny = false;
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => a.pts - b.pts);
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
       if (!catEntries.length) return;
       hasAny = true;
       const col  = categoryColor(cat.name);
@@ -3512,6 +3703,8 @@
       catEntries.forEach(e => {
         const row = document.createElement('div');
         row.className = 'bd-entry';
+        row.style.borderLeft = '3px solid ' + tint(col, 0.5);
+        row.style.background = tint(col, 0.05);
         const badge = document.createElement('span');
         badge.className = 'bd-badge';
         badge.style.background = col;

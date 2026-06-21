@@ -1,6 +1,6 @@
 /**
  * SPREADSHEET STRUCTURE
- * History   : [0] Date | [1] Player   | [2] Category  | [3] Points
+ * History   : [0] Date | [1] Player   | [2] Category  | [3] Points | [4] Description
  * Players   : [0] Name | [1] Avatar URL | [2] Hex color
  * Categories: [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
  * Notes     : [0] Date | [1] Player   | [2] Note text
@@ -160,11 +160,11 @@ const StorageService = {
       const tms = parseInt(e.times,  10);
       if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
       if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
-      return [targetDate, e.player, e.category, pts * tms];
+      return [targetDate, e.player, e.category, pts * tms, e.description || ''];
     });
 
     const { history } = ConfigService.getSheets();
-    history.getRange(history.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
+    history.getRange(history.getLastRow() + 1, 1, rows.length, 5).setValues(rows);
   },
 
   getAllLogs() {
@@ -207,7 +207,7 @@ const StorageService = {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { logs: [], total: 0 };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
 
     let allWithIndex = [];
     for (let i = 0; i < data.length; i++) {
@@ -215,9 +215,10 @@ const StorageService = {
       if (!row[0]) continue;
       const d = new Date(row[0]);
       if (isNaN(d.getTime())) continue;
-      const player   = row[1] ? row[1].toString() : '';
-      const category = row[2] ? row[2].toString() : '';
-      const points   = parseInt(row[3], 10);
+      const player      = row[1] ? row[1].toString() : '';
+      const category    = row[2] ? row[2].toString() : '';
+      const points      = parseInt(row[3], 10);
+      const description = row[4] ? row[4].toString() : '';
       if (!player || !category)         continue;
       if (isNaN(points) || points <= 0) continue;
       if (filterPlayer   && player   !== filterPlayer)   continue;
@@ -227,6 +228,7 @@ const StorageService = {
         player,
         category,
         points,
+        description,
         rowIndex: i + 2
       });
     }
@@ -242,6 +244,12 @@ const StorageService = {
 
   deleteHistoryEntry(rowIndex) {
     ConfigService.getSheets().history.deleteRow(rowIndex);
+  },
+
+  updateHistoryDescription(rowIndex, description) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    ConfigService.getSheets().history.getRange(idx, 5).setValue(description || '');
   },
 
   // ── OUTILS NETTOYAGE ────────────────────────────────────────────────
@@ -810,6 +818,14 @@ function apiDeleteOrphans() {
     const result = StorageService.deleteOrphans();
     ConfigService.clearCache();
     return { success: true, deleted: result.deleted };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiUpdateHistoryDescription(rowIndex, description) {
+  try {
+    StorageService.updateHistoryDescription(rowIndex, description);
+    ConfigService.clearCache();
+    return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
