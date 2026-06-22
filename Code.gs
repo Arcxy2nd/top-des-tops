@@ -137,11 +137,9 @@ const SettingsService = {
 // ─── STORAGE SERVICE ───────────────────────────────────────────────────────────
 const StorageService = {
 
-  appendBulkLogs(entries, customDateStr) {
+  appendBulkLogs(entries, customDateStr, groupId) {
     if (!entries || !entries.length) throw new Error("Aucune donnée à injecter.");
 
-    // 4.1 — On reçoit une chaîne "YYYY-MM-DD" (input type="date")
-    // On construit la date à midi pour éviter les bugs de timezone
     let targetDate;
     if (customDateStr && customDateStr.trim()) {
       targetDate = new Date(customDateStr.trim() + 'T12:00:00');
@@ -154,17 +152,18 @@ const StorageService = {
     }
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
+    const gid = groupId || '';
     const rows = entries.map(e => {
       if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
       const pts = parseInt(e.points, 10);
       const tms = parseInt(e.times,  10);
       if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
       if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
-      return [targetDate, e.player, e.category, pts * tms, e.description || ''];
+      return [targetDate, e.player, e.category, pts * tms, e.description || '', gid];
     });
 
     const { history } = ConfigService.getSheets();
-    history.getRange(history.getLastRow() + 1, 1, rows.length, 5).setValues(rows);
+    history.getRange(history.getLastRow() + 1, 1, rows.length, 6).setValues(rows);
   },
 
   getAllLogs() {
@@ -707,9 +706,9 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiAddBulkScores(entries, customDateStr) {
+function apiAddBulkScores(entries, customDateStr, groupId) {
   try {
-    StorageService.appendBulkLogs(entries, customDateStr);
+    StorageService.appendBulkLogs(entries, customDateStr, groupId || '');
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }

@@ -3056,6 +3056,7 @@
   function runBulkPlan(plan, btn) {
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
     const restore = startBtnLoading(btn, 'Écriture 1/' + plan.length);
+    const gid = plan.length > 1 ? ('G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)) : '';
     let i = 0;
     const next = () => {
       if (i >= plan.length) {
@@ -3069,7 +3070,7 @@
         return;
       }
       btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
-      callServer('apiAddBulkScores', [plan[i].entries, plan[i].date], () => {
+      callServer('apiAddBulkScores', [plan[i].entries, plan[i].date, gid], () => {
         i++; next();
       }, 'Envoi lot', () => { restore(); });
     };
