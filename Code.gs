@@ -858,3 +858,98 @@ function apiEditNote(rowIndex, newText) {
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
+
+function apiUpdateBulkDescription(rowIndexes, description) {
+  try {
+    if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
+    const { history } = ConfigService.getSheets();
+    rowIndexes.forEach(ri => {
+      const idx = parseInt(ri, 10);
+      if (!isNaN(idx) && idx >= 2) {
+        history.getRange(idx, 5).setValue(description || '');
+      }
+    });
+    ConfigService.clearCache();
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDetectDistributedLots() {
+  try {
+    const sheet = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, lots: [] };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const entries = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+      const d = new Date(row[0]);
+      if (isNaN(d.getTime())) continue;
+      const player      = row[1] ? row[1].toString() : '';
+      const category    = row[2] ? row[2].toString() : '';
+      const points      = parseInt(row[3], 10);
+      const description = row[4] ? row[4].toString() : '';
+      if (!player || !category) continue;
+      if (isNaN(points) || points <= 0) continue;
+      const pad = n => String(n).padStart(2, '0');
+      entries.push({
+        date: d,
+        dateStr: d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()),
+        player, category, points, description,
+        rowIndex: i + 2
+      });
+    }
+
+    const groups = {};
+    entries.forEach(e => {
+      const key = e.player + '|' + e.category + '|' + e.points + '|' + e.description;
+      (groups[key] = groups[key] || []).push(e);
+    });
+
+    const lots = [];
+    Object.values(groups).forEach(group => {
+      if (group.length < 3) return;
+      group.sort((a, b) => a.date - b.date);
+      var chain = [group[0]];
+      for (var i = 1; i < group.length; i++) {
+        var gap = (group[i].date - chain[chain.length - 1].date) / (1000 * 86400);
+        if (gap <= 7) {
+          chain.push(group[i]);
+        } else {
+          if (chain.length >= 3) {
+            lots.push({
+              player: chain[0].player,
+              category: chain[0].category,
+              points: chain[0].points,
+              description: chain[0].description,
+              count: chain.length,
+              totalPts: chain.reduce(function(s, e) { return s + e.points; }, 0),
+              dateFrom: chain[0].dateStr,
+              dateTo: chain[chain.length - 1].dateStr,
+              rowIndexes: chain.map(function(e) { return e.rowIndex; })
+            });
+          }
+          chain = [group[i]];
+        }
+      }
+      if (chain.length >= 3) {
+        lots.push({
+          player: chain[0].player,
+          category: chain[0].category,
+          points: chain[0].points,
+          description: chain[0].description,
+          count: chain.length,
+          totalPts: chain.reduce(function(s, e) { return s + e.points; }, 0),
+          dateFrom: chain[0].dateStr,
+          dateTo: chain[chain.length - 1].dateStr,
+          rowIndexes: chain.map(function(e) { return e.rowIndex; })
+        });
+      }
+    });
+
+    lots.sort(function(a, b) { return b.count - a.count; });
+    return { success: true, lots: lots };
+  } catch(e) { return { success: false, error: e.message }; }
+}

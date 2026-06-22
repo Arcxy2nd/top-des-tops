@@ -719,6 +719,95 @@
 
     .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 32px 16px; font-size: 0.88rem; }
 
+    /* ── DESCRIPTION EXPANDABLE (historique) ── */
+    .hist-desc-toggle {
+      font-size: 0.74rem; color: var(--text-muted); font-style: italic;
+      margin-top: 3px; max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer; transition: color 0.15s;
+    }
+    .hist-desc-toggle:hover { color: var(--text); }
+    .hist-desc-full {
+      font-size: 0.8rem; color: var(--text); line-height: 1.5;
+      padding: 8px 12px; margin-top: 4px;
+      background: rgba(0,0,0,0.08); border-radius: 6px;
+      white-space: pre-wrap; word-break: break-word;
+      animation: fadeIn 0.15s ease;
+    }
+
+    /* ── NOTES FLASH BAR ── */
+    .notes-flash-bar {
+      display: flex; gap: 8px; align-items: center;
+      padding: 12px; margin-bottom: 16px;
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 12px; flex-wrap: wrap;
+    }
+    .notes-flash-bar select { width: 140px; flex-shrink: 0; }
+    .notes-flash-bar input[type="text"] { flex: 1; min-width: 180px; }
+    .notes-flash-bar input[type="date"] { width: 150px; flex-shrink: 0; }
+    .notes-flash-hint {
+      width: 100%; font-size: 0.72rem; color: var(--text-muted); margin-top: -2px;
+    }
+    @media (max-width: 640px) {
+      .notes-flash-bar { flex-direction: column; align-items: stretch; }
+      .notes-flash-bar select, .notes-flash-bar input[type="date"] { width: 100%; }
+    }
+
+    /* ── HISTORY GROUPING ── */
+    .hist-group-row {
+      cursor: pointer; transition: background 0.1s;
+    }
+    .hist-group-row:hover td { background: rgba(255,255,255,0.05); }
+    .hist-group-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+    }
+    .hist-group-chevron {
+      display: inline-block; transition: transform 0.2s;
+      font-size: 0.7rem; margin-right: 4px;
+    }
+    .hist-group-chevron.open { transform: rotate(90deg); }
+    .hist-group-child td { padding-left: 24px; opacity: 0.85; }
+
+    /* ── BULK DESCRIPTION INPUT ── */
+    .hist-bulk-desc-wrap {
+      display: flex; gap: 6px; align-items: center; flex: 2; min-width: 200px;
+    }
+    .hist-bulk-desc-wrap input { flex: 1; padding: 6px 10px; font-size: 0.82rem; }
+
+    /* ── DETECTION TOOL ── */
+    .detect-results { margin-top: 12px; }
+    .detect-lot {
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+    }
+    .detect-lot-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .detect-lot-head label { display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; }
+    .detect-lot-head input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    .detect-lot-info { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+    .detect-lot-info strong { color: var(--text); font-weight: 600; }
+    .detect-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+    .detect-summary {
+      font-size: 0.82rem; color: var(--text-muted); padding: 10px 0;
+    }
+
+    /* ── GUIDE TAB ── */
+    .guide-section { margin-bottom: 24px; }
+    .guide-section h3 { cursor: pointer; user-select: none; }
+    .guide-section h3::before { content: '▸ '; color: var(--accent); }
+    .guide-section.open h3::before { content: '▾ '; }
+    .guide-body {
+      display: none; padding: 10px 0 0 8px;
+      font-size: 0.9rem; line-height: 1.7; color: var(--text-muted);
+    }
+    .guide-section.open .guide-body { display: block; }
+    .guide-body p { margin: 0 0 8px; }
+    .guide-body strong { color: var(--text); }
+
     @keyframes bareme-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.6; } }
     .bareme-skel {
       height: 60px; border-radius: 11px; background: var(--btn-alt);
@@ -788,6 +877,7 @@
     <button class="nav-btn" data-tab="tab-notes">📝 Notes<span class="nav-count" id="notesCount"></span></button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique<span class="nav-count" id="historyCount"></span></button>
     <button class="nav-btn" data-tab="tab-tools">🔧 Outils</button>
+    <button class="nav-btn" data-tab="tab-guide">❓ Guide</button>
     <div class="nav-refresh-wrap">
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
@@ -962,6 +1052,10 @@
       <div id="historyPagination" class="pagination"></div>
       <div id="histBulkBar" class="hist-bulk-bar" style="display:none;">
         <span id="histBulkCount">0 sélectionné(s)</span>
+        <div class="hist-bulk-desc-wrap">
+          <input type="text" id="histBulkDescInput" placeholder="Nouvelle description…">
+          <button id="histBulkDescApply" class="primary small">📝 Appliquer</button>
+        </div>
         <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
         <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
         <button id="histBulkCancel" class="secondary small">✕ Annuler</button>
@@ -1000,6 +1094,89 @@
           <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
         </div>
         <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <h2>🔍 Détecter les lots répartis</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart entre deux entrées, minimum 3 entrées). Permet de les supprimer en bloc.
+      </p>
+      <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
+      <div id="detectResults" class="detect-results"></div>
+    </div>
+  </div>
+
+  <!-- ══ GUIDE ═════════════════════════════════════════════════════════ -->
+  <div id="tab-guide" class="tab-content">
+    <div class="card">
+      <h2>❓ Comment utiliser le site</h2>
+
+      <div class="guide-section open">
+        <h3>Tableau de bord (Dashboard)</h3>
+        <div class="guide-body">
+          <p>C'est la page d'accueil. Elle affiche un <strong>graphique</strong> qui résume les scores de chaque joueur.</p>
+          <p><strong>Filtres :</strong> en haut, tu peux cliquer sur les noms de joueurs ou de Tops pour n'afficher que ceux-là. Tu peux aussi choisir une période (7 jours, ce mois, etc.).</p>
+          <p><strong>Types de graphique :</strong> les boutons Empilé, Groupé, Courbes, Radar, Donut, Classement changent la façon de voir les scores. « Classement » montre le total général de chaque joueur.</p>
+          <p><strong>Options :</strong> sous les boutons de type, des options apparaissent selon le graphique choisi (tri, échelle, totaux…).</p>
+          <p><strong>Export :</strong> les boutons en haut à droite (Infographie, CSV, Excel) permettent de télécharger le graphique ou les données.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Saisir un Lot</h3>
+        <div class="guide-body">
+          <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne du lot correspond à une entrée : un joueur, un Top, un nombre de points, et une date.</p>
+          <p><strong>Raccourcis de points :</strong> les boutons 1, 3, 5, 7… permettent de choisir rapidement. Tu peux aussi taper un nombre personnalisé.</p>
+          <p><strong>Plage de dates :</strong> coche « Plage » pour étaler une entrée sur plusieurs jours. Tu peux choisir « Répéter » (même score chaque jour) ou « Répartir » (le total est divisé sur les jours). Le sélecteur de jours de la semaine permet de ne garder que certains jours (ex : jours ouvrés).</p>
+          <p><strong>Description :</strong> champ optionnel en bas de chaque ligne pour ajouter un contexte.</p>
+          <p><strong>Dupliquer :</strong> le bouton 📋 copie une ligne existante pour aller plus vite.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Paramètres</h3>
+        <div class="guide-body">
+          <p>On y gère les <strong>joueurs</strong> (nom, avatar, couleur) et les <strong>Tops</strong> (nom, description, emoji, couleur).</p>
+          <p>Le <strong>barème</strong> en bas permet de définir des règles de points pour chaque Top (ex : « 🍺 Apéro → Ramener des chips = 3 pts »). C'est un aide-mémoire consultable via le bouton ⚖️ en bas à gauche.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Notes</h3>
+        <div class="guide-body">
+          <p>Espace pour écrire des <strong>remarques libres</strong> sur chaque joueur.</p>
+          <p>La <strong>barre rapide</strong> en haut permet d'ajouter une note en une seconde : choisis le joueur, tape la note, appuie sur Entrée.</p>
+          <p>Les notes de chaque joueur sont visibles en dessous dans des blocs dédiés.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Historique</h3>
+        <div class="guide-body">
+          <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur ou par Top.</p>
+          <p><strong>Sélection :</strong> le bouton « ☑ Sélectionner » active un mode où tu peux cocher des entrées pour les supprimer en bloc ou leur donner la même description.</p>
+          <p><strong>Regroupement :</strong> les entrées identiques consécutives (même joueur, Top, points, description) sont regroupées. Clique sur le groupe pour voir chaque ligne individuelle.</p>
+          <p>Chaque entrée peut être éditée (description) ou supprimée individuellement.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Outils</h3>
+        <div class="guide-body">
+          <p><strong>Rapport de santé :</strong> montre le nombre total d'entrées, celles à 0 point, et les orphelines (joueur ou Top supprimé).</p>
+          <p><strong>Nettoyage :</strong> deux boutons pour supprimer les entrées à 0 point ou les orphelines.</p>
+          <p><strong>Détection de lots répartis :</strong> scanne l'historique pour trouver des séries d'entrées identiques étalées sur plusieurs jours (typiquement créées avec « Répartir »). Tu choisis lesquels supprimer, avec double confirmation car c'est irréversible.</p>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <h3>Barème (bouton ⚖️)</h3>
+        <div class="guide-body">
+          <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans les Paramètres. C'est un <strong>aide-mémoire rapide</strong> consultable depuis n'importe quel onglet.</p>
+          <p>Raccourci clavier : appuie sur <strong>?</strong> pour ouvrir/fermer.</p>
+        </div>
       </div>
 
     </div>
@@ -1737,7 +1914,10 @@
       applyFilters();
       return;
     }
-    if (!currentChartData || currentChartData.series) { applyFilters(); return; }
+    const isStaleData = !currentChartData || currentChartData.series ||
+      (currentChartData.datasets && currentChartData.datasets.length === 1 &&
+       (currentChartData.datasets[0].label === 'Total global' || currentChartData.datasets[0].label === 'Total points'));
+    if (isStaleData) { applyFilters(); return; }
     renderChart(currentChartData, type);
     renderChartControls(type);
     if (type === 'stacked' || type === 'grouped') {
@@ -2984,106 +3164,207 @@
       // Track visible row indexes for select-all
       histVisibleRows = logs.map(l => l.rowIndex);
 
-      logs.forEach(log => {
-        const tr = tbody.insertRow();
-        const pColor = playerColor(log.player);
+      // Group consecutive identical entries (same player+category+points+description)
+      const groups = [];
+      let gi = 0;
+      while (gi < logs.length) {
+        const first = logs[gi];
+        const key = first.player + '|' + first.category + '|' + first.points + '|' + (first.description || '');
+        const members = [first];
+        let gj = gi + 1;
+        while (gj < logs.length) {
+          const next = logs[gj];
+          if (next.player + '|' + next.category + '|' + next.points + '|' + (next.description || '') === key) {
+            members.push(next); gj++;
+          } else break;
+        }
+        groups.push(members);
+        gi = gj;
+      }
 
-        // Checkbox cell (selection mode only)
-        if (histSelectMode) {
-          const selCell = tr.insertCell();
-          selCell.className = 'hist-sel-th';
-          const chk = document.createElement('input');
-          chk.type = 'checkbox'; chk.className = 'hist-chk';
-          chk.checked = histSelected.has(log.rowIndex);
-          if (chk.checked) tr.classList.add('hist-selected');
-          chk.addEventListener('change', () => {
-            if (chk.checked) { histSelected.add(log.rowIndex); tr.classList.add('hist-selected'); }
-            else { histSelected.delete(log.rowIndex); tr.classList.remove('hist-selected'); }
-            updateHistBulkBar();
+      groups.forEach(members => {
+        const isGroup = members.length >= 3;
+
+        if (isGroup && !histSelectMode) {
+          const first = members[0];
+          const last  = members[members.length - 1];
+          const pColor = playerColor(first.player);
+          const headerTr = tbody.insertRow();
+          headerTr.className = 'hist-group-row';
+          let childrenVisible = false;
+          const childRows = [];
+
+          const dateCell = headerTr.insertCell();
+          dateCell.className = 'hist-accent';
+          dateCell.style.setProperty('--player-color', pColor);
+          const chevron = document.createElement('span');
+          chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
+          const d1 = new Date(last.timestamp); const d2 = new Date(first.timestamp);
+          const dateRange = (isNaN(d1) ? '—' : d1.toLocaleDateString('fr-FR')) + ' → ' + (isNaN(d2) ? '—' : d2.toLocaleDateString('fr-FR'));
+          dateCell.appendChild(chevron);
+          dateCell.appendChild(document.createTextNode(' ' + dateRange));
+
+          const playerCell = headerTr.insertCell();
+          playerCell.className = 'hist-player-cell';
+          const player = cachedPlayers.find(p => p.name === first.player);
+          const img = document.createElement('img');
+          img.className = 'history-avatar';
+          img.src = getAvatarUrl(first.player, player ? player.meta : '');
+          img.onerror = () => { img.src = getAvatarUrl(first.player, ''); };
+          const pName = document.createElement('span');
+          pName.className = 'hist-player-name'; pName.textContent = first.player;
+          playerCell.appendChild(img); playerCell.appendChild(pName);
+
+          const catCell = headerTr.insertCell();
+          const cColor = categoryColor(first.category);
+          const pill = document.createElement('span');
+          pill.className = 'hist-pill';
+          pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+          pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+          const ic = catIcon(first.category);
+          if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+          pill.appendChild(document.createTextNode(first.category));
+          catCell.appendChild(pill);
+          if (first.description) {
+            const descEl = document.createElement('div');
+            descEl.className = 'hist-desc-toggle';
+            descEl.textContent = first.description;
+            catCell.appendChild(descEl);
+          }
+
+          const ptsCell = headerTr.insertCell();
+          const badge = document.createElement('span');
+          badge.className = 'hist-pts';
+          badge.style.setProperty('--pts-bg', tint(pColor, 0.25));
+          badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+          badge.textContent = first.points + ' pts';
+          ptsCell.appendChild(badge);
+          const groupBadge = document.createElement('span');
+          groupBadge.className = 'hist-group-badge';
+          groupBadge.textContent = '×' + members.length;
+          ptsCell.appendChild(document.createTextNode(' '));
+          ptsCell.appendChild(groupBadge);
+
+          const actCell = headerTr.insertCell();
+          actCell.textContent = '';
+
+          headerTr.addEventListener('click', () => {
+            childrenVisible = !childrenVisible;
+            chevron.classList.toggle('open', childrenVisible);
+            chevron.textContent = childrenVisible ? '▸' : '▸';
+            childRows.forEach(cr => cr.style.display = childrenVisible ? '' : 'none');
           });
-          selCell.appendChild(chk);
-        }
 
-        // 1) DATE — porte la barre de couleur du joueur (repère le plus fort à gauche).
-        const dateCell = tr.insertCell();
-        dateCell.className = 'hist-accent';
-        dateCell.style.setProperty('--player-color', pColor);
-        const d = new Date(log.timestamp);
-        dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
-
-        // 2) JOUEUR — avatar cerclé de sa couleur + nom.
-        const playerCell = tr.insertCell();
-        playerCell.className = 'hist-player-cell';
-        playerCell.style.setProperty('--player-color', pColor);
-        const player = cachedPlayers.find(p => p.name === log.player);
-        const img = document.createElement('img');
-        img.className = 'history-avatar';
-        img.src = getAvatarUrl(log.player, player ? player.meta : '');
-        img.alt = log.player;
-        img.onerror = () => { img.src = getAvatarUrl(log.player, ''); };
-        const pName = document.createElement('span');
-        pName.className = 'hist-player-name'; pName.textContent = log.player;
-        playerCell.appendChild(img);
-        playerCell.appendChild(pName);
-
-        // 3) TOP — pastille colorée avec l'emoji + description optionnelle en dessous.
-        const catCell = tr.insertCell();
-        const cColor = categoryColor(log.category);
-        const pill = document.createElement('span');
-        pill.className = 'hist-pill';
-        pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
-        pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
-        const ic = catIcon(log.category);
-        if (ic) {
-          const em = document.createElement('span');
-          em.className = 'pill-emoji'; em.textContent = ic;
-          pill.appendChild(em);
-        }
-        pill.appendChild(document.createTextNode(log.category));
-        catCell.appendChild(pill);
-        if (log.description) {
-          const descEl = document.createElement('div');
-          descEl.style.cssText = 'font-size:0.74rem;color:var(--text-muted);font-style:italic;margin-top:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help;';
-          descEl.title = log.description;
-          descEl.textContent = log.description;
-          catCell.appendChild(descEl);
-        }
-
-        // 4) POINTS — badge dont l'intensité grandit avec le score.
-        const ptsCell = tr.insertCell();
-        const badge = document.createElement('span');
-        badge.className = 'hist-pts';
-        const intensity = Math.min(0.10 + Math.log10(log.points + 1) * 0.22, 0.9);
-        badge.style.setProperty('--pts-bg', tint(pColor, intensity));
-        badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
-        badge.textContent = log.points;
-        ptsCell.appendChild(badge);
-
-        const actCell = tr.insertCell();
-        actCell.style.cssText = 'white-space:nowrap;';
-        const editDescBtn = document.createElement('button');
-        editDescBtn.className = 'small';
-        editDescBtn.textContent = '📝';
-        editDescBtn.title = log.description ? 'Modifier la description' : 'Ajouter une description';
-        editDescBtn.style.marginRight = '4px';
-        editDescBtn.addEventListener('click', () => openEditDescModal(log));
-        const delBtn = document.createElement('button');
-        delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
-        delBtn.addEventListener('click', () => {
-          openConfirmModal('Supprimer cette entrée ?', () => {
-            buzz();
-            callServer('apiDeleteHistoryEntry', [log.rowIndex], () => {
-              loadHistoryPage(currentHistoryPage);
-              showToast('Entrée supprimée.', 'success');
-            }, 'Suppression historique');
+          members.forEach(log => {
+            const cr = buildHistRow(log, tbody);
+            cr.className += ' hist-group-child';
+            cr.style.display = 'none';
+            childRows.push(cr);
           });
-        });
-        actCell.appendChild(editDescBtn);
-        actCell.appendChild(delBtn);
+        } else {
+          members.forEach(log => buildHistRow(log, tbody));
+        }
       });
 
       renderPagination(total);
     }, 'Chargement historique');
+  }
+
+  function buildHistRow(log, tbody) {
+    const tr = tbody.insertRow();
+    const pColor = playerColor(log.player);
+
+    if (histSelectMode) {
+      const selCell = tr.insertCell();
+      selCell.className = 'hist-sel-th';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'hist-chk';
+      chk.checked = histSelected.has(log.rowIndex);
+      if (chk.checked) tr.classList.add('hist-selected');
+      chk.addEventListener('change', () => {
+        if (chk.checked) { histSelected.add(log.rowIndex); tr.classList.add('hist-selected'); }
+        else { histSelected.delete(log.rowIndex); tr.classList.remove('hist-selected'); }
+        updateHistBulkBar();
+      });
+      selCell.appendChild(chk);
+    }
+
+    const dateCell = tr.insertCell();
+    dateCell.className = 'hist-accent';
+    dateCell.style.setProperty('--player-color', pColor);
+    const d = new Date(log.timestamp);
+    dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+
+    const playerCell = tr.insertCell();
+    playerCell.className = 'hist-player-cell';
+    playerCell.style.setProperty('--player-color', pColor);
+    const player = cachedPlayers.find(p => p.name === log.player);
+    const img = document.createElement('img');
+    img.className = 'history-avatar';
+    img.src = getAvatarUrl(log.player, player ? player.meta : '');
+    img.alt = log.player;
+    img.onerror = () => { img.src = getAvatarUrl(log.player, ''); };
+    const pName = document.createElement('span');
+    pName.className = 'hist-player-name'; pName.textContent = log.player;
+    playerCell.appendChild(img); playerCell.appendChild(pName);
+
+    const catCell = tr.insertCell();
+    const cColor = categoryColor(log.category);
+    const pill = document.createElement('span');
+    pill.className = 'hist-pill';
+    pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+    pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+    const ic = catIcon(log.category);
+    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+    pill.appendChild(document.createTextNode(log.category));
+    catCell.appendChild(pill);
+    if (log.description) {
+      const descEl = document.createElement('div');
+      descEl.className = 'hist-desc-toggle';
+      descEl.textContent = log.description;
+      descEl.title = 'Cliquer pour déplier';
+      descEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const existing = catCell.querySelector('.hist-desc-full');
+        if (existing) { existing.remove(); descEl.style.whiteSpace = 'nowrap'; return; }
+        const full = document.createElement('div');
+        full.className = 'hist-desc-full';
+        full.textContent = log.description;
+        descEl.style.whiteSpace = 'normal';
+        catCell.appendChild(full);
+      });
+      catCell.appendChild(descEl);
+    }
+
+    const ptsCell = tr.insertCell();
+    const badge = document.createElement('span');
+    badge.className = 'hist-pts';
+    const intensity = Math.min(0.10 + Math.log10(log.points + 1) * 0.22, 0.9);
+    badge.style.setProperty('--pts-bg', tint(pColor, intensity));
+    badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+    badge.textContent = log.points;
+    ptsCell.appendChild(badge);
+
+    const actCell = tr.insertCell();
+    actCell.style.cssText = 'white-space:nowrap;';
+    const editDescBtn = document.createElement('button');
+    editDescBtn.className = 'small'; editDescBtn.textContent = '📝';
+    editDescBtn.title = log.description ? 'Modifier la description' : 'Ajouter une description';
+    editDescBtn.style.marginRight = '4px';
+    editDescBtn.addEventListener('click', () => openEditDescModal(log));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
+    delBtn.addEventListener('click', () => {
+      openConfirmModal('Supprimer cette entrée ?', () => {
+        buzz();
+        callServer('apiDeleteHistoryEntry', [log.rowIndex], () => {
+          loadHistoryPage(currentHistoryPage);
+          showToast('Entrée supprimée.', 'success');
+        }, 'Suppression historique');
+      });
+    });
+    actCell.appendChild(editDescBtn); actCell.appendChild(delBtn);
+    return tr;
   }
 
   function renderPagination(total) {
@@ -3118,7 +3399,45 @@
       return;
     }
 
-    // Regrouper les notes par joueur (elles arrivent déjà des plus récentes aux plus anciennes).
+    // Barre de saisie rapide
+    const flash = document.createElement('div');
+    flash.className = 'notes-flash-bar';
+    const fSel = document.createElement('select');
+    fSel.id = 'flashNotePlayer';
+    cachedPlayers.forEach(p => {
+      const o = document.createElement('option'); o.value = p.name; o.textContent = p.name;
+      fSel.appendChild(o);
+    });
+    const fInput = document.createElement('input');
+    fInput.type = 'text'; fInput.id = 'flashNoteText';
+    fInput.placeholder = 'Note rapide… (Entrée pour valider)';
+    const fDate = document.createElement('input');
+    fDate.type = 'date'; fDate.id = 'flashNoteDate';
+    const fBtn = document.createElement('button');
+    fBtn.className = 'primary small'; fBtn.textContent = '+ Ajouter';
+
+    const submitFlash = () => {
+      const text = fInput.value.trim();
+      if (!text) { showToast('La note est vide.', 'error'); fInput.focus(); return; }
+      const restore = startBtnLoading(fBtn, '…');
+      callServer('apiAddNote', [fSel.value, text, fDate.value], () => {
+        restore(); flashSaved(fBtn);
+        fInput.value = '';
+        showToast('Note ajoutée.', 'success');
+        loadNotes();
+      }, 'Ajout note', () => restore());
+    };
+    fBtn.addEventListener('click', submitFlash);
+    fInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitFlash(); } });
+
+    flash.appendChild(fSel); flash.appendChild(fInput); flash.appendChild(fDate); flash.appendChild(fBtn);
+    const hint = document.createElement('div');
+    hint.className = 'notes-flash-hint';
+    hint.textContent = '⌨ Entrée = ajouter la note. La date est optionnelle (par défaut : aujourd\'hui).';
+    flash.appendChild(hint);
+    container.appendChild(flash);
+
+    // Regrouper les notes par joueur
     const byPlayer = {};
     notes.forEach(n => { (byPlayer[n.player] = byPlayer[n.player] || []).push(n); });
 
@@ -3312,6 +3631,7 @@
       if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
       if (tabId === 'tab-notes')   { loadNotes(); }
       if (tabId === 'tab-tools')   { loadDataHealth(); }
+      if (tabId === 'tab-guide')   { initGuideAccordion(); }
     });
   });
 
@@ -3461,6 +3781,161 @@
       }
       loadHistoryPage(currentHistoryPage);
       updateHistBulkBar();
+    });
+
+    // ── Bulk description apply ──
+    document.getElementById('histBulkDescApply').addEventListener('click', () => {
+      if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+      const desc = document.getElementById('histBulkDescInput').value.trim();
+      openConfirmModal(
+        'Appliquer la description « ' + (desc || '(vide)') + ' » à ' + histSelected.size + ' entrée(s) ?',
+        () => {
+          const btn = document.getElementById('histBulkDescApply');
+          const restore = startBtnLoading(btn, '…');
+          callServer('apiUpdateBulkDescription', [[...histSelected], desc], res => {
+            restore();
+            if (res.success) {
+              flashSaved(btn);
+              showToast('Description mise à jour.', 'success');
+              document.getElementById('histBulkDescInput').value = '';
+              loadHistoryPage(currentHistoryPage);
+            } else {
+              showToast(res.error || 'Erreur.', 'error');
+            }
+          }, 'Desc. en masse', () => restore());
+        }
+      );
+    });
+
+    // ── Detection tool ──
+    document.getElementById('detectLotsBtn').addEventListener('click', scanDistributedLots);
+  }
+
+  // ── GUIDE ACCORDION ─────────────────────────────────────────────────
+  let guideInited = false;
+  function initGuideAccordion() {
+    if (guideInited) return;
+    guideInited = true;
+    document.querySelectorAll('.guide-section h3').forEach(h3 => {
+      h3.addEventListener('click', () => {
+        h3.parentElement.classList.toggle('open');
+      });
+    });
+  }
+
+  // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
+  function scanDistributedLots() {
+    const btn = document.getElementById('detectLotsBtn');
+    const container = document.getElementById('detectResults');
+    container.innerHTML = '';
+    const restore = startBtnLoading(btn, 'Scan…');
+
+    callServer('apiDetectDistributedLots', [], res => {
+      restore();
+      if (!res.lots || !res.lots.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun lot réparti détecté. Tout est propre ✅</p>';
+        return;
+      }
+      renderDetectedLots(res.lots, container);
+    }, 'Détection lots', () => { restore(); showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  function renderDetectedLots(lots, container) {
+    container.innerHTML = '';
+
+    const info = document.createElement('p');
+    info.style.cssText = 'font-size:0.82rem;color:var(--text-muted);margin:0 0 10px;';
+    info.textContent = lots.length + ' lot(s) détecté(s). Cochez ceux à supprimer, puis validez.';
+    container.appendChild(info);
+
+    const checkAll = document.createElement('label');
+    checkAll.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:0.85rem;cursor:pointer;';
+    const cbAll = document.createElement('input');
+    cbAll.type = 'checkbox';
+    checkAll.appendChild(cbAll);
+    checkAll.appendChild(document.createTextNode('Tout sélectionner'));
+    container.appendChild(checkAll);
+
+    const lotEls = [];
+    lots.forEach((lot, i) => {
+      const div = document.createElement('div');
+      div.className = 'detect-lot';
+
+      const head = document.createElement('div');
+      head.className = 'detect-lot-head';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.dataset.lotIndex = i;
+      cb.addEventListener('change', () => {
+        const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
+        cbAll.checked = [...allCbs].every(c => c.checked);
+      });
+
+      const label = document.createElement('span');
+      label.innerHTML =
+        '<strong>' + escapeHtml(lot.player) + '</strong> — ' +
+        escapeHtml(lot.category) + ' — ' +
+        lot.points + ' pts' +
+        (lot.description ? ' — <em>' + escapeHtml(lot.description) + '</em>' : '') +
+        ' <span style="color:var(--text-muted);font-size:0.8rem;">(' +
+        lot.count + ' entrées, du ' + lot.dateFrom + ' au ' + lot.dateTo +
+        ', total ' + lot.totalPts + ' pts)</span>';
+
+      head.appendChild(cb);
+      head.appendChild(label);
+      div.appendChild(head);
+
+      const details = document.createElement('div');
+      details.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding-left:24px;';
+      details.textContent = 'Lignes : ' + lot.rowIndexes.join(', ');
+      div.appendChild(details);
+
+      container.appendChild(div);
+      lotEls.push({ cb, lot });
+    });
+
+    cbAll.addEventListener('change', () => {
+      lotEls.forEach(l => l.cb.checked = cbAll.checked);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'detect-actions';
+    actions.style.cssText = 'margin-top:14px;display:flex;gap:10px;';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'danger small';
+    delBtn.textContent = '🗑️ Supprimer les lots sélectionnés';
+    actions.appendChild(delBtn);
+    container.appendChild(actions);
+
+    delBtn.addEventListener('click', () => {
+      const selected = lotEls.filter(l => l.cb.checked);
+      if (!selected.length) { showToast('Aucun lot coché.', 'error'); return; }
+
+      const totalEntries = selected.reduce((s, l) => s + l.lot.count, 0);
+      const totalPts = selected.reduce((s, l) => s + l.lot.totalPts, 0);
+
+      openConfirmModal(
+        '⚠️ Première confirmation : supprimer ' + selected.length + ' lot(s) (' + totalEntries + ' entrées, ' + totalPts + ' pts au total) ? Cette action est IRRÉVERSIBLE.',
+        () => {
+          openConfirmModal(
+            '🔴 DERNIÈRE CONFIRMATION : ' + totalEntries + ' entrées vont être définitivement supprimées. Êtes-vous absolument sûr ?',
+            () => {
+              const allRows = [];
+              selected.forEach(l => l.lot.rowIndexes.forEach(r => allRows.push(r)));
+              const restore = startBtnLoading(delBtn, 'Suppression…');
+              callServer('apiDeleteHistoryEntries', [allRows], res => {
+                restore();
+                if (res.success) {
+                  showToast(totalEntries + ' entrées supprimées.', 'success');
+                  scanDistributedLots();
+                  loadHistoryPage(currentHistoryPage);
+                } else {
+                  showToast(res.error || 'Erreur lors de la suppression.', 'error');
+                }
+              }, 'Suppression lots', () => { restore(); showToast('Erreur.', 'error'); });
+            }
+          );
+        }
+      );
     });
   }
 
