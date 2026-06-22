@@ -1099,7 +1099,7 @@
     </div>
 
     <div class="card">
-      <h2>🔍 Détecter les lots répartis</h2>
+      <h2>🔗 Regrouper les lots répartis</h2>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
         Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
       </p>
@@ -3164,107 +3164,170 @@
       // Track visible row indexes for select-all
       histVisibleRows = logs.map(l => l.rowIndex);
 
-      // Group consecutive identical entries (same player+category+points+description)
-      const groups = [];
+      // 1) Collect entries that share a groupId (tagged by detection tool)
+      const byGroupId = {};
+      const ungrouped = [];
+      logs.forEach(log => {
+        if (log.groupId) {
+          (byGroupId[log.groupId] = byGroupId[log.groupId] || []).push(log);
+        } else {
+          ungrouped.push(log);
+        }
+      });
+
+      // 2) Group consecutive identical ungrouped entries
+      const consecutiveGroups = [];
       let gi = 0;
-      while (gi < logs.length) {
-        const first = logs[gi];
+      while (gi < ungrouped.length) {
+        const first = ungrouped[gi];
         const key = first.player + '|' + first.category + '|' + first.points + '|' + (first.description || '');
         const members = [first];
         let gj = gi + 1;
-        while (gj < logs.length) {
-          const next = logs[gj];
+        while (gj < ungrouped.length) {
+          const next = ungrouped[gj];
           if (next.player + '|' + next.category + '|' + next.points + '|' + (next.description || '') === key) {
             members.push(next); gj++;
           } else break;
         }
-        groups.push(members);
+        consecutiveGroups.push({ members, type: 'consecutive' });
         gi = gj;
       }
 
-      groups.forEach(members => {
-        const isGroup = members.length >= 3;
-
-        if (isGroup && !histSelectMode) {
-          const first = members[0];
-          const last  = members[members.length - 1];
-          const pColor = playerColor(first.player);
-          const headerTr = tbody.insertRow();
-          headerTr.className = 'hist-group-row';
-          let childrenVisible = false;
-          const childRows = [];
-
-          const dateCell = headerTr.insertCell();
-          dateCell.className = 'hist-accent';
-          dateCell.style.setProperty('--player-color', pColor);
-          const chevron = document.createElement('span');
-          chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
-          const d1 = new Date(last.timestamp); const d2 = new Date(first.timestamp);
-          const dateRange = (isNaN(d1) ? '—' : d1.toLocaleDateString('fr-FR')) + ' → ' + (isNaN(d2) ? '—' : d2.toLocaleDateString('fr-FR'));
-          dateCell.appendChild(chevron);
-          dateCell.appendChild(document.createTextNode(' ' + dateRange));
-
-          const playerCell = headerTr.insertCell();
-          playerCell.className = 'hist-player-cell';
-          const player = cachedPlayers.find(p => p.name === first.player);
-          const img = document.createElement('img');
-          img.className = 'history-avatar';
-          img.src = getAvatarUrl(first.player, player ? player.meta : '');
-          img.onerror = () => { img.src = getAvatarUrl(first.player, ''); };
-          const pName = document.createElement('span');
-          pName.className = 'hist-player-name'; pName.textContent = first.player;
-          playerCell.appendChild(img); playerCell.appendChild(pName);
-
-          const catCell = headerTr.insertCell();
-          const cColor = categoryColor(first.category);
-          const pill = document.createElement('span');
-          pill.className = 'hist-pill';
-          pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
-          pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
-          const ic = catIcon(first.category);
-          if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-          pill.appendChild(document.createTextNode(first.category));
-          catCell.appendChild(pill);
-          if (first.description) {
-            const descEl = document.createElement('div');
-            descEl.className = 'hist-desc-toggle';
-            descEl.textContent = first.description;
-            catCell.appendChild(descEl);
+      // 3) Build render list: insert groupId groups at position of their first member
+      const renderItems = [];
+      const groupIdInserted = {};
+      logs.forEach(log => {
+        if (log.groupId) {
+          if (!groupIdInserted[log.groupId]) {
+            groupIdInserted[log.groupId] = true;
+            renderItems.push({ members: byGroupId[log.groupId], type: 'tagged', groupId: log.groupId });
           }
-
-          const ptsCell = headerTr.insertCell();
-          const badge = document.createElement('span');
-          badge.className = 'hist-pts';
-          badge.style.setProperty('--pts-bg', tint(pColor, 0.25));
-          badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
-          badge.textContent = first.points + ' pts';
-          ptsCell.appendChild(badge);
-          const groupBadge = document.createElement('span');
-          groupBadge.className = 'hist-group-badge';
-          groupBadge.textContent = '×' + members.length;
-          ptsCell.appendChild(document.createTextNode(' '));
-          ptsCell.appendChild(groupBadge);
-
-          const actCell = headerTr.insertCell();
-          actCell.textContent = '';
-
-          headerTr.addEventListener('click', () => {
-            childrenVisible = !childrenVisible;
-            chevron.classList.toggle('open', childrenVisible);
-            chevron.textContent = childrenVisible ? '▸' : '▸';
-            childRows.forEach(cr => cr.style.display = childrenVisible ? '' : 'none');
-          });
-
-          members.forEach(log => {
-            const cr = buildHistRow(log, tbody);
-            cr.className += ' hist-group-child';
-            cr.style.display = 'none';
-            childRows.push(cr);
-          });
         } else {
-          members.forEach(log => buildHistRow(log, tbody));
+          renderItems.push({ log });
         }
       });
+
+      // 4) Render
+      const renderGroupHeader = (members, groupId) => {
+        const first = members[0];
+        const last  = members[members.length - 1];
+        const pColor = playerColor(first.player);
+        const headerTr = tbody.insertRow();
+        headerTr.className = 'hist-group-row';
+        let childrenVisible = false;
+        const childRows = [];
+
+        const totalPts = members.reduce((s, m) => s + m.points, 0);
+
+        const dateCell = headerTr.insertCell();
+        dateCell.className = 'hist-accent';
+        dateCell.style.setProperty('--player-color', pColor);
+        const chevron = document.createElement('span');
+        chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
+        const d1 = new Date(last.timestamp); const d2 = new Date(first.timestamp);
+        const dateRange = (isNaN(d1) ? '—' : d1.toLocaleDateString('fr-FR')) + ' → ' + (isNaN(d2) ? '—' : d2.toLocaleDateString('fr-FR'));
+        dateCell.appendChild(chevron);
+        dateCell.appendChild(document.createTextNode(' ' + dateRange));
+
+        const playerCell = headerTr.insertCell();
+        playerCell.className = 'hist-player-cell';
+        const pl = cachedPlayers.find(p => p.name === first.player);
+        const img = document.createElement('img');
+        img.className = 'history-avatar';
+        img.src = getAvatarUrl(first.player, pl ? pl.meta : '');
+        img.onerror = () => { img.src = getAvatarUrl(first.player, ''); };
+        const pName = document.createElement('span');
+        pName.className = 'hist-player-name'; pName.textContent = first.player;
+        playerCell.appendChild(img); playerCell.appendChild(pName);
+
+        const catCell = headerTr.insertCell();
+        const cColor = categoryColor(first.category);
+        const pill = document.createElement('span');
+        pill.className = 'hist-pill';
+        pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+        pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+        const ic = catIcon(first.category);
+        if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+        pill.appendChild(document.createTextNode(first.category));
+        catCell.appendChild(pill);
+        if (first.description) {
+          const descEl = document.createElement('div');
+          descEl.className = 'hist-desc-toggle';
+          descEl.textContent = first.description;
+          catCell.appendChild(descEl);
+        }
+
+        const ptsCell = headerTr.insertCell();
+        const badge = document.createElement('span');
+        badge.className = 'hist-pts';
+        badge.style.setProperty('--pts-bg', tint(pColor, 0.25));
+        badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+        badge.textContent = totalPts + ' pts';
+        ptsCell.appendChild(badge);
+        const groupBadge = document.createElement('span');
+        groupBadge.className = 'hist-group-badge';
+        groupBadge.textContent = '×' + members.length;
+        ptsCell.appendChild(document.createTextNode(' '));
+        ptsCell.appendChild(groupBadge);
+
+        const actCell = headerTr.insertCell();
+        if (groupId) {
+          const ungroupBtn = document.createElement('button');
+          ungroupBtn.className = 'small'; ungroupBtn.textContent = '🔓';
+          ungroupBtn.title = 'Dissocier ce groupe';
+          ungroupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            callServer('apiUngroupLot', [groupId], res => {
+              if (res.success) { showToast('Groupe dissocié.', 'success'); loadHistoryPage(currentHistoryPage); }
+              else showToast('Erreur.', 'error');
+            }, 'Dissociation');
+          });
+          actCell.appendChild(ungroupBtn);
+        }
+
+        headerTr.addEventListener('click', () => {
+          childrenVisible = !childrenVisible;
+          chevron.classList.toggle('open', childrenVisible);
+          childRows.forEach(cr => cr.style.display = childrenVisible ? '' : 'none');
+        });
+
+        members.forEach(log => {
+          const cr = buildHistRow(log, tbody);
+          cr.className += ' hist-group-child';
+          cr.style.display = 'none';
+          childRows.push(cr);
+        });
+      };
+
+      // In select mode: flat list for individual checkbox control
+      if (histSelectMode) {
+        logs.forEach(log => buildHistRow(log, tbody));
+      } else {
+        // Merge consecutive groups into renderItems
+        const finalItems = [];
+        let ungroupedIdx = 0;
+        renderItems.forEach(item => {
+          if (item.members) {
+            finalItems.push(item);
+          } else {
+            const cg = consecutiveGroups.find(g => g.members.includes(item.log));
+            if (cg && !cg._added) {
+              cg._added = true;
+              finalItems.push(cg);
+            } else if (!cg) {
+              finalItems.push({ members: [item.log], type: 'single' });
+            }
+          }
+        });
+
+        finalItems.forEach(item => {
+          if (item.type === 'tagged' || (item.type === 'consecutive' && item.members.length >= 3)) {
+            renderGroupHeader(item.members, item.groupId || null);
+          } else {
+            item.members.forEach(log => buildHistRow(log, tbody));
+          }
+        });
+      }
 
       renderPagination(total);
     }, 'Chargement historique');
@@ -3901,6 +3964,7 @@
     actions.className = 'detect-actions';
     actions.style.cssText = 'margin-top:14px;display:flex;gap:10px;';
     const mergeBtn = document.createElement('button');
+    const mergeBtn = document.createElement('button');
     mergeBtn.className = 'primary small';
     mergeBtn.textContent = '🔗 Regrouper les lots sélectionnés';
     actions.appendChild(mergeBtn);
@@ -3911,32 +3975,22 @@
       if (!selected.length) { showToast('Aucun lot coché.', 'error'); return; }
 
       const totalEntries = selected.reduce((s, l) => s + l.lot.count, 0);
-      const merged = selected.length;
-      const removedCount = totalEntries - merged;
 
       openConfirmModal(
-        '⚠️ Première confirmation : regrouper ' + merged + ' lot(s) ? ' + totalEntries + ' entrées seront fusionnées en ' + merged + ' entrée(s) (' + removedCount + ' doublons supprimés). Cette action est IRRÉVERSIBLE.',
+        'Regrouper ' + selected.length + ' lot(s) (' + totalEntries + ' entrées) ? Les entrées resteront dans l\'historique mais seront affichées comme un seul groupe déroulable.',
         () => {
-          openConfirmModal(
-            '🔴 DERNIÈRE CONFIRMATION : ' + removedCount + ' entrées en doublon vont être supprimées et les points regroupés. Êtes-vous absolument sûr ?',
-            () => {
-              const lotsData = selected.map(l => ({
-                rowIndexes: l.lot.rowIndexes,
-                totalPts: l.lot.totalPts
-              }));
-              const restore = startBtnLoading(mergeBtn, 'Fusion…');
-              callServer('apiMergeDistributedLots', [lotsData], res => {
-                restore();
-                if (res.success) {
-                  showToast(removedCount + ' doublons fusionnés.', 'success');
-                  scanDistributedLots();
-                  loadHistoryPage(currentHistoryPage);
-                } else {
-                  showToast(res.error || 'Erreur lors de la fusion.', 'error');
-                }
-              }, 'Fusion lots', () => { restore(); showToast('Erreur.', 'error'); });
+          const lotsData = selected.map(l => ({ rowIndexes: l.lot.rowIndexes }));
+          const restore = startBtnLoading(mergeBtn, 'Regroupement…');
+          callServer('apiGroupDistributedLots', [lotsData], res => {
+            restore();
+            if (res.success) {
+              showToast(totalEntries + ' entrées regroupées.', 'success');
+              scanDistributedLots();
+              loadHistoryPage(currentHistoryPage);
+            } else {
+              showToast(res.error || 'Erreur.', 'error');
             }
-          );
+          }, 'Regroupement lots', () => { restore(); showToast('Erreur.', 'error'); });
         }
       );
     });

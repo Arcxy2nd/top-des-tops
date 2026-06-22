@@ -207,7 +207,7 @@ const StorageService = {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { logs: [], total: 0 };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
 
     let allWithIndex = [];
     for (let i = 0; i < data.length; i++) {
@@ -219,6 +219,7 @@ const StorageService = {
       const category    = row[2] ? row[2].toString() : '';
       const points      = parseInt(row[3], 10);
       const description = row[4] ? row[4].toString() : '';
+      const groupId     = row[5] ? row[5].toString() : '';
       if (!player || !category)         continue;
       if (isNaN(points) || points <= 0) continue;
       if (filterPlayer   && player   !== filterPlayer)   continue;
@@ -229,6 +230,7 @@ const StorageService = {
         category,
         points,
         description,
+        groupId,
         rowIndex: i + 2
       });
     }
@@ -880,11 +882,12 @@ function apiDetectDistributedLots() {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, lots: [] };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
     const entries = [];
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       if (!row[0]) continue;
+      if (row[5]) continue; // déjà groupé
       const d = new Date(row[0]);
       if (isNaN(d.getTime())) continue;
       const player      = row[1] ? row[1].toString() : '';
@@ -954,26 +957,38 @@ function apiDetectDistributedLots() {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiMergeDistributedLots(lotsToMerge) {
+function apiGroupDistributedLots(lotsToGroup) {
   try {
-    if (!lotsToMerge || !lotsToMerge.length) throw new Error("Aucun lot fourni.");
+    if (!lotsToGroup || !lotsToGroup.length) throw new Error("Aucun lot fourni.");
     const sheet = ConfigService.getSheets().history;
-    var rowsToDelete = [];
 
-    lotsToMerge.forEach(function(lot) {
+    lotsToGroup.forEach(function(lot) {
       var rows = lot.rowIndexes;
       if (!rows || rows.length < 2) return;
-      var keepRow = Math.min.apply(null, rows);
-      sheet.getRange(keepRow, 4).setValue(lot.totalPts);
+      var gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
       rows.forEach(function(r) {
-        if (r !== keepRow) rowsToDelete.push(r);
+        sheet.getRange(r, 6).setValue(gid);
       });
     });
 
-    rowsToDelete.sort(function(a, b) { return b - a; });
-    rowsToDelete.forEach(function(ri) { sheet.deleteRow(ri); });
-
     ConfigService.clearCache();
-    return { success: true, deleted: rowsToDelete.length };
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiUngroupLot(groupId) {
+  try {
+    if (!groupId) throw new Error("GroupID manquant.");
+    const sheet = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true };
+    const data = sheet.getRange(2, 6, lastRow - 1, 1).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString() === groupId) {
+        sheet.getRange(i + 2, 6).setValue('');
+      }
+    }
+    ConfigService.clearCache();
+    return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
