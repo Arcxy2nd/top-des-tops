@@ -875,6 +875,7 @@
     .hist-fchip:hover { border-color: var(--text-muted); color: var(--text); }
     .hist-fchip.active { font-weight: 600; background: rgba(255,255,255,0.06); }
     .hist-fchip.tous.active { border-color: var(--text-muted); color: var(--text); }
+    .hist-fchip img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 4px; }
 
     /* ── TOAST UNDO (suppression différée) ── */
     .toast.warning { border-color: #ffd166; color: #ffd166; }
@@ -971,7 +972,7 @@
       <!-- Sélecteur joueur pour le Donut -->
       <div id="donutPlayerWrap" style="display:none; margin-bottom:10px;">
         <label style="font-size:0.78rem; color:var(--text-muted);">Joueur pour le Donut</label>
-        <select id="donutPlayerSelect" style="max-width:220px; margin-top:4px;"></select>
+        <div id="donutPlayerChips" class="fchip-row" style="margin-top:6px;"></div>
       </div>
 
       <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
@@ -1268,6 +1269,9 @@
   // History chip filters
   let selectedHistPlayers    = new Set();
   let selectedHistCategories = new Set();
+
+  // Donut player
+  let _donutPlayer = '';
 
   // Dashboard filter chip state (empty Set = "all")
   let selectedPlayerChips   = new Set();
@@ -1603,12 +1607,10 @@
         applyFilters();
       });
       if (selectedPlayerChips.has(p.name)) chip.classList.add('active');
-      if (p.meta) {
-        const img = document.createElement('img');
-        img.src = getAvatarUrl(p.name, p.meta);
-        img.onerror = () => img.remove();
-        chip.prepend(img);
-      }
+      const img = document.createElement('img');
+      img.src = getAvatarUrl(p.name, p.meta);
+      img.onerror = () => img.remove();
+      chip.prepend(img);
       row.appendChild(chip);
     });
   }
@@ -2168,7 +2170,7 @@
     };
 
     if (type === 'doughnut') {
-      const player = document.getElementById('donutPlayerSelect').value;
+      const player = _donutPlayer;
       const idx = data.labels.indexOf(player);
       let segLabels = data.datasets.map(d => d.label);
       let segValues = data.datasets.map(ds => idx >= 0 ? (ds.data[idx] || 0) : 0);
@@ -2396,15 +2398,25 @@
   }
 
   function updateDonutPlayerSelect() {
-    const sel = document.getElementById('donutPlayerSelect');
-    const prev = sel.value;
-    sel.innerHTML = '';
+    const row = document.getElementById('donutPlayerChips');
+    if (!row) return;
+    row.innerHTML = '';
+    if (!_donutPlayer && cachedPlayers.length) _donutPlayer = cachedPlayers[0].name;
     cachedPlayers.forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.name; o.textContent = p.name;
-      sel.appendChild(o);
+      const col   = playerColor(p.name);
+      const isAct = _donutPlayer === p.name;
+      const chip  = makeFilterChip(p.name, col, '', () => {
+        _donutPlayer = p.name;
+        updateDonutPlayerSelect();
+        if (currentChartType === 'doughnut' && currentChartData) renderChart(currentChartData, 'doughnut');
+      });
+      if (isAct) chip.classList.add('active');
+      const img = document.createElement('img');
+      img.src = getAvatarUrl(p.name, p.meta);
+      img.onerror = () => img.remove();
+      chip.prepend(img);
+      row.appendChild(chip);
     });
-    if (prev) sel.value = prev;
   }
 
   // ── EXPORTS ──────────────────────────────────────────────────────────
@@ -3187,15 +3199,21 @@
     if (!pc || !cc) return;
     pc.innerHTML = ''; cc.innerHTML = '';
 
-    const makeChip = (label, isActive, color, onClick) => {
+    const makeChip = (label, isActive, color, onClick, avatarUrl) => {
       const chip = document.createElement('button');
       chip.className = 'hist-fchip' + (isActive ? ' active' : '');
-      chip.textContent = label;
       if (isActive && color) {
         chip.style.borderColor = color;
         chip.style.color = color;
         chip.style.background = tint(color, 0.15);
       }
+      if (avatarUrl) {
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.onerror = () => img.remove();
+        chip.appendChild(img);
+      }
+      chip.appendChild(document.createTextNode(label));
       chip.addEventListener('click', onClick);
       return chip;
     };
@@ -3211,7 +3229,7 @@
         if (selectedHistPlayers.has(p.name)) selectedHistPlayers.delete(p.name);
         else selectedHistPlayers.add(p.name);
         currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
-      }));
+      }, getAvatarUrl(p.name, p.meta)));
     });
 
     const allC = makeChip('Tous', selectedHistCategories.size === 0, null, () => {
@@ -3928,11 +3946,6 @@
       btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
     });
 
-    document.getElementById('donutPlayerSelect').addEventListener('change', () => {
-      if (currentChartType === 'doughnut' && currentChartData) {
-        renderChart(currentChartData, 'doughnut');
-      }
-    });
 
     document.getElementById('reloadHealthBtn').addEventListener('click', loadDataHealth);
 
