@@ -953,3 +953,27 @@ function apiDetectDistributedLots() {
     return { success: true, lots: lots };
   } catch(e) { return { success: false, error: e.message }; }
 }
+
+function apiMergeDistributedLots(lotsToMerge) {
+  try {
+    if (!lotsToMerge || !lotsToMerge.length) throw new Error("Aucun lot fourni.");
+    const sheet = ConfigService.getSheets().history;
+    var rowsToDelete = [];
+
+    lotsToMerge.forEach(function(lot) {
+      var rows = lot.rowIndexes;
+      if (!rows || rows.length < 2) return;
+      var keepRow = Math.min.apply(null, rows);
+      sheet.getRange(keepRow, 4).setValue(lot.totalPts);
+      rows.forEach(function(r) {
+        if (r !== keepRow) rowsToDelete.push(r);
+      });
+    });
+
+    rowsToDelete.sort(function(a, b) { return b - a; });
+    rowsToDelete.forEach(function(ri) { sheet.deleteRow(ri); });
+
+    ConfigService.clearCache();
+    return { success: true, deleted: rowsToDelete.length };
+  } catch(e) { return { success: false, error: e.message }; }
+}

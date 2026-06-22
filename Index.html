@@ -1101,7 +1101,7 @@
     <div class="card">
       <h2>🔍 Détecter les lots répartis</h2>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart entre deux entrées, minimum 3 entrées). Permet de les supprimer en bloc.
+        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
       </p>
       <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
       <div id="detectResults" class="detect-results"></div>
@@ -3845,7 +3845,7 @@
 
     const info = document.createElement('p');
     info.style.cssText = 'font-size:0.82rem;color:var(--text-muted);margin:0 0 10px;';
-    info.textContent = lots.length + ' lot(s) détecté(s). Cochez ceux à supprimer, puis validez.';
+    info.textContent = lots.length + ' lot(s) détecté(s). Cochez ceux à regrouper, puis validez. Chaque lot sera fusionné en une seule entrée avec le total des points.';
     container.appendChild(info);
 
     const checkAll = document.createElement('label');
@@ -3900,38 +3900,41 @@
     const actions = document.createElement('div');
     actions.className = 'detect-actions';
     actions.style.cssText = 'margin-top:14px;display:flex;gap:10px;';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'danger small';
-    delBtn.textContent = '🗑️ Supprimer les lots sélectionnés';
-    actions.appendChild(delBtn);
+    const mergeBtn = document.createElement('button');
+    mergeBtn.className = 'primary small';
+    mergeBtn.textContent = '🔗 Regrouper les lots sélectionnés';
+    actions.appendChild(mergeBtn);
     container.appendChild(actions);
 
-    delBtn.addEventListener('click', () => {
+    mergeBtn.addEventListener('click', () => {
       const selected = lotEls.filter(l => l.cb.checked);
       if (!selected.length) { showToast('Aucun lot coché.', 'error'); return; }
 
       const totalEntries = selected.reduce((s, l) => s + l.lot.count, 0);
-      const totalPts = selected.reduce((s, l) => s + l.lot.totalPts, 0);
+      const merged = selected.length;
+      const removedCount = totalEntries - merged;
 
       openConfirmModal(
-        '⚠️ Première confirmation : supprimer ' + selected.length + ' lot(s) (' + totalEntries + ' entrées, ' + totalPts + ' pts au total) ? Cette action est IRRÉVERSIBLE.',
+        '⚠️ Première confirmation : regrouper ' + merged + ' lot(s) ? ' + totalEntries + ' entrées seront fusionnées en ' + merged + ' entrée(s) (' + removedCount + ' doublons supprimés). Cette action est IRRÉVERSIBLE.',
         () => {
           openConfirmModal(
-            '🔴 DERNIÈRE CONFIRMATION : ' + totalEntries + ' entrées vont être définitivement supprimées. Êtes-vous absolument sûr ?',
+            '🔴 DERNIÈRE CONFIRMATION : ' + removedCount + ' entrées en doublon vont être supprimées et les points regroupés. Êtes-vous absolument sûr ?',
             () => {
-              const allRows = [];
-              selected.forEach(l => l.lot.rowIndexes.forEach(r => allRows.push(r)));
-              const restore = startBtnLoading(delBtn, 'Suppression…');
-              callServer('apiDeleteHistoryEntries', [allRows], res => {
+              const lotsData = selected.map(l => ({
+                rowIndexes: l.lot.rowIndexes,
+                totalPts: l.lot.totalPts
+              }));
+              const restore = startBtnLoading(mergeBtn, 'Fusion…');
+              callServer('apiMergeDistributedLots', [lotsData], res => {
                 restore();
                 if (res.success) {
-                  showToast(totalEntries + ' entrées supprimées.', 'success');
+                  showToast(removedCount + ' doublons fusionnés.', 'success');
                   scanDistributedLots();
                   loadHistoryPage(currentHistoryPage);
                 } else {
-                  showToast(res.error || 'Erreur lors de la suppression.', 'error');
+                  showToast(res.error || 'Erreur lors de la fusion.', 'error');
                 }
-              }, 'Suppression lots', () => { restore(); showToast('Erreur.', 'error'); });
+              }, 'Fusion lots', () => { restore(); showToast('Erreur.', 'error'); });
             }
           );
         }
