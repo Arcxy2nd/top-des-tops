@@ -10,6 +10,7 @@
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
 const ConfigService = (() => {
   let _cache = null;
+  let _logsCache = null;
 
   const getSpreadsheetId = () => {
     const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
@@ -36,9 +37,11 @@ const ConfigService = (() => {
     }
   };
 
-  const clearCache = () => { _cache = null; };
+  const clearCache = () => { _cache = null; _logsCache = null; };
+  const getLogsCache = () => _logsCache;
+  const setLogsCache = v => { _logsCache = v; };
 
-  return { getSheets, clearCache };
+  return { getSheets, clearCache, getLogsCache, setLogsCache };
 })();
 
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
@@ -167,10 +170,12 @@ const StorageService = {
   },
 
   getAllLogs() {
+    const cached = ConfigService.getLogsCache();
+    if (cached) return cached;
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, 4).getValues()
+    if (lastRow <= 1) { ConfigService.setLogsCache([]); return []; }
+    const result = sheet.getRange(2, 1, lastRow - 1, 4).getValues()
       .map(row => {
         const d      = new Date(row[0]);
         const points = parseInt(row[3], 10);
@@ -185,6 +190,8 @@ const StorageService = {
         };
       })
       .filter(Boolean);
+    ConfigService.setLogsCache(result);
+    return result;
   },
 
   getFilteredLogs(players, categories, startDate, endDate) {
@@ -201,12 +208,14 @@ const StorageService = {
     });
   },
 
-  getHistoryPage(page, pageSize, filterPlayer, filterCategory) {
+  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { logs: [], total: 0 };
 
     const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+    const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
+    const hasCategoryFilter = filterCategories && filterCategories.length > 0;
 
     let allWithIndex = [];
     for (let i = 0; i < data.length; i++) {
@@ -221,8 +230,14 @@ const StorageService = {
       const groupId     = row[5] ? row[5].toString() : '';
       if (!player || !category)         continue;
       if (isNaN(points) || points <= 0) continue;
-      if (filterPlayer   && player   !== filterPlayer)   continue;
-      if (filterCategory && category !== filterCategory) continue;
+      if (hasPlayerFilter   && !filterPlayers.includes(player))     continue;
+      if (hasCategoryFilter && !filterCategories.includes(category)) continue;
+      if (filterText) {
+        const ft = filterText.toLowerCase();
+        if (!player.toLowerCase().includes(ft) &&
+            !category.toLowerCase().includes(ft) &&
+            !description.toLowerCase().includes(ft)) continue;
+      }
       allWithIndex.push({
         timestamp: d.toISOString(),
         player,
@@ -236,11 +251,33 @@ const StorageService = {
 
     allWithIndex.reverse();
 
-    const total = allWithIndex.length;
+    // Construire des "éléments visuels" : un groupe = 1 élément, une entrée isolée = 1 élément
+    const visualItems = [];
+    const groupSeen = {};
+    allWithIndex.forEach(function(entry) {
+      if (entry.groupId) {
+        if (!groupSeen[entry.groupId]) {
+          groupSeen[entry.groupId] = { type: 'group', groupId: entry.groupId, entries: [] };
+          visualItems.push(groupSeen[entry.groupId]);
+        }
+        groupSeen[entry.groupId].entries.push(entry);
+      } else {
+        visualItems.push({ type: 'single', entries: [entry] });
+      }
+    });
+
+    const totalVisual = visualItems.length;
     const ps    = pageSize || 20;
     const start = ((page || 1) - 1) * ps;
-    const paged = allWithIndex.slice(start, start + ps);
-    return { logs: paged, total };
+    const pagedItems = visualItems.slice(start, start + ps);
+
+    // Aplatir pour renvoyer toutes les entrées de la page (groupes complets inclus)
+    const paged = [];
+    pagedItems.forEach(function(item) {
+      item.entries.forEach(function(e) { paged.push(e); });
+    });
+
+    return { logs: paged, total: totalVisual, totalEntries: allWithIndex.length };
   },
 
   deleteHistoryEntry(rowIndex) {
@@ -726,10 +763,12 @@ function apiGetData(year, month) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
-function apiGetHistoryPage(page, pageSize, filterPlayer, filterCategory) {
+function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
   try {
-    const result = StorageService.getHistoryPage(page, pageSize, filterPlayer, filterCategory);
-    return { success: true, logs: result.logs, total: result.total };
+    const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
+    const categories = (filterCategories && filterCategories.length) ? filterCategories : null;
+    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null);
+    return { success: true, logs: result.logs, total: result.total, totalEntries: result.totalEntries };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
@@ -864,12 +903,15 @@ function apiUpdateBulkDescription(rowIndexes, description) {
   try {
     if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
     const { history } = ConfigService.getSheets();
-    rowIndexes.forEach(ri => {
-      const idx = parseInt(ri, 10);
-      if (!isNaN(idx) && idx >= 2) {
-        history.getRange(idx, 5).setValue(description || '');
-      }
-    });
+    const lastRow = history.getLastRow();
+    if (lastRow <= 1) return { success: true };
+    const colRange = history.getRange(2, 5, lastRow - 1, 1);
+    const values   = colRange.getValues();
+    const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
+    for (let i = 0; i < values.length; i++) {
+      if (indexSet.has(i + 2)) values[i][0] = description || '';
+    }
+    colRange.setValues(values);
     ConfigService.clearCache();
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
@@ -981,6 +1023,25 @@ function apiGroupDistributedLots(lotsToGroup) {
       });
     });
 
+    ConfigService.clearCache();
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiGroupRows(rowIndexes) {
+  try {
+    if (!rowIndexes || rowIndexes.length < 2) throw new Error("Sélectionnez au moins 2 entrées.");
+    const { history } = ConfigService.getSheets();
+    const lastRow = history.getLastRow();
+    if (lastRow <= 1) throw new Error("Historique vide.");
+    const gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const colRange = history.getRange(2, 6, lastRow - 1, 1);
+    const values   = colRange.getValues();
+    const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
+    for (let i = 0; i < values.length; i++) {
+      if (indexSet.has(i + 2)) values[i][0] = gid;
+    }
+    colRange.setValues(values);
     ConfigService.clearCache();
     return { success: true };
   } catch(e) { return { success: false, error: e.message }; }

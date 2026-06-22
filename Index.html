@@ -865,6 +865,29 @@
     }
     .top-stat-pill .tsp-pts { font-size: 0.88rem; font-weight: 800; }
     .top-stat-pill .tsp-name { font-size: 0.68rem; opacity: 0.8; }
+
+    /* ── CHIPS FILTRES HISTORIQUE ── */
+    .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hist-filter-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; min-width: 44px; }
+    .hist-fchip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .hist-fchip { padding: 2px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.74rem; cursor: pointer; transition: all 0.13s; background: transparent; color: var(--text-muted); line-height: 1.5; }
+    .hist-fchip:hover { border-color: var(--text-muted); color: var(--text); }
+    .hist-fchip.active { font-weight: 600; background: rgba(255,255,255,0.06); }
+    .hist-fchip.tous.active { border-color: var(--text-muted); color: var(--text); }
+
+    /* ── TOAST UNDO (suppression différée) ── */
+    .toast.warning { border-color: #ffd166; color: #ffd166; }
+    .toast-undo-btn {
+      background: transparent; border: 1px solid currentColor;
+      color: inherit; border-radius: 4px; padding: 3px 8px;
+      font-size: 0.8rem; cursor: pointer; font-weight: 700;
+      margin-left: 10px; white-space: nowrap;
+    }
+    .toast-undo-btn:hover { background: rgba(255,209,102,0.15); }
+
+    /* ── LIGNE EN ATTENTE DE SUPPRESSION ── */
+    tr.hist-pending-delete td { opacity: 0.35; text-decoration: line-through; }
   </style>
 </head>
 <body>
@@ -1036,10 +1059,19 @@
     <div class="card">
       <h2>📜 Historique des entrées</h2>
       <div class="history-filters">
-        <select id="historyPlayerFilter"><option value="">Tous joueurs</option></select>
-        <select id="historyCategoryFilter"><option value="">Tous les Tops</option></select>
-        <button id="refreshHistoryBtn" class="secondary small">🔄 Rafraîchir</button>
+        <input type="text" id="historyTextFilter" placeholder="🔍 Rechercher…" style="flex:1; min-width:140px; max-width:240px;">
+        <button id="refreshHistoryBtn" class="secondary small">🔄</button>
         <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
+      </div>
+      <div class="hist-filter-section">
+        <div class="hist-filter-row">
+          <span class="hist-filter-label">Joueurs</span>
+          <div class="hist-fchip-row" id="histPlayerChips"></div>
+        </div>
+        <div class="hist-filter-row">
+          <span class="hist-filter-label">Tops</span>
+          <div class="hist-fchip-row" id="histCategoryChips"></div>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -1057,6 +1089,7 @@
           <button id="histBulkDescApply" class="primary small">📝 Appliquer</button>
         </div>
         <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
+        <button id="histBulkGroup" class="secondary small">🔗 Grouper</button>
         <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
         <button id="histBulkCancel" class="secondary small">✕ Annuler</button>
       </div>
@@ -1226,6 +1259,15 @@
   let histSelectMode  = false;
   let histSelected    = new Set();
   let histVisibleRows = [];
+
+  // Pending deletions: Map<id, {rowIndexes, timerId, toastEl}>
+  const pendingDeletions = new Map();
+  let _pendingDelIdSeq = 0;
+  let _histSearchTimeout = null;
+
+  // History chip filters
+  let selectedHistPlayers    = new Set();
+  let selectedHistCategories = new Set();
 
   // Dashboard filter chip state (empty Set = "all")
   let selectedPlayerChips   = new Set();
@@ -1639,11 +1681,15 @@
 
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
   function globalRefresh() {
-    loadEntities();                          // Joueurs + catégories → repeuple tous les selects
-    applyFilters();                          // Dashboard graphique
-    loadHistoryPage(currentHistoryPage);     // Historique (toujours, pas seulement si actif)
-    loadNotes();                             // Notes
-    loadDataHealth();                        // Outils
+    loadEntities();
+    applyFilters();
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+      const tabId = activeTab.id;
+      if (tabId === 'tab-history') loadHistoryPage(currentHistoryPage);
+      if (tabId === 'tab-notes')   loadNotes();
+      if (tabId === 'tab-tools')   loadDataHealth();
+    }
     lastRefreshTime = new Date();
     updateRefreshBadge();
   }
@@ -3099,55 +3145,169 @@
     if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '');
   }
 
-  function confirmBulkDelete() {
-    if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+  function confirmGroupRows() {
+    if (histSelected.size < 2) { showToast('Sélectionnez au moins 2 entrées pour créer un groupe.', 'error'); return; }
+    const indexes = [...histSelected];
     openConfirmModal(
-      'Supprimer ' + histSelected.size + ' entrée(s) ? Cette action est irréversible.',
+      'Grouper ces ' + indexes.length + ' entrées ensemble ?',
       () => {
         buzz();
-        callServer('apiDeleteHistoryEntries', [[...histSelected]], res => {
+        callServer('apiGroupRows', [indexes], res => {
           if (res.success) {
             histSelected.clear();
+            toggleHistSelectMode(false);
+            showToast('Groupe créé.', 'success');
             loadHistoryPage(currentHistoryPage);
-            showToast('Entrées supprimées.', 'success');
           } else {
-            showToast('Erreur lors de la suppression.', 'error');
+            showToast(res.error || 'Erreur lors du groupement.', 'error');
           }
-        }, 'Suppression groupée');
+        }, 'Création groupe');
+      }
+    );
+  }
+
+  function confirmBulkDelete() {
+    if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+    const indexes = [...histSelected];
+    openConfirmModal(
+      'Supprimer ' + indexes.length + ' entrée(s) ?',
+      () => {
+        buzz();
+        histSelected.clear();
+        toggleHistSelectMode(false);
+        scheduleDeletion(indexes);
       }
     );
   }
 
   // ── HISTORIQUE ───────────────────────────────────────────────────────
-  function updateHistoryFilters() {
-    const pFilter = document.getElementById('historyPlayerFilter');
-    const cFilter = document.getElementById('historyCategoryFilter');
-    const prevP = pFilter.value; const prevC = cFilter.value;
-    pFilter.innerHTML = '<option value="">Tous joueurs</option>';
+  function renderHistoryFilterChips() {
+    const pc = document.getElementById('histPlayerChips');
+    const cc = document.getElementById('histCategoryChips');
+    if (!pc || !cc) return;
+    pc.innerHTML = ''; cc.innerHTML = '';
+
+    const makeChip = (label, isActive, color, onClick) => {
+      const chip = document.createElement('button');
+      chip.className = 'hist-fchip' + (isActive ? ' active' : '');
+      chip.textContent = label;
+      if (isActive && color) {
+        chip.style.borderColor = color;
+        chip.style.color = color;
+        chip.style.background = tint(color, 0.15);
+      }
+      chip.addEventListener('click', onClick);
+      return chip;
+    };
+
+    const allP = makeChip('Tous', selectedHistPlayers.size === 0, null, () => {
+      selectedHistPlayers.clear(); currentHistoryPage = 1;
+      renderHistoryFilterChips(); loadHistoryPage(1);
+    });
+    allP.classList.add('tous'); pc.appendChild(allP);
     cachedPlayers.forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.name; o.textContent = p.name;
-      pFilter.appendChild(o);
+      const active = selectedHistPlayers.has(p.name);
+      pc.appendChild(makeChip(p.name, active, active ? playerColor(p.name) : null, () => {
+        if (selectedHistPlayers.has(p.name)) selectedHistPlayers.delete(p.name);
+        else selectedHistPlayers.add(p.name);
+        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+      }));
     });
-    cFilter.innerHTML = '<option value="">Tous les Tops</option>';
+
+    const allC = makeChip('Tous', selectedHistCategories.size === 0, null, () => {
+      selectedHistCategories.clear(); currentHistoryPage = 1;
+      renderHistoryFilterChips(); loadHistoryPage(1);
+    });
+    allC.classList.add('tous'); cc.appendChild(allC);
     cachedCategories.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.name; o.textContent = catDisplay(c.name);
-      cFilter.appendChild(o);
+      const active = selectedHistCategories.has(c.name);
+      cc.appendChild(makeChip(catDisplay(c.name), active, active ? categoryColor(c.name) : null, () => {
+        if (selectedHistCategories.has(c.name)) selectedHistCategories.delete(c.name);
+        else selectedHistCategories.add(c.name);
+        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+      }));
     });
-    pFilter.value = prevP; cFilter.value = prevC;
+  }
+
+  function updateHistoryFilters() {
+    renderHistoryFilterChips();
+  }
+
+  function flushPendingDeletions(callback) {
+    if (pendingDeletions.size === 0) { callback(); return; }
+    const allIndexes = [];
+    pendingDeletions.forEach(p => {
+      clearTimeout(p.timerId);
+      p.toastEl.remove();
+      allIndexes.push(...p.rowIndexes);
+    });
+    pendingDeletions.clear();
+    callServer('apiDeleteHistoryEntries', [allIndexes], () => callback(), 'Suppression différée', () => callback());
+  }
+
+  function scheduleDeletion(rowIndexes) {
+    const id = ++_pendingDelIdSeq;
+
+    rowIndexes.forEach(ri => {
+      const tr = document.querySelector('tr[data-row-index="' + ri + '"]');
+      if (tr) tr.classList.add('hist-pending-delete');
+    });
+
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast warning';
+    const count = rowIndexes.length;
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = count === 1 ? 'Entrée supprimée.' : count + ' entrées supprimées.';
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'toast-undo-btn';
+    undoBtn.textContent = 'Annuler';
+    undoBtn.addEventListener('click', () => {
+      const pending = pendingDeletions.get(id);
+      if (!pending) return;
+      clearTimeout(pending.timerId);
+      pendingDeletions.delete(id);
+      pending.toastEl.style.animation = 'fadeOut 0.2s ease forwards';
+      setTimeout(() => pending.toastEl.remove(), 200);
+      rowIndexes.forEach(ri => {
+        const tr = document.querySelector('tr[data-row-index="' + ri + '"]');
+        if (tr) tr.classList.remove('hist-pending-delete');
+      });
+      showToast('Suppression annulée.', 'success');
+    });
+    toastEl.appendChild(msgSpan);
+    toastEl.appendChild(undoBtn);
+    document.getElementById('toastContainer').appendChild(toastEl);
+
+    const timerId = setTimeout(() => {
+      const pending = pendingDeletions.get(id);
+      if (!pending) return;
+      pendingDeletions.delete(id);
+      pending.toastEl.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => pending.toastEl.remove(), 300);
+      callServer('apiDeleteHistoryEntries', [rowIndexes], () => {
+        _doLoadHistoryPage(currentHistoryPage);
+      }, 'Suppression historique');
+    }, 5000);
+
+    pendingDeletions.set(id, { rowIndexes, timerId, toastEl });
   }
 
   function loadHistoryPage(page) {
-    currentHistoryPage = page;
-    const player   = document.getElementById('historyPlayerFilter').value;
-    const category = document.getElementById('historyCategoryFilter').value;
+    flushPendingDeletions(() => _doLoadHistoryPage(page));
+  }
 
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, player || null, category || null], res => {
+  function _doLoadHistoryPage(page) {
+    currentHistoryPage = page;
+    const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
+    const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
+    const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
+
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null], res => {
       const logs  = res.logs  || [];
       const total = res.total || 0;
-      totalHistoryEntries = total;
-      document.getElementById('historyCount').textContent = total ? total : '';
+      const totalEntries = res.totalEntries || total;
+      totalHistoryEntries = totalEntries;
+      document.getElementById('historyCount').textContent = totalEntries ? totalEntries : '';
 
       const tbody = document.getElementById('historyTableBody');
       tbody.innerHTML = '';
@@ -3165,50 +3325,25 @@
       // Track visible row indexes for select-all
       histVisibleRows = logs.map(l => l.rowIndex);
 
-      // 1) Collect entries that share a groupId (tagged by detection tool)
+      // 1) Collect tagged groups, build ordered render list
       const byGroupId = {};
-      const ungrouped = [];
-      logs.forEach(log => {
-        if (log.groupId) {
-          (byGroupId[log.groupId] = byGroupId[log.groupId] || []).push(log);
-        } else {
-          ungrouped.push(log);
-        }
-      });
-
-      // 2) Group consecutive identical ungrouped entries
-      const consecutiveGroups = [];
-      let gi = 0;
-      while (gi < ungrouped.length) {
-        const first = ungrouped[gi];
-        const key = first.player + '|' + first.category + '|' + first.points + '|' + (first.description || '');
-        const members = [first];
-        let gj = gi + 1;
-        while (gj < ungrouped.length) {
-          const next = ungrouped[gj];
-          if (next.player + '|' + next.category + '|' + next.points + '|' + (next.description || '') === key) {
-            members.push(next); gj++;
-          } else break;
-        }
-        consecutiveGroups.push({ members, type: 'consecutive' });
-        gi = gj;
-      }
-
-      // 3) Build render list: insert groupId groups at position of their first member
-      const renderItems = [];
       const groupIdInserted = {};
+      logs.forEach(log => {
+        if (log.groupId) (byGroupId[log.groupId] = byGroupId[log.groupId] || []).push(log);
+      });
+      const renderItems = [];
       logs.forEach(log => {
         if (log.groupId) {
           if (!groupIdInserted[log.groupId]) {
             groupIdInserted[log.groupId] = true;
-            renderItems.push({ members: byGroupId[log.groupId], type: 'tagged', groupId: log.groupId });
+            renderItems.push({ type: 'group', groupId: log.groupId, members: byGroupId[log.groupId] });
           }
         } else {
-          renderItems.push({ log });
+          renderItems.push({ type: 'single', log });
         }
       });
 
-      // 4) Render
+      // 2) Render group header (collapsed by default, child rows toggled on click)
       const renderGroupHeader = (members, groupId) => {
         const first = members[0];
         const last  = members[members.length - 1];
@@ -3272,16 +3407,22 @@
         ptsCell.appendChild(groupBadge);
 
         const actCell = headerTr.insertCell();
+        actCell.style.whiteSpace = 'nowrap';
         if (groupId) {
           const ungroupBtn = document.createElement('button');
           ungroupBtn.className = 'small'; ungroupBtn.textContent = '🔓';
           ungroupBtn.title = 'Dissocier ce groupe';
           ungroupBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            callServer('apiUngroupLot', [groupId], res => {
-              if (res.success) { showToast('Groupe dissocié.', 'success'); loadHistoryPage(currentHistoryPage); }
-              else showToast('Erreur.', 'error');
-            }, 'Dissociation');
+            openConfirmModal(
+              'Dissocier ce groupe ? Les ' + members.length + ' entrées redeviendront indépendantes.',
+              () => {
+                callServer('apiUngroupLot', [groupId], res => {
+                  if (res.success) { showToast('Groupe dissocié.', 'success'); loadHistoryPage(currentHistoryPage); }
+                  else showToast('Erreur lors de la dissociation.', 'error');
+                }, 'Dissociation');
+              }
+            );
           });
           actCell.appendChild(ungroupBtn);
         }
@@ -3304,29 +3445,9 @@
       if (histSelectMode) {
         logs.forEach(log => buildHistRow(log, tbody));
       } else {
-        // Merge consecutive groups into renderItems
-        const finalItems = [];
-        let ungroupedIdx = 0;
         renderItems.forEach(item => {
-          if (item.members) {
-            finalItems.push(item);
-          } else {
-            const cg = consecutiveGroups.find(g => g.members.includes(item.log));
-            if (cg && !cg._added) {
-              cg._added = true;
-              finalItems.push(cg);
-            } else if (!cg) {
-              finalItems.push({ members: [item.log], type: 'single' });
-            }
-          }
-        });
-
-        finalItems.forEach(item => {
-          if (item.type === 'tagged' || (item.type === 'consecutive' && item.members.length >= 3)) {
-            renderGroupHeader(item.members, item.groupId || null);
-          } else {
-            item.members.forEach(log => buildHistRow(log, tbody));
-          }
+          if (item.type === 'group') renderGroupHeader(item.members, item.groupId);
+          else buildHistRow(item.log, tbody);
         });
       }
 
@@ -3336,6 +3457,7 @@
 
   function buildHistRow(log, tbody) {
     const tr = tbody.insertRow();
+    tr.dataset.rowIndex = log.rowIndex;
     const pColor = playerColor(log.player);
 
     if (histSelectMode) {
@@ -3421,10 +3543,7 @@
     delBtn.addEventListener('click', () => {
       openConfirmModal('Supprimer cette entrée ?', () => {
         buzz();
-        callServer('apiDeleteHistoryEntry', [log.rowIndex], () => {
-          loadHistoryPage(currentHistoryPage);
-          showToast('Entrée supprimée.', 'success');
-        }, 'Suppression historique');
+        scheduleDeletion([log.rowIndex]);
       });
     });
     actCell.appendChild(editDescBtn); actCell.appendChild(delBtn);
@@ -3797,6 +3916,14 @@
     document.getElementById('globalRefreshBtn').addEventListener('click', globalRefresh);
     setInterval(updateRefreshBadge, 60000);
 
+    const textFilterEl = document.getElementById('historyTextFilter');
+    if (textFilterEl) {
+      textFilterEl.addEventListener('input', () => {
+        clearTimeout(_histSearchTimeout);
+        _histSearchTimeout = setTimeout(() => { currentHistoryPage = 1; loadHistoryPage(1); }, 400);
+      });
+    }
+
     document.querySelectorAll('.chart-type-btn').forEach(btn => {
       btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
     });
@@ -3834,6 +3961,7 @@
 
     // ── History bulk selection ──
     document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
+    document.getElementById('histBulkGroup').addEventListener('click', confirmGroupRows);
     document.getElementById('histBulkDelete').addEventListener('click', confirmBulkDelete);
     document.getElementById('histBulkCancel').addEventListener('click', () => toggleHistSelectMode(false));
     document.getElementById('histBulkSelectAll').addEventListener('click', () => {
