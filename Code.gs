@@ -881,71 +881,82 @@ function apiDetectDistributedLots() {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, lots: [] };
 
+    const pad = function(n) { return String(n).padStart(2, '0'); };
     const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
     const entries = [];
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
       if (!row[0]) continue;
-      if (row[5]) continue; // déjà groupé
-      const d = new Date(row[0]);
+      if (row[5]) continue;
+      var d = new Date(row[0]);
       if (isNaN(d.getTime())) continue;
-      const player      = row[1] ? row[1].toString() : '';
-      const category    = row[2] ? row[2].toString() : '';
-      const points      = parseInt(row[3], 10);
-      const description = row[4] ? row[4].toString() : '';
+      var player      = row[1] ? row[1].toString() : '';
+      var category    = row[2] ? row[2].toString() : '';
+      var points      = parseInt(row[3], 10);
+      var description = row[4] ? row[4].toString() : '';
       if (!player || !category) continue;
       if (isNaN(points) || points <= 0) continue;
-      const pad = n => String(n).padStart(2, '0');
       entries.push({
         date: d,
         dateStr: d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()),
-        player, category, points, description,
-        rowIndex: i + 2
+        player: player, category: category, points: points,
+        description: description, rowIndex: i + 2
       });
     }
 
-    const groups = {};
-    entries.forEach(e => {
-      const key = e.player + '|' + e.category + '|' + e.points + '|' + e.description;
+    // Clé = joueur|catégorie|points|description
+    var groups = {};
+    entries.forEach(function(e) {
+      var key = e.player + '|' + e.category + '|' + e.points + '|' + e.description;
       (groups[key] = groups[key] || []).push(e);
     });
 
-    const lots = [];
-    Object.values(groups).forEach(group => {
+    var lots = [];
+    Object.keys(groups).forEach(function(key) {
+      var group = groups[key];
       if (group.length < 3) return;
-      group.sort((a, b) => a.date - b.date);
-      var chain = [group[0]];
-      for (var i = 1; i < group.length; i++) {
-        var gap = (group[i].date - chain[chain.length - 1].date) / (1000 * 86400);
+
+      // Un vrai lot réparti = 1 seule entrée par date pour cette clé.
+      // Si une date apparaît 2+ fois → ces entrées sont de la saisie manuelle, on les exclut.
+      var byDate = {};
+      group.forEach(function(e) {
+        (byDate[e.dateStr] = byDate[e.dateStr] || []).push(e);
+      });
+      var eligible = [];
+      Object.keys(byDate).forEach(function(ds) {
+        if (byDate[ds].length === 1) eligible.push(byDate[ds][0]);
+      });
+
+      if (eligible.length < 3) return;
+
+      // Tri chronologique, puis chaînes avec max 7j d'écart
+      eligible.sort(function(a, b) { return a.date - b.date; });
+      var chain = [eligible[0]];
+      for (var j = 1; j < eligible.length; j++) {
+        var gap = (eligible[j].date - chain[chain.length - 1].date) / 86400000;
         if (gap <= 7) {
-          chain.push(group[i]);
+          chain.push(eligible[j]);
         } else {
           if (chain.length >= 3) {
             lots.push({
-              player: chain[0].player,
-              category: chain[0].category,
-              points: chain[0].points,
-              description: chain[0].description,
+              player: chain[0].player, category: chain[0].category,
+              points: chain[0].points, description: chain[0].description,
               count: chain.length,
               totalPts: chain.reduce(function(s, e) { return s + e.points; }, 0),
-              dateFrom: chain[0].dateStr,
-              dateTo: chain[chain.length - 1].dateStr,
+              dateFrom: chain[0].dateStr, dateTo: chain[chain.length - 1].dateStr,
               rowIndexes: chain.map(function(e) { return e.rowIndex; })
             });
           }
-          chain = [group[i]];
+          chain = [eligible[j]];
         }
       }
       if (chain.length >= 3) {
         lots.push({
-          player: chain[0].player,
-          category: chain[0].category,
-          points: chain[0].points,
-          description: chain[0].description,
+          player: chain[0].player, category: chain[0].category,
+          points: chain[0].points, description: chain[0].description,
           count: chain.length,
           totalPts: chain.reduce(function(s, e) { return s + e.points; }, 0),
-          dateFrom: chain[0].dateStr,
-          dateTo: chain[chain.length - 1].dateStr,
+          dateFrom: chain[0].dateStr, dateTo: chain[chain.length - 1].dateStr,
           rowIndexes: chain.map(function(e) { return e.rowIndex; })
         });
       }
