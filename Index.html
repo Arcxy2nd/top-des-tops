@@ -12,7 +12,1013 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
+      --accent: #ff4757; --accent-hover: #ff6b81;
+      --text: #e0e6ed; --text-muted: #9aa5be;
+      --success: #2ed573; --error: #ff4757;
+      --btn-alt: #353b48; --tap-min: 44px;
+    }
+    body.light {
+      --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
+      --accent: #e53e3e; --accent-hover: #c53030;
+      --text: #1a202c; --text-muted: #4a5568;
+      --btn-alt: #e2e8f0;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      margin: 0; padding: 0;
+      /* Gestion de la barre de geste inférieure (Safe Area) */
+      padding-bottom: env(safe-area-inset-bottom);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      /* Gestion de l'encoche (Notch) */
+      padding-top: env(safe-area-inset-top);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    .navbar::-webkit-scrollbar { display: none; }
+    .nav-container {
+      display: flex; min-width: max-content;
+      width: 100%; max-width: 1200px; gap: 2px;
+      align-items: center;
+    }
+    .nav-btn {
+      background: transparent; border: none;
+      color: var(--text-muted); font-size: 0.88rem;
+      padding: 15px 16px; cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap; min-height: var(--tap-min);
+      font-weight: 500; transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .nav-btn:hover  { color: var(--text); }
+    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+    /* Bouton refresh + badge */
+    .nav-refresh-wrap {
+      display: flex; align-items: center; gap: 6px;
+      margin-left: auto; padding: 0 8px; flex-shrink: 0;
+    }
+    .nav-refresh-btn {
+      background: var(--btn-alt); border: none;
+      border-radius: 20px; font-size: 1rem; padding: 7px 11px;
+      cursor: pointer; color: var(--text); min-height: 36px;
+      transition: background 0.2s;
+      touch-action: manipulation;
+    }
+    .nav-refresh-btn:hover { background: var(--accent); color: #fff; }
+    .refresh-badge {
+      font-size: 0.7rem; color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .theme-toggle {
+      background: var(--btn-alt); border: none;
+      border-radius: 20px; font-size: 1.1rem; padding: 8px 12px;
+      cursor: pointer; color: var(--text);
+      min-height: 36px; margin-right: 8px;
+      touch-action: manipulation;
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; 
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card); padding: 20px;
+      border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+    }
+    h2 { margin: 0 0 16px 0; font-size: 1.2rem; color: var(--text); }
+    h3 { font-size: 0.95rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 0 0 12px 0; }
+
+    /* ── FORM CONTROLS ── */
+    select, input[type="text"], input[type="url"], input[type="date"], input[type="number"] {
+      padding: 10px 12px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg); color: var(--text);
+      font-size: 16px; /* Empêche le zoom auto sur iOS */
+      outline: none; transition: border-color 0.2s;
+      width: 100%;
+      touch-action: manipulation;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    button {
+      padding: 10px 16px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: 0.2s;
+      min-height: var(--tap-min);
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    button.primary { background: var(--accent); color: #fff; border: none; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.secondary { background: transparent; border: 1px solid var(--border); }
+    button.secondary:hover { background: var(--btn-alt); }
+    button.small { padding: 7px 11px; font-size: 0.8rem; min-height: 34px; }
+    button.danger { background: rgba(255,71,87,0.12); color: var(--error); border-color: var(--error); }
+    button.danger:hover { background: var(--error); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── FILTER PANEL ── */
+    /* align-items: stretch → toutes les colonnes prennent la même hauteur ;
+       les listes Joueurs/Tops s'étirent alors pour combler le vide. */
+    /* ── FILTER PANEL V2 (chips) ── */
+    .filter-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 14px;
+    }
+    .fp-section { display: flex; flex-direction: column; gap: 7px; }
+    .fp-label {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .fchip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fchip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--btn-alt); color: var(--text);
+      transition: background 0.13s, border-color 0.13s, color 0.13s;
+      min-height: 32px; user-select: none;
+    }
+    .fchip:hover { filter: brightness(1.18); }
+    .fchip.active {
+      background: var(--fchip-col, var(--accent));
+      border-color: var(--fchip-col, var(--accent));
+      color: #fff;
+    }
+    .fchip-all.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .fchip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+    /* Date row */
+    .fp-date-row { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+    .fp-date-field { display: flex; flex-direction: column; gap: 3px; }
+    .fp-date-field span { font-size: 0.68rem; color: var(--text-muted); }
+    .fp-date-field input[type="date"] { padding: 5px 8px; font-size: 0.82rem; }
+    .fp-date-sep { color: var(--text-muted); padding-bottom: 6px; }
+
+    /* ── DATE SHORTCUTS ── */
+    .date-shortcuts {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+    }
+    .date-shortcut {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; padding: 4px 9px;
+      font-size: 0.75rem; cursor: pointer; color: var(--text);
+      min-height: 28px; font-weight: 500;
+      transition: background 0.15s;
+    }
+    .date-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── CHART TYPE SELECTOR ── */
+    .chart-type-bar {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+    }
+    .chart-type-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 12px;
+      font-size: 0.8rem; cursor: pointer; color: var(--text);
+      min-height: 34px; font-weight: 500;
+      transition: 0.15s;
+    }
+    .chart-type-btn:hover, .chart-type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── CHART ── */
+    .chart-header {
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;
+    }
+    .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+    .export-btn {
+      background: var(--btn-alt); border: none;
+      padding: 6px 10px; border-radius: 6px;
+      font-size: 0.75rem; cursor: pointer; color: var(--text);
+      min-height: 32px;
+    }
+    .export-btn:hover { background: var(--accent); color: #fff; }
+    .chart-wrapper { position: relative; height: 420px; width: 100%; }
+
+    /* ── SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--btn-alt) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── SAISIE LOT ── */
+    .batch-header {
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr minmax(180px, 1.5fr) auto;
+      gap: 10px; padding: 0 10px; margin-bottom: 8px;
+      color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .entry-row {
+      display: grid; grid-template-columns: 1.5fr 1.5fr auto 0.7fr minmax(180px, 1.5fr) auto;
+      gap: 10px; align-items: start;
+      background: rgba(0,0,0,0.15); padding: 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      margin-bottom: 8px; transition: border-color 0.2s;
+    }
+    .entry-row .d-in { width: 100%; min-width: 130px; }
+    /* Bouton-date d'une ligne (ouvre l'éditeur jour unique / plage). */
+    .entry-row .d-btn {
+      width: 100%; min-width: 150px; justify-content: flex-start;
+      font-weight: 600; white-space: normal; text-align: left;
+      background: var(--bg); border: 1px solid var(--border);
+    }
+    .entry-row .d-btn:hover { border-color: var(--accent); }
+    /* Cellule date d'une ligne : début + fin optionnelle (Du → Au) */
+    .d-range { display: flex; flex-direction: column; gap: 3px; min-width: 130px; }
+    .d-range input { width: 100%; }
+    .d-range .mini { font-size: 0.62rem; color: var(--text-muted); }
+    /* Bascule Répartir / Répéter */
+    .seg-toggle { display: inline-flex; gap: 6px; margin: 6px 0; }
+    .seg-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 12px; font-size: 0.78rem;
+      cursor: pointer; color: var(--text); min-height: 32px; font-weight: 500;
+    }
+    .seg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .entry-row:hover { border-color: var(--accent); }
+    .player-sel-wrap {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0 8px;
+    }
+    .player-sel-wrap:focus-within { border-color: var(--accent); }
+    .player-sel-wrap select { border: none; background: transparent; padding: 10px 0; flex: 1; }
+    .row-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .row-actions { display: flex; gap: 6px; }
+    .row-actions button { flex: 1; padding: 8px; }
+    #entryContainer { min-height: 60px; }
+    .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px; }
+
+    /* ── POINTS TOGGLE BUTTONS ── */
+    .pts-toggle-wrap {
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+    .pts-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; padding: 5px 8px;
+      font-size: 0.78rem; cursor: pointer; color: var(--text);
+      min-height: 32px; font-weight: 600;
+      transition: 0.15s; flex: 1; min-width: 30px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pts-btn:hover, .pts-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── SETTINGS ── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .entity-list { list-style: none; padding: 0; margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 8px; }
+    .entity-item {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; background: rgba(0,0,0,0.15); padding: 10px 12px;
+      border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .entity-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+    .entity-left strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entity-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .avatar-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
+    .entity-meta { font-size: 0.78rem; color: var(--text-muted); width: 100%; word-break: break-all; }
+    .add-form { display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.1); padding: 12px; border-radius: 8px; }
+
+    /* ── HISTORIQUE ── */
+    .history-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .history-filters select { flex: 1; min-width: 140px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: rgba(0,0,0,0.2); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; padding: 10px 8px; text-align: left; position: sticky; top: 0; }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); -webkit-overflow-scrolling: touch; }
+    .pagination { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .pagination button { min-width: 36px; padding: 6px; }
+    .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .history-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; background: var(--btn-alt); box-shadow: 0 0 0 2px var(--player-color, transparent); }
+
+    /* Repères visuels de l'historique */
+    .hist-player-cell { white-space: nowrap; }
+    .hist-player-name { font-weight: 600; }
+    td.hist-accent { border-left: 5px solid var(--player-color, transparent); }
+    .hist-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+      background: var(--pill-bg, rgba(255,255,255,0.06));
+      border: 1px solid var(--pill-bd, var(--border));
+      color: var(--text);
+    }
+    .hist-pill .pill-emoji { font-size: 1rem; line-height: 1; }
+    .hist-pts {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 34px; padding: 4px 10px; border-radius: 8px;
+      font-weight: 800; font-variant-numeric: tabular-nums;
+      background: var(--pts-bg, rgba(255,255,255,0.06));
+      border: 1px solid var(--pts-bd, var(--border));
+      color: var(--pts-fg, var(--text));
+    }
+
+    /* ── ONGLET OUTILS ── */
+    .health-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .health-stat {
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 12px; text-align: center;
+    }
+    .health-stat .stat-value { font-size: 2rem; font-weight: 700; }
+    .health-stat .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .health-stat.bad  .stat-value { color: var(--error); }
+    .health-stat.warn .stat-value { color: #ffd166; }
+    .health-stat.ok   .stat-value { color: var(--success); }
+    .tool-action {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+      background: rgba(0,0,0,0.15); padding: 14px 16px;
+      border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px;
+    }
+    .tool-action-info { flex: 1; min-width: 200px; }
+    .tool-action-info strong { display: block; margin-bottom: 4px; }
+    .tool-action-info span  { font-size: 0.82rem; color: var(--text-muted); }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3000; padding: 16px;
+    }
+    .modal-box {
+      background: var(--card); padding: 24px;
+      border-radius: 16px; width: 100%; max-width: 380px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-box h3 { margin: 0 0 12px; font-size: 1rem; }
+    .modal-box p  { margin: 0 0 20px; line-height: 1.5; }
+    .modal-box input { margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .modal-actions button { flex: 1; min-width: 120px; }
+
+    /* ── TOASTS ── */
+    #toastContainer {
+      position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); right: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 4000; max-width: calc(100vw - 32px);
+    }
+    .toast {
+      padding: 12px 18px; border-radius: 8px;
+      background: var(--card); border-left: 4px solid;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      font-size: 0.88rem; font-weight: 500;
+      animation: slideIn 0.2s ease;
+    }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--error);   color: var(--error);   }
+    @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(6px); } }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .container { padding: 0 10px; margin: 12px auto; }
+      .card { padding: 14px; }
+      h2 { font-size: 1.1rem; }
+      .chart-wrapper { height: 280px; }
+      .fp-date-row { flex-wrap: wrap; }
+      .fchip { font-size: 0.78rem; padding: 4px 10px; }
+      .batch-header { display: none; }
+      
+      /* Disposition verticale optimisée pour la Saisie Lot */
+      .entry-row { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 12px; 
+        padding: 16px; 
+        align-items: stretch;
+      }
+      .player-sel-wrap, .c-sel { width: 100%; }
+      .pts-toggle-wrap { width: 100%; justify-content: space-between; }
+      .entry-row .custom-pts-in { width: 100%; text-align: center; }
+      .row-actions { width: 100%; }
+      
+      .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+      .export-buttons { gap: 6px; justify-content: center; width: 100%; }
+      .export-btn { padding: 8px 10px; font-size: 0.75rem; flex: 1; text-align: center; }
+      .history-filters { flex-direction: column; align-items: stretch; }
+      .health-grid { grid-template-columns: 1fr 1fr; }
+
+      /* Notes : saisie empilée et confortable au pouce */
+      .npb-add { flex-direction: column; align-items: stretch; }
+      .npb-add input[type="text"], .npb-date-field, .npb-add button { width: 100%; }
+
+      /* Barre d'options du graphique : chaque contrôle sur sa largeur */
+      .chart-controls { gap: 10px 14px; }
+      .chart-control select { flex: 1; }
+    }
+
+    /* ── BADGE COMPTEUR NAV ── */
+    .nav-count {
+      display: inline-block; margin-left: 6px;
+      background: var(--accent); color: #fff;
+      font-size: 0.68rem; font-weight: 700;
+      border-radius: 10px; padding: 1px 7px; min-width: 18px;
+      vertical-align: middle;
+    }
+    .nav-count:empty { display: none; }
+
+    /* ── ÉTAT VIDE ILLUSTRÉ ── */
+    .empty-illustration {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 10px; padding: 40px 20px; text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-illustration .emoji { font-size: 2.6rem; opacity: 0.7; }
+    .empty-illustration .msg   { font-size: 0.9rem; }
+
+    /* ── BOUTON : CONFIRMATION VISUELLE ── */
+    button.saved {
+      background: var(--success) !important;
+      border-color: var(--success) !important;
+      color: #fff !important;
+    }
+
+    /* ── NOTES ── */
+    .notes-form-grid {
+      display: grid; grid-template-columns: 220px 1fr; gap: 12px;
+      align-items: start; margin-bottom: 8px;
+    }
+    .notes-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .note-card {
+      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .note-card-head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .note-card-head .note-player { font-weight: 700; }
+    .note-card-head .note-date {
+      font-size: 0.75rem; color: var(--text-muted); margin-left: auto;
+    }
+    .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
+    .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .note-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+
+    /* ── NOTES : un bloc par joueur ── */
+    .note-player-block {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; margin-bottom: 16px; background: rgba(0,0,0,0.10);
+    }
+    .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .npb-head img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
+    .npb-head .npb-name { font-weight: 700; font-size: 1.02rem; }
+    .npb-head .npb-count { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+    .npb-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .npb-add input[type="text"] { flex: 1; min-width: 180px; }
+    .npb-date-field { width: 150px; flex-shrink: 0; }
+    .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
+
+    /* ── DESCRIPTION PAR LIGNE DE SAISIE ── */
+    .row-desc { grid-column: 1 / -1; margin-top: 2px; }
+    .row-desc .desc-in {
+      font-size: 0.84rem; border-style: dashed; background: rgba(0,0,0,0.08);
+      color: var(--text-muted); transition: border-color 0.2s, color 0.2s, border-style 0.2s, background 0.2s;
+    }
+    .row-desc .desc-in::placeholder { font-style: italic; }
+    .row-desc .desc-in:focus { border-style: solid; color: var(--text); background: var(--bg); }
+    .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); border-style: solid; background: var(--bg); }
+
+    /* ── CELLULE DATE INLINE (par ligne de saisie) ── */
+    .d-cell { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+    .d-cell .d-start, .d-cell .d-end { width: 100%; }
+    .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
+    .row-shortcut {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 3px; padding: 2px 6px;
+      font-size: 0.67rem; cursor: pointer; color: var(--text);
+      min-height: 22px; font-weight: 500; white-space: nowrap;
+      transition: background 0.12s; line-height: 1.4;
+    }
+    .row-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .row-range-toggle {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; color: var(--text-muted); cursor: pointer;
+      user-select: none; margin-top: 2px;
+    }
+    .row-range-toggle input[type="checkbox"] { width: auto; min-width: 0; margin: 0; }
+    .row-range-details {
+      display: none; flex-direction: column; gap: 4px;
+      border-left: 2px solid var(--accent); padding-left: 8px; margin-top: 2px;
+    }
+
+    /* ── SÉLECTEUR JOURS DE LA SEMAINE ── */
+    .day-picker-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .day-picker-header { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+    .day-picker-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .day-picker { display: flex; gap: 3px; }
+    .day-btn {
+      width: 28px; height: 28px !important; min-height: 28px !important;
+      border-radius: 50%; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted);
+      font-size: 0.68rem; font-weight: 700; cursor: pointer;
+      transition: 0.12s; padding: 0; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .day-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .day-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+    .day-presets { display: flex; gap: 3px; flex-wrap: wrap; }
+
+    /* ── BARRE DE TRI / OPTIONS GRAPHIQUE ── */
+    .chart-controls {
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
+    }
+    .chart-control { display: flex; align-items: center; gap: 7px; }
+    .chart-control .cc-lbl { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cc-pills { display: flex; gap: 4px; }
+    .cc-pill {
+      padding: 4px 11px; border-radius: 20px; cursor: pointer;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--btn-alt); color: var(--text);
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .cc-pill:hover { filter: brightness(1.2); }
+    .cc-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chart-control.cc-toggle {
+      cursor: pointer; user-select: none; font-size: 0.8rem; color: var(--text);
+    }
+    .chart-control.cc-toggle input { width: auto; min-width: 0; margin: 0; }
+
+    /* ── BARÈME FAB ── */
+    .bareme-fab {
+      position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 20px;
+      z-index: 1500; display: flex; align-items: center; gap: 7px;
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 24px;
+      padding: 10px 16px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; user-select: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      min-height: var(--tap-min);
+    }
+    .bareme-fab:hover  { background: var(--btn-alt); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+    .bareme-fab:active { transform: translateY(0); }
+    .bareme-fab[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── BARÈME BACKDROP ── */
+    .bareme-backdrop {
+      position: fixed; inset: 0; z-index: 1500;
+      background: transparent; pointer-events: none;
+      transition: background 0.25s;
+    }
+    .bareme-backdrop.open { background: rgba(0,0,0,0.45); pointer-events: all; }
+
+    /* ── BARÈME DRAWER (desktop : latéral droit) ── */
+    .bareme-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 360px; max-width: 100vw;
+      background: var(--card); border-left: 1px solid var(--border);
+      z-index: 1600; display: flex; flex-direction: column;
+      transform: translateX(105%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.45);
+      padding-top: env(safe-area-inset-top);
+    }
+    .bareme-drawer.open { transform: translateX(0); }
+
+    /* Mobile : bottom sheet */
+    @media (max-width: 640px) {
+      .bareme-fab .bareme-fab-label { display: none; }
+      .bareme-drawer {
+        top: auto; left: 0; right: 0; width: 100%; max-height: 80vh;
+        border-left: none; border-top: 1px solid var(--border);
+        border-radius: 20px 20px 0 0;
+        transform: translateY(105%);
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
+        padding-top: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .bareme-drawer.open { transform: translateY(0); }
+      .bareme-drawer::before {
+        content: ''; display: block; width: 40px; height: 4px;
+        background: var(--border); border-radius: 2px;
+        margin: 10px auto 0; flex-shrink: 0;
+      }
+    }
+
+    .bareme-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 18px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .bareme-header h2 { margin: 0; font-size: 1rem; flex: 1; }
+    .bareme-header-btns { display: flex; gap: 6px; }
+
+    .bareme-body {
+      flex: 1; overflow-y: auto; padding: 14px;
+      display: flex; flex-direction: column; gap: 9px;
+      scrollbar-width: thin;
+    }
+
+    /* ── BARÈME SETTINGS ── */
+    .bareme-settings-section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .bareme-settings-section h3 { margin: 0 0 14px; font-size: 0.95rem; }
+    .bsect { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+    .bsect-head {
+      display: flex; align-items: center; gap: 9px; padding: 10px 14px;
+      background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border);
+      border-left: 4px solid var(--bsect-col, var(--accent));
+      font-weight: 700; font-size: 0.88rem;
+    }
+    .bsect-head .bsect-count {
+      margin-left: auto; font-size: 0.7rem; font-weight: 600;
+      color: var(--text-muted); background: rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .bsect-entries { display: flex; flex-direction: column; }
+    .bsect-entry {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px; border-bottom: 1px solid var(--border);
+      font-size: 0.86rem; transition: background 0.1s;
+    }
+    .bsect-entry:last-child { border-bottom: none; }
+    .bsect-entry:hover { background: rgba(255,255,255,0.03); }
+    .bsect-entry .bsect-pts {
+      flex-shrink: 0; min-width: 58px; text-align: center;
+      color: #fff; font-size: 0.78rem; font-weight: 800;
+      border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .bsect-entry .bsect-action { flex: 1; font-size: 0.88rem; }
+    .bsect-entry .bsect-btns   { display: flex; gap: 4px; flex-shrink: 0; }
+    .bsect-add {
+      display: flex; gap: 6px; padding: 9px 14px; flex-wrap: wrap; align-items: center;
+      background: rgba(0,0,0,0.1); border-top: 1px dashed var(--border);
+    }
+    .bsect-add input[type="number"] { width: 64px; padding: 5px 6px; font-size: 0.82rem; text-align: center; }
+    .bsect-add input[type="text"]   { flex: 1; min-width: 120px; padding: 5px 8px; font-size: 0.84rem; }
+    .bsect-empty { padding: 9px 14px; font-style: italic; font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ── BARÈME DRAWER ENTRIES ── */
+    .bd-sect { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+    .bd-head {
+      display: flex; align-items: center; gap: 9px;
+      padding: 11px 14px;
+      background: rgba(0,0,0,0.18);
+      border-left: 4px solid var(--bd-col, var(--accent));
+      font-weight: 700; font-size: 0.87rem;
+    }
+    .bd-name { flex: 1; }
+    .bd-count {
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 20px;
+    }
+    .bd-entry { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--border); transition: background 0.1s; }
+    .bd-entry:hover { background: rgba(255,255,255,0.03); }
+    .bd-badge {
+      flex-shrink: 0; min-width: 58px; text-align: center;
+      color: #fff; font-size: 0.78rem; font-weight: 800;
+      border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .bd-txt { flex: 1; font-size: 0.87rem; line-height: 1.4; word-break: break-word; }
+    .bd-none { padding: 9px 14px; font-style: italic; font-size: 0.79rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+    .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 32px 16px; font-size: 0.88rem; }
+
+    /* ── DESCRIPTION EXPANDABLE (historique) ── */
+    .hist-desc-toggle {
+      font-size: 0.74rem; color: var(--text-muted); font-style: italic;
+      margin-top: 3px; max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer; transition: color 0.15s;
+    }
+    .hist-desc-toggle:hover { color: var(--text); }
+    .hist-desc-full {
+      font-size: 0.8rem; color: var(--text); line-height: 1.5;
+      padding: 8px 12px; margin-top: 4px;
+      background: rgba(0,0,0,0.08); border-radius: 6px;
+      white-space: pre-wrap; word-break: break-word;
+      animation: fadeIn 0.15s ease;
+    }
+
+    /* ── NOTES FLASH BAR ── */
+    .notes-flash-bar {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px; margin-bottom: 16px;
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .notes-flash-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .notes-player-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px 4px 6px; border-radius: 20px; cursor: pointer;
+      border: 1.5px solid var(--border); background: transparent;
+      color: var(--text); font-size: 0.82rem; font-weight: 500;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .notes-player-chip img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .notes-player-chip.active {
+      border-color: var(--chip-col, var(--primary));
+      background: rgba(255,255,255,0.08);
+      color: var(--chip-col, var(--primary));
+      box-shadow: 0 0 0 1px var(--chip-col, var(--primary));
+    }
+    .notes-player-chip:hover:not(.active) { border-color: var(--chip-col, var(--primary)); }
+    .notes-flash-input-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .notes-flash-input-row input[type="text"] { flex: 1; min-width: 160px; }
+    .notes-flash-date-toggle {
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 8px; cursor: pointer; font-size: 0.95rem; color: var(--text-muted);
+      transition: border-color 0.15s, color 0.15s; flex-shrink: 0;
+    }
+    .notes-flash-date-toggle.active { border-color: var(--primary); color: var(--primary); }
+    .notes-flash-date-toggle:hover { border-color: var(--primary); }
+    .notes-flash-date-field { width: 150px; flex-shrink: 0; }
+    @media (max-width: 640px) {
+      .notes-flash-input-row { flex-direction: column; align-items: stretch; }
+      .notes-flash-date-field { width: 100%; }
+    }
+
+    /* ── HISTORY GROUPING ── */
+    .hist-group-row {
+      cursor: pointer; transition: background 0.1s;
+    }
+    .hist-group-row:hover td { background: rgba(255,255,255,0.05); }
+    .hist-group-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+    }
+    .hist-group-chevron {
+      display: inline-block; transition: transform 0.2s;
+      font-size: 0.7rem; margin-right: 4px;
+    }
+    .hist-group-chevron.open { transform: rotate(90deg); }
+    .hist-group-child td { padding-left: 24px; opacity: 0.85; }
+
+    /* Avatars empilés pour groupes multi-joueurs */
+    .hist-avatar-stack {
+      display: inline-flex; align-items: center; margin-right: 6px; vertical-align: middle;
+    }
+    .hist-avatar-stack .history-avatar { margin-right: -8px; border: 2px solid var(--bg); }
+    .hist-avatar-stack .history-avatar:last-of-type { margin-right: 0; }
+    .hist-avatar-more {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--btn-alt); border: 2px solid var(--bg);
+      font-size: 0.68rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0;
+    }
+
+    /* ── BULK DESCRIPTION INPUT ── */
+    .hist-bulk-desc-wrap {
+      display: flex; gap: 6px; align-items: center; flex: 2; min-width: 200px;
+    }
+    .hist-bulk-desc-wrap input { flex: 1; padding: 6px 10px; font-size: 0.82rem; }
+
+    /* ── DETECTION TOOL ── */
+    .detect-results { margin-top: 12px; }
+    .detect-lot {
+      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+    }
+    .detect-lot-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .detect-lot-head label { display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; }
+    .detect-lot-head input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    .detect-lot-info { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+    .detect-lot-info strong { color: var(--text); font-weight: 600; }
+    .detect-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+    .detect-summary {
+      font-size: 0.82rem; color: var(--text-muted); padding: 10px 0;
+    }
+
+    /* ── GUIDE TAB ── */
+    .guide-section { margin-bottom: 24px; }
+    .guide-section h3 { cursor: pointer; user-select: none; }
+    .guide-section h3::before { content: '▸ '; color: var(--accent); }
+    .guide-section.open h3::before { content: '▾ '; }
+    .guide-body {
+      display: none; padding: 10px 0 0 8px;
+      font-size: 0.9rem; line-height: 1.7; color: var(--text-muted);
+    }
+    .guide-section.open .guide-body { display: block; }
+    .guide-body p { margin: 0 0 8px; }
+    .guide-body strong { color: var(--text); }
+
+    @keyframes bareme-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.6; } }
+    .bareme-skel {
+      height: 60px; border-radius: 11px; background: var(--btn-alt);
+      animation: bareme-pulse 1.4s ease-in-out infinite;
+    }
+
+    /* ── EXPORT MODAL ── */
+    .export-modal-overlay {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .export-modal-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      width: 100%; max-width: 520px; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .export-modal-box h3 { margin: 0; font-size: 1.05rem; }
+    .export-opt-group { display: flex; flex-direction: column; gap: 6px; }
+    .export-opt-group label { font-size: 0.8rem; color: var(--text-muted); }
+    .export-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .export-pill {
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      background: var(--btn-alt); color: var(--text); transition: all 0.12s;
+    }
+    .export-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .export-preview-wrap { background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+    .export-preview-wrap canvas, .export-preview-wrap img { max-width: 100%; max-height: 220px; border-radius: 6px; }
+
+    /* ── HISTORY SELECTION ── */
+    .hist-sel-th { width: 36px; text-align: center; }
+    input.hist-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    tr.hist-selected td { background: rgba(255, 71, 87, 0.07); }
+
+    .hist-bulk-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 14px; margin-top: 10px;
+      background: var(--card); border: 1px solid var(--accent);
+      border-radius: 10px;
+    }
+    .hist-bulk-bar #histBulkCount { font-weight: 600; font-size: 0.88rem; flex: 1; }
+
+    /* ── TOP STATS STRIP ── */
+    #topStatsStrip {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 10px; min-height: 0;
+    }
+    .top-stat-pill {
+      display: inline-flex; flex-direction: column; align-items: center;
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid; cursor: default;
+    }
+    .top-stat-pill .tsp-pts { font-size: 0.88rem; font-weight: 800; }
+    .top-stat-pill .tsp-name { font-size: 0.68rem; opacity: 0.8; }
+
+    /* ── CHIPS FILTRES HISTORIQUE ── */
+    .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hist-filter-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; min-width: 44px; }
+    .hist-fchip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .hist-fchip { padding: 2px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.74rem; cursor: pointer; transition: all 0.13s; background: transparent; color: var(--text-muted); line-height: 1.5; }
+    .hist-fchip:hover { border-color: var(--text-muted); color: var(--text); }
+    .hist-fchip.active { font-weight: 600; background: rgba(255,255,255,0.06); }
+    .hist-fchip.tous.active { border-color: var(--text-muted); color: var(--text); }
+    .hist-fchip img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 4px; }
+
+    /* ── TOAST UNDO (suppression différée) ── */
+    .toast.warning { border-color: #ffd166; color: #ffd166; }
+    .toast-undo-btn {
+      background: transparent; border: 1px solid currentColor;
+      color: inherit; border-radius: 4px; padding: 3px 8px;
+      font-size: 0.8rem; cursor: pointer; font-weight: 700;
+      margin-left: 10px; white-space: nowrap;
+    }
+    .toast-undo-btn:hover { background: rgba(255,209,102,0.15); }
+
+    /* ── LIGNE EN ATTENTE DE SUPPRESSION ── */
+    tr.hist-pending-delete td { opacity: 0.35; text-decoration: line-through; }
+
+    /* ════════════════════════════════════════════════════════════════
+       SAISIE LOT — AMÉLIORATIONS VISUELLES
+    ════════════════════════════════════════════════════════════════ */
+
+    /* Animations lifecycle des lignes */
+    @keyframes rowSlideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rowSlideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-18px); }
+    }
+    @keyframes ptsPop {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.28); }
+      100% { transform: scale(1); }
+    }
+
+    /* Compteur CSS — re-numérotation auto quand une ligne est supprimée */
+    #entryContainer { counter-reset: row-num; }
+
+    /* Bordure gauche colorée par Top + animation d'entrée */
+    .entry-row {
+      counter-increment: row-num;
+      position: relative;
+      border-left: 4px solid var(--row-accent, var(--border));
+      animation: rowSlideIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+      transition: border-color 0.2s, border-left-color 0.25s, box-shadow 0.2s;
+    }
+    .entry-row:hover {
+      border-color: var(--row-accent, var(--accent));
+      box-shadow: 0 0 0 1px var(--row-accent, var(--accent));
+    }
+    .entry-row.row-removing {
+      animation: rowSlideOut 0.18s ease forwards;
+      pointer-events: none;
+    }
+
+    /* Badge numéro de ligne — top-left, couleur de l'accent */
+    .entry-row::before {
+      content: '#' counter(row-num);
+      position: absolute;
+      top: 4px; left: 7px;
+      font-size: 0.55rem; font-weight: 900;
+      color: var(--row-accent, var(--text-muted));
+      opacity: 0.5;
+      pointer-events: none;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      transition: color 0.25s;
+    }
+
+    /* Avatar avec anneau couleur joueur */
+    .row-avatar {
+      box-shadow: 0 0 0 2.5px var(--player-ring, var(--btn-alt));
+      transition: box-shadow 0.22s;
+    }
+
+    /* Wrapper sélecteur Top — remplace le select nu */
+    .c-sel-wrap {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0 10px 0 10px;
+      transition: border-color 0.2s;
+    }
+    .c-sel-wrap:focus-within { border-color: var(--accent); }
+    .c-sel-wrap select { border: none; background: transparent; padding: 10px 0; flex: 1; outline: none; }
+
+    /* Pastille de couleur du Top — se met à jour en temps réel */
+    .cat-color-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+      transition: background 0.25s ease;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+    }
+
+    /* Pop sur les boutons de points */
+    .pts-btn.pts-pop { animation: ptsPop 0.2s ease; }
+
+    /* Barre récap sticky — visible dès 2 lignes */
+    #lotSummaryBar {
+      position: sticky;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 50;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 11px 18px; margin-top: 14px;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(255,71,87,0.18), 0 1px 4px rgba(0,0,0,0.3);
+      animation: fadeIn 0.2s ease;
+    }
+    #lotSummaryBar.hidden { display: none; }
+    .lot-summary-info { flex: 1; font-size: 0.88rem; color: var(--text-muted); }
+    .lot-summary-info strong { color: var(--accent); font-size: 1rem; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 640px) {
+      #lotSummaryBar { gap: 10px; padding: 10px 14px; }
+    }
+
+  </style>
 </head>
 <body>
 
@@ -361,6 +1367,3342 @@
   <div class="modal-box" id="modalBox"></div>
 </div>
 
-<script src="app.js"></script>
+<script>
+  // Le code JavaScript reste parfaitement identique car il gérait déjà bien la logique, 
+  // Seules les requêtes ont besoin de réagir à la nouvelle disposition CSS.
+  // [Le reste du JavaScript du[cite: 1] est injecté ici à l'identique]
+  
+  // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
+  let currentChart     = null;
+  let currentChartData = null;
+  let currentChartType = 'ranking';
+  let cachedPlayers    = [];
+  let cachedCategories = [];
+  let rowCounter       = 0;
+  let currentHistoryPage = 1;
+  let totalHistoryEntries = 0;
+  let lastRefreshTime  = null;
+  const PAGE_SIZE = 20;
+  const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
+
+  // History bulk-selection state
+  let histSelectMode  = false;
+  let histSelected    = new Set();
+  let histVisibleRows = [];
+
+  // Pending deletions: Map<id, {rowIndexes, timerId, toastEl}>
+  const pendingDeletions = new Map();
+  let _pendingDelIdSeq = 0;
+  let _histSearchTimeout = null;
+
+  // History chip filters
+  let selectedHistPlayers    = new Set();
+  let selectedHistCategories = new Set();
+
+  // Donut player
+  let _donutPlayer = '';
+
+  // Dashboard filter chip state (empty Set = "all")
+  let selectedPlayerChips   = new Set();
+  let selectedCategoryChips = new Set();
+
+  // ── Options & tri du dashboard (appliqués côté front uniquement) ──────
+  const chartOptions = {
+    sortBy:       'total-desc', // total-desc | total-asc | name-asc
+    sortCat:      'total-desc', // tri des catégories (barres)
+    showTotals:   false,
+    logScale:     false,
+    detailed:     false,        // classement détaillé par catégorie
+    trendMode:    'cumul',      // cumul | period
+    donutCenter:  true
+  };
+
+  // ── UTILITAIRES ──────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function getAvatarUrl(name, meta) {
+    if (meta && meta.trim()) return meta.trim();
+    return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
+           '&background=2a313d&color=e0e6ed&bold=true&size=64';
+  }
+
+  // ── ICÔNES DE CATÉGORIE (emoji) ──────────────────────────────────────
+  function catIcon(name) {
+    const c = cachedCategories.find(x => x.name === name);
+    return (c && c.icon) ? c.icon.trim() : '';
+  }
+  // Nom affichable d'une catégorie : « 🍺 Apéro » si une icône est définie, sinon « Apéro ».
+  function catDisplay(name) {
+    const ic = catIcon(name);
+    return ic ? ic + ' ' + name : name;
+  }
+
+  // ── COULEURS STABLES (repères visuels) ───────────────────────────────
+  // Palette large pour distinguer beaucoup de joueurs sans répétition rapide.
+  const PALETTE = [
+    '#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa',
+    '#ff9f43','#10ac84','#5f27cd','#ee5253','#48dbfb','#1dd1a1',
+    '#f368e0','#54a0ff','#feca57','#ff6348'
+  ];
+  // Couleur déterministe à partir d'un texte (même nom → toujours même couleur,
+  // même si l'ordre des joueurs change).
+  function hashColor(str) {
+    let h = 0;
+    const s = String(str || '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return PALETTE[h % PALETTE.length];
+  }
+  function playerColor(name) {
+    const p = cachedPlayers.find(p => p.name === name);
+    return (p && p.color) || hashColor('P|' + name);
+  }
+  function categoryColor(name) {
+    const c = cachedCategories.find(c => c.name === name);
+    if (c && c.color) return c.color;
+    const i = cachedCategories.findIndex(c => c.name === name);
+    return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
+  }
+  function refreshColorDependentViews() {
+    if (currentChart) {
+      if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      else renderChart(currentChartData, currentChartType);
+    }
+    if (document.getElementById('tab-history').classList.contains('active')) loadHistoryPage(currentHistoryPage || 1);
+  }
+  // Convertit un hex (#rrggbb) en rgba avec alpha (pour des fonds teintés légers).
+  function tint(hex, alpha) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+    if (!m) return 'rgba(255,255,255,' + alpha + ')';
+    return 'rgba(' + parseInt(m[1],16) + ',' + parseInt(m[2],16) + ',' + parseInt(m[3],16) + ',' + alpha + ')';
+  }
+
+  function showToast(msg, type, duration) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+    document.getElementById('toastContainer').appendChild(t);
+    // Les erreurs restent affichées plus longtemps (6 s) que les succès (3,5 s).
+    const ms = duration || (type === 'error' ? 6000 : 3500);
+    setTimeout(() => {
+      t.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => t.remove(), 300);
+    }, ms);
+  }
+
+  // Retour haptique léger (mobile) sur les actions destructives.
+  function buzz() {
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+
+  // Spinner inline générique : passe le bouton en « ⏳ … » + disabled le temps de l'appel.
+  function startBtnLoading(btn, loadingLabel) {
+    if (!btn) return () => {};
+    const original = btn.innerHTML;
+    btn.dataset.original = original;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ ' + (loadingLabel || '…');
+    return () => { btn.disabled = false; btn.innerHTML = btn.dataset.original || original; };
+  }
+
+  // Confirmation visuelle : le bouton passe brièvement en vert avec ✓.
+  function flashSaved(btn) {
+    if (!btn) return;
+    const original = btn.dataset.original || btn.innerHTML;
+    btn.classList.add('saved');
+    btn.innerHTML = '✓';
+    setTimeout(() => {
+      btn.classList.remove('saved');
+      btn.innerHTML = original;
+    }, 900);
+  }
+
+  // État vide illustré réutilisable.
+  function emptyIllustration(emoji, msg) {
+    return '<div class="empty-illustration"><div class="emoji">' + emoji +
+           '</div><div class="msg">' + escapeHtml(msg) + '</div></div>';
+  }
+
+  // ── DATE UTILS ───────────────────────────────────────────────────────
+  function toDateStr(d) { return d.toISOString().slice(0, 10); }
+
+  function getMondayOfWeek(d) {
+    const tmp = new Date(d);
+    tmp.setHours(0,0,0,0);
+    tmp.setDate(tmp.getDate() - ((tmp.getDay() + 6) % 7));
+    return tmp;
+  }
+
+  // Liste canonique de raccourcis de date — utilisée pour TOUS les champs date
+  // (dashboard, saisie lot, notes) afin de garder exactement les mêmes choix partout.
+  function dateShortcutItems() {
+    const t = new Date();
+    const mk = (y, m, d) => toDateStr(new Date(y, m, d));
+    const monday  = getMondayOfWeek(t);
+    const lastMon = new Date(monday); lastMon.setDate(lastMon.getDate() - 7);
+    const minus3m = new Date(t); minus3m.setMonth(minus3m.getMonth() - 3);
+    return [
+      { label: "Aujourd'hui",        value: toDateStr(t) },
+      { label: "Hier",               value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 1) },
+      { label: "Avant-hier",         value: mk(t.getFullYear(), t.getMonth(), t.getDate() - 2) },
+      { label: "Lundi (cette sem.)", value: toDateStr(monday) },
+      { label: "Lundi (sem. préc.)", value: toDateStr(lastMon) },
+      { label: "1er du mois",        value: mk(t.getFullYear(), t.getMonth(), 1) },
+      { label: "1er mois préc.",     value: mk(t.getFullYear(), t.getMonth() - 1, 1) },
+      { label: "Il y a 3 mois",      value: toDateStr(minus3m) }
+    ];
+  }
+
+  function buildDateShortcuts(targetInputId) {
+    const shortcuts = dateShortcutItems();
+
+    const wrap = document.getElementById(targetInputId + 'Shortcuts') || null;
+    if (!wrap) return;
+
+    wrap.innerHTML = '';
+    shortcuts.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'date-shortcut';
+      btn.type = 'button';
+      btn.textContent = s.label;
+      btn.addEventListener('click', () => {
+        document.getElementById(targetInputId).value = s.value;
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  // Plages prédéfinies (réutilisées par le Dashboard et par l'éditeur de date des lignes).
+  function rangePresetItems() {
+    const t = new Date();
+    const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+    const mk = (yy, mm, dd) => toDateStr(new Date(yy, mm, dd));
+    return [
+      { label: '7 derniers jours',  from: mk(y, m, d - 6),  to: mk(y, m, d) },
+      { label: '30 derniers jours', from: mk(y, m, d - 29), to: mk(y, m, d) },
+      { label: 'Ce mois',           from: mk(y, m, 1),      to: mk(y, m, d) },
+      { label: 'Mois précédent',    from: mk(y, m - 1, 1),  to: mk(y, m, 0) },
+      { label: '3 derniers mois',   from: mk(y, m - 3, d),  to: mk(y, m, d) },
+      { label: 'Cette année',       from: mk(y, 0, 1),      to: mk(y, m, d) },
+      { label: 'Année préc.',       from: mk(y - 1, 0, 1),  to: mk(y - 1, 11, 31) }
+    ];
+  }
+
+  // Remplit un conteneur de chips de sélection rapide pour un input date (date unique).
+  function buildRowDateShortcuts(el, targetInput) {
+    dateShortcutItems().forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = s.label;
+      b.addEventListener('click', () => { targetInput.value = s.value; });
+      el.appendChild(b);
+    });
+  }
+
+  /**
+   * Crée un sélecteur de jours de la semaine. Retourne un wrapper div dont
+   * dataset.days contient le JSON des jours sélectionnés ([] = tous les jours).
+   * defaultDays : tableau d'indices JS (0=Dim, 1=Lun … 6=Sam) ou [] pour tout.
+   */
+  function createDayPicker(defaultDays) {
+    const DAY_DEFS = [
+      { idx: 1, label: 'Lu', title: 'Lundi' },
+      { idx: 2, label: 'Ma', title: 'Mardi' },
+      { idx: 3, label: 'Me', title: 'Mercredi' },
+      { idx: 4, label: 'Je', title: 'Jeudi' },
+      { idx: 5, label: 'Ve', title: 'Vendredi' },
+      { idx: 6, label: 'Sa', title: 'Samedi' },
+      { idx: 0, label: 'Di', title: 'Dimanche' }
+    ];
+
+    const wrap = document.createElement('div');
+    wrap.className = 'day-picker-wrap';
+
+    const header = document.createElement('div');
+    header.className = 'day-picker-header';
+    header.textContent = 'Jours :';
+
+    const pickerRow = document.createElement('div');
+    pickerRow.className = 'day-picker-row';
+
+    const picker = document.createElement('div');
+    picker.className = 'day-picker';
+
+    const activeDays = new Set(defaultDays && defaultDays.length ? defaultDays : []);
+    const allActive  = activeDays.size === 0; // [] = tous
+
+    const updateDataset = () => {
+      const selected = [];
+      picker.querySelectorAll('.day-btn').forEach(b => {
+        if (b.classList.contains('active')) selected.push(parseInt(b.dataset.day));
+      });
+      // Tous les 7 sélectionnés → pas de filtre → []
+      wrap.dataset.days = (selected.length >= 7) ? '[]' : JSON.stringify(selected);
+    };
+
+    DAY_DEFS.forEach(d => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'day-btn'; btn.dataset.day = d.idx;
+      btn.textContent = d.label; btn.title = d.title;
+      if (allActive || activeDays.has(d.idx)) btn.classList.add('active');
+      btn.addEventListener('click', () => { btn.classList.toggle('active'); updateDataset(); });
+      picker.appendChild(btn);
+    });
+
+    const applyPreset = (dayIndices) => {
+      picker.querySelectorAll('.day-btn').forEach(b => {
+        b.classList.toggle('active', dayIndices.length === 0 || dayIndices.includes(parseInt(b.dataset.day)));
+      });
+      updateDataset();
+    };
+
+    const presets = document.createElement('div');
+    presets.className = 'day-presets';
+    [
+      { label: 'Tous',     days: [] },
+      { label: 'Ouvrés',   days: [1, 2, 3, 4, 5] },
+      { label: 'Week-end', days: [6, 0] }
+    ].forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = p.label;
+      b.addEventListener('click', () => applyPreset(p.days));
+      presets.appendChild(b);
+    });
+
+    wrap.dataset.days = (allActive || (defaultDays && defaultDays.length >= 7)) ? '[]' : JSON.stringify(defaultDays || []);
+    pickerRow.appendChild(picker);
+    pickerRow.appendChild(presets);
+    wrap.appendChild(header);
+    wrap.appendChild(pickerRow);
+    return wrap;
+  }
+
+  /**
+   * Filtre un tableau de chaînes "YYYY-MM-DD" pour ne garder que ceux dont
+   * le jour de la semaine est dans selectedDays (indices JS).
+   * Retourne le tableau d'origine si selectedDays est vide (pas de filtre).
+   */
+  function filterDatesByDays(dates, selectedDays) {
+    if (!selectedDays || !selectedDays.length) return dates;
+    return dates.filter(ds => selectedDays.includes(new Date(ds + 'T12:00:00').getDay()));
+  }
+
+  // Remplit un conteneur de chips de plage (7j, 30j…) — remplit les deux inputs + active la case Plage.
+  function buildRowRangePresets(el, startInput, endInput, rangeCb, rangeDetails) {
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = r.label;
+      b.addEventListener('click', () => {
+        startInput.value = r.from;
+        endInput.value   = r.to;
+        if (!rangeCb.checked) {
+          rangeCb.checked = true;
+          rangeDetails.style.display = 'flex';
+        }
+      });
+      el.appendChild(b);
+    });
+  }
+
+  // ── FILTER CHIPS ─────────────────────────────────────────────────────
+  function makeFilterChip(label, color, extraClass, onClick) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'fchip' + (extraClass ? ' ' + extraClass : '');
+    chip.textContent = label;
+    if (color) chip.style.setProperty('--fchip-col', color);
+    chip.addEventListener('click', onClick);
+    return chip;
+  }
+
+  function renderPlayerChips() {
+    const row = document.getElementById('playerChips');
+    if (!row) return;
+    row.innerHTML = '';
+    const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
+      selectedPlayerChips.clear();
+      renderPlayerChips();
+      applyFilters();
+    });
+    if (!selectedPlayerChips.size) allChip.classList.add('active');
+    row.appendChild(allChip);
+    cachedPlayers.forEach(p => {
+      const col = playerColor(p.name);
+      const chip = makeFilterChip(p.name, col, '', () => {
+        if (selectedPlayerChips.has(p.name)) selectedPlayerChips.delete(p.name);
+        else selectedPlayerChips.add(p.name);
+        renderPlayerChips();
+        applyFilters();
+      });
+      if (selectedPlayerChips.has(p.name)) chip.classList.add('active');
+      const img = document.createElement('img');
+      img.src = getAvatarUrl(p.name, p.meta);
+      img.onerror = () => img.remove();
+      chip.prepend(img);
+      row.appendChild(chip);
+    });
+  }
+
+  function renderCategoryChips() {
+    const row = document.getElementById('categoryChips');
+    if (!row) return;
+    row.innerHTML = '';
+    const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
+      selectedCategoryChips.clear();
+      renderCategoryChips();
+      applyFilters();
+    });
+    if (!selectedCategoryChips.size) allChip.classList.add('active');
+    row.appendChild(allChip);
+    cachedCategories.forEach(c => {
+      const col = categoryColor(c.name);
+      const label = (c.icon ? c.icon + ' ' : '') + c.name;
+      const chip = makeFilterChip(label, col, '', () => {
+        if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
+        else selectedCategoryChips.add(c.name);
+        renderCategoryChips();
+        applyFilters();
+      });
+      if (selectedCategoryChips.has(c.name)) chip.classList.add('active');
+      row.appendChild(chip);
+    });
+  }
+
+  // Boutons de période du Dashboard (incluent « Tout » = sans filtre).
+  function buildRangePresets() {
+    const wrap = document.getElementById('rangePresets');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const setRange = (from, to) => {
+      document.getElementById('startDate').value = from || '';
+      document.getElementById('endDate').value   = to   || '';
+      applyFilters();
+    };
+    const all = document.createElement('button');
+    all.className = 'date-shortcut'; all.type = 'button'; all.textContent = 'Tout';
+    all.title = 'Toutes les années (aucun filtre de date)';
+    all.addEventListener('click', () => setRange('', ''));
+    wrap.appendChild(all);
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.className = 'date-shortcut'; b.type = 'button'; b.textContent = r.label;
+      b.addEventListener('click', () => setRange(r.from, r.to));
+      wrap.appendChild(b);
+    });
+  }
+
+  // ── APPEL SERVEUR ────────────────────────────────────────────────────
+  function callServer(fn, params, onSuccess, errorLabel, onError) {
+    let runner = google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.success === false) {
+          showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
+          if (onError) onError(res.error);
+        } else {
+          onSuccess(res);
+        }
+      })
+      .withFailureHandler(err => {
+        showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
+        if (onError) onError(err);
+      });
+    runner[fn](...params);
+  }
+
+  // ── REFRESH GLOBAL ───────────────────────────────────────────────────
+  function globalRefresh() {
+    loadEntities();
+    applyFilters();
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+      const tabId = activeTab.id;
+      if (tabId === 'tab-history') loadHistoryPage(currentHistoryPage);
+      if (tabId === 'tab-notes')   loadNotes();
+      if (tabId === 'tab-tools')   loadDataHealth();
+    }
+    lastRefreshTime = new Date();
+    updateRefreshBadge();
+  }
+
+  function updateRefreshBadge() {
+    if (!lastRefreshTime) return;
+    const diff = Math.round((new Date() - lastRefreshTime) / 60000);
+    const badge = document.getElementById('refreshBadge');
+    badge.textContent = diff < 1 ? 'À l\'instant' : `Il y a ${diff} min`;
+  }
+
+  // ── MODAL ────────────────────────────────────────────────────────────
+  function closeModal() {
+    document.getElementById('modalBackdrop').style.display = 'none';
+    const box = document.getElementById('modalBox');
+    box.innerHTML = '';
+    box.style.maxWidth = '';
+  }
+
+  function openConfirmModal(msg, onConfirm) {
+    const box = document.getElementById('modalBox');
+    box.innerHTML = '<p>' + escapeHtml(msg) + '</p>' +
+      '<div class="modal-actions">' +
+        '<button id="mConfirm" class="primary">Confirmer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mConfirm').onclick = () => { closeModal(); onConfirm(); };
+    document.getElementById('mCancel').onclick  = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
+  function openEditModal(entityType, oldName, oldMeta, oldIcon) {
+    const box = document.getElementById('modalBox');
+    const isCat = entityType === 'Categories';
+    const label = entityType === 'Players' ? 'URL avatar' : 'Description';
+    box.innerHTML =
+      '<h3>Éditer : ' + escapeHtml(oldName) + '</h3>' +
+      '<input type="text" id="mNewName" value="' + escapeHtml(oldName) + '" placeholder="Nom">' +
+      '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + label + '">' +
+      (isCat
+        ? '<input type="text" id="mNewIcon" value="' + escapeHtml(oldIcon || '') + '" placeholder="Icône emoji (ex : 🍺)" maxlength="8">'
+        : '') +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mSave').onclick = () => {
+      const n = document.getElementById('mNewName').value.trim();
+      const m = document.getElementById('mNewMeta').value.trim();
+      const ic = isCat ? document.getElementById('mNewIcon').value.trim() : '';
+      if (!n) return;
+      closeModal();
+      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic], () => {
+        loadEntities();
+        showToast('Renommé avec succès.', 'success');
+      }, 'Erreur renommage');
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
+  document.getElementById('modalBackdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
+  function loadEntities() {
+    callServer('apiGetSettings', [], res => {
+      cachedPlayers    = res.players    || [];
+      cachedCategories = res.categories || [];
+
+      // Remove any players/categories that no longer exist from chip selection
+      selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
+      selectedCategoryChips.forEach(n => { if (!cachedCategories.find(c => c.name === n)) selectedCategoryChips.delete(n); });
+      renderPlayerChips();
+      renderCategoryChips();
+
+      renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
+      renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
+      loadBaremeSettings();
+
+      updateHistoryFilters();
+      updateDonutPlayerSelect();
+      // Les notes dépendent de la liste des joueurs : on rafraîchit si l'onglet est ouvert.
+      if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
+
+      if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
+
+    }, 'Chargement settings');
+  }
+
+  function renderEntityList(container, items, type) {
+    container.innerHTML = '';
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.style.cssText = 'color:var(--text-muted); font-style:italic; font-size:0.85rem; padding:8px;';
+      li.textContent = 'Aucun élément.';
+      container.appendChild(li);
+      return;
+    }
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'entity-item';
+      const left = document.createElement('div');
+      left.className = 'entity-left';
+      if (type === 'Players') {
+        const img = document.createElement('img');
+        img.className = 'avatar-img';
+        img.src = getAvatarUrl(item.name, item.meta);
+        img.alt = item.name;
+        img.onerror = () => { img.src = getAvatarUrl(item.name, ''); };
+        left.appendChild(img);
+        // Color swatch — opens native color picker on click
+        const colorLbl = document.createElement('label');
+        colorLbl.title = 'Changer la couleur du joueur';
+        colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
+        const colorDot = document.createElement('span');
+        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:' + playerColor(item.name) + ';';
+        const colorIn = document.createElement('input');
+        colorIn.type = 'color';
+        colorIn.value = item.color || hashColor('P|' + item.name);
+        colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
+        colorIn.addEventListener('input', () => {
+          colorDot.style.background = colorIn.value;
+        });
+        colorIn.addEventListener('change', () => {
+          const p = cachedPlayers.find(p => p.name === item.name);
+          if (p) p.color = colorIn.value;
+          callServer('apiSetColor', ['Players', item.name, colorIn.value], res => {
+            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
+          }, 'Color save');
+          refreshColorDependentViews();
+        });
+        colorLbl.appendChild(colorDot);
+        colorLbl.appendChild(colorIn);
+        left.appendChild(colorLbl);
+      } else if (type === 'Categories' && item.icon) {
+        const ic = document.createElement('span');
+        ic.style.cssText = 'font-size:1.3rem; min-width:28px; text-align:center;';
+        ic.textContent = item.icon;
+        left.appendChild(ic);
+      }
+      if (type === 'Categories') {
+        // Color swatch — opens native color picker on click
+        const colorLbl = document.createElement('label');
+        colorLbl.title = 'Changer la couleur du Top';
+        colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
+        const colorDot = document.createElement('span');
+        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,0.25);background:' + categoryColor(item.name) + ';';
+        const colorIn = document.createElement('input');
+        colorIn.type = 'color';
+        colorIn.value = item.color || categoryColor(item.name);
+        colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
+        colorIn.addEventListener('input', () => {
+          colorDot.style.background = colorIn.value;
+        });
+        colorIn.addEventListener('change', () => {
+          const c = cachedCategories.find(c => c.name === item.name);
+          if (c) c.color = colorIn.value;
+          callServer('apiSetColor', ['Categories', item.name, colorIn.value], res => {
+            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
+          }, 'Color save');
+          refreshColorDependentViews();
+        });
+        colorLbl.appendChild(colorDot);
+        colorLbl.appendChild(colorIn);
+        left.appendChild(colorLbl);
+      }
+      const strong = document.createElement('strong');
+      strong.textContent = item.name;
+      left.appendChild(strong);
+      if (item.meta && type === 'Categories') {
+        const meta = document.createElement('span');
+        meta.className = 'entity-meta';
+        meta.textContent = item.meta;
+        left.appendChild(meta);
+      }
+      const btns = document.createElement('div');
+      btns.className = 'entity-btns';
+      const editBtn = document.createElement('button');
+      editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
+      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon));
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
+      delBtn.addEventListener('click', () => {
+        openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
+          buzz();
+          callServer('apiManageEntity', ['DELETE', type, null, null, item.name], () => {
+            loadEntities(); applyFilters();
+            showToast('Supprimé.', 'success');
+          }, 'Suppression');
+        });
+      });
+      btns.appendChild(editBtn); btns.appendChild(delBtn);
+      li.appendChild(left); li.appendChild(btns);
+      container.appendChild(li);
+    });
+  }
+
+  // ── GRAPHIQUE ────────────────────────────────────────────────────────
+  const CHART_COLORS = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+
+  function getChartColors() {
+    return {
+      text:  getComputedStyle(document.body).getPropertyValue('--text').trim()      || '#e0e6ed',
+      muted: getComputedStyle(document.body).getPropertyValue('--text-muted').trim()|| '#9aa5be',
+      grid:  getComputedStyle(document.body).getPropertyValue('--border').trim()    || '#2a313d'
+    };
+  }
+
+  function applyFilters() {
+    const selPlayers    = selectedPlayerChips.size   ? [...selectedPlayerChips]   : [];
+    const selCategories = selectedCategoryChips.size ? [...selectedCategoryChips] : [];
+    const startDate     = document.getElementById('startDate').value;
+    const endDate       = document.getElementById('endDate').value;
+
+    document.getElementById('chartSkeleton').style.display = 'block';
+    document.getElementById('chartWrapper').style.display  = 'none';
+
+    if (currentChartType === 'trend') {
+      callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
+        currentChartData = res.trendData;
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+        renderTrendChart(res.trendData);
+        renderChartControls('trend');
+        clearTopStatsStrip();
+      }, 'Chargement courbes');
+      return;
+    }
+
+    // Total global : tous les tops comptés (même supprimés) — pas de filtre catégorie
+    if (currentChartType === 'ranking' && !chartOptions.detailed) {
+      callServer('apiGetPlayerTotals', [selPlayers, startDate, endDate], res => {
+        currentChartData = res.chartData;
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+        renderChart(res.chartData, 'ranking');
+        renderChartControls('ranking');
+        clearTopStatsStrip();
+      }, 'Chargement total global');
+      return;
+    }
+
+    callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
+      currentChartData = res.chartData;
+      document.getElementById('chartSkeleton').style.display = 'none';
+      document.getElementById('chartWrapper').style.display  = 'block';
+      renderChart(res.chartData, currentChartType);
+      renderChartControls(currentChartType);
+      if (currentChartType === 'stacked' || currentChartType === 'grouped') {
+        renderTopStatsStrip(res.chartData);
+      } else {
+        clearTopStatsStrip();
+      }
+    }, 'Chargement graphique');
+  }
+
+  function switchChartType(type) {
+    currentChartType = type;
+    document.querySelectorAll('.chart-type-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.chartType === type);
+    });
+    const donutWrap = document.getElementById('donutPlayerWrap');
+    donutWrap.style.display = type === 'doughnut' ? 'block' : 'none';
+
+    if (type === 'trend' || type === 'ranking') {
+      applyFilters();
+      return;
+    }
+    const isStaleData = !currentChartData || currentChartData.series ||
+      (currentChartData.datasets && currentChartData.datasets.length === 1 &&
+       (currentChartData.datasets[0].label === 'Total global' || currentChartData.datasets[0].label === 'Total points'));
+    if (isStaleData) { applyFilters(); return; }
+    renderChart(currentChartData, type);
+    renderChartControls(type);
+    if (type === 'stacked' || type === 'grouped') {
+      renderTopStatsStrip(currentChartData);
+    } else {
+      clearTopStatsStrip();
+    }
+  }
+
+  // ── BARRE DE TRI / OPTIONS CONTEXTUELLE ──────────────────────────────
+  function renderChartControls(type) {
+    const bar = document.getElementById('chartControls');
+    bar.innerHTML = '';
+
+    // Met à jour le titre du graphique selon le type actif
+    const titleEl = document.getElementById('chartTitle');
+    if (titleEl) {
+      const titles = {
+        stacked:  '📈 Scores par Top',
+        grouped:  '📈 Scores par Top (groupé)',
+        trend:    '📈 Évolution temporelle',
+        radar:    '🕸️ Radar des scores',
+        doughnut: '🍩 Répartition par Top',
+        ranking:  chartOptions.detailed ? '🏆 Classement (tops actifs)' : '🏆 Total global'
+      };
+      titleEl.textContent = titles[type] || '📈 Scores';
+    }
+
+    // Pill-group builder — appends a DOM node to bar directly (not innerHTML)
+    const pillGroup = (label, prop, choices) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'chart-control';
+      const lbl = document.createElement('span');
+      lbl.className = 'cc-lbl'; lbl.textContent = label;
+      const pills = document.createElement('div');
+      pills.className = 'cc-pills';
+      choices.forEach(c => {
+        const p = document.createElement('button');
+        p.type = 'button'; p.className = 'cc-pill' + (chartOptions[prop] === c.v ? ' active' : '');
+        p.textContent = c.t;
+        p.addEventListener('click', () => {
+          chartOptions[prop] = c.v;
+          pills.querySelectorAll('.cc-pill').forEach(x => x.classList.remove('active'));
+          p.classList.add('active');
+          rerender(prop);
+        });
+        pills.appendChild(p);
+      });
+      wrap.appendChild(lbl); wrap.appendChild(pills);
+      return wrap;
+    };
+
+    const toggleCtrl = (label, prop) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'chart-control cc-toggle';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.checked = !!chartOptions[prop];
+      chk.addEventListener('change', () => { chartOptions[prop] = chk.checked; rerender(prop); });
+      wrap.appendChild(chk);
+      wrap.appendChild(document.createTextNode(' ' + label));
+      return wrap;
+    };
+
+    const rerender = (prop) => {
+      if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      else if (currentChartType === 'ranking' && prop === 'detailed') applyFilters();
+      else renderChart(currentChartData, currentChartType);
+    };
+
+    const sortChoices = [
+      { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'A→Z' }
+    ];
+
+    if (type === 'stacked' || type === 'grouped') {
+      if (!chartOptions.showTotals) chartOptions.showTotals = true;
+      bar.appendChild(pillGroup('Joueurs', 'sortBy',  sortChoices));
+      bar.appendChild(pillGroup('Tops',    'sortCat', sortChoices));
+      bar.appendChild(toggleCtrl('Totaux', 'showTotals'));
+      bar.appendChild(toggleCtrl('Échelle log.', 'logScale'));
+    } else if (type === 'ranking') {
+      bar.appendChild(pillGroup('Trier', 'sortBy', sortChoices));
+      bar.appendChild(toggleCtrl('Scores par top actifs', 'detailed'));
+      if (!chartOptions.detailed) {
+        const hint = document.createElement('span');
+        hint.style.cssText = 'font-size:0.72rem;color:var(--text-muted);align-self:center;';
+        hint.textContent = '← Tous les tops inclus (même supprimés)';
+        bar.appendChild(hint);
+      }
+    } else if (type === 'doughnut') {
+      bar.appendChild(pillGroup('Segments', 'sortCat', [
+        { v: 'total-desc', t: 'Valeur ↓' }, { v: 'total-asc', t: 'Valeur ↑' }, { v: 'name-asc', t: 'A→Z' }
+      ]));
+      bar.appendChild(toggleCtrl('Total au centre', 'donutCenter'));
+    } else if (type === 'trend') {
+      bar.appendChild(pillGroup('Légende', 'sortBy', [
+        { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'A→Z' }
+      ]));
+      bar.appendChild(pillGroup('Mode', 'trendMode', [
+        { v: 'cumul', t: 'Cumulé' }, { v: 'period', t: 'Par période' }
+      ]));
+    } else {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+
+    bar.style.display = 'flex';
+  }
+
+  // ── TOP STATS STRIP (below stacked/grouped charts) ───────────────────
+  function renderTopStatsStrip(data) {
+    const strip = document.getElementById('topStatsStrip');
+    if (!strip) return;
+    strip.innerHTML = '';
+    if (!data || !data.datasets || !data.datasets.length) return;
+
+    const topTotals = data.datasets.map(ds => ({
+      name:  ds.label,
+      total: (ds.data || []).reduce((s, v) => s + (Number(v) || 0), 0),
+      color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || '#ff4757')
+    })).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
+
+    topTotals.forEach(t => {
+      const pill = document.createElement('div');
+      pill.className = 'top-stat-pill';
+      pill.style.background = tint(t.color, 0.15);
+      pill.style.borderColor = tint(t.color, 0.5);
+      pill.style.color = 'var(--text)';
+
+      const pts = document.createElement('span');
+      pts.className = 'tsp-pts';
+      pts.textContent = t.total + ' pts';
+
+      const name = document.createElement('span');
+      name.className = 'tsp-name';
+      name.textContent = t.name.length > 14 ? t.name.slice(0, 13) + '…' : t.name;
+
+      pill.appendChild(pts);
+      pill.appendChild(name);
+      strip.appendChild(pill);
+    });
+  }
+
+  function clearTopStatsStrip() {
+    const strip = document.getElementById('topStatsStrip');
+    if (strip) strip.innerHTML = '';
+  }
+
+  // ── TRIS (côté front, sans appel serveur) ────────────────────────────
+  function sortIndices(values, mode, names) {
+    const idx = values.map((_, i) => i);
+    if (mode === 'name-asc') {
+      idx.sort((a, b) => String(names[a]).localeCompare(String(names[b])));
+    } else if (mode === 'total-asc') {
+      idx.sort((a, b) => values[a] - values[b]);
+    } else { // total-desc
+      idx.sort((a, b) => values[b] - values[a]);
+    }
+    return idx;
+  }
+
+  // Retourne une copie triée de { labels, datasets } selon chartOptions.
+  function getSortedBarData(data) {
+    const labels   = data.labels.slice();
+    const datasets = data.datasets.map(ds => ({ ...ds, data: ds.data.slice() }));
+
+    // Totaux par joueur (colonnes) et par catégorie (datasets).
+    const playerTotals = labels.map((_, i) => datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0));
+    const catTotals    = datasets.map(ds => ds.data.reduce((s, v) => s + (v || 0), 0));
+
+    const pOrder = sortIndices(playerTotals, chartOptions.sortBy,  labels);
+    const cOrder = sortIndices(catTotals,    chartOptions.sortCat, datasets.map(d => d.label));
+
+    const newLabels = pOrder.map(i => labels[i]);
+    const newDatasets = cOrder.map(ci => {
+      const ds = datasets[ci];
+      return { ...ds, data: pOrder.map(pi => ds.data[pi] || 0) };
+    });
+    return { labels: newLabels, datasets: newDatasets };
+  }
+
+  function renderChart(data, type) {
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+    if (!data || !data.labels || !data.labels.length) {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = 'var(--text-muted)';
+      ctx.textAlign = 'center';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
+      return;
+    }
+
+    const c = getChartColors();
+    const baseOpts = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: c.text, font: { size: 12 } } },
+        tooltip: { mode: 'index', intersect: false }
+      }
+    };
+
+    if (type === 'doughnut') {
+      const player = _donutPlayer;
+      const idx = data.labels.indexOf(player);
+      let segLabels = data.datasets.map(d => d.label);
+      let segValues = data.datasets.map(ds => idx >= 0 ? (ds.data[idx] || 0) : 0);
+
+      // Tri des segments
+      const order = sortIndices(segValues, chartOptions.sortCat, segLabels);
+      segLabels = order.map(i => segLabels[i]);
+      segValues = order.map(i => segValues[i]);
+      const origLabels = data.datasets.map(d => d.label);
+      const segColors = order.map(i => categoryColor(origLabels[i]));
+
+      const total = segValues.reduce((s, v) => s + v, 0);
+      const centerPlugin = {
+        id: 'donutCenter',
+        afterDraw(chart) {
+          if (!chartOptions.donutCenter) return;
+          const { ctx, chartArea } = chart;
+          const cx = (chartArea.left + chartArea.right) / 2;
+          const cy = (chartArea.top + chartArea.bottom) / 2;
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = c.text;
+          ctx.font = '700 1.5rem sans-serif';
+          ctx.fillText(String(total), cx, cy - 6);
+          ctx.font = '0.72rem sans-serif'; ctx.fillStyle = c.muted;
+          ctx.fillText('total', cx, cy + 16);
+          ctx.restore();
+        }
+      };
+
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors }] },
+        options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } },
+        plugins: [centerPlugin]
+      });
+      return;
+    }
+
+    if (type === 'radar') {
+      const radarDatasets = data.labels.map((player, i) => ({
+        label: player,
+        data: data.datasets.map(ds => ds.data[i] || 0),
+        backgroundColor: playerColor(player) + '33',
+        borderColor: playerColor(player),
+        pointBackgroundColor: playerColor(player),
+        borderWidth: 2
+      }));
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'radar',
+        data: { labels: data.datasets.map(d => catDisplay(d.label)), datasets: radarDatasets },
+        options: {
+          ...baseOpts,
+          scales: {
+            r: {
+              grid: { color: c.grid },
+              pointLabels: { color: c.muted },
+              ticks: { color: c.muted, backdropColor: 'transparent' }
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    if (type === 'ranking') {
+      const rows = data.labels.map((p, i) => ({
+        player: p,
+        index:  i,
+        total:  data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+      }));
+      const totalsVals = rows.map(r => r.total);
+      const order = sortIndices(totalsVals, chartOptions.sortBy, rows.map(r => r.player));
+      const totals = order.map(i => rows[i]);
+
+      // Mode détaillé : une barre empilée par catégorie. Sinon une seule barre de total.
+      let datasets;
+      if (chartOptions.detailed) {
+        datasets = data.datasets.map((ds, ci) => ({
+          label: catDisplay(ds.label),
+          data:  totals.map(t => ds.data[t.index] || 0),
+          backgroundColor: categoryColor(ds.label),
+          borderRadius: 3
+        }));
+      } else {
+        datasets = [{
+          label: 'Total points',
+          data:  totals.map(t => t.total),
+          backgroundColor: totals.map(t => playerColor(t.player)),
+          borderRadius: 4
+        }];
+      }
+
+      currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: totals.map(t => t.player), datasets },
+        options: {
+          ...baseOpts,
+          indexAxis: 'y',
+          plugins: { ...baseOpts.plugins, legend: { display: chartOptions.detailed, labels: { color: c.text } } },
+          scales: {
+            x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
+            y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
+          }
+        }
+      });
+      return;
+    }
+
+    // ── Barres empilées / groupées ──
+    const stacked = type !== 'grouped';
+    const sorted  = getSortedBarData(data);
+
+    // Plugin manuel : total au sommet de chaque barre.
+    const totalsPlugin = {
+      id: 'barTotals',
+      afterDatasetsDraw(chart) {
+        if (!chartOptions.showTotals) return;
+        const { ctx } = chart;
+        const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
+        ctx.save();
+        ctx.fillStyle = c.text;
+        ctx.font = '700 0.72rem sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        sorted.labels.forEach((lbl, i) => {
+          const total = sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
+          if (total <= 0) return;
+          // Position : centre du groupe (moyenne des x), sommet le plus haut (min y).
+          let sumX = 0, cnt = 0, minY = Infinity;
+          metas.forEach(meta => {
+            const el = meta.data[i];
+            if (!el) return;
+            sumX += el.x; cnt++; minY = Math.min(minY, el.y);
+          });
+          if (!cnt) return;
+          ctx.fillText(String(total), sumX / cnt, minY - 4);
+        });
+        ctx.restore();
+      }
+    };
+
+    const yScale = chartOptions.logScale
+      ? { type: 'logarithmic', stacked, grid: { color: c.grid }, ticks: { color: c.muted } }
+      : { stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } };
+
+    // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
+    const displayData = {
+      labels: sorted.labels,
+      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
+    };
+
+    currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+      type: 'bar',
+      data: displayData,
+      options: {
+        ...baseOpts,
+        layout: chartOptions.showTotals ? { padding: { top: 22 } } : {},
+        scales: {
+          x: { stacked, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
+          y: yScale
+        }
+      },
+      plugins: [totalsPlugin]
+    });
+  }
+
+  function renderTrendChart(trendData) {
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+    if (!trendData || !trendData.labels || !trendData.labels.length) {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = 'var(--text-muted)';
+      ctx.textAlign = 'center';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Aucune donnée temporelle pour cette sélection.', ctx.canvas.width / 2, 40);
+      return;
+    }
+
+    const c = getChartColors();
+    let players = Object.keys(trendData.series);
+
+    // Tri de la légende
+    const finals = players.map(p => {
+      const arr = trendData.series[p];
+      return arr.length ? arr[arr.length - 1] : 0;
+    });
+    const order = sortIndices(finals, chartOptions.sortBy, players);
+    players = order.map(i => players[i]);
+
+    // Mode « par période » : on dérive les variations à partir du cumul.
+    const seriesFor = p => {
+      const cum = trendData.series[p];
+      if (chartOptions.trendMode !== 'period') return cum;
+      return cum.map((v, i) => i === 0 ? v : v - cum[i - 1]);
+    };
+
+    const datasets = players.map((p, i) => ({
+      label: p,
+      data: seriesFor(p),
+      borderColor: playerColor(p),
+      backgroundColor: playerColor(p) + '22',
+      fill: chartOptions.trendMode !== 'period',
+      tension: 0.3,
+      pointRadius: 4,
+      borderWidth: 2
+    }));
+
+    currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: trendData.labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          // offset:true → les points ne sont pas collés au bord gauche (utile quand il y en a peu).
+          x: { offset: true, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
+          y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
+        },
+        plugins: {
+          legend: { labels: { color: c.text, font: { size: 12 } } },
+          tooltip: { mode: 'index', intersect: false }
+        }
+      }
+    });
+  }
+
+  function updateDonutPlayerSelect() {
+    const row = document.getElementById('donutPlayerChips');
+    if (!row) return;
+    row.innerHTML = '';
+    if (!_donutPlayer && cachedPlayers.length) _donutPlayer = cachedPlayers[0].name;
+    cachedPlayers.forEach(p => {
+      const col   = playerColor(p.name);
+      const isAct = _donutPlayer === p.name;
+      const chip  = makeFilterChip(p.name, col, '', () => {
+        _donutPlayer = p.name;
+        updateDonutPlayerSelect();
+        if (currentChartType === 'doughnut' && currentChartData) renderChart(currentChartData, 'doughnut');
+      });
+      if (isAct) chip.classList.add('active');
+      const img = document.createElement('img');
+      img.src = getAvatarUrl(p.name, p.meta);
+      img.onerror = () => img.remove();
+      chip.prepend(img);
+      row.appendChild(chip);
+    });
+  }
+
+  // ── EXPORTS ──────────────────────────────────────────────────────────
+
+  // Helper: draw a rounded rectangle path (no native support in older browsers)
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function buildInfographicCanvas(opts, forceScale) {
+    const S = forceScale !== undefined ? forceScale : opts.scale;
+    const W = Math.round(1200 * S);
+    const H = Math.round(700 * S);
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+
+    const isDark = opts.theme === 'dark';
+    const BG    = isDark ? '#0b0c10' : '#f0f2f5';
+    const CARD  = isDark ? '#1f2833' : '#ffffff';
+    const FG    = isDark ? '#e0e6ed' : '#1a202c';
+    const MUTED = isDark ? '#9aa5be' : '#4a5568';
+    const ACCENT = '#ff4757';
+
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+
+    let yOff = 0;
+
+    // Header band
+    if (opts.title) {
+      const hH = Math.round(64 * S);
+      ctx.fillStyle = CARD;
+      ctx.fillRect(0, 0, W, hH);
+      // Accent left bar
+      ctx.fillStyle = ACCENT;
+      ctx.fillRect(0, 0, Math.round(4 * S), hH);
+      // App name
+      ctx.fillStyle = FG;
+      ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('Tops des Tops', Math.round(18 * S), Math.round(24 * S));
+      // Chart label
+      const chartTitleEl = document.getElementById('chartTitle');
+      const chartLabel = chartTitleEl ? chartTitleEl.textContent : '';
+      ctx.fillStyle = MUTED;
+      ctx.font = Math.round(13 * S) + 'px sans-serif';
+      ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
+      // Period (right-aligned)
+      if (opts.period) {
+        const sd = document.getElementById('startDate').value;
+        const ed = document.getElementById('endDate').value;
+        const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
+        ctx.textAlign = 'right';
+        ctx.fillText(periodTxt, W - Math.round(18 * S), Math.round(42 * S));
+        ctx.textAlign = 'left';
+      }
+      yOff = hH + Math.round(8 * S);
+    }
+
+    // Reserve space for stats strip and footer
+    const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
+      ? Math.round(52 * S) : 0;
+    const footH = Math.round(24 * S);
+
+    // Chart image
+    const chartCv = document.getElementById('mainChart');
+    if (chartCv) {
+      const chartH = H - yOff - statsH - footH - Math.round(8 * S);
+      ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
+      yOff += chartH + Math.round(6 * S);
+    }
+
+    // Stats strip — top totals as pills
+    if (statsH && currentChartData && currentChartData.datasets) {
+      const topTotals = currentChartData.datasets.map(ds => ({
+        name:  ds.label,
+        total: (ds.data || []).reduce((s, v) => s + (Number(v) || 0), 0),
+        color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || ACCENT)
+      })).sort((a, b) => b.total - a.total).slice(0, 6);
+
+      const pillW = Math.round((W - 20 * S) / Math.max(topTotals.length, 1));
+      topTotals.forEach((t, i) => {
+        const px = Math.round(10 * S) + i * pillW;
+        const py = yOff;
+        const pw = pillW - Math.round(6 * S);
+        const ph = Math.round(38 * S);
+        // Pill background (tinted)
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = 0.18;
+        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Pill border
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = Math.round(1.5 * S);
+        ctx.globalAlpha = 0.5;
+        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Pill text
+        ctx.fillStyle = FG;
+        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
+        ctx.fillStyle = MUTED;
+        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
+        ctx.textAlign = 'left';
+      });
+      yOff += statsH;
+    }
+
+    // Footer
+    ctx.fillStyle = MUTED;
+    ctx.font = Math.round(10 * S) + 'px sans-serif';
+    ctx.fillText('Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
+
+    return cv;
+  }
+
+  function generateInfographic(opts) {
+    const canvas = buildInfographicCanvas(opts, opts.scale);
+    if (opts.format === 'pdf') {
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('landscape', 'px', [canvas.width / opts.scale, canvas.height / opts.scale]);
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / opts.scale, canvas.height / opts.scale);
+        pdf.save('tops-des-tops-infographie.pdf');
+        showToast('PDF généré !', 'success');
+      } catch(e) { showToast('Erreur PDF : ' + e.message, 'error'); }
+    } else {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/' + opts.format);
+      a.download = 'tops-des-tops-infographie.' + opts.format;
+      a.click();
+      showToast('Export OK', 'success');
+    }
+  }
+
+  function openExportModal() {
+    if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
+
+    // Modal state
+    let exportOpts = { format: 'png', theme: 'dark', title: true, period: true, stats: true, scale: 1 };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'export-modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'export-modal-box';
+
+    // Helper: pill group builder
+    const pillGroup = (label, options, key) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'export-opt-group';
+      const lbl = document.createElement('label'); lbl.textContent = label;
+      const pills = document.createElement('div'); pills.className = 'export-pills';
+      options.forEach(({ v, t }) => {
+        const p = document.createElement('button');
+        p.className = 'export-pill' + (exportOpts[key] === v ? ' active' : '');
+        p.textContent = t; p.type = 'button';
+        p.addEventListener('click', () => {
+          exportOpts[key] = v;
+          pills.querySelectorAll('.export-pill').forEach(x => x.classList.remove('active'));
+          p.classList.add('active');
+          updatePreview();
+        });
+        pills.appendChild(p);
+      });
+      wrap.appendChild(lbl); wrap.appendChild(pills);
+      return wrap;
+    };
+
+    // Helper: checkbox option builder
+    const checkOpt = (label, key) => {
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;';
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = exportOpts[key];
+      chk.addEventListener('change', () => { exportOpts[key] = chk.checked; updatePreview(); });
+      wrap.appendChild(chk); wrap.appendChild(document.createTextNode(label));
+      return wrap;
+    };
+
+    const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une infographie';
+    box.appendChild(titleEl);
+    box.appendChild(pillGroup('Format', [{v:'png',t:'PNG'},{v:'jpeg',t:'JPEG'},{v:'pdf',t:'PDF'}], 'format'));
+    box.appendChild(pillGroup('Thème', [{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
+    box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'}], 'scale'));
+
+    const optsGroup = document.createElement('div');
+    optsGroup.className = 'export-opt-group';
+    const optsLbl = document.createElement('label'); optsLbl.textContent = 'Options';
+    optsGroup.appendChild(optsLbl);
+    optsGroup.appendChild(checkOpt('Inclure le titre', 'title'));
+    optsGroup.appendChild(checkOpt('Inclure la période', 'period'));
+    optsGroup.appendChild(checkOpt('Inclure les stats', 'stats'));
+    box.appendChild(optsGroup);
+
+    // Preview area
+    const prevWrap = document.createElement('div');
+    prevWrap.className = 'export-preview-wrap';
+    const prevImg = document.createElement('img'); prevImg.alt = 'Aperçu';
+    prevWrap.appendChild(prevImg);
+    box.appendChild(prevWrap);
+
+    // Action buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Annuler'; cancelBtn.type = 'button';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'primary'; dlBtn.textContent = '⬇️ Télécharger'; dlBtn.type = 'button';
+    dlBtn.addEventListener('click', () => { generateInfographic(exportOpts); overlay.remove(); });
+    btnRow.appendChild(cancelBtn); btnRow.appendChild(dlBtn);
+    box.appendChild(btnRow);
+
+    overlay.appendChild(box);
+    // Close on backdrop click
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    // Live preview (always at 1x for speed)
+    function updatePreview() {
+      const canvas = buildInfographicCanvas(exportOpts, 1);
+      prevImg.src = canvas.toDataURL('image/png');
+    }
+    updatePreview();
+  }
+
+  function exportAsCSV() {
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    const { labels, datasets } = currentChartData;
+    const rows = [['Joueur', ...datasets.map(d => d.label)]];
+    labels.forEach((l, i) => rows.push([l, ...datasets.map(d => d.data[i] || 0)]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+    a.download = 'tops-des-tops.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Export CSV OK', 'success');
+  }
+
+  function exportAsExcel() {
+    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+    const { labels, datasets } = currentChartData;
+    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
+    labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+    XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
+    showToast('Export Excel OK', 'success');
+  }
+
+  // ── SAISIE LOT ───────────────────────────────────────────────────────
+  function updateRowAvatar(sel, img) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt) return;
+    const player = cachedPlayers.find(p => p.name === opt.value);
+    const url = getAvatarUrl(opt.value, player ? player.meta : '');
+    img.src = url;
+    img.onerror = () => { img.src = getAvatarUrl(opt.value, ''); };
+  }
+
+  function createPtsToggle(defaultVal) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pts-toggle-wrap';
+    wrap.dataset.selected = String(defaultVal || 1);
+
+    PTS_VALUES.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'pts-btn' + (v === (defaultVal || 1) ? ' active' : '');
+      btn.type = 'button';
+      btn.textContent = v;
+      btn.dataset.val = v;
+      btn.addEventListener('click', () => {
+        wrap.querySelectorAll('.pts-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        wrap.dataset.selected = v;
+      });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
+  // Petit sélecteur Répéter/Répartir propre à une ligne. Sa valeur est dans dataset.fill.
+  function createFillToggle(defaultMode) {
+    const wrap = document.createElement('div');
+    wrap.className = 'seg-toggle line-fill';
+    wrap.dataset.fill = defaultMode || 'repeat';
+    [['repeat', 'Répéter'], ['distribute', 'Répartir']].forEach(([val, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'seg-btn' + (val === wrap.dataset.fill ? ' active' : '');
+      b.textContent = label;
+      b.title = val === 'repeat' ? 'Même score chaque jour' : 'Total divisé sur les jours';
+      b.addEventListener('click', () => {
+        wrap.dataset.fill = val;
+        wrap.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function addEntryRow(preset) {
+    const container = document.getElementById('entryContainer');
+    const es = container.querySelector('.empty-state');
+    if (es) es.remove();
+
+    if (!cachedPlayers.length || !cachedCategories.length) {
+      if (!container.querySelector('.empty-state')) {
+        const p = document.createElement('p');
+        p.className = 'empty-state';
+        p.textContent = "⚠ Ajoutez d'abord des joueurs et des Tops dans Paramètres.";
+        container.appendChild(p);
+      }
+      return;
+    }
+
+    rowCounter++;
+    const div = document.createElement('div');
+    div.className = 'entry-row';
+    div.id = 'row_' + rowCounter;
+
+    // ── Joueur ──────────────────────────────────────────────────────────
+    const wrap = document.createElement('div');
+    wrap.className = 'player-sel-wrap';
+    const img = document.createElement('img');
+    img.className = 'row-avatar'; img.alt = '';
+    const pSel = document.createElement('select');
+    pSel.className = 'p-sel';
+    cachedPlayers.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      pSel.appendChild(o);
+    });
+    pSel.addEventListener('change', () => {
+      updateRowAvatar(pSel, img);
+      img.style.setProperty('--player-ring', playerColor(pSel.value));
+    });
+    wrap.appendChild(img); wrap.appendChild(pSel);
+
+    // ── Top ─────────────────────────────────────────────────────────────
+    const cSel = document.createElement('select');
+    cSel.className = 'c-sel';
+    cachedCategories.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name; o.textContent = catDisplay(c.name);
+      cSel.appendChild(o);
+    });
+
+    // Wrapper pastille couleur + select
+    const cSelWrap = document.createElement('div');
+    cSelWrap.className = 'c-sel-wrap';
+    const catDot = document.createElement('span');
+    catDot.className = 'cat-color-dot';
+    cSelWrap.appendChild(catDot);
+    cSelWrap.appendChild(cSel);
+
+    cSel.addEventListener('change', () => {
+      const col = categoryColor(cSel.value);
+      div.style.setProperty('--row-accent', col);
+      catDot.style.background = col;
+      updateLotSummary();
+    });
+
+    // ── Raccourcis Points ────────────────────────────────────────────────
+    const defaultPts = parseInt((preset && (preset.customPts || preset.points)) || '1', 10) || 1;
+    const ptsToggle = createPtsToggle(defaultPts);
+
+    // ── Valeur personnalisée (synchronisée avec les raccourcis) ──────────
+    const customPtsInput = document.createElement('input');
+    customPtsInput.type = 'number'; customPtsInput.className = 'custom-pts-in';
+    customPtsInput.value = String(defaultPts); customPtsInput.min = '1'; customPtsInput.step = '1';
+    customPtsInput.setAttribute('inputmode', 'numeric');
+    customPtsInput.placeholder = 'Pts…';
+    customPtsInput.title = 'Valeur exacte des points';
+    // Raccourci → input + pop animation + récap
+    ptsToggle.querySelectorAll('.pts-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        customPtsInput.value = btn.dataset.val;
+        btn.classList.add('pts-pop');
+        setTimeout(() => btn.classList.remove('pts-pop'), 220);
+        updateLotSummary();
+      });
+    });
+    // Input → raccourcis (surligne si valeur standard, sinon tout désactivé)
+    customPtsInput.addEventListener('input', () => {
+      const v = parseInt(customPtsInput.value, 10);
+      ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
+        b.classList.toggle('active', !isNaN(v) && parseInt(b.dataset.val, 10) === v);
+      });
+      updateLotSummary();
+    });
+    customPtsInput.addEventListener('blur', () => {
+      const v = parseInt(customPtsInput.value, 10);
+      if (isNaN(v) || v < 1) {
+        customPtsInput.value = '1';
+        ptsToggle.querySelectorAll('.pts-btn').forEach(b => b.classList.toggle('active', b.dataset.val === '1'));
+      }
+      updateLotSummary();
+    });
+
+    // ── Cellule date inline ──────────────────────────────────────────────
+    const defBtn  = document.getElementById('defaultDateBtn');
+    const defStart = (defBtn && defBtn.dataset.start) || toDateStr(new Date());
+    const defEnd   = (defBtn && defBtn.dataset.end)   || '';
+    const defFill  = (defBtn && defBtn.dataset.fill)  || 'repeat';
+
+    const dateCell = document.createElement('div');
+    dateCell.className = 'd-cell';
+
+    // Date de début (toujours visible)
+    const startInput = document.createElement('input');
+    startInput.type = 'date'; startInput.className = 'd-start';
+    startInput.value = (preset && preset.date) || defStart;
+
+    const startShortcuts = document.createElement('div');
+    startShortcuts.className = 'row-shortcuts';
+    buildRowDateShortcuts(startShortcuts, startInput);
+
+    // Case à cocher Plage
+    const rangeLabel = document.createElement('label');
+    rangeLabel.className = 'row-range-toggle';
+    const rangeCb = document.createElement('input');
+    rangeCb.type = 'checkbox'; rangeCb.className = 'range-cb';
+    const hasRange = preset ? (preset.dateEnd != null && preset.dateEnd !== '') : !!defEnd;
+    rangeCb.checked = hasRange;
+    rangeLabel.appendChild(rangeCb);
+    rangeLabel.appendChild(document.createTextNode(' Plage'));
+
+    // Détails de la plage (masqués par défaut si pas de plage)
+    const rangeDetails = document.createElement('div');
+    rangeDetails.className = 'row-range-details';
+    rangeDetails.style.display = hasRange ? 'flex' : 'none';
+
+    const endInput = document.createElement('input');
+    endInput.type = 'date'; endInput.className = 'd-end';
+    endInput.value = (preset && preset.dateEnd != null) ? preset.dateEnd : defEnd;
+
+    const endShortcuts = document.createElement('div');
+    endShortcuts.className = 'row-shortcuts';
+
+    const fillToggle = createFillToggle((preset && preset.fill) || defFill);
+
+    const dayPickerWrap = createDayPicker(preset && preset.days ? preset.days : []);
+
+    rangeDetails.appendChild(endInput);
+    rangeDetails.appendChild(endShortcuts);
+    rangeDetails.appendChild(fillToggle);
+    rangeDetails.appendChild(dayPickerWrap);
+
+    // Les chips de plage remplissent les deux inputs + activent la case
+    buildRowRangePresets(endShortcuts, startInput, endInput, rangeCb, rangeDetails);
+
+    rangeCb.addEventListener('change', () => {
+      rangeDetails.style.display = rangeCb.checked ? 'flex' : 'none';
+      if (!rangeCb.checked) endInput.value = '';
+    });
+
+    dateCell.appendChild(startInput);
+    dateCell.appendChild(startShortcuts);
+    dateCell.appendChild(rangeLabel);
+    dateCell.appendChild(rangeDetails);
+
+    // ── Description (champ pleine largeur, sous les contrôles principaux) ─
+    const descDiv = document.createElement('div');
+    descDiv.className = 'row-desc';
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.className = 'desc-in';
+    descInput.placeholder = '📝 Description (optionnelle)…';
+    descInput.value = (preset && preset.description) || '';
+    descDiv.appendChild(descInput);
+
+    // ── Actions ─────────────────────────────────────────────────────────
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'small'; dupBtn.textContent = '📋'; dupBtn.title = 'Dupliquer';
+    dupBtn.addEventListener('click', () => addEntryRow({
+      player:      pSel.value,
+      category:    cSel.value,
+      customPts:   customPtsInput.value,
+      date:        startInput.value,
+      dateEnd:     rangeCb.checked ? endInput.value : '',
+      fill:        fillToggle.dataset.fill,
+      days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
+      description: descInput.value
+    }));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
+    delBtn.addEventListener('click', () => {
+      div.classList.add('row-removing');
+      setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
+    });
+    actions.appendChild(dupBtn); actions.appendChild(delBtn);
+
+    div.appendChild(wrap);
+    div.appendChild(cSelWrap);
+    div.appendChild(ptsToggle);
+    div.appendChild(customPtsInput);
+    div.appendChild(dateCell);
+    div.appendChild(actions);
+    div.appendChild(descDiv);
+    container.appendChild(div);
+
+    if (preset) {
+      if (preset.player)   pSel.value = preset.player;
+      if (preset.category) cSel.value = preset.category;
+    }
+    updateRowAvatar(pSel, img);
+
+    // Couleurs initiales
+    const initCatCol = categoryColor(cSel.value);
+    div.style.setProperty('--row-accent', initCatCol);
+    catDot.style.background = initCatCol;
+    img.style.setProperty('--player-ring', playerColor(pSel.value));
+    updateLotSummary();
+  }
+
+  function updateLotSummary() {
+    const bar = document.getElementById('lotSummaryBar');
+    if (!bar) return;
+    const rows = document.querySelectorAll('.entry-row');
+    const count = rows.length;
+    if (count < 2) { bar.classList.add('hidden'); return; }
+    let totalPts = 0;
+    rows.forEach(r => {
+      const v = parseInt((r.querySelector('.custom-pts-in') || {}).value || '0', 10);
+      if (!isNaN(v) && v > 0) totalPts += v;
+    });
+    bar.classList.remove('hidden');
+    const rowCountEl = document.getElementById('lotRowCount');
+    const ptsTotalEl = document.getElementById('lotPtsTotal');
+    if (rowCountEl) rowCountEl.textContent = count;
+    if (ptsTotalEl) ptsTotalEl.textContent = totalPts;
+  }
+
+  function fmtFr(s) {
+    if (!s) return '';
+    const d = new Date(s + 'T12:00:00');
+    return isNaN(d) ? s : d.toLocaleDateString('fr-FR');
+  }
+
+  // Met à jour le libellé du bouton-date d'une ligne selon son état (jour unique ou plage).
+  function updateDateBtnLabel(btn) {
+    const s = btn.dataset.start, e = btn.dataset.end;
+    if (!e) {
+      btn.textContent = '📅 ' + fmtFr(s);
+    } else {
+      const mode = btn.dataset.fill === 'distribute' ? 'Répartir' : 'Répéter';
+      btn.textContent = '📅 ' + fmtFr(s) + ' → ' + fmtFr(e) + ' · ' + mode;
+    }
+  }
+
+  // Éditeur de date d'une ligne : jour unique OU plage, avec boutons rapides et Répéter/Répartir.
+  function openLineDateModal(btn) {
+    const box = document.getElementById('modalBox');
+    const isRange = !!btn.dataset.end;
+    box.innerHTML =
+      '<h3>Date de la ligne</h3>' +
+      '<label class="chart-control toggle" style="margin-bottom:10px;">' +
+        '<input type="checkbox" id="mIsRange"' + (isRange ? ' checked' : '') + '> Plage de dates (plusieurs jours)' +
+      '</label>' +
+      '<div class="mini">Du</div>' +
+      '<input type="date" id="mStart" value="' + escapeHtml(btn.dataset.start) + '">' +
+      '<div class="date-shortcuts" id="mStartChips" style="margin:6px 0;"></div>' +
+      '<div id="mRangeBox" style="' + (isRange ? '' : 'display:none;') + '">' +
+        '<div class="mini">Au</div>' +
+        '<input type="date" id="mEnd" value="' + escapeHtml(btn.dataset.end) + '">' +
+        '<div class="date-shortcuts" id="mRangeChips" style="margin:6px 0;"></div>' +
+        '<div class="mini" style="margin-top:8px;">Étalement sur l\'intervalle :</div>' +
+        '<div id="mFillSlot" style="margin-top:4px;"></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">OK</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+
+    const cb = document.getElementById('mIsRange');
+    const rangeBox = document.getElementById('mRangeBox');
+    cb.addEventListener('change', () => { rangeBox.style.display = cb.checked ? 'block' : 'none'; });
+
+    // Boutons rapides "jour unique" → remplissent Du.
+    const sc = document.getElementById('mStartChips');
+    dateShortcutItems().forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = s.label;
+      b.addEventListener('click', () => { document.getElementById('mStart').value = s.value; });
+      sc.appendChild(b);
+    });
+
+    // Boutons rapides "plage" → remplissent Du + Au et activent la plage.
+    const rc = document.getElementById('mRangeChips');
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = r.label;
+      b.addEventListener('click', () => {
+        document.getElementById('mStart').value = r.from;
+        document.getElementById('mEnd').value   = r.to;
+      });
+      rc.appendChild(b);
+    });
+
+    // Choix Répéter / Répartir.
+    const fillToggle = createFillToggle(btn.dataset.fill);
+    document.getElementById('mFillSlot').appendChild(fillToggle);
+
+    document.getElementById('mSave').onclick = () => {
+      const start = document.getElementById('mStart').value || toDateStr(new Date());
+      let end = '';
+      if (cb.checked) {
+        const e = document.getElementById('mEnd').value;
+        if (e && new Date(e + 'T12:00:00') > new Date(start + 'T12:00:00')) end = e;
+      }
+      btn.dataset.start = start;
+      btn.dataset.end   = end;
+      btn.dataset.fill  = fillToggle.dataset.fill;
+      updateDateBtnLabel(btn);
+      closeModal();
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
+  // Dates "YYYY-MM-DD" de start à end inclus ; [start] si end vide/invalide.
+  function lineDates(startStr, endStr) {
+    const start = startStr || toDateStr(new Date());
+    if (!endStr) return [start];
+    const a = new Date(start + 'T12:00:00'), b = new Date(endStr + 'T12:00:00');
+    if (isNaN(a) || isNaN(b) || b <= a) return [start];
+    const out = [];
+    const d = new Date(a);
+    while (d <= b) { out.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+
+  function submitBulk() {
+    const rows = document.querySelectorAll('.entry-row');
+    const items = [];
+    rows.forEach(r => {
+      const pSel = r.querySelector('.p-sel');
+      const cSel = r.querySelector('.c-sel');
+      const customPtsEl  = r.querySelector('.custom-pts-in');
+      const dStart       = r.querySelector('.d-start');
+      const dEnd         = r.querySelector('.d-end');
+      const rangeCb      = r.querySelector('.range-cb');
+      const fillTg       = r.querySelector('.line-fill');
+      const dayPickerWr  = r.querySelector('.day-picker-wrap');
+      const descEl       = r.querySelector('.desc-in');
+      const isRange      = rangeCb && rangeCb.checked;
+      if (pSel && cSel && customPtsEl && dStart) {
+        items.push({
+          dateStart:   dStart.value || '',
+          dateEnd:     (isRange && dEnd) ? dEnd.value : '',
+          fill:        fillTg ? fillTg.dataset.fill : 'repeat',
+          days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
+          player:      pSel.value,
+          category:    cSel.value,
+          points:      customPtsEl.value || '1',
+          times:       '1',
+          description: descEl ? descEl.value.trim() : ''
+        });
+      }
+    });
+    if (!items.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
+
+    for (const e of items) {
+      const pts = parseInt(e.points, 10);
+      if (isNaN(pts) || pts < 1) { showToast('La valeur des points doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
+    }
+
+    // Chaque ligne est étalée sur son intervalle (Du→Au) selon le mode choisi,
+    // puis tout est regroupé par date → un appel serveur par date distincte.
+    const byDate = {};   // dateKey -> [entries]
+    let hasRange = false;
+    let hasDayFilter = false;
+    items.forEach(it => {
+      // 1) Génération de toutes les dates de la plage
+      let dates = lineDates(it.dateStart, it.dateEnd);
+
+      // 2) Filtrage optionnel par jours de la semaine
+      if (dates.length > 1 && it.days && it.days.length) {
+        dates = filterDatesByDays(dates, it.days);
+        hasDayFilter = true;
+      }
+      if (!dates.length) return; // tous les jours filtrés → ligne ignorée
+
+      if (dates.length > 1) hasRange = true;
+
+      if (dates.length === 1 || it.fill === 'repeat') {
+        // Répéter : la ligne complète sur chaque jour de l'intervalle.
+        dates.forEach(dk => {
+          (byDate[dk] = byDate[dk] || []).push({
+            player: it.player, category: it.category, points: it.points, times: it.times,
+            description: it.description
+          });
+        });
+      } else {
+        // Répartir : le total de la ligne divisé en parts entières sur les jours retenus.
+        const total = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
+        const n = dates.length, base = Math.floor(total / n), rem = total % n;
+        dates.forEach((dk, k) => {
+          const val = base + (k < rem ? 1 : 0);
+          if (val > 0) (byDate[dk] = byDate[dk] || []).push({
+            player: it.player, category: it.category, points: val, times: 1,
+            description: it.description
+          });
+        });
+      }
+    });
+
+    const plan = Object.keys(byDate).sort().map(date => ({ date, entries: byDate[date] }));
+    if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
+    const totalEntries = plan.reduce((s, p) => s + p.entries.length, 0);
+    const btn = document.getElementById('submitLotBtn');
+
+    // Confirmation seulement si au moins une ligne couvre plusieurs jours.
+    if (hasRange) {
+      const dayNote = hasDayFilter ? ' (filtre jours actif)' : '';
+      openConfirmModal(
+        `Vous allez créer ${totalEntries} entrées sur ${plan.length} date(s)${dayNote}. Confirmer ?`,
+        () => runBulkPlan(plan, btn)
+      );
+    } else {
+      runBulkPlan(plan, btn);
+    }
+  }
+
+  /**
+   * Exécute un plan d'écriture séquentiellement (un appel serveur par date).
+   * plan : [{ date, entries }].
+   */
+  function runBulkPlan(plan, btn) {
+    if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
+    const restore = startBtnLoading(btn, 'Écriture 1/' + plan.length);
+    const gid = plan.length > 1 ? ('G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)) : '';
+    let i = 0;
+    const next = () => {
+      if (i >= plan.length) {
+        restore();
+        flashSaved(btn);
+        document.getElementById('entryContainer').innerHTML = '';
+        addEntryRow();
+        updateLotSummary();
+        applyFilters();
+        baremeEntries = null;
+        showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
+        return;
+      }
+      btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
+      callServer('apiAddBulkScores', [plan[i].entries, plan[i].date, gid], () => {
+        i++; next();
+      }, 'Envoi lot', () => { restore(); });
+    };
+    next();
+  }
+
+  // ── HISTORY BULK SELECTION ───────────────────────────────────────────
+  function toggleHistSelectMode(force) {
+    histSelectMode = force !== undefined ? force : !histSelectMode;
+    histSelected.clear();
+    histVisibleRows = [];
+    const selTh   = document.getElementById('histSelAllTh');
+    const bulkBar = document.getElementById('histBulkBar');
+    const btn     = document.getElementById('histSelectBtn');
+    if (selTh)   selTh.style.display   = histSelectMode ? '' : 'none';
+    if (bulkBar) bulkBar.style.display  = histSelectMode ? 'flex' : 'none';
+    if (btn) {
+      btn.classList.toggle('active', histSelectMode);
+      btn.textContent = histSelectMode ? '✕ Annuler sélection' : '☑ Sélectionner';
+    }
+    loadHistoryPage(currentHistoryPage);
+  }
+
+  function updateHistBulkBar() {
+    const count = document.getElementById('histBulkCount');
+    if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '');
+  }
+
+  function confirmGroupRows() {
+    if (histSelected.size < 2) { showToast('Sélectionnez au moins 2 entrées pour créer un groupe.', 'error'); return; }
+    const indexes = [...histSelected];
+    openConfirmModal(
+      'Grouper ces ' + indexes.length + ' entrées ensemble ?',
+      () => {
+        buzz();
+        callServer('apiGroupRows', [indexes], res => {
+          if (res.success) {
+            histSelected.clear();
+            toggleHistSelectMode(false);
+            showToast('Groupe créé.', 'success');
+            loadHistoryPage(currentHistoryPage);
+          } else {
+            showToast(res.error || 'Erreur lors du groupement.', 'error');
+          }
+        }, 'Création groupe');
+      }
+    );
+  }
+
+  function confirmBulkDelete() {
+    if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+    const indexes = [...histSelected];
+    openConfirmModal(
+      'Supprimer ' + indexes.length + ' entrée(s) ?',
+      () => {
+        buzz();
+        histSelected.clear();
+        toggleHistSelectMode(false);
+        scheduleDeletion(indexes);
+      }
+    );
+  }
+
+  // ── HISTORIQUE ───────────────────────────────────────────────────────
+  function renderHistoryFilterChips() {
+    const pc = document.getElementById('histPlayerChips');
+    const cc = document.getElementById('histCategoryChips');
+    if (!pc || !cc) return;
+    pc.innerHTML = ''; cc.innerHTML = '';
+
+    const makeChip = (label, isActive, color, onClick, avatarUrl) => {
+      const chip = document.createElement('button');
+      chip.className = 'hist-fchip' + (isActive ? ' active' : '');
+      if (isActive && color) {
+        chip.style.borderColor = color;
+        chip.style.color = color;
+        chip.style.background = tint(color, 0.15);
+      }
+      if (avatarUrl) {
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.onerror = () => img.remove();
+        chip.appendChild(img);
+      }
+      chip.appendChild(document.createTextNode(label));
+      chip.addEventListener('click', onClick);
+      return chip;
+    };
+
+    const allP = makeChip('Tous', selectedHistPlayers.size === 0, null, () => {
+      selectedHistPlayers.clear(); currentHistoryPage = 1;
+      renderHistoryFilterChips(); loadHistoryPage(1);
+    });
+    allP.classList.add('tous'); pc.appendChild(allP);
+    cachedPlayers.forEach(p => {
+      const active = selectedHistPlayers.has(p.name);
+      pc.appendChild(makeChip(p.name, active, active ? playerColor(p.name) : null, () => {
+        if (selectedHistPlayers.has(p.name)) selectedHistPlayers.delete(p.name);
+        else selectedHistPlayers.add(p.name);
+        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+      }, getAvatarUrl(p.name, p.meta)));
+    });
+
+    const allC = makeChip('Tous', selectedHistCategories.size === 0, null, () => {
+      selectedHistCategories.clear(); currentHistoryPage = 1;
+      renderHistoryFilterChips(); loadHistoryPage(1);
+    });
+    allC.classList.add('tous'); cc.appendChild(allC);
+    cachedCategories.forEach(c => {
+      const active = selectedHistCategories.has(c.name);
+      cc.appendChild(makeChip(catDisplay(c.name), active, active ? categoryColor(c.name) : null, () => {
+        if (selectedHistCategories.has(c.name)) selectedHistCategories.delete(c.name);
+        else selectedHistCategories.add(c.name);
+        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+      }));
+    });
+  }
+
+  function updateHistoryFilters() {
+    renderHistoryFilterChips();
+  }
+
+  function flushPendingDeletions(callback) {
+    if (pendingDeletions.size === 0) { callback(); return; }
+    const allIndexes = [];
+    pendingDeletions.forEach(p => {
+      clearTimeout(p.timerId);
+      p.toastEl.remove();
+      allIndexes.push(...p.rowIndexes);
+    });
+    pendingDeletions.clear();
+    callServer('apiDeleteHistoryEntries', [allIndexes], () => callback(), 'Suppression différée', () => callback());
+  }
+
+  function scheduleDeletion(rowIndexes) {
+    const id = ++_pendingDelIdSeq;
+
+    rowIndexes.forEach(ri => {
+      const tr = document.querySelector('tr[data-row-index="' + ri + '"]');
+      if (tr) tr.classList.add('hist-pending-delete');
+    });
+
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast warning';
+    const count = rowIndexes.length;
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = count === 1 ? 'Entrée supprimée.' : count + ' entrées supprimées.';
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'toast-undo-btn';
+    undoBtn.textContent = 'Annuler';
+    undoBtn.addEventListener('click', () => {
+      const pending = pendingDeletions.get(id);
+      if (!pending) return;
+      clearTimeout(pending.timerId);
+      pendingDeletions.delete(id);
+      pending.toastEl.style.animation = 'fadeOut 0.2s ease forwards';
+      setTimeout(() => pending.toastEl.remove(), 200);
+      rowIndexes.forEach(ri => {
+        const tr = document.querySelector('tr[data-row-index="' + ri + '"]');
+        if (tr) tr.classList.remove('hist-pending-delete');
+      });
+      showToast('Suppression annulée.', 'success');
+    });
+    toastEl.appendChild(msgSpan);
+    toastEl.appendChild(undoBtn);
+    document.getElementById('toastContainer').appendChild(toastEl);
+
+    const timerId = setTimeout(() => {
+      const pending = pendingDeletions.get(id);
+      if (!pending) return;
+      pendingDeletions.delete(id);
+      pending.toastEl.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => pending.toastEl.remove(), 300);
+      callServer('apiDeleteHistoryEntries', [rowIndexes], () => {
+        _doLoadHistoryPage(currentHistoryPage);
+      }, 'Suppression historique');
+    }, 5000);
+
+    pendingDeletions.set(id, { rowIndexes, timerId, toastEl });
+  }
+
+  function loadHistoryPage(page) {
+    flushPendingDeletions(() => _doLoadHistoryPage(page));
+  }
+
+  function _doLoadHistoryPage(page) {
+    currentHistoryPage = page;
+    const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
+    const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
+    const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
+
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null], res => {
+      const logs  = res.logs  || [];
+      const total = res.total || 0;
+      const totalEntries = res.totalEntries || total;
+      totalHistoryEntries = totalEntries;
+      document.getElementById('historyCount').textContent = totalEntries ? totalEntries : '';
+
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+
+      if (!logs.length) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = histSelectMode ? 6 : 5;
+        td.innerHTML = emptyIllustration('📭', 'Aucune entrée trouvée.');
+        document.getElementById('historyPagination').innerHTML = '';
+        histVisibleRows = [];
+        return;
+      }
+
+      // Track visible row indexes for select-all
+      histVisibleRows = logs.map(l => l.rowIndex);
+
+      // 1) Collect tagged groups, build ordered render list
+      const byGroupId = {};
+      const groupIdInserted = {};
+      logs.forEach(log => {
+        if (log.groupId) (byGroupId[log.groupId] = byGroupId[log.groupId] || []).push(log);
+      });
+      const renderItems = [];
+      logs.forEach(log => {
+        if (log.groupId) {
+          if (!groupIdInserted[log.groupId]) {
+            groupIdInserted[log.groupId] = true;
+            renderItems.push({ type: 'group', groupId: log.groupId, members: byGroupId[log.groupId] });
+          }
+        } else {
+          renderItems.push({ type: 'single', log });
+        }
+      });
+
+      // 2) Render group header (collapsed by default, child rows toggled on click)
+      const renderGroupHeader = (members, groupId) => {
+        const first = members[0];
+        const last  = members[members.length - 1];
+        const pColor = playerColor(first.player);
+        const headerTr = tbody.insertRow();
+        headerTr.className = 'hist-group-row';
+        let childrenVisible = false;
+        const childRows = [];
+
+        const totalPts = members.reduce((s, m) => s + m.points, 0);
+        const distinctPlayers    = [...new Set(members.map(m => m.player))];
+        const distinctCategories = [...new Set(members.map(m => m.category))];
+        const isMultiPlayer   = distinctPlayers.length > 1;
+        const isMultiCategory = distinctCategories.length > 1;
+
+        const dateCell = headerTr.insertCell();
+        dateCell.className = 'hist-accent';
+        dateCell.style.setProperty('--player-color', pColor);
+        const chevron = document.createElement('span');
+        chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
+        const d1 = new Date(last.timestamp); const d2 = new Date(first.timestamp);
+        const dateRange = (isNaN(d1) ? '—' : d1.toLocaleDateString('fr-FR')) + ' → ' + (isNaN(d2) ? '—' : d2.toLocaleDateString('fr-FR'));
+        dateCell.appendChild(chevron);
+        dateCell.appendChild(document.createTextNode(' ' + dateRange));
+
+        const playerCell = headerTr.insertCell();
+        playerCell.className = 'hist-player-cell';
+        if (isMultiPlayer) {
+          const stack = document.createElement('div');
+          stack.className = 'hist-avatar-stack';
+          distinctPlayers.slice(0, 3).forEach(pName => {
+            const pl = cachedPlayers.find(p => p.name === pName);
+            const av = document.createElement('img');
+            av.className = 'history-avatar';
+            av.src = getAvatarUrl(pName, pl ? pl.meta : '');
+            av.onerror = () => { av.src = getAvatarUrl(pName, ''); };
+            stack.appendChild(av);
+          });
+          if (distinctPlayers.length > 3) {
+            const more = document.createElement('span');
+            more.className = 'hist-avatar-more';
+            more.textContent = '+' + (distinctPlayers.length - 3);
+            stack.appendChild(more);
+          }
+          playerCell.appendChild(stack);
+          const namesEl = document.createElement('span');
+          namesEl.className = 'hist-player-name';
+          const shownNames = distinctPlayers.slice(0, 3).join(', ');
+          namesEl.textContent = distinctPlayers.length > 3 ? shownNames + ' (+' + (distinctPlayers.length - 3) + ')' : shownNames;
+          playerCell.appendChild(namesEl);
+        } else {
+          const pl = cachedPlayers.find(p => p.name === first.player);
+          const img = document.createElement('img');
+          img.className = 'history-avatar';
+          img.src = getAvatarUrl(first.player, pl ? pl.meta : '');
+          img.onerror = () => { img.src = getAvatarUrl(first.player, ''); };
+          const pName = document.createElement('span');
+          pName.className = 'hist-player-name'; pName.textContent = first.player;
+          playerCell.appendChild(img); playerCell.appendChild(pName);
+        }
+
+        const catCell = headerTr.insertCell();
+        if (isMultiCategory) {
+          const mixedPill = document.createElement('span');
+          mixedPill.className = 'hist-pill';
+          mixedPill.style.setProperty('--pill-bg', 'rgba(255,255,255,0.05)');
+          mixedPill.style.setProperty('--pill-bd', 'var(--border)');
+          mixedPill.textContent = '⚡ Mixte (' + distinctCategories.length + ')';
+          catCell.appendChild(mixedPill);
+        } else {
+          const cColor = categoryColor(first.category);
+          const pill = document.createElement('span');
+          pill.className = 'hist-pill';
+          pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+          pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+          const ic = catIcon(first.category);
+          if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+          pill.appendChild(document.createTextNode(first.category));
+          catCell.appendChild(pill);
+        }
+        if (!isMultiCategory && first.description) {
+          const descEl = document.createElement('div');
+          descEl.className = 'hist-desc-toggle';
+          descEl.textContent = first.description;
+          catCell.appendChild(descEl);
+        }
+
+        const ptsCell = headerTr.insertCell();
+        const badge = document.createElement('span');
+        badge.className = 'hist-pts';
+        badge.style.setProperty('--pts-bg', tint(pColor, 0.25));
+        badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+        badge.textContent = totalPts + ' pts';
+        ptsCell.appendChild(badge);
+        const groupBadge = document.createElement('span');
+        groupBadge.className = 'hist-group-badge';
+        groupBadge.textContent = '×' + members.length;
+        ptsCell.appendChild(document.createTextNode(' '));
+        ptsCell.appendChild(groupBadge);
+
+        const actCell = headerTr.insertCell();
+        actCell.style.whiteSpace = 'nowrap';
+        if (groupId) {
+          const ungroupBtn = document.createElement('button');
+          ungroupBtn.className = 'small'; ungroupBtn.textContent = '🔓';
+          ungroupBtn.title = 'Dissocier ce groupe';
+          ungroupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openConfirmModal(
+              'Dissocier ce groupe ? Les ' + members.length + ' entrées redeviendront indépendantes.',
+              () => {
+                callServer('apiUngroupLot', [groupId], res => {
+                  if (res.success) { showToast('Groupe dissocié.', 'success'); loadHistoryPage(currentHistoryPage); }
+                  else showToast('Erreur lors de la dissociation.', 'error');
+                }, 'Dissociation');
+              }
+            );
+          });
+          actCell.appendChild(ungroupBtn);
+        }
+
+        headerTr.addEventListener('click', () => {
+          childrenVisible = !childrenVisible;
+          chevron.classList.toggle('open', childrenVisible);
+          childRows.forEach(cr => cr.style.display = childrenVisible ? '' : 'none');
+        });
+
+        members.forEach(log => {
+          const cr = buildHistRow(log, tbody);
+          cr.className += ' hist-group-child';
+          cr.style.display = 'none';
+          childRows.push(cr);
+        });
+      };
+
+      // In select mode: flat list for individual checkbox control
+      if (histSelectMode) {
+        logs.forEach(log => buildHistRow(log, tbody));
+      } else {
+        renderItems.forEach(item => {
+          if (item.type === 'group') renderGroupHeader(item.members, item.groupId);
+          else buildHistRow(item.log, tbody);
+        });
+      }
+
+      renderPagination(total);
+    }, 'Chargement historique');
+  }
+
+  function buildHistRow(log, tbody) {
+    const tr = tbody.insertRow();
+    tr.dataset.rowIndex = log.rowIndex;
+    const pColor = playerColor(log.player);
+
+    if (histSelectMode) {
+      const selCell = tr.insertCell();
+      selCell.className = 'hist-sel-th';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'hist-chk';
+      chk.checked = histSelected.has(log.rowIndex);
+      if (chk.checked) tr.classList.add('hist-selected');
+      chk.addEventListener('change', () => {
+        if (chk.checked) { histSelected.add(log.rowIndex); tr.classList.add('hist-selected'); }
+        else { histSelected.delete(log.rowIndex); tr.classList.remove('hist-selected'); }
+        updateHistBulkBar();
+      });
+      selCell.appendChild(chk);
+    }
+
+    const dateCell = tr.insertCell();
+    dateCell.className = 'hist-accent';
+    dateCell.style.setProperty('--player-color', pColor);
+    const d = new Date(log.timestamp);
+    dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+
+    const playerCell = tr.insertCell();
+    playerCell.className = 'hist-player-cell';
+    playerCell.style.setProperty('--player-color', pColor);
+    const player = cachedPlayers.find(p => p.name === log.player);
+    const img = document.createElement('img');
+    img.className = 'history-avatar';
+    img.src = getAvatarUrl(log.player, player ? player.meta : '');
+    img.alt = log.player;
+    img.onerror = () => { img.src = getAvatarUrl(log.player, ''); };
+    const pName = document.createElement('span');
+    pName.className = 'hist-player-name'; pName.textContent = log.player;
+    playerCell.appendChild(img); playerCell.appendChild(pName);
+
+    const catCell = tr.insertCell();
+    const cColor = categoryColor(log.category);
+    const pill = document.createElement('span');
+    pill.className = 'hist-pill';
+    pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
+    pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
+    const ic = catIcon(log.category);
+    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+    pill.appendChild(document.createTextNode(log.category));
+    catCell.appendChild(pill);
+    if (log.description) {
+      const descEl = document.createElement('div');
+      descEl.className = 'hist-desc-toggle';
+      descEl.textContent = log.description;
+      descEl.title = 'Cliquer pour déplier';
+      descEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const existing = catCell.querySelector('.hist-desc-full');
+        if (existing) { existing.remove(); descEl.style.whiteSpace = 'nowrap'; return; }
+        const full = document.createElement('div');
+        full.className = 'hist-desc-full';
+        full.textContent = log.description;
+        descEl.style.whiteSpace = 'normal';
+        catCell.appendChild(full);
+      });
+      catCell.appendChild(descEl);
+    }
+
+    const ptsCell = tr.insertCell();
+    const badge = document.createElement('span');
+    badge.className = 'hist-pts';
+    const intensity = Math.min(0.10 + Math.log10(log.points + 1) * 0.22, 0.9);
+    badge.style.setProperty('--pts-bg', tint(pColor, intensity));
+    badge.style.setProperty('--pts-bd', tint(pColor, 0.6));
+    badge.textContent = log.points;
+    ptsCell.appendChild(badge);
+
+    const actCell = tr.insertCell();
+    actCell.style.cssText = 'white-space:nowrap;';
+    const editDescBtn = document.createElement('button');
+    editDescBtn.className = 'small'; editDescBtn.textContent = '📝';
+    editDescBtn.title = log.description ? 'Modifier la description' : 'Ajouter une description';
+    editDescBtn.style.marginRight = '4px';
+    editDescBtn.addEventListener('click', () => openEditDescModal(log));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
+    delBtn.addEventListener('click', () => {
+      openConfirmModal('Supprimer cette entrée ?', () => {
+        buzz();
+        scheduleDeletion([log.rowIndex]);
+      });
+    });
+    actCell.appendChild(editDescBtn); actCell.appendChild(delBtn);
+    return tr;
+  }
+
+  function renderPagination(total) {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const pg = document.getElementById('historyPagination');
+    pg.innerHTML = '';
+    if (totalPages <= 1) return;
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = 'small' + (i === currentHistoryPage ? ' active' : '');
+      btn.addEventListener('click', () => loadHistoryPage(i));
+      pg.appendChild(btn);
+    }
+  }
+
+  // ── NOTES (une zone permanente par joueur) ───────────────────────────
+  let _flashPlayer = ''; // persists across re-renders so selection survives note saves
+
+  function loadNotes() {
+    callServer('apiGetAllNotes', [], res => {
+      renderNotesUI(res.notes || []);
+    }, 'Chargement notes');
+  }
+
+  function renderNotesUI(notes) {
+    const container = document.getElementById('notesPlayersContainer');
+    container.innerHTML = '';
+    const totalNotes = notes.length;
+    document.getElementById('notesCount').textContent = totalNotes ? totalNotes : '';
+
+    if (!cachedPlayers.length) {
+      container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
+      return;
+    }
+
+    // Seed _flashPlayer on first render or if previously selected player was removed
+    if (!_flashPlayer || !cachedPlayers.find(p => p.name === _flashPlayer)) {
+      _flashPlayer = cachedPlayers[0].name;
+    }
+
+    // Barre de saisie rapide
+    const flash = document.createElement('div');
+    flash.className = 'notes-flash-bar';
+
+    // Chips joueurs — sélection visuelle immédiate
+    let flashPlayer = _flashPlayer;
+    const chipRow = document.createElement('div');
+    chipRow.className = 'notes-flash-chips';
+    cachedPlayers.forEach(p => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'notes-player-chip' + (p.name === flashPlayer ? ' active' : '');
+      chip.style.setProperty('--chip-col', playerColor(p.name));
+      const chipImg = document.createElement('img');
+      chipImg.src = getAvatarUrl(p.name, p.meta);
+      chipImg.onerror = () => chipImg.remove();
+      chip.appendChild(chipImg);
+      chip.appendChild(document.createTextNode(p.name));
+      chip.addEventListener('click', () => {
+        flashPlayer = p.name;
+        _flashPlayer = p.name;
+        chipRow.querySelectorAll('.notes-player-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        fInput.focus();
+      });
+      chipRow.appendChild(chip);
+    });
+
+    // Ligne de saisie : texte + bouton date discret + bouton ajouter
+    const inputRow = document.createElement('div');
+    inputRow.className = 'notes-flash-input-row';
+
+    const fInput = document.createElement('input');
+    fInput.type = 'text'; fInput.id = 'flashNoteText';
+    fInput.placeholder = 'Note rapide… (Entrée pour valider)';
+
+    let flashDate = '';
+    const fDateField = document.createElement('input');
+    fDateField.type = 'date';
+    fDateField.className = 'notes-flash-date-field';
+    fDateField.style.display = 'none';
+    fDateField.addEventListener('change', () => { flashDate = fDateField.value; });
+
+    const dateToggle = document.createElement('button');
+    dateToggle.type = 'button';
+    dateToggle.className = 'notes-flash-date-toggle';
+    dateToggle.textContent = '📅';
+    dateToggle.title = "Changer la date (par défaut : aujourd'hui)";
+    dateToggle.addEventListener('click', () => {
+      const hidden = fDateField.style.display === 'none';
+      fDateField.style.display = hidden ? '' : 'none';
+      dateToggle.classList.toggle('active', hidden);
+      if (hidden) { fDateField.focus(); } else { flashDate = ''; fDateField.value = ''; }
+    });
+
+    const fBtn = document.createElement('button');
+    fBtn.className = 'primary small'; fBtn.textContent = '✓ Ajouter';
+
+    const submitFlash = () => {
+      if (!flashPlayer) { showToast('Sélectionnez un joueur.', 'error'); return; }
+      const text = fInput.value.trim();
+      if (!text) { showToast('La note est vide.', 'error'); fInput.focus(); return; }
+      const restore = startBtnLoading(fBtn, '…');
+      callServer('apiAddNote', [flashPlayer, text, flashDate], () => {
+        restore(); flashSaved(fBtn);
+        fInput.value = ''; flashDate = ''; fDateField.value = '';
+        fDateField.style.display = 'none'; dateToggle.classList.remove('active');
+        showToast('Note ajoutée.', 'success');
+        loadNotes();
+      }, 'Ajout note', () => restore());
+    };
+    fBtn.addEventListener('click', submitFlash);
+    fInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitFlash(); } });
+
+    inputRow.appendChild(fInput);
+    inputRow.appendChild(dateToggle);
+    inputRow.appendChild(fDateField);
+    inputRow.appendChild(fBtn);
+
+    flash.appendChild(chipRow);
+    flash.appendChild(inputRow);
+    container.appendChild(flash);
+
+    // Regrouper les notes par joueur
+    const byPlayer = {};
+    notes.forEach(n => { (byPlayer[n.player] = byPlayer[n.player] || []).push(n); });
+
+    cachedPlayers.forEach(p => {
+      container.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
+    });
+  }
+
+  function buildPlayerNoteBlock(player, notes) {
+    const block = document.createElement('div');
+    block.className = 'note-player-block';
+
+    // En-tête : avatar + nom + compteur
+    const head = document.createElement('div');
+    head.className = 'npb-head';
+    const img = document.createElement('img');
+    img.src = getAvatarUrl(player.name, player.meta);
+    img.alt = player.name;
+    img.onerror = () => { img.src = getAvatarUrl(player.name, ''); };
+    const name = document.createElement('span');
+    name.className = 'npb-name'; name.textContent = player.name;
+    const count = document.createElement('span');
+    count.className = 'npb-count';
+    count.textContent = notes.length + ' note' + (notes.length > 1 ? 's' : '');
+    head.appendChild(img); head.appendChild(name); head.appendChild(count);
+
+    // Formulaire d'ajout propre à ce joueur
+    const add = document.createElement('div');
+    add.className = 'npb-add';
+    const ta = document.createElement('input');
+    ta.type = 'text'; ta.placeholder = 'Ajoute une note pour ' + player.name + '…';
+
+    let npbDate = '';
+    const npbDateField = document.createElement('input');
+    npbDateField.type = 'date';
+    npbDateField.className = 'npb-date-field';
+    npbDateField.style.display = 'none';
+    npbDateField.addEventListener('change', () => { npbDate = npbDateField.value; });
+
+    const npbDateToggle = document.createElement('button');
+    npbDateToggle.type = 'button';
+    npbDateToggle.className = 'notes-flash-date-toggle';
+    npbDateToggle.textContent = '📅';
+    npbDateToggle.title = "Changer la date (par défaut : aujourd'hui)";
+    npbDateToggle.addEventListener('click', () => {
+      const hidden = npbDateField.style.display === 'none';
+      npbDateField.style.display = hidden ? '' : 'none';
+      npbDateToggle.classList.toggle('active', hidden);
+      if (hidden) { npbDateField.focus(); } else { npbDate = ''; npbDateField.value = ''; }
+    });
+
+    const btn = document.createElement('button');
+    btn.className = 'primary small'; btn.textContent = '+ Ajouter';
+    const submitNpb = () => {
+      const text = ta.value.trim();
+      if (!text) { showToast('La note est vide.', 'error'); ta.focus(); return; }
+      const restore = startBtnLoading(btn, '…');
+      callServer('apiAddNote', [player.name, text, npbDate], () => {
+        restore(); flashSaved(btn);
+        ta.value = ''; npbDate = ''; npbDateField.value = '';
+        npbDateField.style.display = 'none'; npbDateToggle.classList.remove('active');
+        showToast('Note ajoutée.', 'success');
+        loadNotes();
+      }, 'Ajout note', () => restore());
+    };
+    btn.addEventListener('click', submitNpb);
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitNpb(); } });
+    add.appendChild(ta); add.appendChild(npbDateToggle); add.appendChild(npbDateField); add.appendChild(btn);
+
+    // Liste des notes du joueur
+    const listEl = document.createElement('div');
+    listEl.className = 'npb-notes';
+    if (!notes.length) {
+      const e = document.createElement('div');
+      e.className = 'npb-empty'; e.textContent = 'Aucune note pour le moment.';
+      listEl.appendChild(e);
+    } else {
+      notes.forEach(note => listEl.appendChild(buildNoteCard(note)));
+    }
+
+    block.appendChild(head); block.appendChild(add); block.appendChild(listEl);
+    return block;
+  }
+
+  function buildNoteCard(note) {
+    const d = note.timestamp ? new Date(note.timestamp) : null;
+    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+
+    const card = document.createElement('div');
+    card.className = 'note-card';
+
+    const headc = document.createElement('div');
+    headc.className = 'note-card-head';
+    const dt = document.createElement('span');
+    dt.className = 'note-date'; dt.textContent = dateStr;
+    headc.appendChild(dt);
+
+    const txt = document.createElement('div');
+    txt.className = 'note-text'; txt.textContent = note.text;
+
+    const actions = document.createElement('div');
+    actions.className = 'note-actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'small'; editBtn.textContent = '✏️ Éditer';
+    editBtn.addEventListener('click', () => openEditNoteModal(note));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '🗑️ Supprimer';
+    delBtn.addEventListener('click', () => {
+      openConfirmModal('Supprimer cette note ?', () => {
+        buzz();
+        callServer('apiDeleteNote', [note.rowIndex], () => {
+          loadNotes();
+          showToast('Note supprimée.', 'success');
+        }, 'Suppression note');
+      });
+    });
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
+
+    card.appendChild(headc); card.appendChild(txt); card.appendChild(actions);
+    return card;
+  }
+
+  function openEditNoteModal(note) {
+    const box = document.getElementById('modalBox');
+    box.innerHTML =
+      '<h3>Éditer la note</h3>' +
+      '<textarea id="mNoteText" rows="4" style="width:100%; padding:10px; border-radius:6px; ' +
+      'border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:16px; resize:vertical;">' +
+      escapeHtml(note.text) + '</textarea>' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mSave').onclick = () => {
+      const v = document.getElementById('mNoteText').value.trim();
+      if (!v) return;
+      closeModal();
+      callServer('apiEditNote', [note.rowIndex, v], () => {
+        loadNotes();
+        showToast('Note modifiée.', 'success');
+      }, 'Édition note');
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
+  function openEditDescModal(log) {
+    const box = document.getElementById('modalBox');
+    const d = log.timestamp ? new Date(log.timestamp) : null;
+    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+    box.innerHTML =
+      '<h3>Description de l\'entrée</h3>' +
+      '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">' +
+        escapeHtml(dateStr) + ' — ' + escapeHtml(log.player) +
+        ' · ' + escapeHtml(log.category) +
+        ' <strong>(' + escapeHtml(String(log.points)) + ' pts)</strong>' +
+      '</p>' +
+      '<input type="text" id="mDescText" value="' + escapeHtml(log.description || '') +
+        '" placeholder="Description (optionnelle)…">' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+    document.getElementById('mSave').onclick = () => {
+      const v = document.getElementById('mDescText').value.trim();
+      closeModal();
+      callServer('apiUpdateHistoryDescription', [log.rowIndex, v], () => {
+        log.description = v;
+        loadHistoryPage(currentHistoryPage);
+        showToast('Description mise à jour.', 'success');
+      }, 'Description');
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+    setTimeout(() => { const el = document.getElementById('mDescText'); if (el) el.focus(); }, 50);
+  }
+
+  // ── OUTILS ───────────────────────────────────────────────────────────
+  function loadDataHealth() {
+    const grid = document.getElementById('healthGrid');
+    grid.innerHTML = `
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+      <div class="health-stat skeleton" style="height:90px;"></div>
+    `;
+    callServer('apiGetDataHealth', [], res => {
+      const h = res.health;
+      grid.innerHTML = `
+        <div class="health-stat ok">
+          <div class="stat-value">${h.total}</div>
+          <div class="stat-label">Entrées totales</div>
+        </div>
+        <div class="health-stat ${h.zeros > 0 ? 'bad' : 'ok'}">
+          <div class="stat-value">${h.zeros}</div>
+          <div class="stat-label">Scores ≤ 0</div>
+        </div>
+        <div class="health-stat ${h.orphans > 0 ? 'warn' : 'ok'}">
+          <div class="stat-value">${h.orphans}</div>
+          <div class="stat-label">Orphelines</div>
+        </div>
+      `;
+    }, 'Chargement santé');
+  }
+
+  // ── NAVIGATION ───────────────────────────────────────────────────────
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+      if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
+      if (tabId === 'tab-notes')   { loadNotes(); }
+      if (tabId === 'tab-tools')   { loadDataHealth(); }
+      if (tabId === 'tab-guide')   { initGuideAccordion(); }
+    });
+  });
+
+  // ── THÈME ─────────────────────────────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('topsdestops_theme');
+    if (saved === 'light') document.body.classList.add('light');
+    const btn = document.getElementById('themeToggle');
+    btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    btn.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      const isLight = document.body.classList.contains('light');
+      localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
+      btn.textContent = isLight ? '☀️' : '🌙';
+      if (currentChart && currentChartData) {
+        if (currentChartType === 'trend') renderTrendChart(currentChartData);
+        else renderChart(currentChartData, currentChartType);
+      }
+    });
+  }
+
+  // ── BOUTONS ───────────────────────────────────────────────────────────
+  function bindButtons() {
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      const name = document.getElementById('newPlayerName').value.trim();
+      const meta = document.getElementById('newPlayerMeta').value.trim();
+      if (!name) { showToast('Nom requis.', 'error'); return; }
+      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null], () => {
+        document.getElementById('newPlayerName').value = '';
+        document.getElementById('newPlayerMeta').value = '';
+        loadEntities(); showToast('Joueur ajouté.', 'success');
+      }, 'Ajout joueur');
+    });
+
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      const name = document.getElementById('newCategoryName').value.trim();
+      const meta = document.getElementById('newCategoryMeta').value.trim();
+      const icon = document.getElementById('newCategoryIcon').value.trim();
+      if (!name) { showToast('Nom requis.', 'error'); return; }
+      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null, icon], () => {
+        document.getElementById('newCategoryName').value = '';
+        document.getElementById('newCategoryMeta').value = '';
+        document.getElementById('newCategoryIcon').value = '';
+        loadEntities(); showToast('Top ajouté.', 'success');
+      }, 'Ajout Top');
+    });
+
+    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
+    document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
+    document.getElementById('submitLotBtnSummary').addEventListener('click', submitBulk);
+    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+    document.getElementById('clearDatesBtn').addEventListener('click', () => {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value   = '';
+      applyFilters();
+    });
+    document.getElementById('startDate').addEventListener('change', applyFilters);
+    document.getElementById('endDate').addEventListener('change', applyFilters);
+
+    // Applique la date/plage par défaut à toutes les lignes déjà saisies.
+    document.getElementById('applyDateAllBtn').addEventListener('click', () => {
+      const def      = document.getElementById('defaultDateBtn');
+      const defStart = def.dataset.start || toDateStr(new Date());
+      const defEnd   = def.dataset.end   || '';
+      const defFill  = def.dataset.fill  || 'repeat';
+      const isRange  = !!defEnd;
+
+      const rows = document.querySelectorAll('.entry-row');
+      if (!rows.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
+
+      rows.forEach(row => {
+        const startInp = row.querySelector('.d-start');
+        const endInp   = row.querySelector('.d-end');
+        const cb       = row.querySelector('.range-cb');
+        const details  = row.querySelector('.row-range-details');
+        const fillTog  = row.querySelector('.line-fill');
+
+        if (startInp) startInp.value = defStart;
+        if (endInp)   endInp.value   = defEnd;
+        if (cb)       cb.checked     = isRange;
+        if (details)  details.style.display = isRange ? 'flex' : 'none';
+        if (fillTog) {
+          fillTog.dataset.fill = defFill;
+          fillTog.querySelectorAll('.seg-btn').forEach(b => {
+            const bVal = b.textContent === 'Répéter' ? 'repeat' : 'distribute';
+            b.classList.toggle('active', bVal === defFill);
+          });
+        }
+      });
+
+      const what = isRange ? 'Plage' : 'Date';
+      showToast(`${what} appliquée à ${rows.length} ligne(s).`, 'success');
+    });
+
+
+    document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
+      currentHistoryPage = 1; loadHistoryPage(1);
+    });
+
+    document.getElementById('globalRefreshBtn').addEventListener('click', globalRefresh);
+    setInterval(updateRefreshBadge, 60000);
+
+    const textFilterEl = document.getElementById('historyTextFilter');
+    if (textFilterEl) {
+      textFilterEl.addEventListener('input', () => {
+        clearTimeout(_histSearchTimeout);
+        _histSearchTimeout = setTimeout(() => { currentHistoryPage = 1; loadHistoryPage(1); }, 400);
+      });
+    }
+
+    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
+    });
+
+
+    document.getElementById('reloadHealthBtn').addEventListener('click', loadDataHealth);
+
+    document.getElementById('fixZeroBtn').addEventListener('click', () => {
+      openConfirmModal('Supprimer toutes les entrées à 0 point ? Cette action est irréversible.', () => {
+        buzz();
+        callServer('apiFixZeroPoints', [], res => {
+          showToast(`${res.deleted} entrée(s) supprimée(s).`, 'success');
+          loadDataHealth();
+        }, 'Nettoyage zéros');
+      });
+    });
+
+    document.getElementById('deleteOrphansBtn').addEventListener('click', () => {
+      openConfirmModal('Supprimer les entrées orphelines (joueur/Top disparu) ? Irréversible.', () => {
+        buzz();
+        callServer('apiDeleteOrphans', [], res => {
+          showToast(`${res.deleted} orphelin(s) supprimé(s).`, 'success');
+          loadDataHealth(); applyFilters();
+        }, 'Suppression orphelins');
+      });
+    });
+
+    // ── Notes ──
+    document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
+
+    // ── History bulk selection ──
+    document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
+    document.getElementById('histBulkGroup').addEventListener('click', confirmGroupRows);
+    document.getElementById('histBulkDelete').addEventListener('click', confirmBulkDelete);
+    document.getElementById('histBulkCancel').addEventListener('click', () => toggleHistSelectMode(false));
+    document.getElementById('histBulkSelectAll').addEventListener('click', () => {
+      const allSelected = histVisibleRows.every(ri => histSelected.has(ri));
+      if (allSelected) {
+        histVisibleRows.forEach(ri => histSelected.delete(ri));
+      } else {
+        histVisibleRows.forEach(ri => histSelected.add(ri));
+      }
+      loadHistoryPage(currentHistoryPage);
+      updateHistBulkBar();
+    });
+
+    // ── Bulk description apply ──
+    document.getElementById('histBulkDescApply').addEventListener('click', () => {
+      if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+      const desc = document.getElementById('histBulkDescInput').value.trim();
+      openConfirmModal(
+        'Appliquer la description « ' + (desc || '(vide)') + ' » à ' + histSelected.size + ' entrée(s) ?',
+        () => {
+          const btn = document.getElementById('histBulkDescApply');
+          const restore = startBtnLoading(btn, '…');
+          callServer('apiUpdateBulkDescription', [[...histSelected], desc], res => {
+            restore();
+            if (res.success) {
+              flashSaved(btn);
+              showToast('Description mise à jour.', 'success');
+              document.getElementById('histBulkDescInput').value = '';
+              loadHistoryPage(currentHistoryPage);
+            } else {
+              showToast(res.error || 'Erreur.', 'error');
+            }
+          }, 'Desc. en masse', () => restore());
+        }
+      );
+    });
+
+    // ── Detection tool ──
+    document.getElementById('detectLotsBtn').addEventListener('click', scanDistributedLots);
+  }
+
+  // ── GUIDE ACCORDION ─────────────────────────────────────────────────
+  let guideInited = false;
+  function initGuideAccordion() {
+    if (guideInited) return;
+    guideInited = true;
+    document.querySelectorAll('.guide-section h3').forEach(h3 => {
+      h3.addEventListener('click', () => {
+        h3.parentElement.classList.toggle('open');
+      });
+    });
+  }
+
+  // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
+  function scanDistributedLots() {
+    const btn = document.getElementById('detectLotsBtn');
+    const container = document.getElementById('detectResults');
+    container.innerHTML = '';
+    const restore = startBtnLoading(btn, 'Scan…');
+
+    callServer('apiDetectDistributedLots', [], res => {
+      restore();
+      if (!res.lots || !res.lots.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun lot réparti détecté. Tout est propre ✅</p>';
+        return;
+      }
+      renderDetectedLots(res.lots, container);
+    }, 'Détection lots', () => { restore(); showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  function renderDetectedLots(lots, container) {
+    container.innerHTML = '';
+
+    const info = document.createElement('p');
+    info.style.cssText = 'font-size:0.82rem;color:var(--text-muted);margin:0 0 10px;';
+    info.textContent = lots.length + ' lot(s) détecté(s). Cochez ceux à regrouper, puis validez. Chaque lot sera fusionné en une seule entrée avec le total des points.';
+    container.appendChild(info);
+
+    const checkAll = document.createElement('label');
+    checkAll.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:0.85rem;cursor:pointer;';
+    const cbAll = document.createElement('input');
+    cbAll.type = 'checkbox';
+    checkAll.appendChild(cbAll);
+    checkAll.appendChild(document.createTextNode('Tout sélectionner'));
+    container.appendChild(checkAll);
+
+    const lotEls = [];
+    lots.forEach((lot, i) => {
+      const div = document.createElement('div');
+      div.className = 'detect-lot';
+
+      const head = document.createElement('div');
+      head.className = 'detect-lot-head';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.dataset.lotIndex = i;
+      cb.addEventListener('change', () => {
+        const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
+        cbAll.checked = [...allCbs].every(c => c.checked);
+      });
+
+      const label = document.createElement('span');
+      label.innerHTML =
+        '<strong>' + escapeHtml(lot.player) + '</strong> — ' +
+        escapeHtml(lot.category) + ' — ' +
+        lot.points + ' pts' +
+        (lot.description ? ' — <em>' + escapeHtml(lot.description) + '</em>' : '') +
+        ' <span style="color:var(--text-muted);font-size:0.8rem;">(' +
+        lot.count + ' entrées, du ' + lot.dateFrom + ' au ' + lot.dateTo +
+        ', total ' + lot.totalPts + ' pts)</span>';
+
+      head.appendChild(cb);
+      head.appendChild(label);
+      div.appendChild(head);
+
+      const details = document.createElement('div');
+      details.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding-left:24px;';
+      details.textContent = 'Lignes : ' + lot.rowIndexes.join(', ');
+      div.appendChild(details);
+
+      container.appendChild(div);
+      lotEls.push({ cb, lot });
+    });
+
+    cbAll.addEventListener('change', () => {
+      lotEls.forEach(l => l.cb.checked = cbAll.checked);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'detect-actions';
+    actions.style.cssText = 'margin-top:14px;display:flex;gap:10px;';
+    const mergeBtn = document.createElement('button');
+    mergeBtn.className = 'primary small';
+    mergeBtn.textContent = '🔗 Regrouper les lots sélectionnés';
+    actions.appendChild(mergeBtn);
+    container.appendChild(actions);
+
+    mergeBtn.addEventListener('click', () => {
+      const selected = lotEls.filter(l => l.cb.checked);
+      if (!selected.length) { showToast('Aucun lot coché.', 'error'); return; }
+
+      const totalEntries = selected.reduce((s, l) => s + l.lot.count, 0);
+
+      openConfirmModal(
+        'Regrouper ' + selected.length + ' lot(s) (' + totalEntries + ' entrées) ? Les entrées resteront dans l\'historique mais seront affichées comme un seul groupe déroulable.',
+        () => {
+          const lotsData = selected.map(l => ({ rowIndexes: l.lot.rowIndexes }));
+          const restore = startBtnLoading(mergeBtn, 'Regroupement…');
+          callServer('apiGroupDistributedLots', [lotsData], res => {
+            restore();
+            if (res.success) {
+              showToast(totalEntries + ' entrées regroupées.', 'success');
+              scanDistributedLots();
+              loadHistoryPage(currentHistoryPage);
+            } else {
+              showToast(res.error || 'Erreur.', 'error');
+            }
+          }, 'Regroupement lots', () => { restore(); showToast('Erreur.', 'error'); });
+        }
+      );
+    });
+  }
+
+  function bindExportButtons() {
+    document.getElementById('exportInfographicBtn').addEventListener('click', openExportModal);
+    document.querySelectorAll('.export-btn[data-export]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.export;
+        if      (t === 'csv')  exportAsCSV();
+        else if (t === 'xlsx') exportAsExcel();
+      });
+    });
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────────
+  window.onload = () => {
+    initTheme();
+    bindButtons();
+    bindExportButtons();
+
+    // Bouton « date/plage par défaut » du lot : ouvre le même éditeur que les lignes.
+    (() => {
+      const def = document.getElementById('defaultDateBtn');
+      def.dataset.start = toDateStr(new Date());
+      def.dataset.end   = '';
+      def.dataset.fill  = 'repeat';
+      updateDateBtnLabel(def);
+      def.addEventListener('click', () => openLineDateModal(def));
+    })();
+
+    // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value   = '';
+    buildRangePresets();
+
+    lastRefreshTime = new Date();
+    updateRefreshBadge();
+
+    loadEntities();
+    applyFilters();
+  };
+
+  // ── BARÈME SETTINGS ─────────────────────────────────────────────────
+  function loadBaremeSettings() {
+    const container = document.getElementById('baremeSettingsList');
+    if (!container) return;
+    if (!cachedCategories.length) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;font-style:italic;">Ajoutez d\'abord des Tops dans Paramètres.</p>';
+      return;
+    }
+    container.innerHTML = '<div class="bareme-skel" style="height:60px;margin-bottom:10px;"></div>'.repeat(Math.min(cachedCategories.length, 3));
+    callServer('apiGetBareme', [], res => {
+      if (!res.success) { container.innerHTML = '<p style="color:var(--error)">Erreur de chargement.</p>'; return; }
+      baremeEntries = res.entries;
+      renderBaremeSettings(res.entries);
+      if (document.getElementById('baremeDrawer').classList.contains('open')) renderBaremeDrawer(res.entries);
+    }, 'Barème settings');
+  }
+
+  function renderBaremeSettings(entries) {
+    const container = document.getElementById('baremeSettingsList');
+    if (!container) return;
+    container.innerHTML = '';
+    cachedCategories.forEach(cat => {
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
+      const col        = categoryColor(cat.name);
+      const block      = document.createElement('div');
+      block.className  = 'bsect';
+
+      // Header
+      const head = document.createElement('div');
+      head.className = 'bsect-head';
+      head.style.setProperty('--bsect-col', col);
+      const label = document.createElement('span');
+      label.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+      const countPill = document.createElement('span');
+      countPill.className = 'bsect-count';
+      countPill.textContent = catEntries.length + ' règle' + (catEntries.length !== 1 ? 's' : '');
+      head.appendChild(label); head.appendChild(countPill);
+      block.appendChild(head);
+
+      // Entries
+      const entriesCont = document.createElement('div');
+      entriesCont.className = 'bsect-entries';
+      if (!catEntries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'bsect-empty'; empty.textContent = 'Aucune règle.';
+        entriesCont.appendChild(empty);
+      } else {
+        catEntries.forEach(e => entriesCont.appendChild(buildBsectRow(e, entriesCont, entries)));
+      }
+      block.appendChild(entriesCont);
+
+      // Add form
+      block.appendChild(buildBsectAddForm(cat.name, entries));
+      container.appendChild(block);
+    });
+  }
+
+  function buildBsectRow(entry, entriesCont, allEntries) {
+    const col = categoryColor(entry.top);
+    const row = document.createElement('div');
+    row.className = 'bsect-entry';
+    row.style.borderLeft = '3px solid ' + tint(col, 0.5);
+    row.style.background = tint(col, 0.05);
+
+    const pts = document.createElement('span');
+    pts.className = 'bsect-pts';
+    pts.style.background = col;
+    pts.textContent = entry.pts + ' pt' + (Math.abs(entry.pts) !== 1 ? 's' : '');
+
+    const action = document.createElement('span');
+    action.className = 'bsect-action'; action.textContent = entry.action;
+
+    const btns = document.createElement('div');
+    btns.className = 'bsect-btns';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'small'; editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', () => {
+      row.innerHTML = '';
+      row.style.flexWrap = 'wrap';
+      const ptsIn = document.createElement('input');
+      ptsIn.type = 'number'; ptsIn.value = entry.pts; ptsIn.style.cssText = 'width:64px;padding:4px 6px;font-size:0.82rem;text-align:center;';
+      const actIn = document.createElement('input');
+      actIn.type = 'text'; actIn.value = entry.action; actIn.style.cssText = 'flex:1;min-width:120px;padding:4px 8px;font-size:0.84rem;';
+      const ok = document.createElement('button');
+      ok.className = 'small primary'; ok.textContent = '✓';
+      ok.addEventListener('click', () => {
+        if (!actIn.value.trim()) { showToast('Action vide.', 'error'); return; }
+        const restore = startBtnLoading(ok, '…');
+        callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value], res => {
+          restore();
+          if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+          else showToast('Erreur sauvegarde.', 'error');
+        }, 'Update barème');
+      });
+      const cancel = document.createElement('button');
+      cancel.className = 'small'; cancel.textContent = '✕';
+      cancel.addEventListener('click', () => row.replaceWith(buildBsectRow(entry, entriesCont, allEntries)));
+      row.appendChild(ptsIn); row.appendChild(actIn); row.appendChild(ok); row.appendChild(cancel);
+      actIn.focus();
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', () => {
+      const restore = startBtnLoading(delBtn, '…');
+      callServer('apiDeleteBaremeEntry', [entry.rowIndex], res => {
+        restore();
+        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+        else showToast('Erreur suppression.', 'error');
+      }, 'Suppr. barème');
+    });
+
+    btns.appendChild(editBtn); btns.appendChild(delBtn);
+    row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
+    return row;
+  }
+
+  function buildBsectAddForm(topName, entries) {
+    const form = document.createElement('div');
+    form.className = 'bsect-add';
+    const ptsIn = document.createElement('input');
+    ptsIn.type = 'number'; ptsIn.placeholder = 'Pts';
+    const actIn = document.createElement('input');
+    actIn.type = 'text'; actIn.placeholder = 'Décrire l\'action…';
+    const addBtn = document.createElement('button');
+    addBtn.className = 'primary small'; addBtn.textContent = '+ Ajouter';
+    const submit = () => {
+      if (!actIn.value.trim()) { showToast('Action vide.', 'error'); actIn.focus(); return; }
+      const restore = startBtnLoading(addBtn, '…');
+      callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value], res => {
+        restore();
+        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
+        else showToast('Erreur ajout.', 'error');
+      }, 'Ajout barème');
+    };
+    addBtn.addEventListener('click', submit);
+    actIn.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    form.appendChild(ptsIn); form.appendChild(actIn); form.appendChild(addBtn);
+    return form;
+  }
+
+  // ── BARÈME ───────────────────────────────────────────────────────────
+  let baremeEntries = null; // cache: array of {rowIndex, action, pts}
+
+  function openBareme() {
+    document.getElementById('baremeDrawer').classList.add('open');
+    document.getElementById('baremeBackdrop').classList.add('open');
+    document.getElementById('baremeBtn').setAttribute('aria-expanded', 'true');
+    if (!baremeEntries) loadBareme();
+    else renderBaremeDrawer(baremeEntries);
+  }
+
+  function closeBareme() {
+    document.getElementById('baremeDrawer').classList.remove('open');
+    document.getElementById('baremeBackdrop').classList.remove('open');
+    document.getElementById('baremeBtn').setAttribute('aria-expanded', 'false');
+  }
+
+  function loadBareme() {
+    const body = document.getElementById('baremeBody');
+    body.innerHTML = [1,2,3].map(() => '<div class="bareme-skel"></div>').join('');
+    callServer('apiGetBareme', [], res => {
+      if (res.success) { baremeEntries = res.entries; renderBaremeDrawer(res.entries); }
+      else body.innerHTML = '<p class="bareme-empty">Erreur de chargement.</p>';
+    }, 'Barème');
+  }
+
+  // Read-only drawer — grouped by Top, sorted by pts descending
+  function renderBaremeDrawer(entries) {
+    const body = document.getElementById('baremeBody');
+    body.innerHTML = '';
+    if (!cachedCategories.length) {
+      body.innerHTML = '<p class="bareme-empty">Aucun Top configuré.</p>';
+      return;
+    }
+    let hasAny = false;
+    cachedCategories.forEach(cat => {
+      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
+      if (!catEntries.length) return;
+      hasAny = true;
+      const col  = categoryColor(cat.name);
+      const sect = document.createElement('div');
+      sect.className = 'bd-sect';
+
+      const head = document.createElement('div');
+      head.className = 'bd-head';
+      head.style.setProperty('--bd-col', col);
+      const name = document.createElement('span');
+      name.className = 'bd-name';
+      name.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+      const count = document.createElement('span');
+      count.className = 'bd-count';
+      count.textContent = catEntries.length + ' règle' + (catEntries.length !== 1 ? 's' : '');
+      head.appendChild(name); head.appendChild(count);
+      sect.appendChild(head);
+
+      catEntries.forEach(e => {
+        const row = document.createElement('div');
+        row.className = 'bd-entry';
+        row.style.borderLeft = '3px solid ' + tint(col, 0.5);
+        row.style.background = tint(col, 0.05);
+        const badge = document.createElement('span');
+        badge.className = 'bd-badge';
+        badge.style.background = col;
+        badge.textContent = e.pts + ' pt' + (Math.abs(e.pts) !== 1 ? 's' : '');
+        const txt = document.createElement('span');
+        txt.className = 'bd-txt'; txt.textContent = e.action;
+        row.appendChild(badge); row.appendChild(txt);
+        sect.appendChild(row);
+      });
+      body.appendChild(sect);
+    });
+    if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans ⚙️ Paramètres.</p>';
+  }
+
+  document.getElementById('baremeBtn').addEventListener('click', () => {
+    document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
+  });
+  document.getElementById('baremeBackdrop').addEventListener('click', closeBareme);
+  document.getElementById('baremeCloseBtn').addEventListener('click', closeBareme);
+  document.getElementById('baremeRefreshBtn').addEventListener('click', () => {
+    baremeEntries = null; loadBareme();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeBareme();
+    if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+      document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
+    }
+  });
+
+  </script>
 </body>
 </html>
