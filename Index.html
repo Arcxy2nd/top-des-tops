@@ -456,7 +456,7 @@
       .row-top .c-sel-wrap { flex: 1 1 45%; }
       .row-top .custom-pts-in { width: 56px; }
       .row-bottom .pts-toggle-wrap { width: 100%; justify-content: space-between; }
-      .row-bottom .row-desc { min-width: 100%; }
+      .row-desc-row { margin-top: 4px; }
       .row-actions { margin-left: auto; }
       
       .settings-grid { grid-template-columns: 1fr; gap: 20px; }
@@ -538,14 +538,33 @@
     .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
 
     /* ── DESCRIPTION PAR LIGNE DE SAISIE ── */
-    .row-desc { margin-top: 0; }
-    .row-desc .desc-in {
-      font-size: 0.84rem; border-style: dashed; background: rgba(0,0,0,0.08);
-      color: var(--text-muted); transition: border-color 0.2s, color 0.2s, border-style 0.2s, background 0.2s;
+    .row-desc { margin-top: 0; width: 100%; }
+    .row-desc-row {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.10); border-radius: 6px;
+      padding: 3px 8px 3px 10px;
+      border: 1.5px solid var(--border);
+      margin-top: 6px;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .row-desc .desc-in::placeholder { font-style: italic; }
-    .row-desc .desc-in:focus { border-style: solid; color: var(--text); background: var(--bg); }
-    .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); border-style: solid; background: var(--bg); }
+    .row-desc-row:focus-within {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+    .row-desc-row .desc-icon {
+      font-size: 0.88rem; flex-shrink: 0; opacity: 0.55;
+      transition: opacity 0.2s;
+    }
+    .row-desc-row:focus-within .desc-icon { opacity: 0.85; }
+    .row-desc .desc-in {
+      font-size: 0.88rem; border: none; background: transparent;
+      color: var(--text-muted); outline: none; width: 100%;
+      padding: 7px 4px;
+      transition: color 0.2s;
+    }
+    .row-desc .desc-in::placeholder { font-style: italic; color: var(--text-muted); opacity: 0.75; }
+    .row-desc .desc-in:focus { color: var(--text); }
+    .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); }
 
     /* ── CELLULE DATE INLINE (par ligne de saisie) ── */
     .d-cell { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
@@ -1234,6 +1253,11 @@
     button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid var(--accent); outline-offset: 2px;
     }
+    /* Les selects dans les wrappers ont déjà un border highlight via :focus-within — pas de double outline */
+    .player-sel-wrap select:focus-visible,
+    .c-sel-wrap select:focus-visible {
+      outline: none;
+    }
 
   </style>
 </head>
@@ -1325,18 +1349,18 @@
       </div>
       <div id="topStatsStrip"></div>
     </div>
-  </div>
 
-  <!-- ══ PHRASES D'ACCROCHE ════════════════════════════════════════════ -->
-  <div class="card" id="phrasesCard">
-    <div class="phrases-card-header">
-      <h2>🎭 Commentaires</h2>
-      <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
-    </div>
-    <div id="phrasesList" class="phrases-list">
-      <div class="phrases-empty">
-        <span class="phrases-empty-icon">🏆</span>
-        Ouvre le graphique <strong>Classement</strong> pour voir les commentaires.
+    <!-- ══ PHRASES D'ACCROCHE ══════════════════════════════════════════ -->
+    <div class="card" id="phrasesCard">
+      <div class="phrases-card-header">
+        <h2>🎭 Commentaires</h2>
+        <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
+      </div>
+      <div id="phrasesList" class="phrases-list">
+        <div class="phrases-empty">
+          <span class="phrases-empty-icon">🏆</span>
+          Ouvre le graphique <strong>Classement</strong> pour voir les commentaires.
+        </div>
       </div>
     </div>
   </div>
@@ -1838,7 +1862,7 @@
       return;
     }
 
-    card.style.display = '';
+    card.style.display = 'block';
     list.innerHTML = '';
 
     const phrases = generateRankingPhrases(sortedRows, settings.count);
@@ -3762,15 +3786,22 @@
     dateCell.appendChild(rangeLabel);
     dateCell.appendChild(rangeDetails);
 
-    // ── Description (champ pleine largeur, sous les contrôles principaux) ─
+    // ── Description (rangée pleine largeur, plus en vue) ────────────────
+    const descRowWrapper = document.createElement('div');
+    descRowWrapper.className = 'row-desc-row';
+    const descIcon = document.createElement('span');
+    descIcon.className = 'desc-icon';
+    descIcon.textContent = '📝';
     const descDiv = document.createElement('div');
     descDiv.className = 'row-desc';
     const descInput = document.createElement('input');
     descInput.type = 'text';
     descInput.className = 'desc-in';
-    descInput.placeholder = '📝 Description (optionnelle)…';
+    descInput.placeholder = 'Description (optionnelle — recommandée !)…';
     descInput.value = (preset && preset.description) || '';
     descDiv.appendChild(descInput);
+    descRowWrapper.appendChild(descIcon);
+    descRowWrapper.appendChild(descDiv);
 
     // ── Actions ─────────────────────────────────────────────────────────
     const actions = document.createElement('div');
@@ -3803,15 +3834,15 @@
     topRow.appendChild(customPtsInput);
     topRow.appendChild(actions);
 
-    // Rangée secondaire : raccourcis pts, date, description
+    // Rangée secondaire : raccourcis pts + date (compacts)
     const bottomRow = document.createElement('div');
     bottomRow.className = 'row-bottom';
     bottomRow.appendChild(ptsToggle);
     bottomRow.appendChild(dateCell);
-    bottomRow.appendChild(descDiv);
 
     div.appendChild(topRow);
     div.appendChild(bottomRow);
+    div.appendChild(descRowWrapper);
     container.appendChild(div);
 
     if (preset) {
@@ -4494,7 +4525,7 @@
                 descEl.title = 'Cliquer pour lire la suite';
                 return;
               }
-              descEl.textContent = '';
+              descEl.textContent = '▴ voir moins';
               descEl.title = 'Cliquer pour replier';
               const full = document.createElement('div');
               full.className = 'hist-desc-full';
@@ -4638,7 +4669,7 @@
             descEl.title = 'Cliquer pour lire la suite';
             return;
           }
-          descEl.textContent = '';
+          descEl.textContent = '▴ voir moins';
           descEl.title = 'Cliquer pour replier';
           const full = document.createElement('div');
           full.className = 'hist-desc-full';
