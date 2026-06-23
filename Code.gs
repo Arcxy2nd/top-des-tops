@@ -28,9 +28,10 @@ const ConfigService = (() => {
       if (!history || !players || !categories)
         throw new Error("Onglets 'History', 'Players' ou 'Categories' manquants.");
       // La feuille Notes est optionnelle : null si absente (pas d'erreur bloquante).
-      const notes  = ss.getSheetByName('Notes')  || null;
-      const bareme = ss.getSheetByName('Bareme') || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme };
+      const notes   = ss.getSheetByName('Notes')   || null;
+      const bareme  = ss.getSheetByName('Bareme')  || null;
+      const phrases = ss.getSheetByName('Phrases') || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -692,6 +693,81 @@ const BaremeService = {
   }
 };
 
+// ─── PHRASES SERVICE ───────────────────────────────────────────────────────────
+// Sheet "Phrases" : [0] Preset | [1] Pool | [2] Text
+const PhrasesService = {
+  VALID_POOLS: ['first', 'second', 'third', 'mid', 'last', 'tied', 'solo'],
+
+  _getOrCreateSheet() {
+    const cache = ConfigService.getSheets();
+    if (cache.phrases) return cache.phrases;
+    const sheet = cache.spreadsheet.insertSheet('Phrases');
+    sheet.appendRow(['Preset', 'Pool', 'Phrase']);
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    ConfigService.clearCache();
+    return ConfigService.getSheets().phrases;
+  },
+
+  getAll() {
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    return data.slice(1)
+      .filter(r => r[0] !== '' && r[2] !== '')
+      .map((r, i) => ({
+        rowIndex: i + 2,
+        preset:   r[0].toString(),
+        pool:     r[1].toString(),
+        text:     r[2].toString()
+      }));
+  },
+
+  addPhrase(preset, pool, text) {
+    if (!preset || !pool || !text || !text.trim()) throw new Error("Champs manquants.");
+    if (!this.VALID_POOLS.includes(pool)) throw new Error("Pool invalide : " + pool);
+    this._getOrCreateSheet().appendRow([preset.trim(), pool, text.trim()]);
+  },
+
+  saveBatch(entries) {
+    if (!entries || !entries.length) return;
+    const rows = entries.map(e => {
+      if (!this.VALID_POOLS.includes(e.pool)) throw new Error("Pool invalide : " + e.pool);
+      return [e.preset.trim(), e.pool, e.text.trim()];
+    });
+    const sheet = this._getOrCreateSheet();
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 3).setValues(rows);
+  },
+
+  updatePhrase(rowIndex, text) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    if (!text || !text.trim()) throw new Error("La phrase ne peut pas être vide.");
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    sheet.getRange(idx, 3).setValue(text.trim());
+  },
+
+  deletePhrase(rowIndex) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    sheet.deleteRow(idx);
+  },
+
+  deletePreset(presetName) {
+    if (!presetName) throw new Error("Nom de preset manquant.");
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+    const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i][0].toString() === presetName) sheet.deleteRow(i + 2);
+    }
+  }
+};
+
 function apiGetBareme() {
   try {
     return { success: true, entries: BaremeService.getEntries() };
@@ -1061,5 +1137,53 @@ function apiUngroupLot(groupId) {
     }
     ConfigService.clearCache();
     return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── Phrases ────────────────────────────────────────────────────────────────────
+
+function apiGetPhrases() {
+  try {
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiAddPhrase(preset, pool, text) {
+  try {
+    PhrasesService.addPhrase(preset, pool, text);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiSavePhrasesBatch(entries) {
+  try {
+    PhrasesService.saveBatch(entries);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiUpdatePhrase(rowIndex, text) {
+  try {
+    PhrasesService.updatePhrase(rowIndex, text);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeletePhrase(rowIndex) {
+  try {
+    PhrasesService.deletePhrase(rowIndex);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiDeletePreset(presetName) {
+  try {
+    PhrasesService.deletePreset(presetName);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
   } catch(e) { return { success: false, error: e.message }; }
 }
