@@ -386,6 +386,23 @@
     .modal-box input { margin-bottom: 10px; }
     .modal-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
     .modal-actions button { flex: 1; min-width: 120px; }
+    .modal-box.wide { max-width: 480px; }
+    .modal-box .modal-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+    }
+    .modal-box .modal-grid.single { grid-template-columns: 1fr; }
+    .modal-field { display: flex; flex-direction: column; gap: 5px; }
+    .modal-field label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .modal-field input, .modal-field textarea, .modal-field select { margin: 0; }
+    .modal-color-preview {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; background: rgba(0,0,0,0.1);
+      border-radius: 8px; border: 1px solid var(--border); margin-top: 4px;
+    }
+    .modal-color-swatch {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
+    }
 
     /* ── TOASTS ── */
     #toastContainer {
@@ -888,10 +905,18 @@
       display: inline-flex; flex-direction: column; align-items: center;
       padding: 5px 12px; border-radius: 20px;
       font-size: 0.78rem; font-weight: 600;
-      border: 1px solid; cursor: default;
+      border: 1px solid;
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s, border-color 0.15s;
     }
+    .top-stat-pill:hover { filter: brightness(1.15); }
     .top-stat-pill .tsp-pts { font-size: 0.88rem; font-weight: 800; }
     .top-stat-pill .tsp-name { font-size: 0.68rem; opacity: 0.8; }
+    .top-stat-pill.tsp-hidden {
+      opacity: 0.45;
+      border-style: dashed;
+    }
+    .top-stat-pill.tsp-hidden:hover { opacity: 0.75; }
 
     /* ── CHIPS FILTRES HISTORIQUE ── */
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
@@ -1002,12 +1027,12 @@
       position: sticky;
       bottom: max(14px, env(safe-area-inset-bottom));
       z-index: 50;
-      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-      padding: 11px 18px; margin-top: 14px;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 16px; margin-top: 14px;
       background: var(--card);
-      border: 1px solid var(--accent);
+      border: 1.5px solid var(--accent);
       border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(255,71,87,0.18), 0 1px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 24px rgba(255,71,87,0.2), 0 1px 4px rgba(0,0,0,0.3);
       animation: fadeIn 0.2s ease;
     }
     #lotSummaryBar.hidden { display: none; }
@@ -1016,6 +1041,131 @@
 
     @media (max-width: 640px) {
       #lotSummaryBar { gap: 10px; padding: 10px 14px; }
+      .row-actions { justify-content: flex-end; }
+      .pts-toggle-wrap .pts-btn { font-size: 0.85rem; }
+    }
+
+    /* ── PHRASES D'ACCROCHE ── */
+    #rankingPhrasesStrip {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 12px;
+    }
+    .ranking-phrase {
+      background: rgba(0,0,0,0.1); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px;
+      font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+      border-left: 3px solid var(--accent);
+    }
+    body.light .ranking-phrase { background: rgba(0,0,0,0.04); }
+
+    /* ── GROUPEMENT EN SAISIE LOT ── */
+    .entry-row.lot-group-selectable { cursor: pointer; }
+    .entry-row.lot-group-selected {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      background: rgba(255,71,87,0.06);
+    }
+    .lot-group-tag {
+      position: absolute; top: 4px; right: 7px;
+      font-size: 0.6rem; font-weight: 900; letter-spacing: 0.03em;
+      padding: 1px 6px; border-radius: 8px;
+      background: var(--accent); color: #fff; opacity: 0.85;
+    }
+    .lot-group-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 12px; margin: 8px 0;
+      background: rgba(0,0,0,0.1); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.82rem;
+    }
+    .lot-group-bar button { min-height: 30px; }
+
+    /* ── TOOLTIP CUSTOM CHART ── */
+    #chartCustomTooltip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 200;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      font-size: 0.82rem;
+      min-width: 140px;
+      max-width: 240px;
+      transition: opacity 0.12s ease;
+      opacity: 0;
+    }
+    #chartCustomTooltip.visible { opacity: 1; }
+    #chartCustomTooltip .ctt-title {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 7px;
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    #chartCustomTooltip .ctt-row {
+      display: flex; align-items: center; gap: 7px; padding: 2px 0;
+    }
+    #chartCustomTooltip .ctt-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    #chartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
+    #chartCustomTooltip .ctt-val {
+      font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text);
+    }
+
+    /* ── SELECT OPTIONS — contraste garanti dans les deux thèmes ── */
+    option {
+      background: var(--card);
+      color: var(--text);
+    }
+    body.light option {
+      background: #ffffff;
+      color: #1a202c;
+    }
+    .player-sel-wrap select,
+    .c-sel-wrap select {
+      color: var(--text);
+    }
+    .history-filters select {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+
+    /* ── POLISH VISUEL ── */
+
+    /* Étape 1 : Actions historique visibles au survol */
+    .hist-actions-cell { opacity: 0; transition: opacity 0.15s; }
+    tr:hover .hist-actions-cell,
+    tr:focus-within .hist-actions-cell { opacity: 1; }
+
+    /* Étape 2 : Scale sur les chips de filtre */
+    .fchip { transform: scale(1); }
+    .fchip:active { transform: scale(0.95); }
+    .fchip.active { transform: scale(1.03); }
+
+    /* Étape 3 : Hover sur les entity-item */
+    .entity-item { transition: border-color 0.15s, box-shadow 0.15s; }
+    .entity-item:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+    /* Étape 4 : Badge nav pop */
+    @keyframes badgePop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+    .nav-count.pop { animation: badgePop 0.25s ease; }
+
+    /* Étape 5 : Animation fadeIn des onglets avec translateY */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tab-content.active { animation: fadeIn 0.2s ease; }
+
+    /* Étape 6 : Card avec accent haut */
+    .card-accent { border-top: 3px solid var(--accent); }
+
+    /* Étape 7 : Focus ring cohérent */
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px;
     }
 
   </style>
@@ -1075,7 +1225,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card card-accent">
       <div class="chart-header">
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
         <div class="export-buttons">
@@ -1104,15 +1254,17 @@
       <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
       <div class="chart-wrapper" id="chartWrapper" style="display:none;">
         <canvas id="mainChart"></canvas>
+        <div id="chartCustomTooltip" role="tooltip"></div>
       </div>
       <div id="topStatsStrip"></div>
+      <div id="rankingPhrasesStrip"></div>
     </div>
   </div>
 
   <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
   <div id="tab-inject" class="tab-content">
     <div class="card">
-      <h2>✍️ Constructeur de Lot</h2>
+      <h2>✍️ Constructeur de Lot <span id="batchLineCount" style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:6px;"></span></h2>
       <div style="margin-bottom:16px;">
         <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">
           Date / plage par défaut (nouvelles lignes)
@@ -1127,19 +1279,27 @@
           Chaque ligne reste modifiable individuellement via son bouton 📅.
         </div>
       </div>
+      <div style="border-top:1px solid var(--border);margin:14px -4px 14px;opacity:0.5;"></div>
       <div class="batch-header">
         <div>Joueur</div><div>Top</div><div>Raccourcis</div><div>Valeur</div><div>Date</div><div>Actions</div>
       </div>
       <div id="entryContainer"></div>
+      <div id="lotGroupBar" class="lot-group-bar" style="display:none;">
+        <span id="lotGroupBarInfo" style="flex:1;color:var(--text-muted);">Sélectionnez des lignes à grouper</span>
+        <button id="lotGroupApplyBtn" class="primary small" disabled>🔗 Grouper la sélection</button>
+        <button id="lotGroupCancelBtn" class="secondary small">✕ Annuler</button>
+      </div>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
         <button id="addRowBtn" class="secondary">+ Ligne</button>
-        <button id="submitLotBtn" class="primary" style="flex:1;">✓ Inscrire le Lot</button>
+        <button id="lotGroupModeBtn" class="secondary" style="font-size:0.84rem;">🔗 Grouper</button>
+        <button id="submitLotBtn" class="secondary" style="font-size:0.84rem;">Inscrire le lot</button>
       </div>
       <!-- Barre récap sticky — visible dès 2 lignes -->
       <div id="lotSummaryBar" class="hidden">
         <div class="lot-summary-info">
           <strong id="lotRowCount">0</strong> ligne(s) · <strong id="lotPtsTotal">0</strong> pts au total
         </div>
+        <div id="lotSummaryDetails" style="font-size:0.75rem;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
         <button id="submitLotBtnSummary" class="primary small">✓ Inscrire le Lot</button>
       </div>
     </div>
@@ -1402,6 +1562,12 @@
   // Donut player
   let _donutPlayer = '';
 
+  // Groupement manuel en saisie lot
+  let lotGroupMode  = false;
+  let lotGroupSel   = new Set();
+  const lotGroupMap = new Map();
+  let lotGroupSeq   = 0;
+
   // Dashboard filter chip state (empty Set = "all")
   let selectedPlayerChips   = new Set();
   let selectedCategoryChips = new Set();
@@ -1447,6 +1613,78 @@
     '#ff9f43','#10ac84','#5f27cd','#ee5253','#48dbfb','#1dd1a1',
     '#f368e0','#54a0ff','#feca57','#ff6348'
   ];
+  // ── PHRASES D'ACCROCHE ──────────────────────────────────────────────────
+  const RANKING_PHRASES = {
+    first: [
+      "👑 {player} règne sans partage avec {pts} pts. Inclinez-vous.",
+      "🏆 {player} a décidé de gagner, et franchement on le respecte.",
+      "🚀 {player} est tellement devant qu'on lui voit plus la nuque.",
+      "🎯 {player} : là pour gagner, pas pour fraterniser.",
+      "⚡ Avec {pts} pts, {player} joue dans une autre ligue. La sienne.",
+    ],
+    second: [
+      "🥈 {player} : si proche, si loin. La médaille d'argent ne ment pas.",
+      "📈 {player} vise le sommet. Il/Elle est juste en chemin.",
+      "🙏 {player} regarde le premier depuis le bas. Le très bas.",
+    ],
+    third: [
+      "🥉 Podium pour {player} ! C'est déjà ça.",
+      "🎖️ {player} termine sur le podium. Là où les photos sont prises.",
+    ],
+    mid: [
+      "😐 {player} : ni premier, ni dernier. La zone de confort totale.",
+      "🌊 {player} navigue en eaux tranquilles avec {pts} pts.",
+    ],
+    last: [
+      "💀 {player} ferme la marche avec {pts} pts. Respect quand même.",
+      "🐢 {player} : lent, mais constant. Enfin surtout lent.",
+      "🌱 {player} a encore de la marge. Beaucoup de marge.",
+      "😬 {player} booste le moral des autres en étant dernier. Altruiste.",
+      "🔴 {player} porte le rouge de la lanterne. Élégamment.",
+    ],
+    tied: [
+      "🤝 Égalité parfaite entre {player} et les autres. Décevant pour tout le monde.",
+      "⚖️ {player} et ses adversaires sont à {pts} pts. Le hasard ? Non. Le destin.",
+    ],
+    solo: [
+      "🧍 {player} joue seul·e avec {pts} pts. Victoire par défaut, mais victoire.",
+    ]
+  };
+
+  function pickPhrase(pool, vars) {
+    const tpl = pool[Math.floor(Math.random() * pool.length)];
+    return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
+  }
+
+  function generateRankingPhrases(sortedRows) {
+    if (!sortedRows || !sortedRows.length) return [];
+    const n = sortedRows.length;
+
+    if (n === 1) {
+      return [pickPhrase(RANKING_PHRASES.solo, { player: sortedRows[0].player, pts: sortedRows[0].total })];
+    }
+
+    const phrases = sortedRows.map((row, i) => {
+      const rank = i + 1;
+      const vars = { player: row.player, pts: row.total, n: rank };
+      const prevSame = i > 0 && sortedRows[i - 1].total === row.total;
+      const nextSame = i < n - 1 && sortedRows[i + 1].total === row.total;
+      let pool;
+      if (prevSame || nextSame) pool = RANKING_PHRASES.tied;
+      else if (rank === 1)      pool = RANKING_PHRASES.first;
+      else if (rank === 2)      pool = RANKING_PHRASES.second;
+      else if (rank === 3 && n >= 4) pool = RANKING_PHRASES.third;
+      else if (rank === n)      pool = RANKING_PHRASES.last;
+      else                      pool = RANKING_PHRASES.mid;
+      return pickPhrase(pool, vars);
+    });
+
+    const selected = [phrases[0]];
+    if (n >= 3 && phrases[n - 1]) selected.push(phrases[n - 1]);
+    if (n >= 5 && phrases[Math.floor(n / 2)]) selected.push(phrases[Math.floor(n / 2)]);
+    return selected;
+  }
+
   // Couleur déterministe à partir d'un texte (même nom → toujours même couleur,
   // même si l'ordre des joueurs change).
   function hashColor(str) {
@@ -1838,11 +2076,24 @@
   }
 
   // ── MODAL ────────────────────────────────────────────────────────────
+  function updateNavCount(el, value) {
+    if (!el) return;
+    const v = value ? String(value) : '';
+    if (el.textContent !== v) {
+      el.textContent = v;
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 250);
+    }
+  }
+
   function closeModal() {
     document.getElementById('modalBackdrop').style.display = 'none';
     const box = document.getElementById('modalBox');
     box.innerHTML = '';
     box.style.maxWidth = '';
+    box.classList.remove('wide');
   }
 
   function openConfirmModal(msg, onConfirm) {
@@ -1857,30 +2108,68 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  function openEditModal(entityType, oldName, oldMeta, oldIcon) {
+  function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor) {
     const box = document.getElementById('modalBox');
-    const isCat = entityType === 'Categories';
-    const label = entityType === 'Players' ? 'URL avatar' : 'Description';
+    box.classList.add('wide');
+    const isCat  = entityType === 'Categories';
+    const isPlay = entityType === 'Players';
+    const metaLabel = isPlay ? 'URL avatar' : 'Description';
+    const initColor = currentColor || (isPlay ? playerColor(oldName) : categoryColor(oldName));
+
     box.innerHTML =
-      '<h3>Éditer : ' + escapeHtml(oldName) + '</h3>' +
-      '<input type="text" id="mNewName" value="' + escapeHtml(oldName) + '" placeholder="Nom">' +
-      '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + label + '">' +
-      (isCat
-        ? '<input type="text" id="mNewIcon" value="' + escapeHtml(oldIcon || '') + '" placeholder="Icône emoji (ex : 🍺)" maxlength="8">'
-        : '') +
+      '<h3>Éditer — ' + escapeHtml(oldName) + '</h3>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field">' +
+          '<label>Nom</label>' +
+          '<input type="text" id="mNewName" value="' + escapeHtml(oldName) + '" placeholder="Nom">' +
+        '</div>' +
+        (isCat
+          ? '<div class="modal-field"><label>Icône emoji</label>' +
+            '<input type="text" id="mNewIcon" value="' + escapeHtml(oldIcon || '') + '" placeholder="ex : 🍺" maxlength="8"></div>'
+          : '') +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field">' +
+          '<label>' + metaLabel + '</label>' +
+          '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + metaLabel + '">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-field" style="margin-bottom:12px;">' +
+        '<label>Couleur</label>' +
+        '<div class="modal-color-preview">' +
+          '<span class="modal-color-swatch" id="mColorSwatch" style="background:' + escapeHtml(initColor) + ';border-radius:' + (isPlay ? '50%' : '8px') + ';"></span>' +
+          '<input type="color" id="mColorPicker" value="' + escapeHtml(initColor) + '" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);cursor:pointer;padding:2px;">' +
+          '<span id="mColorHex" style="font-size:0.78rem;color:var(--text-muted);font-family:monospace;">' + escapeHtml(initColor) + '</span>' +
+        '</div>' +
+      '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
         '<button id="mCancel" class="secondary">Annuler</button>' +
       '</div>';
+
+    const picker = document.getElementById('mColorPicker');
+    const swatch = document.getElementById('mColorSwatch');
+    const hexEl  = document.getElementById('mColorHex');
+    picker.addEventListener('input', () => {
+      swatch.style.background = picker.value;
+      hexEl.textContent = picker.value;
+    });
+
     document.getElementById('mSave').onclick = () => {
-      const n = document.getElementById('mNewName').value.trim();
-      const m = document.getElementById('mNewMeta').value.trim();
-      const ic = isCat ? document.getElementById('mNewIcon').value.trim() : '';
+      const n  = document.getElementById('mNewName').value.trim();
+      const m  = document.getElementById('mNewMeta').value.trim();
+      const ic = isCat ? ((document.getElementById('mNewIcon') || {}).value || '').trim() : '';
+      const col = picker.value;
       if (!n) return;
       closeModal();
+      const cache = isCat ? cachedCategories : cachedPlayers;
+      const item  = cache.find(x => x.name === oldName);
+      if (item) item.color = col;
+      callServer('apiSetColor', [entityType, oldName, col], () => {}, 'Color save');
       callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic], () => {
         loadEntities();
-        showToast('Renommé avec succès.', 'success');
+        showToast('Modifié avec succès.', 'success');
+        refreshColorDependentViews();
       }, 'Erreur renommage');
     };
     document.getElementById('mCancel').onclick = closeModal;
@@ -1889,6 +2178,13 @@
 
   document.getElementById('modalBackdrop').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
+  });
+  document.getElementById('modalBackdrop').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const saveBtn = document.getElementById('mSave');
+      if (saveBtn && !saveBtn.disabled) saveBtn.click();
+    }
+    if (e.key === 'Escape') closeModal();
   });
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
@@ -2007,7 +2303,8 @@
       btns.className = 'entity-btns';
       const editBtn = document.createElement('button');
       editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
-      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon));
+      const col = type === 'Players' ? playerColor(item.name) : categoryColor(item.name);
+      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon, col));
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
@@ -2223,15 +2520,18 @@
     })).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
 
     topTotals.forEach(t => {
-      const pill = document.createElement('div');
-      pill.className = 'top-stat-pill';
-      pill.style.background = tint(t.color, 0.15);
+      const isHidden = selectedCategoryChips.size > 0 && !selectedCategoryChips.has(t.name);
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'top-stat-pill' + (isHidden ? ' tsp-hidden' : '');
+      pill.style.background  = isHidden ? 'transparent' : tint(t.color, 0.15);
       pill.style.borderColor = tint(t.color, 0.5);
-      pill.style.color = 'var(--text)';
+      pill.style.color       = isHidden ? 'var(--text-muted)' : 'var(--text)';
+      pill.title = isHidden ? 'Cliquer pour afficher ce Top dans le graphique' : 'Cliquer pour masquer ce Top';
 
       const pts = document.createElement('span');
       pts.className = 'tsp-pts';
-      pts.textContent = t.total + ' pts';
+      pts.textContent = isHidden ? '—' : t.total + ' pts';
 
       const name = document.createElement('span');
       name.className = 'tsp-name';
@@ -2239,6 +2539,24 @@
 
       pill.appendChild(pts);
       pill.appendChild(name);
+
+      pill.addEventListener('click', () => {
+        if (selectedCategoryChips.has(t.name)) {
+          selectedCategoryChips.delete(t.name);
+        } else {
+          if (selectedCategoryChips.size === 0) {
+            data.datasets.forEach(ds => {
+              if (ds.label !== t.name) selectedCategoryChips.add(ds.label);
+            });
+          } else {
+            selectedCategoryChips.add(t.name);
+          }
+        }
+        if (selectedCategoryChips.size === data.datasets.length) selectedCategoryChips.clear();
+        renderCategoryChips();
+        applyFilters();
+      });
+
       strip.appendChild(pill);
     });
   }
@@ -2246,6 +2564,8 @@
   function clearTopStatsStrip() {
     const strip = document.getElementById('topStatsStrip');
     if (strip) strip.innerHTML = '';
+    const phrases = document.getElementById('rankingPhrasesStrip');
+    if (phrases) phrases.innerHTML = '';
   }
 
   // ── TRIS (côté front, sans appel serveur) ────────────────────────────
@@ -2279,6 +2599,73 @@
       return { ...ds, data: pOrder.map(pi => ds.data[pi] || 0) };
     });
     return { labels: newLabels, datasets: newDatasets };
+  }
+
+  function buildCustomTooltipPlugin() {
+    const el = document.getElementById('chartCustomTooltip');
+    if (!el) return {};
+
+    return {
+      id: 'customTooltip',
+      afterInit(chart) {
+        chart.options.plugins.tooltip.enabled = false;
+        chart.options.plugins.tooltip.external = (ctx) => {
+          const { chart: ch, tooltip } = ctx;
+          if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
+
+          el.innerHTML = '';
+
+          if (tooltip.title && tooltip.title.length) {
+            const titleEl = document.createElement('div');
+            titleEl.className = 'ctt-title';
+            titleEl.textContent = tooltip.title[0];
+            el.appendChild(titleEl);
+          }
+
+          tooltip.dataPoints.forEach(dp => {
+            const dsLabel = dp.dataset.label || '';
+            const color = Array.isArray(dp.dataset.backgroundColor)
+              ? dp.dataset.backgroundColor[dp.dataIndex]
+              : (dp.dataset.borderColor || dp.dataset.backgroundColor || 'var(--accent)');
+
+            const row = document.createElement('div');
+            row.className = 'ctt-row';
+
+            const dot = document.createElement('span');
+            dot.className = 'ctt-dot';
+            dot.style.background = color;
+
+            const label = document.createElement('span');
+            label.className = 'ctt-label';
+            label.textContent = dsLabel;
+
+            const val = document.createElement('span');
+            val.className = 'ctt-val';
+            val.textContent = dp.formattedValue + ' pts';
+
+            row.appendChild(dot); row.appendChild(label); row.appendChild(val);
+            el.appendChild(row);
+          });
+
+          const wrapper = document.getElementById('chartWrapper');
+          const wRect   = wrapper ? wrapper.getBoundingClientRect() : ch.canvas.getBoundingClientRect();
+          const cRect   = ch.canvas.getBoundingClientRect();
+
+          let x = cRect.left - wRect.left + tooltip.caretX + 14;
+          let y = cRect.top  - wRect.top  + tooltip.caretY - 10;
+
+          const elW = el.offsetWidth || 180;
+          const elH = el.offsetHeight || 80;
+          if (x + elW > wRect.width - 8) x = cRect.left - wRect.left + tooltip.caretX - elW - 14;
+          if (y + elH > wRect.height - 8) y = wRect.height - elH - 8;
+          if (y < 0) y = 4;
+
+          el.style.left = x + 'px';
+          el.style.top  = y + 'px';
+          el.classList.add('visible');
+        };
+      }
+    };
   }
 
   function renderChart(data, type) {
@@ -2339,7 +2726,7 @@
         type: 'doughnut',
         data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors }] },
         options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } },
-        plugins: [centerPlugin]
+        plugins: [centerPlugin, buildCustomTooltipPlugin()]
       });
       return;
     }
@@ -2365,7 +2752,8 @@
               ticks: { color: c.muted, backdropColor: 'transparent' }
             }
           }
-        }
+        },
+        plugins: [buildCustomTooltipPlugin()]
       });
       return;
     }
@@ -2409,8 +2797,23 @@
             x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
             y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
           }
-        }
+        },
+        plugins: [buildCustomTooltipPlugin()]
       });
+
+      // Phrases d'accroche — seulement en mode non-détaillé
+      const phrasesStrip = document.getElementById('rankingPhrasesStrip');
+      if (phrasesStrip) {
+        phrasesStrip.innerHTML = '';
+        if (!chartOptions.detailed) {
+          generateRankingPhrases(totals).forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'ranking-phrase';
+            div.textContent = p;
+            phrasesStrip.appendChild(div);
+          });
+        }
+      }
       return;
     }
 
@@ -2467,7 +2870,7 @@
           y: yScale
         }
       },
-      plugins: [totalsPlugin]
+      plugins: [totalsPlugin, buildCustomTooltipPlugin()]
     });
   }
 
@@ -2527,7 +2930,8 @@
           legend: { labels: { color: c.text, font: { size: 12 } } },
           tooltip: { mode: 'index', intersect: false }
         }
-      }
+      },
+      plugins: [buildCustomTooltipPlugin()]
     });
   }
 
@@ -2602,9 +3006,9 @@
       ctx.fillStyle = FG;
       ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillText('Tops des Tops', Math.round(18 * S), Math.round(24 * S));
-      // Chart label
+      // Chart label (or custom title)
       const chartTitleEl = document.getElementById('chartTitle');
-      const chartLabel = chartTitleEl ? chartTitleEl.textContent : '';
+      const chartLabel = opts.customTitle || (chartTitleEl ? chartTitleEl.textContent : '');
       ctx.fillStyle = MUTED;
       ctx.font = Math.round(13 * S) + 'px sans-serif';
       ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
@@ -2620,15 +3024,39 @@
       yOff = hH + Math.round(8 * S);
     }
 
-    // Reserve space for stats strip and footer
+    // Filters bar
+    if (opts.filters) {
+      const activeCats = [...(selectedCategoryChips || [])];
+      const activePls  = [...(selectedPlayerChips  || [])];
+      const parts = [];
+      if (activeCats.length) parts.push('Catégories : ' + activeCats.join(', '));
+      if (activePls.length)  parts.push('Joueurs : ' + activePls.join(', '));
+      if (parts.length) {
+        const fH = Math.round(26 * S);
+        ctx.fillStyle = CARD;
+        ctx.fillRect(0, yOff, W, fH);
+        ctx.fillStyle = ACCENT;
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(0, yOff, Math.round(3 * S), fH);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = MUTED;
+        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.fillText('Filtres : ' + parts.join(' | '), Math.round(12 * S), yOff + Math.round(17 * S));
+        yOff += fH + Math.round(4 * S);
+      }
+    }
+
+    // Reserve space for stats strip, legend and footer
     const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
       ? Math.round(52 * S) : 0;
+    const legendH = (opts.legend && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
+      ? Math.round(22 * S) : 0;
     const footH = Math.round(24 * S);
 
     // Chart image
     const chartCv = document.getElementById('mainChart');
     if (chartCv) {
-      const chartH = H - yOff - statsH - footH - Math.round(8 * S);
+      const chartH = H - yOff - statsH - legendH - footH - Math.round(8 * S);
       ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
       yOff += chartH + Math.round(6 * S);
     }
@@ -2673,10 +3101,44 @@
       yOff += statsH;
     }
 
+    // Legend strip
+    if (legendH && currentChartData && currentChartData.datasets) {
+      const datasets = currentChartData.datasets.slice(0, 8);
+      const itemW = Math.round((W - 20 * S) / Math.max(datasets.length, 1));
+      datasets.forEach((ds, i) => {
+        const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || ACCENT);
+        const lx = Math.round(10 * S) + i * itemW;
+        const ly = yOff + Math.round(6 * S);
+        const dotR = Math.round(5 * S);
+        ctx.beginPath();
+        ctx.arc(lx + dotR, ly + dotR, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = FG;
+        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        const name = ds.label || '';
+        ctx.fillText(name.length > 14 ? name.slice(0, 13) + '…' : name, lx + dotR * 2 + Math.round(4 * S), ly + dotR + Math.round(4 * S));
+      });
+      yOff += legendH;
+    }
+
     // Footer
     ctx.fillStyle = MUTED;
     ctx.font = Math.round(10 * S) + 'px sans-serif';
     ctx.fillText('Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
+
+    // Watermark
+    if (opts.watermark) {
+      ctx.save();
+      ctx.translate(W / 2, H / 2);
+      ctx.rotate(-Math.PI / 6);
+      ctx.font = 'bold ' + Math.round(72 * S) + 'px sans-serif';
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('TOPS DES TOPS', 0, 0);
+      ctx.restore();
+    }
 
     return cv;
   }
@@ -2704,7 +3166,18 @@
     if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
 
     // Modal state
-    let exportOpts = { format: 'png', theme: 'dark', title: true, period: true, stats: true, scale: 1 };
+    let exportOpts = {
+      format:      'png',
+      theme:       document.body.classList.contains('light') ? 'light' : 'dark',
+      title:       true,
+      period:      true,
+      stats:       true,
+      scale:       1,
+      legend:      true,
+      watermark:   true,
+      filters:     true,
+      customTitle: ''
+    };
 
     const overlay = document.createElement('div');
     overlay.className = 'export-modal-overlay';
@@ -2748,7 +3221,7 @@
     box.appendChild(titleEl);
     box.appendChild(pillGroup('Format', [{v:'png',t:'PNG'},{v:'jpeg',t:'JPEG'},{v:'pdf',t:'PDF'}], 'format'));
     box.appendChild(pillGroup('Thème', [{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
-    box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'}], 'scale'));
+    box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'},{v:3,t:'4K ×3'}], 'scale'));
 
     const optsGroup = document.createElement('div');
     optsGroup.className = 'export-opt-group';
@@ -2758,6 +3231,27 @@
     optsGroup.appendChild(checkOpt('Inclure la période', 'period'));
     optsGroup.appendChild(checkOpt('Inclure les stats', 'stats'));
     box.appendChild(optsGroup);
+
+    // Groupe avancé
+    const advGroup = document.createElement('div');
+    advGroup.className = 'export-opt-group';
+    const advLbl = document.createElement('label'); advLbl.textContent = 'Contenu avancé';
+    advGroup.appendChild(advLbl);
+    advGroup.appendChild(checkOpt('Afficher la légende du graphique', 'legend'));
+    advGroup.appendChild(checkOpt('Filigrane "Tops des Tops"', 'watermark'));
+    advGroup.appendChild(checkOpt('Résumé des filtres actifs', 'filters'));
+    box.appendChild(advGroup);
+
+    // Titre personnalisé
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'export-opt-group';
+    const titleLbl = document.createElement('label'); titleLbl.textContent = 'Titre personnalisé (optionnel)';
+    const titleIn  = document.createElement('input');
+    titleIn.type = 'text'; titleIn.placeholder = 'Laissez vide pour le titre auto';
+    titleIn.style.cssText = 'margin-top:4px;';
+    titleIn.addEventListener('input', () => { exportOpts.customTitle = titleIn.value.trim(); updatePreview(); });
+    titleGroup.appendChild(titleLbl); titleGroup.appendChild(titleIn);
+    box.appendChild(titleGroup);
 
     // Preview area
     const prevWrap = document.createElement('div');
@@ -2874,10 +3368,10 @@
     if (es) es.remove();
 
     if (!cachedPlayers.length || !cachedCategories.length) {
-      if (!container.querySelector('.empty-state')) {
-        const p = document.createElement('p');
-        p.className = 'empty-state';
-        p.textContent = "⚠ Ajoutez d'abord des joueurs et des Tops dans Paramètres.";
+      if (!container.querySelector('.empty-illustration')) {
+        const p = document.createElement('div');
+        p.className = 'empty-illustration';
+        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.</div>';
         container.appendChild(p);
       }
       return;
@@ -3043,7 +3537,7 @@
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     const dupBtn = document.createElement('button');
-    dupBtn.className = 'small'; dupBtn.textContent = '📋'; dupBtn.title = 'Dupliquer';
+    dupBtn.className = 'small secondary'; dupBtn.innerHTML = '📋'; dupBtn.title = 'Dupliquer cette ligne';
     dupBtn.addEventListener('click', () => addEntryRow({
       player:      pSel.value,
       category:    cSel.value,
@@ -3055,7 +3549,7 @@
       description: descInput.value
     }));
     const delBtn = document.createElement('button');
-    delBtn.className = 'small danger'; delBtn.textContent = '✕'; delBtn.title = 'Supprimer';
+    delBtn.className = 'small danger'; delBtn.innerHTML = '✕'; delBtn.title = 'Supprimer cette ligne';
     delBtn.addEventListener('click', () => {
       div.classList.add('row-removing');
       setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
@@ -3097,10 +3591,95 @@
       if (!isNaN(v) && v > 0) totalPts += v;
     });
     bar.classList.remove('hidden');
+    const batchCount = document.getElementById('batchLineCount');
+    if (batchCount) batchCount.textContent = count > 0 ? '(' + count + ' ligne' + (count > 1 ? 's' : '') + ')' : '';
     const rowCountEl = document.getElementById('lotRowCount');
     const ptsTotalEl = document.getElementById('lotPtsTotal');
     if (rowCountEl) rowCountEl.textContent = count;
     if (ptsTotalEl) ptsTotalEl.textContent = totalPts;
+
+    const details = document.getElementById('lotSummaryDetails');
+    if (details) {
+      const byPlayer = {};
+      rows.forEach(r => {
+        const pSel = r.querySelector('.p-sel');
+        const v    = parseInt((r.querySelector('.custom-pts-in') || {}).value || '0', 10);
+        if (pSel && !isNaN(v) && v > 0) {
+          byPlayer[pSel.value] = (byPlayer[pSel.value] || 0) + v;
+        }
+      });
+      details.textContent = Object.entries(byPlayer)
+        .map(([p, pts]) => p + ' +' + pts)
+        .join('  ·  ');
+    }
+  }
+
+  // ── GROUPEMENT EN SAISIE LOT ────────────────────────────────────────
+  function enterLotGroupMode() {
+    lotGroupMode = true;
+    lotGroupSel.clear();
+    document.getElementById('lotGroupBar').style.display = 'flex';
+    document.getElementById('lotGroupModeBtn').style.display = 'none';
+    updateLotGroupBar();
+    document.querySelectorAll('.entry-row').forEach(r => {
+      r.classList.add('lot-group-selectable');
+      r.addEventListener('click', onLotGroupRowClick);
+    });
+  }
+
+  function exitLotGroupMode() {
+    lotGroupMode = false;
+    lotGroupSel.clear();
+    document.getElementById('lotGroupBar').style.display = 'none';
+    document.getElementById('lotGroupModeBtn').style.display = '';
+    document.querySelectorAll('.entry-row').forEach(r => {
+      r.classList.remove('lot-group-selectable', 'lot-group-selected');
+      r.removeEventListener('click', onLotGroupRowClick);
+    });
+  }
+
+  function onLotGroupRowClick(e) {
+    if (e.target.closest('button, input, select, label')) return;
+    const row = e.currentTarget;
+    const id  = row.id;
+    if (lotGroupSel.has(id)) {
+      lotGroupSel.delete(id);
+      row.classList.remove('lot-group-selected');
+    } else {
+      lotGroupSel.add(id);
+      row.classList.add('lot-group-selected');
+    }
+    updateLotGroupBar();
+  }
+
+  function updateLotGroupBar() {
+    const info  = document.getElementById('lotGroupBarInfo');
+    const apply = document.getElementById('lotGroupApplyBtn');
+    const n = lotGroupSel.size;
+    if (info) info.textContent = n < 2 ? 'Sélectionnez au moins 2 lignes à grouper' : n + ' lignes sélectionnées';
+    if (apply) apply.disabled = n < 2;
+  }
+
+  function applyLotGroup() {
+    if (lotGroupSel.size < 2) return;
+    lotGroupSeq++;
+    const groupColors = ['#6c63ff','#00d4aa','#ffd166','#ff6b81','#3742fa','#ff9f43'];
+    const groupColor  = groupColors[(lotGroupSeq - 1) % groupColors.length];
+    lotGroupSel.forEach(id => {
+      lotGroupMap.set(id, 'G' + lotGroupSeq);
+      const row = document.getElementById(id);
+      if (!row) return;
+      const old = row.querySelector('.lot-group-tag');
+      if (old) old.remove();
+      const tagEl = document.createElement('span');
+      tagEl.className = 'lot-group-tag';
+      tagEl.textContent = 'Groupe ' + lotGroupSeq;
+      tagEl.style.background = groupColor;
+      row.appendChild(tagEl);
+      row.style.setProperty('--row-accent', groupColor);
+    });
+    showToast('Groupe ' + lotGroupSeq + ' créé (' + lotGroupSel.size + ' lignes).', 'success');
+    exitLotGroupMode();
   }
 
   function fmtFr(s) {
@@ -3226,7 +3805,8 @@
           category:    cSel.value,
           points:      customPtsEl.value || '1',
           times:       '1',
-          description: descEl ? descEl.value.trim() : ''
+          description: descEl ? descEl.value.trim() : '',
+          groupTag:    lotGroupMap.get(r.id) || ''
         });
       }
     });
@@ -3260,7 +3840,7 @@
         dates.forEach(dk => {
           (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: it.points, times: it.times,
-            description: it.description
+            description: it.description, groupTag: it.groupTag || ''
           });
         });
       } else {
@@ -3271,7 +3851,7 @@
           const val = base + (k < rem ? 1 : 0);
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: val, times: 1,
-            description: it.description
+            description: it.description, groupTag: it.groupTag || ''
           });
         });
       }
@@ -3301,13 +3881,27 @@
   function runBulkPlan(plan, btn) {
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
     const restore = startBtnLoading(btn, 'Écriture 1/' + plan.length);
-    const gid = plan.length > 1 ? ('G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)) : '';
+
+    // Build stable gid per groupTag; entries without groupTag share a global gid only when plan spans multiple dates.
+    const globalGid = plan.length > 1 ? ('G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)) : '';
+    const groupTagToGid = {};
+    plan.forEach(dayPlan => {
+      dayPlan.entries.forEach(entry => {
+        if (entry.groupTag && !groupTagToGid[entry.groupTag]) {
+          groupTagToGid[entry.groupTag] = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        }
+        entry.gid = entry.groupTag ? groupTagToGid[entry.groupTag] : globalGid;
+      });
+    });
+
     let i = 0;
     const next = () => {
       if (i >= plan.length) {
         restore();
         flashSaved(btn);
         document.getElementById('entryContainer').innerHTML = '';
+        lotGroupMap.clear();
+        lotGroupSeq = 0;
         addEntryRow();
         updateLotSummary();
         applyFilters();
@@ -3316,7 +3910,8 @@
         return;
       }
       btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
-      callServer('apiAddBulkScores', [plan[i].entries, plan[i].date, gid], () => {
+      const entries = plan[i].entries.map(e => ({ ...e, gid: e.gid }));
+      callServer('apiAddBulkScores', [entries, plan[i].date, ''], () => {
         i++; next();
       }, 'Envoi lot', () => { restore(); });
     };
@@ -3513,7 +4108,7 @@
       const total = res.total || 0;
       const totalEntries = res.totalEntries || total;
       totalHistoryEntries = totalEntries;
-      document.getElementById('historyCount').textContent = totalEntries ? totalEntries : '';
+      updateNavCount(document.getElementById('historyCount'), totalEntries || '');
 
       const tbody = document.getElementById('historyTableBody');
       tbody.innerHTML = '';
@@ -3631,9 +4226,33 @@
           catCell.appendChild(pill);
         }
         if (!isMultiCategory && first.description) {
+          const SHORT_LIMIT = 55;
+          const isLong = first.description.length > SHORT_LIMIT;
           const descEl = document.createElement('div');
           descEl.className = 'hist-desc-toggle';
-          descEl.textContent = first.description;
+          if (!isLong) {
+            descEl.textContent = first.description;
+            descEl.style.cursor = 'default';
+          } else {
+            descEl.textContent = first.description.slice(0, SHORT_LIMIT) + '…';
+            descEl.title = 'Cliquer pour lire la suite';
+            descEl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const existing = catCell.querySelector('.hist-desc-full');
+              if (existing) {
+                existing.remove();
+                descEl.textContent = first.description.slice(0, SHORT_LIMIT) + '…';
+                descEl.title = 'Cliquer pour lire la suite';
+                return;
+              }
+              descEl.textContent = '';
+              descEl.title = 'Cliquer pour replier';
+              const full = document.createElement('div');
+              full.className = 'hist-desc-full';
+              full.textContent = first.description;
+              catCell.appendChild(full);
+            });
+          }
           catCell.appendChild(descEl);
         }
 
@@ -3749,20 +4368,36 @@
     pill.appendChild(document.createTextNode(log.category));
     catCell.appendChild(pill);
     if (log.description) {
+      const SHORT_LIMIT = 55;
+      const isLong = log.description.length > SHORT_LIMIT;
       const descEl = document.createElement('div');
       descEl.className = 'hist-desc-toggle';
-      descEl.textContent = log.description;
-      descEl.title = 'Cliquer pour déplier';
-      descEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const existing = catCell.querySelector('.hist-desc-full');
-        if (existing) { existing.remove(); descEl.style.whiteSpace = 'nowrap'; return; }
-        const full = document.createElement('div');
-        full.className = 'hist-desc-full';
-        full.textContent = log.description;
-        descEl.style.whiteSpace = 'normal';
-        catCell.appendChild(full);
-      });
+      if (!isLong) {
+        descEl.textContent = log.description;
+        descEl.style.cursor = 'default';
+        descEl.title = '';
+      } else {
+        descEl.textContent = log.description.slice(0, SHORT_LIMIT) + '…';
+        descEl.title = 'Cliquer pour lire la suite';
+        descEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const existing = catCell.querySelector('.hist-desc-full');
+          if (existing) {
+            existing.remove();
+            descEl.textContent = log.description.slice(0, SHORT_LIMIT) + '…';
+            descEl.style.whiteSpace = 'nowrap';
+            descEl.title = 'Cliquer pour lire la suite';
+            return;
+          }
+          descEl.textContent = '';
+          descEl.title = 'Cliquer pour replier';
+          const full = document.createElement('div');
+          full.className = 'hist-desc-full';
+          full.textContent = log.description;
+          descEl.style.whiteSpace = 'normal';
+          catCell.appendChild(full);
+        });
+      }
       catCell.appendChild(descEl);
     }
 
@@ -3776,21 +4411,25 @@
     ptsCell.appendChild(badge);
 
     const actCell = tr.insertCell();
+    actCell.className = 'hist-actions-cell';
     actCell.style.cssText = 'white-space:nowrap;';
-    const editDescBtn = document.createElement('button');
-    editDescBtn.className = 'small'; editDescBtn.textContent = '📝';
-    editDescBtn.title = log.description ? 'Modifier la description' : 'Ajouter une description';
-    editDescBtn.style.marginRight = '4px';
-    editDescBtn.addEventListener('click', () => openEditDescModal(log));
+
+    const fullEditBtn = document.createElement('button');
+    fullEditBtn.className = 'small';
+    fullEditBtn.textContent = '✏️';
+    fullEditBtn.title = 'Modifier cette entrée (date, joueur, Top, points, description)';
+    fullEditBtn.style.marginRight = '4px';
+    fullEditBtn.addEventListener('click', () => openFullEditHistoryModal(log));
+
     const delBtn = document.createElement('button');
-    delBtn.className = 'small danger'; delBtn.textContent = 'Suppr.';
+    delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
     delBtn.addEventListener('click', () => {
       openConfirmModal('Supprimer cette entrée ?', () => {
         buzz();
         scheduleDeletion([log.rowIndex]);
       });
     });
-    actCell.appendChild(editDescBtn); actCell.appendChild(delBtn);
+    actCell.appendChild(fullEditBtn); actCell.appendChild(delBtn);
     return tr;
   }
 
@@ -3821,7 +4460,7 @@
     const container = document.getElementById('notesPlayersContainer');
     container.innerHTML = '';
     const totalNotes = notes.length;
-    document.getElementById('notesCount').textContent = totalNotes ? totalNotes : '';
+    updateNavCount(document.getElementById('notesCount'), totalNotes || '');
 
     if (!cachedPlayers.length) {
       container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
@@ -4041,18 +4680,35 @@
 
   function openEditNoteModal(note) {
     const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+    const d = note.timestamp ? new Date(note.timestamp) : null;
+    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+
     box.innerHTML =
       '<h3>Éditer la note</h3>' +
-      '<textarea id="mNoteText" rows="4" style="width:100%; padding:10px; border-radius:6px; ' +
-      'border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:16px; resize:vertical;">' +
-      escapeHtml(note.text) + '</textarea>' +
+      '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">' + escapeHtml(dateStr) + '</p>' +
+      '<div class="modal-field" style="margin-bottom:12px;">' +
+        '<label>Contenu de la note</label>' +
+        '<textarea id="mNoteText" rows="5" style="width:100%;padding:10px;border-radius:6px;' +
+        'border:1px solid var(--border);background:var(--bg);color:var(--text);' +
+        'font-size:16px;resize:vertical;font-family:inherit;">' + escapeHtml(note.text) + '</textarea>' +
+        '<span id="mNoteCount" style="font-size:0.7rem;color:var(--text-muted);text-align:right;display:block;"></span>' +
+      '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
         '<button id="mCancel" class="secondary">Annuler</button>' +
       '</div>';
+
+    const ta = document.getElementById('mNoteText');
+    const counter = document.getElementById('mNoteCount');
+    const updateCount = () => { counter.textContent = ta.value.length + ' caractères'; };
+    ta.addEventListener('input', updateCount);
+    updateCount();
+    setTimeout(() => ta.focus(), 50);
+
     document.getElementById('mSave').onclick = () => {
-      const v = document.getElementById('mNoteText').value.trim();
-      if (!v) return;
+      const v = ta.value.trim();
+      if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
       closeModal();
       callServer('apiEditNote', [note.rowIndex, v], () => {
         loadNotes();
@@ -4092,6 +4748,73 @@
     document.getElementById('mCancel').onclick = closeModal;
     document.getElementById('modalBackdrop').style.display = 'flex';
     setTimeout(() => { const el = document.getElementById('mDescText'); if (el) el.focus(); }, 50);
+  }
+
+  function openFullEditHistoryModal(log) {
+    const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+
+    const playerOptions = cachedPlayers.map(p =>
+      '<option value="' + escapeHtml(p.name) + '"' + (p.name === log.player ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'
+    ).join('');
+    const catOptions = cachedCategories.map(c =>
+      '<option value="' + escapeHtml(c.name) + '"' + (c.name === log.category ? ' selected' : '') + '>' + escapeHtml(catDisplay(c.name)) + '</option>'
+    ).join('');
+
+    const d = log.timestamp ? new Date(log.timestamp) : new Date();
+    const dateVal = isNaN(d) ? toDateStr(new Date()) : toDateStr(d);
+
+    box.innerHTML =
+      '<h3>✏️ Modifier l\'entrée</h3>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Date</label>' +
+          '<input type="date" id="mEditDate" value="' + escapeHtml(dateVal) + '"></div>' +
+        '<div class="modal-field"><label>Points</label>' +
+          '<input type="number" id="mEditPts" value="' + escapeHtml(String(log.points)) + '" min="1" step="1" inputmode="numeric"></div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Joueur</label>' +
+          '<select id="mEditPlayer">' + playerOptions + '</select></div>' +
+        '<div class="modal-field"><label>Top</label>' +
+          '<select id="mEditCategory">' + catOptions + '</select></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Description (optionnelle)</label>' +
+          '<input type="text" id="mEditDesc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…"></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mSave" class="primary">Enregistrer</button>' +
+        '<button id="mCancel" class="secondary">Annuler</button>' +
+      '</div>';
+
+    document.getElementById('mSave').onclick = () => {
+      const date     = document.getElementById('mEditDate').value;
+      const pts      = parseInt(document.getElementById('mEditPts').value, 10);
+      const player   = document.getElementById('mEditPlayer').value;
+      const category = document.getElementById('mEditCategory').value;
+      const desc     = document.getElementById('mEditDesc').value.trim();
+
+      if (!date)              { showToast('Date requise.', 'error'); return; }
+      if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
+      if (!player)            { showToast('Joueur requis.', 'error'); return; }
+      if (!category)          { showToast('Top requis.', 'error'); return; }
+
+      closeModal();
+      callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc }],
+        res => {
+          if (res && res.success === false) {
+            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+          } else {
+            showToast('Entrée modifiée.', 'success');
+            loadHistoryPage(currentHistoryPage);
+            applyFilters();
+          }
+        }, 'Modification entrée'
+      );
+    };
+    document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+    setTimeout(() => { const el = document.getElementById('mEditPts'); if (el) el.focus(); }, 50);
   }
 
   // ── OUTILS ───────────────────────────────────────────────────────────
@@ -4156,6 +4879,11 @@
 
   // ── BOUTONS ───────────────────────────────────────────────────────────
   function bindButtons() {
+    document.getElementById('mainChart').addEventListener('mouseleave', () => {
+      const el = document.getElementById('chartCustomTooltip');
+      if (el) el.classList.remove('visible');
+    });
+
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
       const name = document.getElementById('newPlayerName').value.trim();
       const meta = document.getElementById('newPlayerMeta').value.trim();
@@ -4183,6 +4911,9 @@
     document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('submitLotBtnSummary').addEventListener('click', submitBulk);
+    document.getElementById('lotGroupModeBtn').addEventListener('click', enterLotGroupMode);
+    document.getElementById('lotGroupApplyBtn').addEventListener('click', applyLotGroup);
+    document.getElementById('lotGroupCancelBtn').addEventListener('click', exitLotGroupMode);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
     document.getElementById('clearDatesBtn').addEventListener('click', () => {
       document.getElementById('startDate').value = '';
