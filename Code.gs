@@ -1187,3 +1187,22 @@ function apiDeletePreset(presetName) {
     return { success: true, phrases: PhrasesService.getAll() };
   } catch(e) { return { success: false, error: e.message }; }
 }
+
+function apiRenamePreset(oldName, newName) {
+  try {
+    if (!newName || !newName.trim()) throw new Error("Nouveau nom vide.");
+    if (oldName === newName.trim()) return { success: true, phrases: PhrasesService.getAll() };
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, phrases: [] };
+    const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    let modified = false;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0].toString() === oldName) { data[i][0] = newName.trim(); modified = true; }
+    }
+    if (modified) sheet.getRange(2, 1, lastRow - 1, 1).setValues(data);
+    ConfigService.clearCache();
+    return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return { success: false, error: e.message }; }
+}

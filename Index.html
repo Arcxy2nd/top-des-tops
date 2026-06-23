@@ -1079,7 +1079,6 @@
     }
 
     /* ── CARD PHRASES D'ACCROCHE ── */
-    #phrasesCard { display: none; }
 
     .phrases-card-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -1349,6 +1348,38 @@
     .phrases-preset-row { gap: 5px; }
   }
 
+  /* ── PHRASES DE REPLI (fallback visible dans éditeur) ── */
+  .phrase-fallback-section {
+    border-top: 1px dashed var(--border);
+    padding: 8px 14px 6px;
+    background: rgba(0,0,0,0.06);
+  }
+  body.light .phrase-fallback-section { background: rgba(0,0,0,0.03); }
+  .phrase-fallback-label {
+    font-size: 0.67rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .phrase-fallback-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  body.light .phrase-fallback-item { border-top-color: rgba(0,0,0,0.05); }
+  .phrase-fallback-text {
+    flex: 1; font-size: 0.8rem; line-height: 1.45;
+    color: var(--text-muted); opacity: 0.65; word-break: break-word;
+    font-style: italic;
+  }
+  .phrase-fallback-copy {
+    flex-shrink: 0; font-size: 0.7rem; padding: 3px 7px;
+    min-height: 24px; opacity: 0.7;
+  }
+  .phrase-fallback-copy:hover { opacity: 1; }
+
+  .ranking-comments-badge {
+    font-size: 0.7em; vertical-align: middle; opacity: 0.6;
+  }
+  .chart-type-btn.active .ranking-comments-badge { opacity: 1; }
+
   </style>
 </head>
 <body>
@@ -1422,7 +1453,7 @@
         <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
         <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
         <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
-        <button class="chart-type-btn active" data-chart-type="ranking" title="Podium et classement général">🏆 Classement</button>
+        <button class="chart-type-btn active" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
       </div>
 
       <div class="chart-controls" id="chartControls" style="display:none;"></div>
@@ -1447,10 +1478,7 @@
         <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
       </div>
       <div id="phrasesList" class="phrases-list">
-        <div class="phrases-empty">
-          <span class="phrases-empty-icon">🏆</span>
-          Ouvre le graphique <strong>Classement</strong> pour voir les commentaires.
-        </div>
+        <div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -1553,22 +1581,18 @@
         <div class="phrases-preset-row" id="phrasesPresetChips"></div>
       </div>
 
-      <!-- Éditeur — preset custom actif -->
+      <!-- Éditeur — preset actif -->
       <div id="phrasesEditorWrap" style="display:none;">
         <div class="phrases-editor-header">
           <span class="phrases-editor-title" id="phrasesEditorTitle"></span>
-          <button class="danger small" id="phrasesDeletePresetBtn">🗑️ Supprimer ce preset</button>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="secondary small" id="phrasesRenamePresetBtn" style="display:none;">✏️ Renommer</button>
+            <button class="danger small" id="phrasesDeletePresetBtn">🗑️ Supprimer</button>
+          </div>
         </div>
         <div id="phrasesPoolList"></div>
       </div>
 
-      <!-- Notice lecture seule — preset Défaut -->
-      <div id="phrasesDefaultView" style="display:none;">
-        <p class="phrases-default-note">
-          Les phrases par défaut ne sont pas modifiables.<br>
-          Crée un preset personnalisé pour les adapter à ton style.
-        </p>
-      </div>
     </div>
   </div>
 
@@ -1762,6 +1786,21 @@
     </div>
   </div>
 
+  <!-- ══ MODAL : RENOMMER UN PRESET ═══════════════════════════════════════ -->
+  <div id="presetRenameModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <h3>Renommer le preset</h3>
+      <div class="modal-field">
+        <label>Nouveau nom</label>
+        <input type="text" id="presetRenameInput" placeholder="Nouveau nom…" maxlength="40">
+      </div>
+      <div class="modal-actions">
+        <button id="presetRenameCancel" class="secondary">Annuler</button>
+        <button id="presetRenameSave" class="primary">Renommer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ MODAL : CRÉER UN PRESET ══════════════════════════════════════════ -->
   <div id="presetCreateModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
     <div class="modal-box">
@@ -1947,7 +1986,6 @@
   }
 
   function getPhrasesForPreset(presetId) {
-    if (presetId === PHRASES_DEFAULT_ID) return RANKING_PHRASES;
     const result = {};
     if (_customPhrases) {
       _customPhrases
@@ -1957,7 +1995,7 @@
           result[p.pool].push(p.text);
         });
     }
-    // Repli pool par pool sur les phrases usine si le pool custom est vide
+    // Repli pool par pool sur les phrases hardcodées (filet de sécurité)
     Object.keys(RANKING_PHRASES).forEach(pool => {
       if (!result[pool] || !result[pool].length) result[pool] = RANKING_PHRASES[pool];
     });
@@ -1990,7 +2028,7 @@
     // Chip "Défaut" (lecture seule)
     const defChip = document.createElement('button');
     defChip.className = 'preset-chip' + (active === PHRASES_DEFAULT_ID ? ' active' : '');
-    defChip.innerHTML = '<span class="preset-chip-lock">🔒</span> Défaut';
+    defChip.textContent = 'Défaut';
     defChip.addEventListener('click', () => {
       setActivePresetId(PHRASES_DEFAULT_ID);
       renderPresetChips();
@@ -2022,20 +2060,19 @@
   }
 
   function renderPhrasesEditorSection() {
-    const editorWrap  = document.getElementById('phrasesEditorWrap');
-    const defaultView = document.getElementById('phrasesDefaultView');
-    const titleEl     = document.getElementById('phrasesEditorTitle');
-    const active      = getActivePresetId();
+    const editorWrap = document.getElementById('phrasesEditorWrap');
+    const titleEl    = document.getElementById('phrasesEditorTitle');
+    const active     = getActivePresetId();
+    if (!editorWrap) return;
 
-    if (active === PHRASES_DEFAULT_ID) {
-      if (editorWrap)  editorWrap.style.display  = 'none';
-      if (defaultView) defaultView.style.display = 'block';
-      return;
-    }
+    editorWrap.style.display = 'block';
+    const displayName = active === PHRASES_DEFAULT_ID ? 'Défaut' : active;
+    if (titleEl) titleEl.textContent = '✏️ ' + displayName;
 
-    if (editorWrap)  editorWrap.style.display  = 'block';
-    if (defaultView) defaultView.style.display = 'none';
-    if (titleEl)     titleEl.textContent = '✏️ Preset : ' + active;
+    // Le bouton Renommer n'est disponible que pour les presets custom
+    const renameBtn = document.getElementById('phrasesRenamePresetBtn');
+    if (renameBtn) renameBtn.style.display = active === PHRASES_DEFAULT_ID ? 'none' : '';
+
     renderPoolList(active);
   }
 
@@ -2071,10 +2108,43 @@
     block.appendChild(head);
 
     if (entries.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'phrases-pool-empty';
-      empty.textContent = 'Aucune phrase personnalisée — repli sur les phrases usine.';
-      block.appendChild(empty);
+      const fallbackTexts = RANKING_PHRASES[pool] || [];
+      if (fallbackTexts.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'phrases-pool-empty';
+        empty.textContent = 'Aucune phrase pour ce rang.';
+        block.appendChild(empty);
+      } else {
+        const section = document.createElement('div');
+        section.className = 'phrase-fallback-section';
+        const lbl = document.createElement('div');
+        lbl.className = 'phrase-fallback-label';
+        lbl.textContent = 'Phrases de repli utilisées (usine)';
+        section.appendChild(lbl);
+        fallbackTexts.forEach(txt => {
+          const row = document.createElement('div');
+          row.className = 'phrase-fallback-item';
+          const span = document.createElement('span');
+          span.className = 'phrase-fallback-text';
+          span.textContent = txt;
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'secondary small phrase-fallback-copy';
+          copyBtn.textContent = 'Copier →';
+          copyBtn.title = 'Copier dans ce preset pour pouvoir la modifier';
+          copyBtn.addEventListener('click', () => {
+            callServer('apiAddPhrase', [presetName, pool, txt], res => {
+              _customPhrases = res.phrases;
+              renderPoolList(presetName);
+              renderPresetChips();
+              showToast('Phrase copiée ✓', 'success');
+            }, 'Copie phrase');
+          });
+          row.appendChild(span);
+          row.appendChild(copyBtn);
+          section.appendChild(row);
+        });
+        block.appendChild(section);
+      }
     } else {
       entries.forEach(entry => {
         const row = document.createElement('div');
@@ -2245,8 +2315,11 @@
 
   function handleDeletePreset() {
     const active = getActivePresetId();
-    if (active === PHRASES_DEFAULT_ID) return;
-    if (!confirm('Supprimer le preset "' + active + '" et toutes ses phrases ?')) return;
+    const displayName = active === PHRASES_DEFAULT_ID ? 'Défaut' : active;
+    const msg = active === PHRASES_DEFAULT_ID
+      ? 'Vider le preset "Défaut" de toutes ses phrases personnalisées ? (Les phrases usine resteront disponibles comme repli.)'
+      : 'Supprimer le preset "' + displayName + '" et toutes ses phrases ?';
+    if (!confirm(msg)) return;
 
     callServer('apiDeletePreset', [active], res => {
       _customPhrases = res.phrases;
@@ -2254,8 +2327,48 @@
       renderPresetChips();
       renderPhrasesEditorSection();
       if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
-      showToast('Preset "' + active + '" supprimé.', 'success');
+      showToast('Preset "' + displayName + '" supprimé.', 'success');
     }, 'Suppression preset');
+  }
+
+  // ── PHRASES : RENOMMAGE PRESET ───────────────────────────────────────────
+  function openRenamePresetModal() {
+    const active = getActivePresetId();
+    if (active === PHRASES_DEFAULT_ID) return;
+    document.getElementById('presetRenameInput').value = active;
+    document.getElementById('presetRenameModal').style.display = 'flex';
+    const input = document.getElementById('presetRenameInput');
+    setTimeout(() => { input.focus(); input.select(); }, 60);
+  }
+
+  function closeRenamePresetModal() {
+    document.getElementById('presetRenameModal').style.display = 'none';
+  }
+
+  function saveRenamePreset() {
+    const oldName = getActivePresetId();
+    if (oldName === PHRASES_DEFAULT_ID) return;
+    const newName = (document.getElementById('presetRenameInput').value || '').trim();
+
+    if (!newName)             { showToast('Nom vide.', 'error'); return; }
+    if (newName === oldName)  { closeRenamePresetModal(); return; }
+    if (newName === 'Défaut') { showToast('Nom réservé.', 'error'); return; }
+    if (getCustomPresetNames().filter(n => n !== oldName).includes(newName)) {
+      showToast('Ce nom est déjà utilisé.', 'error'); return;
+    }
+
+    const saveBtn = document.getElementById('presetRenameSave');
+    saveBtn.disabled = true;
+
+    callServer('apiRenamePreset', [oldName, newName], res => {
+      saveBtn.disabled = false;
+      _customPhrases = res.phrases;
+      setActivePresetId(newName);
+      closeRenamePresetModal();
+      renderPresetChips();
+      renderPhrasesEditorSection();
+      showToast('Preset renommé en "' + newName + '" ✓', 'success');
+    }, 'Renommage preset', () => { saveBtn.disabled = false; });
   }
 
   // ── PHRASES D'ACCROCHE ──────────────────────────────────────────────────
@@ -2353,24 +2466,27 @@
   }
 
   function clearPhrasesCard() {
-    const card = document.getElementById('phrasesCard');
-    if (card) card.style.display = 'none';
+    const list      = document.getElementById('phrasesList');
+    const rerollBtn = document.getElementById('phrasesRerollBtn');
+    if (list) list.innerHTML = '<div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>';
+    if (rerollBtn) rerollBtn.style.display = 'none';
     lastPhraseSortedRows = null;
   }
 
   function renderPhrasesCard(sortedRows) {
     lastPhraseSortedRows = sortedRows;
-    const settings = getPhraseSettings();
-    const card = document.getElementById('phrasesCard');
-    const list = document.getElementById('phrasesList');
+    const settings  = getPhraseSettings();
+    const card      = document.getElementById('phrasesCard');
+    const list      = document.getElementById('phrasesList');
+    const rerollBtn = document.getElementById('phrasesRerollBtn');
     if (!card || !list) return;
 
     if (!settings.enabled || !sortedRows || !sortedRows.length) {
-      card.style.display = 'none';
+      clearPhrasesCard();
       return;
     }
 
-    card.style.display = 'block';
+    if (rerollBtn) rerollBtn.style.display = '';
     list.innerHTML = '';
 
     const phrases = generateRankingPhrases(sortedRows, settings.count);
@@ -3092,10 +3208,7 @@
       renderChartControls(currentChartType);
       if (currentChartType === 'stacked' || currentChartType === 'grouped') {
         renderTopStatsStrip(res.chartData);
-        clearPhrasesCard();
-      } else if (currentChartType === 'ranking') {
-        // detailed ranking — renderChart already handled clearPhrasesCard
-      } else {
+      } else if (currentChartType !== 'ranking') {
         clearTopStatsStrip();
       }
     }, 'Chargement graphique');
@@ -3301,7 +3414,6 @@
   function clearTopStatsStrip() {
     const strip = document.getElementById('topStatsStrip');
     if (strip) strip.innerHTML = '';
-    clearPhrasesCard();
   }
 
   // ── TRIS (côté front, sans appel serveur) ────────────────────────────
@@ -3537,11 +3649,9 @@
         plugins: [buildCustomTooltipPlugin()]
       });
 
-      // Phrases d'accroche — card dédiée
+      // Phrases d'accroche — card dédiée, indépendante du mode détaillé
       if (!chartOptions.detailed) {
         renderPhrasesCard(totals);
-      } else {
-        clearPhrasesCard();
       }
       return;
     }
@@ -6007,6 +6117,21 @@
     document.getElementById('phrasesDeletePresetBtn')
       ?.addEventListener('click', handleDeletePreset);
 
+    // Renommer preset
+    document.getElementById('phrasesRenamePresetBtn')
+      ?.addEventListener('click', openRenamePresetModal);
+    document.getElementById('presetRenameCancel')
+      ?.addEventListener('click', closeRenamePresetModal);
+    document.getElementById('presetRenameSave')
+      ?.addEventListener('click', saveRenamePreset);
+    document.getElementById('presetRenameModal')
+      ?.addEventListener('click', e => { if (e.target === e.currentTarget) closeRenamePresetModal(); });
+    document.getElementById('presetRenameInput')
+      ?.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  saveRenamePreset();
+        if (e.key === 'Escape') closeRenamePresetModal();
+      });
+
     // Bouton "Nouveau tirage" (dashboard)
     document.getElementById('phrasesRerollBtn')
       ?.addEventListener('click', () => {
@@ -6032,8 +6157,19 @@
     bindExportButtons();
     initPhraseSettings();
     loadCustomPhrases(() => {
-      renderPresetChips();
-      renderPhrasesEditorSection();
+      const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
+      if (!hasDefault) {
+        const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
+          texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
+        callServer('apiSavePhrasesBatch', [seed], res => {
+          _customPhrases = res.phrases;
+          renderPresetChips();
+          renderPhrasesEditorSection();
+        }, 'Initialisation Défaut');
+      } else {
+        renderPresetChips();
+        renderPhrasesEditorSection();
+      }
     });
 
     // Bouton « date/plage par défaut » du lot : ouvre le même éditeur que les lignes.
