@@ -1210,3 +1210,18 @@ function apiRenamePreset(oldName, newName) {
     return { success: true, phrases: PhrasesService.getAll() };
   } catch(e) { return { success: false, error: e.message }; }
 }
+
+function apiGetActivePhrasePreset() {
+  try {
+    const preset = PropertiesService.getScriptProperties().getProperty('active_phrase_preset') || '__default__';
+    return { success: true, preset };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function apiSetActivePhrasePreset(name) {
+  try {
+    if (!name || !name.trim()) throw new Error("Nom de preset manquant.");
+    PropertiesService.getScriptProperties().setProperty('active_phrase_preset', name.trim());
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}

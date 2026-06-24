@@ -1082,44 +1082,103 @@
 
     .phrases-card-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .phrases-card-header h2 { margin: 0; }
 
-    .phrases-list {
-      display: flex; flex-direction: column; gap: 10px;
-    }
+    .phrases-list { display: flex; flex-direction: column; gap: 16px; }
 
-    .phrase-item {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 12px 14px;
-      background: rgba(0,0,0,0.12); border: 1px solid var(--border);
-      border-left: 4px solid var(--phrase-color, var(--accent));
-      border-radius: 0 10px 10px 0;
-      animation: fadeIn 0.3s ease;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    /* ── Podium (Top 3) ── */
+    .phrases-podium {
+      display: flex; align-items: flex-end; gap: 8px; min-height: 140px;
     }
-    body.light .phrase-item { background: rgba(0,0,0,0.04); }
-    .phrase-item:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+    .phrase-podium-card {
+      flex: 1; border-radius: 12px; padding: 14px 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-top: 3px solid var(--phrase-color, var(--accent));
+      display: flex; flex-direction: column; gap: 7px;
+      position: relative; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: phraseSlideUp 0.4s ease both;
+    }
+    .phrase-podium-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--phrase-color, var(--accent));
+      opacity: 0.05; pointer-events: none;
+    }
+    .phrase-podium-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .phrase-podium-card.first { flex: 1.45; padding: 18px 14px; }
+    .phrase-podium-medal { font-size: 1.6rem; line-height: 1; }
+    .phrase-podium-card.first .phrase-podium-medal { font-size: 2rem; }
+    .phrase-podium-player {
+      font-size: 0.72rem; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--phrase-color, var(--accent));
+    }
+    .phrase-podium-card.first .phrase-podium-player { font-size: 0.8rem; }
+    .phrase-podium-text {
+      font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; font-style: italic;
+    }
+    .phrase-podium-card.first .phrase-podium-text { font-size: 0.85rem; color: var(--text); }
 
-    .phrase-rank {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 2px; flex-shrink: 0; min-width: 36px;
+    /* ── Feed compact (4ème+) ── */
+    .phrases-feed { display: flex; flex-direction: column; gap: 4px; }
+    .phrase-feed-item {
+      display: flex; align-items: baseline; gap: 7px;
+      padding: 7px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+      animation: fadeIn 0.3s ease both;
     }
-    .phrase-rank-emoji { font-size: 1.4rem; line-height: 1; }
-    .phrase-rank-label {
-      font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;
-    }
-
-    .phrase-body { flex: 1; min-width: 0; }
-    .phrase-player {
+    .phrase-feed-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); }
+    .phrase-feed-emoji { font-size: 0.95rem; flex-shrink: 0; }
+    .phrase-feed-player {
       font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.06em; margin-bottom: 3px;
-      color: var(--phrase-color, var(--accent));
+      letter-spacing: 0.05em; color: var(--phrase-color, var(--accent));
+      flex-shrink: 0; white-space: nowrap;
     }
-    .phrase-text {
-      font-size: 0.88rem; color: var(--text); line-height: 1.5;
+    .phrase-feed-sep { color: var(--border); flex-shrink: 0; }
+    .phrase-feed-text { font-size: 0.81rem; color: var(--text-muted); line-height: 1.4; min-width: 0; }
+
+    /* ── Accordion commentaires par Top ── */
+    .phrases-cat-accordion { border-top: 1px solid var(--border); padding-top: 12px; }
+    .phrases-cat-toggle {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.81rem; font-weight: 600; color: var(--text-muted);
+      cursor: pointer; user-select: none; padding: 2px 0;
+      transition: color 0.2s; background: none; border: none;
+      text-align: left; width: 100%; -webkit-tap-highlight-color: transparent;
+    }
+    .phrases-cat-toggle:hover { color: var(--text); }
+    .phrases-cat-count {
+      font-size: 0.68rem; background: rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 1px 7px; font-weight: 700; color: var(--text-muted);
+    }
+    .phrases-cat-toggle-arrow { font-size: 0.65rem; transition: transform 0.2s; margin-left: auto; }
+    .phrases-cat-accordion.open .phrases-cat-toggle-arrow { transform: rotate(90deg); }
+    .phrases-cat-body {
+      display: none; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; gap: 8px; padding: 12px 0 4px;
+    }
+    .phrases-cat-body::-webkit-scrollbar { display: none; }
+    .phrases-cat-accordion.open .phrases-cat-body { display: flex; }
+    .phrase-cat-card {
+      flex-shrink: 0; width: 152px; border-radius: 10px; padding: 11px 11px 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-top: 3px solid var(--phrase-color, var(--accent));
+      display: flex; flex-direction: column; gap: 6px;
+      animation: fadeIn 0.25s ease both; transition: transform 0.18s;
+    }
+    .phrase-cat-card:hover { transform: translateY(-2px); }
+    .phrase-cat-header {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.69rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--phrase-color, var(--accent));
+    }
+    .phrase-cat-text { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; font-style: italic; }
+
+    @keyframes phraseSlideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .phrases-empty {
@@ -2759,72 +2818,127 @@
     if (rerollBtn) rerollBtn.style.display = '';
     list.innerHTML = '';
 
-    // Phrases par Top — toujours visibles sauf si exactement 1 Top est sélectionné dans le filtre
+    // ── Commentaires de classement ──
+    const phrases = generateRankingPhrases(sortedRows, settings.count);
+    if (phrases.length) {
+      const podiumPhrases = phrases.filter(p => p.rank <= 3);
+      const feedPhrases   = phrases.filter(p => p.rank > 3);
+
+      // Podium : ordre visuel 2ème gauche · 1er centre · 3ème droite
+      if (podiumPhrases.length) {
+        const podiumWrap = document.createElement('div');
+        podiumWrap.className = 'phrases-podium';
+
+        const slots = [null, null, null];
+        const visualOrder = { 1: 1, 2: 0, 3: 2 };
+        podiumPhrases.forEach(p => { if (p.rank <= 3) slots[visualOrder[p.rank] ?? 0] = p; });
+
+        slots.filter(Boolean).forEach((p, vi) => {
+          const color = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
+          const el    = document.createElement('div');
+          el.className = 'phrase-podium-card' + (p.rank === 1 ? ' first' : '');
+          el.style.setProperty('--phrase-color', color);
+          el.style.animationDelay = (vi * 0.08) + 's';
+          el.innerHTML =
+            '<div class="phrase-podium-medal">' + escapeHtml(p.emoji || '') + '</div>' +
+            '<div class="phrase-podium-player">' + escapeHtml(p.player) + '</div>' +
+            '<div class="phrase-podium-text">' + escapeHtml(p.text) + '</div>';
+          podiumWrap.appendChild(el);
+        });
+
+        list.appendChild(podiumWrap);
+      }
+
+      // Feed compact (4ème et au-delà)
+      if (feedPhrases.length) {
+        const feedWrap = document.createElement('div');
+        feedWrap.className = 'phrases-feed';
+        feedPhrases.forEach((p, i) => {
+          const color = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
+          const el    = document.createElement('div');
+          el.className = 'phrase-feed-item';
+          el.style.setProperty('--phrase-color', color);
+          el.style.animationDelay = (i * 0.06) + 's';
+          el.innerHTML =
+            '<span class="phrase-feed-emoji">' + escapeHtml(p.emoji || '') + '</span>' +
+            '<span class="phrase-feed-player">' + escapeHtml(p.player) + '</span>' +
+            '<span class="phrase-feed-sep">·</span>' +
+            '<span class="phrase-feed-text">' + escapeHtml(p.text) + '</span>';
+          feedWrap.appendChild(el);
+        });
+        list.appendChild(feedWrap);
+      }
+    } else {
+      list.innerHTML = '<div class="phrases-empty"><span class="phrases-empty-icon">🤔</span>Pas assez de joueurs pour générer un commentaire.</div>';
+      return;
+    }
+
+    // ── Commentaires par Top (accordion replié) ──
     if (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size !== 1) {
       const presetId    = getActivePresetId();
       const activeChips = selectedCategoryChips.size > 1 ? selectedCategoryChips : null;
       const catsToShow  = (cachedCategories || []).filter(c => !activeChips || activeChips.has(c.name));
-      const firstRow    = sortedRows[0] || {};
-      const vars        = { player: firstRow.player || '', pts: firstRow.total || 0, gap: 0, behind: 0, rank: 1 };
 
-      catsToShow.forEach(cat => {
-        const catPool = (_customPhrases || [])
+      const catItems = catsToShow.map(cat => {
+        const pool = (_customPhrases || [])
           .filter(p => p.preset === presetId && p.pool === 'cat:' + cat.name)
           .map(p => p.text);
-        if (!catPool.length) return;
+        if (!pool.length) return null;
 
-        const col  = typeof categoryColor === 'function' ? categoryColor(cat.name) : 'var(--accent)';
-        const tpl  = catPool[Math.floor(Math.random() * catPool.length)];
+        // Points spécifiques au Top (bug fix Task 3)
+        let topPlayer = (sortedRows[0] || {}).player || '';
+        let topPts    = (sortedRows[0] || {}).total  || 0;
+        if (typeof currentChartData !== 'undefined' && currentChartData && currentChartData.datasets) {
+          const ds = currentChartData.datasets.find(d => d.label === cat.name);
+          if (ds && currentChartData.labels) {
+            let maxPts = -Infinity, maxIdx = 0;
+            ds.data.forEach((v, i) => { if ((v || 0) > maxPts) { maxPts = v; maxIdx = i; } });
+            topPlayer = currentChartData.labels[maxIdx] || topPlayer;
+            topPts    = maxPts >= 0 ? maxPts : topPts;
+          }
+        }
+
+        const tpl  = pool[Math.floor(Math.random() * pool.length)];
+        const vars = { player: topPlayer, pts: topPts, gap: 0, behind: 0, rank: 1 };
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
+        return { cat, text };
+      }).filter(Boolean);
 
-        const item = document.createElement('div');
-        item.className = 'phrase-item phrase-item-cat';
-        item.style.setProperty('--phrase-color', col);
+      if (catItems.length) {
+        const accordion = document.createElement('div');
+        accordion.className = 'phrases-cat-accordion';
 
-        const rankDiv = document.createElement('div');
-        rankDiv.className = 'phrase-rank';
-        rankDiv.innerHTML =
-          '<span class="phrase-rank-emoji">' + (cat.icon || '🎯') + '</span>' +
-          '<span class="phrase-rank-label">' + escapeHtml(cat.name) + '</span>';
+        const toggle = document.createElement('button');
+        toggle.className = 'phrases-cat-toggle';
+        toggle.innerHTML =
+          '<span>💬 Commentaires par Top</span>' +
+          '<span class="phrases-cat-count">' + catItems.length + '</span>' +
+          '<span class="phrases-cat-toggle-arrow">▸</span>';
 
         const body = document.createElement('div');
-        body.className = 'phrase-body';
-        body.innerHTML = '<div class="phrase-text">' + escapeHtml(text) + '</div>';
+        body.className = 'phrases-cat-body';
 
-        item.appendChild(rankDiv);
-        item.appendChild(body);
-        list.appendChild(item);
-      });
+        catItems.forEach((item, i) => {
+          const col = typeof categoryColor === 'function' ? categoryColor(item.cat.name) : 'var(--accent)';
+          const el  = document.createElement('div');
+          el.className = 'phrase-cat-card';
+          el.style.setProperty('--phrase-color', col);
+          el.style.animationDelay = (i * 0.05) + 's';
+          el.innerHTML =
+            '<div class="phrase-cat-header">' +
+              '<span>' + escapeHtml(item.cat.icon || '🎯') + '</span>' +
+              '<span>' + escapeHtml(item.cat.name) + '</span>' +
+            '</div>' +
+            '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
+          body.appendChild(el);
+        });
+
+        toggle.addEventListener('click', () => accordion.classList.toggle('open'));
+        accordion.appendChild(toggle);
+        accordion.appendChild(body);
+        list.appendChild(accordion);
+      }
     }
-
-    const phrases = generateRankingPhrases(sortedRows, settings.count);
-    if (!phrases.length) {
-      if (!list.children.length) list.innerHTML = '<div class="phrases-empty"><span class="phrases-empty-icon">🤔</span>Pas assez de joueurs pour générer un commentaire.</div>';
-      return;
-    }
-
-    phrases.forEach(p => {
-      const color = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
-      const item = document.createElement('div');
-      item.className = 'phrase-item';
-      item.style.setProperty('--phrase-color', color);
-
-      const rankDiv = document.createElement('div');
-      rankDiv.className = 'phrase-rank';
-      rankDiv.innerHTML =
-        '<span class="phrase-rank-emoji">' + p.emoji + '</span>' +
-        '<span class="phrase-rank-label">' + p.label + '</span>';
-
-      const body = document.createElement('div');
-      body.className = 'phrase-body';
-      body.innerHTML =
-        '<div class="phrase-player">' + escapeHtml(p.player) + '</div>' +
-        '<div class="phrase-text">'   + escapeHtml(p.text)   + '</div>';
-
-      item.appendChild(rankDiv);
-      item.appendChild(body);
-      list.appendChild(item);
-    });
   }
 
   // Couleur déterministe à partir d'un texte (même nom → toujours même couleur,
