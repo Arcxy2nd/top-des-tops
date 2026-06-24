@@ -1380,6 +1380,83 @@
   }
   .chart-type-btn.active .ranking-comments-badge { opacity: 1; }
 
+  /* ── SETTINGS INNER TABS ── */
+  .settings-inner-nav {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    background: rgba(0,0,0,0.2); padding: 4px; border-radius: 14px;
+    margin-bottom: 20px;
+  }
+  .settings-nav-btn {
+    flex: 1; min-width: 72px; padding: 10px 8px;
+    border: none; border-radius: 11px; cursor: pointer;
+    font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+    background: transparent; color: var(--text-muted);
+    transition: background 0.18s, color 0.18s;
+  }
+  .settings-nav-btn.active {
+    background: var(--card); color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  }
+  .settings-nav-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.05); }
+  .settings-tab-pane { display: none; }
+  .settings-tab-pane.active { display: block; }
+  @media (max-width:640px) {
+    .settings-nav-btn { font-size: 0.75rem; padding: 9px 5px; }
+  }
+
+  /* ── ENTITY ITEMS — redesign ── */
+  .entity-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    padding: 12px 14px; border-radius: 12px;
+    transition: background 0.15s, border-color 0.15s;
+    gap: 10px;
+  }
+  .entity-item:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.17);
+  }
+  .entity-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .entity-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .entity-name { font-weight: 700; font-size: 0.9rem; }
+  .entity-meta { font-size: 0.77rem; color: var(--text-muted); word-break: break-word; margin-top: 1px; }
+
+  /* ── ADD FORM — redesign ── */
+  .add-form {
+    background: rgba(0,0,0,0.14);
+    border: 1px dashed rgba(255,255,255,0.1);
+    padding: 14px; border-radius: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    margin-top: 10px;
+  }
+  .add-form-label {
+    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em; margin: 0;
+  }
+
+  /* ── BULK IMPORT MODAL ── */
+  .bulk-import-modal-box { max-width: 520px; }
+  .bulk-import-textarea {
+    width: 100%; min-height: 160px; resize: vertical;
+    background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    color: var(--text); font-size: 0.87rem; line-height: 1.65;
+    font-family: inherit; box-sizing: border-box;
+  }
+  .bulk-import-textarea:focus { border-color: var(--accent); outline: none; }
+  .bulk-import-hint { font-size: 0.77rem; color: var(--text-muted); margin: 6px 0 0; line-height: 1.5; }
+  .bulk-import-count { font-size: 0.8rem; color: var(--accent); font-weight: 600; margin: 5px 0 0; min-height: 1.2em; }
+
+  /* ── CATEGORY PHRASES SECTION ── */
+  .cat-phrases-section { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .cat-phrases-title {
+    font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+  }
+  .cat-phrases-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; font-style: italic; }
+  .phrase-item-cat { opacity: 0.92; }
+  .phrase-item-cat .phrase-rank-label { font-style: italic; font-size: 0.78rem; }
+
   </style>
 </head>
 <body>
@@ -1529,38 +1606,50 @@
 
   <!-- ══ PARAMÈTRES ════════════════════════════════════════════════════ -->
   <div id="tab-settings" class="tab-content">
-    <div class="card">
-      <h2>⚙️ Base & Paramètres</h2>
-      <div class="settings-grid">
-        <div>
-          <h3>Profils Joueurs</h3>
-          <ul id="playersList" class="entity-list"></ul>
-          <div class="add-form">
-            <input type="text" id="newPlayerName" placeholder="Nom du joueur">
-            <input type="url"  id="newPlayerMeta" placeholder="URL avatar (optionnel)">
-            <button id="addPlayerBtn" class="primary small">Ajouter le joueur</button>
-          </div>
-        </div>
-        <div>
-          <h3>Tops</h3>
-          <ul id="categoriesList" class="entity-list"></ul>
-          <div class="add-form">
-            <input type="text" id="newCategoryName" placeholder="Nom du Top">
-            <input type="text" id="newCategoryMeta" placeholder="Description (optionnel)">
-            <input type="text" id="newCategoryIcon" placeholder="Icône emoji (ex : 🍺) — optionnel" maxlength="8" style="max-width:240px;">
-            <button id="addCategoryBtn" class="primary small">Ajouter le Top</button>
-          </div>
-        </div>
-      </div>
-      <div class="bareme-settings-section">
-        <h3>⚖️ Barème par Top</h3>
-        <div id="baremeSettingsList"></div>
+
+    <!-- Navigation interne -->
+    <div class="settings-inner-nav">
+      <button class="settings-nav-btn active" data-stab="stab-players">👤 Joueurs</button>
+      <button class="settings-nav-btn" data-stab="stab-categories">🎯 Tops</button>
+      <button class="settings-nav-btn" data-stab="stab-bareme">⚖️ Barème</button>
+      <button class="settings-nav-btn" data-stab="stab-phrases">🎭 Commentaires</button>
+    </div>
+
+    <!-- ─ Joueurs ─ -->
+    <div id="stab-players" class="settings-tab-pane active card">
+      <h2>👤 Joueurs</h2>
+      <ul id="playersList" class="entity-list"></ul>
+      <div class="add-form">
+        <p class="add-form-label">Ajouter un joueur</p>
+        <input type="text" id="newPlayerName" placeholder="Nom du joueur">
+        <input type="url"  id="newPlayerMeta" placeholder="URL avatar (optionnel)">
+        <button id="addPlayerBtn" class="primary small">+ Ajouter</button>
       </div>
     </div>
-    <div class="card" id="phrasesSettingsCard">
+
+    <!-- ─ Tops ─ -->
+    <div id="stab-categories" class="settings-tab-pane card">
+      <h2>🎯 Tops</h2>
+      <ul id="categoriesList" class="entity-list"></ul>
+      <div class="add-form">
+        <p class="add-form-label">Ajouter un Top</p>
+        <input type="text" id="newCategoryName" placeholder="Nom du Top">
+        <input type="text" id="newCategoryMeta" placeholder="Description (optionnel)">
+        <input type="text" id="newCategoryIcon" placeholder="Icône emoji (ex : 🍺) — optionnel" maxlength="8">
+        <button id="addCategoryBtn" class="primary small">+ Ajouter</button>
+      </div>
+    </div>
+
+    <!-- ─ Barème ─ -->
+    <div id="stab-bareme" class="settings-tab-pane card">
+      <h2>⚖️ Barème par Top</h2>
+      <div id="baremeSettingsList"></div>
+    </div>
+
+    <!-- ─ Commentaires ─ -->
+    <div id="stab-phrases" class="settings-tab-pane card">
       <h2>🎭 Commentaires de classement</h2>
 
-      <!-- Activer + Nombre -->
       <div class="phrases-settings-toggle">
         <label>
           <input type="checkbox" id="phrasesEnabledChk" checked>
@@ -1575,13 +1664,11 @@
 
       <div style="border-top:1px solid var(--border);margin:18px 0 16px;"></div>
 
-      <!-- Sélecteur de preset -->
       <div class="fp-section">
         <div class="fp-label">Preset de phrases</div>
         <div class="phrases-preset-row" id="phrasesPresetChips"></div>
       </div>
 
-      <!-- Éditeur — preset actif -->
       <div id="phrasesEditorWrap" style="display:none;">
         <div class="phrases-editor-header">
           <span class="phrases-editor-title" id="phrasesEditorTitle"></span>
@@ -1594,6 +1681,7 @@
       </div>
 
     </div>
+
   </div>
 
   <!-- ══ NOTES ═════════════════════════════════════════════════════════ -->
@@ -1824,6 +1912,25 @@
       </div>
     </div>
   </div>
+
+  <!-- ══ MODAL : IMPORT EN MASSE DE PHRASES ════════════════════════════ -->
+  <div id="bulkImportModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal-box bulk-import-modal-box">
+      <h3 id="bulkImportModalTitle">Importer des phrases</h3>
+      <div class="modal-field">
+        <label>Collez vos phrases ici — une par ligne</label>
+        <textarea id="bulkImportTextarea" class="bulk-import-textarea" rows="8"
+          placeholder="🪂 {player} a oublié d'ouvrir son parachute…&#10;&#10;🕯️ {player} éclaire le chemin depuis le fond du trou.&#10;&#10;---&#10;&#10;📉 {player} a confondu le score avec une jauge d'humilité."></textarea>
+        <p class="bulk-import-hint">Les lignes vides et les <code>---</code> sont ignorés. Chaque ligne non vide = une phrase.</p>
+        <p class="bulk-import-count" id="bulkImportCount"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="bulkImportCancel" class="secondary">Annuler</button>
+        <button id="bulkImportSave" class="primary">Importer</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ══ BARÈME FAB + DRAWER ═══════════════════════════════════════════ -->
@@ -2074,6 +2181,7 @@
     if (renameBtn) renameBtn.style.display = active === PHRASES_DEFAULT_ID ? 'none' : '';
 
     renderPoolList(active);
+    renderCatPhrasesSection(active);
   }
 
   // ── PHRASES : LISTE DE POOLS ─────────────────────────────────────────────
@@ -2105,6 +2213,14 @@
     addBtn.textContent = '+ Ajouter';
     addBtn.addEventListener('click', () => openPhraseModal(null, presetName, pool));
     head.appendChild(addBtn);
+
+    const importBtn = document.createElement('button');
+    importBtn.className = 'secondary small';
+    importBtn.textContent = '📥';
+    importBtn.title = 'Importer plusieurs phrases';
+    importBtn.addEventListener('click', () => openBulkImportModal(presetName, pool, meta.label));
+    head.appendChild(importBtn);
+
     block.appendChild(head);
 
     if (entries.length === 0) {
@@ -2134,7 +2250,7 @@
           copyBtn.addEventListener('click', () => {
             callServer('apiAddPhrase', [presetName, pool, txt], res => {
               _customPhrases = res.phrases;
-              renderPoolList(presetName);
+              renderPhrasesEditorSection();
               renderPresetChips();
               showToast('Phrase copiée ✓', 'success');
             }, 'Copie phrase');
@@ -2182,7 +2298,7 @@
       setTimeout(() => toastEl.remove(), 300);
       callServer('apiDeletePhrase', [entry.rowIndex], res => {
         _customPhrases = res.phrases;
-        renderPoolList(presetName);
+        renderPhrasesEditorSection();
         renderPresetChips();
         if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
       }, 'Suppression phrase');
@@ -2199,10 +2315,11 @@
   // ── PHRASES : MODAL ÉDITION ──────────────────────────────────────────────
   let _phraseModalCtx = null; // { entry: null|{rowIndex,text}, presetName, pool }
 
-  function openPhraseModal(entry, presetName, pool) {
+  function openPhraseModal(entry, presetName, pool, displayLabel) {
     _phraseModalCtx = { entry, presetName, pool };
+    const label = displayLabel || (POOL_LABELS[pool] ? POOL_LABELS[pool].label : pool);
     document.getElementById('phraseModalTitle').textContent =
-      entry ? 'Modifier la phrase' : 'Nouvelle phrase — ' + POOL_LABELS[pool].label;
+      entry ? 'Modifier la phrase' : 'Nouvelle phrase — ' + label;
     document.getElementById('phraseModalText').value = entry ? entry.text : '';
     document.getElementById('phraseEditModal').style.display = 'flex';
     setTimeout(() => document.getElementById('phraseModalText').focus(), 60);
@@ -2226,7 +2343,7 @@
       saveBtn.disabled = false;
       _customPhrases = res.phrases;
       closePhraseModal();
-      renderPoolList(presetName);
+      renderPhrasesEditorSection();
       renderPresetChips();
       if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
       showToast('Phrase ' + (entry ? 'modifiée' : 'ajoutée') + ' ✓', 'success');
@@ -2371,6 +2488,159 @@
     }, 'Renommage preset', () => { saveBtn.disabled = false; });
   }
 
+  // ── SETTINGS : ONGLETS INTERNES ─────────────────────────────────────────
+  function initSettingsTabs() {
+    document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.stab;
+        document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
+      });
+    });
+  }
+
+  // ── PHRASES : IMPORT EN MASSE ────────────────────────────────────────────
+  let _bulkImportCtx = null;
+
+  function openBulkImportModal(presetName, pool, poolLabel) {
+    _bulkImportCtx = { presetName, pool };
+    document.getElementById('bulkImportModalTitle').textContent = 'Importer — ' + poolLabel;
+    document.getElementById('bulkImportTextarea').value = '';
+    document.getElementById('bulkImportCount').textContent = '';
+    document.getElementById('bulkImportModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('bulkImportTextarea').focus(), 60);
+  }
+
+  function closeBulkImportModal() {
+    document.getElementById('bulkImportModal').style.display = 'none';
+    _bulkImportCtx = null;
+  }
+
+  function parseBulkImportText(text) {
+    return (text || '').split('\n').map(l => l.trim()).filter(l => l && l !== '---');
+  }
+
+  function saveBulkImport() {
+    if (!_bulkImportCtx) return;
+    const lines = parseBulkImportText(document.getElementById('bulkImportTextarea').value);
+    if (!lines.length) { showToast('Aucune phrase détectée.', 'error'); return; }
+    const { presetName, pool } = _bulkImportCtx;
+    const entries = lines.map(text => ({ preset: presetName, pool, text }));
+    const saveBtn = document.getElementById('bulkImportSave');
+    saveBtn.disabled = true;
+    callServer('apiSavePhrasesBatch', [entries], res => {
+      saveBtn.disabled = false;
+      _customPhrases = res.phrases;
+      document.getElementById('bulkImportModal').style.display = 'none';
+      _bulkImportCtx = null;
+      renderPhrasesEditorSection();
+      renderPresetChips();
+      if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
+      showToast(lines.length + ' phrase' + (lines.length > 1 ? 's' : '') + ' importée' + (lines.length > 1 ? 's' : '') + ' ✓', 'success');
+    }, 'Import phrases', () => { saveBtn.disabled = false; });
+  }
+
+  // ── PHRASES : SECTION PAR CATÉGORIE ─────────────────────────────────────
+  function renderCatPhrasesSection(presetName) {
+    const poolListEl = document.getElementById('phrasesPoolList');
+    if (!poolListEl) return;
+
+    let container = document.getElementById('catPhrasesSectionWrap');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'catPhrasesSectionWrap';
+      poolListEl.parentNode.appendChild(container);
+    }
+    container.innerHTML = '';
+    container.className = 'cat-phrases-section';
+
+    const title = document.createElement('div');
+    title.className = 'cat-phrases-title';
+    title.textContent = 'Phrases par Top';
+    container.appendChild(title);
+
+    if (!cachedCategories || !cachedCategories.length) {
+      const empty = document.createElement('p');
+      empty.className = 'cat-phrases-hint';
+      empty.textContent = 'Aucun Top défini. Ajoutez-en dans l\'onglet Tops.';
+      container.appendChild(empty);
+      return;
+    }
+
+    const hint = document.createElement('p');
+    hint.className = 'cat-phrases-hint';
+    hint.textContent = 'Ces phrases apparaissent dans le Dashboard quand exactement un Top est filtré.';
+    container.appendChild(hint);
+
+    cachedCategories.forEach(cat => container.appendChild(buildCatPhraseBlock(presetName, cat)));
+  }
+
+  function buildCatPhraseBlock(presetName, cat) {
+    const poolKey = 'cat:' + cat.name;
+    const entries = (_customPhrases || []).filter(p => p.preset === presetName && p.pool === poolKey);
+    const catLabel = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+
+    const block = document.createElement('div');
+    block.className = 'phrases-pool-block';
+
+    const head = document.createElement('div');
+    head.className = 'phrases-pool-head';
+
+    const emoji = document.createElement('span');
+    emoji.className = 'phrases-pool-emoji';
+    emoji.textContent = cat.icon || '🎯';
+
+    const name = document.createElement('span');
+    name.className = 'phrases-pool-name';
+    name.textContent = cat.name;
+
+    const count = document.createElement('span');
+    count.className = 'phrases-pool-count';
+    count.textContent = entries.length + ' phrase' + (entries.length !== 1 ? 's' : '');
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'secondary small';
+    addBtn.textContent = '+ Ajouter';
+    addBtn.addEventListener('click', () => openPhraseModal(null, presetName, poolKey, catLabel));
+    head.appendChild(emoji);
+    head.appendChild(name);
+    head.appendChild(count);
+    head.appendChild(addBtn);
+
+    const importBtn = document.createElement('button');
+    importBtn.className = 'secondary small';
+    importBtn.textContent = '📥';
+    importBtn.title = 'Importer plusieurs phrases';
+    importBtn.addEventListener('click', () => openBulkImportModal(presetName, poolKey, catLabel));
+    head.appendChild(importBtn);
+
+    block.appendChild(head);
+
+    if (entries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'phrases-pool-empty';
+      empty.textContent = 'Aucune phrase. Ajoutez-en pour personnaliser les commentaires de ce Top.';
+      block.appendChild(empty);
+    } else {
+      entries.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'phrase-edit-item';
+        row.innerHTML =
+          '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
+          '<div class="phrase-edit-btns">' +
+            '<button class="secondary small" title="Modifier">✏️</button>' +
+            '<button class="danger small" title="Supprimer">🗑️</button>' +
+          '</div>';
+        row.querySelector('[title="Modifier"]').addEventListener('click', () =>
+          openPhraseModal(entry, presetName, poolKey, catLabel));
+        row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
+          deletePhraseWithUndo(entry, presetName));
+        block.appendChild(row);
+      });
+    }
+    return block;
+  }
+
   // ── PHRASES D'ACCROCHE ──────────────────────────────────────────────────
   const RANKING_PHRASES = {
     first: [
@@ -2489,9 +2759,36 @@
     if (rerollBtn) rerollBtn.style.display = '';
     list.innerHTML = '';
 
+    // Phrase spécifique au Top filtré (si exactement 1 Top sélectionné)
+    if (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size === 1) {
+      const catName   = [...selectedCategoryChips][0];
+      const presetId  = getActivePresetId();
+      const catPool   = (_customPhrases || []).filter(p => p.preset === presetId && p.pool === 'cat:' + catName).map(p => p.text);
+      if (catPool.length > 0) {
+        const cat  = (cachedCategories || []).find(c => c.name === catName);
+        const col  = typeof categoryColor === 'function' ? categoryColor(catName) : 'var(--accent)';
+        const tpl  = catPool[Math.floor(Math.random() * catPool.length)];
+        const vars = sortedRows[0] ? { player: sortedRows[0].player, pts: sortedRows[0].total, gap: 0, behind: 0, rank: 1 } : {};
+        const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
+        const item = document.createElement('div');
+        item.className = 'phrase-item phrase-item-cat';
+        item.style.setProperty('--phrase-color', col);
+        const rankDiv = document.createElement('div');
+        rankDiv.className = 'phrase-rank';
+        rankDiv.innerHTML = '<span class="phrase-rank-emoji">' + (cat && cat.icon ? cat.icon : '🎯') + '</span>' +
+          '<span class="phrase-rank-label">' + escapeHtml(catName) + '</span>';
+        const body = document.createElement('div');
+        body.className = 'phrase-body';
+        body.innerHTML = '<div class="phrase-text">' + escapeHtml(text) + '</div>';
+        item.appendChild(rankDiv);
+        item.appendChild(body);
+        list.appendChild(item);
+      }
+    }
+
     const phrases = generateRankingPhrases(sortedRows, settings.count);
     if (!phrases.length) {
-      list.innerHTML = '<div class="phrases-empty"><span class="phrases-empty-icon">🤔</span>Pas assez de joueurs pour générer un commentaire.</div>';
+      if (!list.children.length) list.innerHTML = '<div class="phrases-empty"><span class="phrases-empty-icon">🤔</span>Pas assez de joueurs pour générer un commentaire.</div>';
       return;
     }
 
@@ -3124,15 +3421,19 @@
         colorLbl.appendChild(colorIn);
         left.appendChild(colorLbl);
       }
+      const info = document.createElement('div');
+      info.className = 'entity-info';
       const strong = document.createElement('strong');
+      strong.className = 'entity-name';
       strong.textContent = item.name;
-      left.appendChild(strong);
+      info.appendChild(strong);
       if (item.meta && type === 'Categories') {
         const meta = document.createElement('span');
         meta.className = 'entity-meta';
         meta.textContent = item.meta;
-        left.appendChild(meta);
+        info.appendChild(meta);
       }
+      left.appendChild(info);
       const btns = document.createElement('div');
       btns.className = 'entity-btns';
       const editBtn = document.createElement('button');
@@ -5782,6 +6083,18 @@
       if (el) el.classList.remove('visible');
     });
 
+    document.getElementById('bulkImportCancel').addEventListener('click', closeBulkImportModal);
+    document.getElementById('bulkImportSave').addEventListener('click', saveBulkImport);
+    document.getElementById('bulkImportModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('bulkImportModal')) closeBulkImportModal();
+    });
+    document.getElementById('bulkImportTextarea').addEventListener('input', () => {
+      const lines = parseBulkImportText(document.getElementById('bulkImportTextarea').value);
+      document.getElementById('bulkImportCount').textContent = lines.length
+        ? lines.length + ' phrase' + (lines.length > 1 ? 's' : '') + ' détectée' + (lines.length > 1 ? 's' : '')
+        : '';
+    });
+
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
       const name = document.getElementById('newPlayerName').value.trim();
       const meta = document.getElementById('newPlayerMeta').value.trim();
@@ -6153,6 +6466,7 @@
   // ── INIT ─────────────────────────────────────────────────────────────
   window.onload = () => {
     initTheme();
+    initSettingsTabs();
     bindButtons();
     bindExportButtons();
     initPhraseSettings();

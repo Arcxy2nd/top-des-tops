@@ -698,6 +698,10 @@ const BaremeService = {
 const PhrasesService = {
   VALID_POOLS: ['first', 'second', 'third', 'mid', 'last', 'tied', 'solo'],
 
+  _isValidPool(pool) {
+    return this.VALID_POOLS.includes(pool) || /^cat:.+/.test(pool);
+  },
+
   _getOrCreateSheet() {
     const cache = ConfigService.getSheets();
     if (cache.phrases) return cache.phrases;
@@ -724,14 +728,14 @@ const PhrasesService = {
 
   addPhrase(preset, pool, text) {
     if (!preset || !pool || !text || !text.trim()) throw new Error("Champs manquants.");
-    if (!this.VALID_POOLS.includes(pool)) throw new Error("Pool invalide : " + pool);
+    if (!this._isValidPool(pool)) throw new Error("Pool invalide : " + pool);
     this._getOrCreateSheet().appendRow([preset.trim(), pool, text.trim()]);
   },
 
   saveBatch(entries) {
     if (!entries || !entries.length) return;
     const rows = entries.map(e => {
-      if (!this.VALID_POOLS.includes(e.pool)) throw new Error("Pool invalide : " + e.pool);
+      if (!this._isValidPool(e.pool)) throw new Error("Pool invalide : " + e.pool);
       return [e.preset.trim(), e.pool, e.text.trim()];
     });
     const sheet = this._getOrCreateSheet();
