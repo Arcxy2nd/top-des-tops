@@ -2759,31 +2759,42 @@
     if (rerollBtn) rerollBtn.style.display = '';
     list.innerHTML = '';
 
-    // Phrase spécifique au Top filtré (si exactement 1 Top sélectionné)
-    if (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size === 1) {
-      const catName   = [...selectedCategoryChips][0];
-      const presetId  = getActivePresetId();
-      const catPool   = (_customPhrases || []).filter(p => p.preset === presetId && p.pool === 'cat:' + catName).map(p => p.text);
-      if (catPool.length > 0) {
-        const cat  = (cachedCategories || []).find(c => c.name === catName);
-        const col  = typeof categoryColor === 'function' ? categoryColor(catName) : 'var(--accent)';
+    // Phrases par Top — toujours visibles sauf si exactement 1 Top est sélectionné dans le filtre
+    if (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size !== 1) {
+      const presetId    = getActivePresetId();
+      const activeChips = selectedCategoryChips.size > 1 ? selectedCategoryChips : null;
+      const catsToShow  = (cachedCategories || []).filter(c => !activeChips || activeChips.has(c.name));
+      const firstRow    = sortedRows[0] || {};
+      const vars        = { player: firstRow.player || '', pts: firstRow.total || 0, gap: 0, behind: 0, rank: 1 };
+
+      catsToShow.forEach(cat => {
+        const catPool = (_customPhrases || [])
+          .filter(p => p.preset === presetId && p.pool === 'cat:' + cat.name)
+          .map(p => p.text);
+        if (!catPool.length) return;
+
+        const col  = typeof categoryColor === 'function' ? categoryColor(cat.name) : 'var(--accent)';
         const tpl  = catPool[Math.floor(Math.random() * catPool.length)];
-        const vars = sortedRows[0] ? { player: sortedRows[0].player, pts: sortedRows[0].total, gap: 0, behind: 0, rank: 1 } : {};
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
+
         const item = document.createElement('div');
         item.className = 'phrase-item phrase-item-cat';
         item.style.setProperty('--phrase-color', col);
+
         const rankDiv = document.createElement('div');
         rankDiv.className = 'phrase-rank';
-        rankDiv.innerHTML = '<span class="phrase-rank-emoji">' + (cat && cat.icon ? cat.icon : '🎯') + '</span>' +
-          '<span class="phrase-rank-label">' + escapeHtml(catName) + '</span>';
+        rankDiv.innerHTML =
+          '<span class="phrase-rank-emoji">' + (cat.icon || '🎯') + '</span>' +
+          '<span class="phrase-rank-label">' + escapeHtml(cat.name) + '</span>';
+
         const body = document.createElement('div');
         body.className = 'phrase-body';
         body.innerHTML = '<div class="phrase-text">' + escapeHtml(text) + '</div>';
+
         item.appendChild(rankDiv);
         item.appendChild(body);
         list.appendChild(item);
-      }
+      });
     }
 
     const phrases = generateRankingPhrases(sortedRows, settings.count);
@@ -5426,32 +5437,30 @@
         }
         if (!isMultiCategory && first.description) {
           const SHORT_LIMIT = 55;
-          const isLong = first.description.length > SHORT_LIMIT;
           const descEl = document.createElement('div');
           descEl.className = 'hist-desc-toggle';
-          if (!isLong) {
-            descEl.textContent = first.description;
-            descEl.style.cursor = 'default';
-          } else {
-            descEl.textContent = first.description.slice(0, SHORT_LIMIT) + '…';
-            descEl.title = 'Cliquer pour lire la suite';
-            descEl.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const existing = catCell.querySelector('.hist-desc-full');
-              if (existing) {
-                existing.remove();
-                descEl.textContent = first.description.slice(0, SHORT_LIMIT) + '…';
-                descEl.title = 'Cliquer pour lire la suite';
-                return;
-              }
-              descEl.textContent = '▴ voir moins';
-              descEl.title = 'Cliquer pour replier';
-              const full = document.createElement('div');
-              full.className = 'hist-desc-full';
-              full.textContent = first.description;
-              catCell.appendChild(full);
-            });
-          }
+          descEl.textContent = first.description.length > SHORT_LIMIT
+            ? first.description.slice(0, SHORT_LIMIT) + '…'
+            : first.description;
+          descEl.title = 'Cliquer pour développer';
+          descEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const existing = catCell.querySelector('.hist-desc-full');
+            if (existing) {
+              existing.remove();
+              descEl.textContent = first.description.length > SHORT_LIMIT
+                ? first.description.slice(0, SHORT_LIMIT) + '…'
+                : first.description;
+              descEl.title = 'Cliquer pour développer';
+              return;
+            }
+            descEl.textContent = '▴ voir moins';
+            descEl.title = 'Cliquer pour replier';
+            const full = document.createElement('div');
+            full.className = 'hist-desc-full';
+            full.textContent = first.description;
+            catCell.appendChild(full);
+          });
           catCell.appendChild(descEl);
         }
 
@@ -5568,35 +5577,32 @@
     catCell.appendChild(pill);
     if (log.description) {
       const SHORT_LIMIT = 55;
-      const isLong = log.description.length > SHORT_LIMIT;
       const descEl = document.createElement('div');
       descEl.className = 'hist-desc-toggle';
-      if (!isLong) {
-        descEl.textContent = log.description;
-        descEl.style.cursor = 'default';
-        descEl.title = '';
-      } else {
-        descEl.textContent = log.description.slice(0, SHORT_LIMIT) + '…';
-        descEl.title = 'Cliquer pour lire la suite';
-        descEl.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const existing = catCell.querySelector('.hist-desc-full');
-          if (existing) {
-            existing.remove();
-            descEl.textContent = log.description.slice(0, SHORT_LIMIT) + '…';
-            descEl.style.whiteSpace = 'nowrap';
-            descEl.title = 'Cliquer pour lire la suite';
-            return;
-          }
-          descEl.textContent = '▴ voir moins';
-          descEl.title = 'Cliquer pour replier';
-          const full = document.createElement('div');
-          full.className = 'hist-desc-full';
-          full.textContent = log.description;
-          descEl.style.whiteSpace = 'normal';
-          catCell.appendChild(full);
-        });
-      }
+      descEl.textContent = log.description.length > SHORT_LIMIT
+        ? log.description.slice(0, SHORT_LIMIT) + '…'
+        : log.description;
+      descEl.title = 'Cliquer pour développer';
+      descEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const existing = catCell.querySelector('.hist-desc-full');
+        if (existing) {
+          existing.remove();
+          descEl.textContent = log.description.length > SHORT_LIMIT
+            ? log.description.slice(0, SHORT_LIMIT) + '…'
+            : log.description;
+          descEl.style.whiteSpace = 'nowrap';
+          descEl.title = 'Cliquer pour développer';
+          return;
+        }
+        descEl.textContent = '▴ voir moins';
+        descEl.title = 'Cliquer pour replier';
+        const full = document.createElement('div');
+        full.className = 'hist-desc-full';
+        full.textContent = log.description;
+        descEl.style.whiteSpace = 'normal';
+        catCell.appendChild(full);
+      });
       catCell.appendChild(descEl);
     }
 
