@@ -2088,7 +2088,7 @@
 
   function getCustomPresetNames() {
     if (!_customPhrases || !_customPhrases.length) return [];
-    const names = new Set(_customPhrases.map(p => p.preset));
+    const names = new Set(_customPhrases.map(p => p.preset).filter(n => n !== PHRASES_DEFAULT_ID));
     return Array.from(names).sort();
   }
 
