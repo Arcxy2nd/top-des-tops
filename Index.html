@@ -10,8 +10,8 @@
   <meta name="theme-color" content="#f0f2f5" media="(prefers-color-scheme: light)">
   <title>Tops des Tops</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF et SheetJS (xlsx) sont chargés à la demande, au premier export (cf. loadScriptOnce). -->
+
   <style>
     :root {
       --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
@@ -2089,6 +2089,29 @@
   };
 
   // ── UTILITAIRES ──────────────────────────────────────────────────────
+  // ── CHARGEMENT DIFFÉRÉ DES LIBRAIRIES D'EXPORT ───────────────────────
+  // jsPDF et SheetJS ne servent qu'à l'export ; on les charge au premier usage
+  // pour alléger le démarrage de l'application.
+  const EXPORT_LIBS = {
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    xlsx:  'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
+  };
+  const _scriptPromises = {};
+  function loadScriptOnce(url) {
+    if (_scriptPromises[url]) return _scriptPromises[url];
+    _scriptPromises[url] = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = url;
+      s.onload = () => resolve();
+      s.onerror = () => {
+        delete _scriptPromises[url];
+        reject(new Error("Échec de chargement de la librairie d'export."));
+      };
+      document.head.appendChild(s);
+    });
+    return _scriptPromises[url];
+  }
+
   function escapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                           .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -3222,7 +3245,7 @@
     const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
       selectedPlayerChips.clear();
       renderPlayerChips();
-      applyFilters();
+      scheduleApplyFilters();
     });
     if (!selectedPlayerChips.size) allChip.classList.add('active');
     row.appendChild(allChip);
@@ -3232,7 +3255,7 @@
         if (selectedPlayerChips.has(p.name)) selectedPlayerChips.delete(p.name);
         else selectedPlayerChips.add(p.name);
         renderPlayerChips();
-        applyFilters();
+        scheduleApplyFilters();
       });
       if (selectedPlayerChips.has(p.name)) chip.classList.add('active');
       const img = document.createElement('img');
@@ -3250,7 +3273,7 @@
     const allChip = makeFilterChip('Tous', null, 'fchip-all', () => {
       selectedCategoryChips.clear();
       renderCategoryChips();
-      applyFilters();
+      scheduleApplyFilters();
     });
     if (!selectedCategoryChips.size) allChip.classList.add('active');
     row.appendChild(allChip);
@@ -3261,7 +3284,7 @@
         if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
         else selectedCategoryChips.add(c.name);
         renderCategoryChips();
-        applyFilters();
+        scheduleApplyFilters();
       });
       if (selectedCategoryChips.has(c.name)) chip.classList.add('active');
       row.appendChild(chip);
@@ -3591,6 +3614,16 @@
       muted: getComputedStyle(document.body).getPropertyValue('--text-muted').trim()|| '#9aa5be',
       grid:  getComputedStyle(document.body).getPropertyValue('--border').trim()    || '#2a313d'
     };
+  }
+
+  // Regroupe les clics rapides sur les chips de filtre en un seul appel serveur.
+  // Le skeleton s'affiche tout de suite : feedback instantané malgré le délai.
+  let _applyFiltersTimer = null;
+  function scheduleApplyFilters() {
+    document.getElementById('chartSkeleton').style.display = 'block';
+    document.getElementById('chartWrapper').style.display  = 'none';
+    clearTimeout(_applyFiltersTimer);
+    _applyFiltersTimer = setTimeout(applyFilters, 250);
   }
 
   function applyFilters() {
@@ -4449,13 +4482,13 @@
   function generateInfographic(opts) {
     const canvas = buildInfographicCanvas(opts, opts.scale);
     if (opts.format === 'pdf') {
-      try {
+      loadScriptOnce(EXPORT_LIBS.jspdf).then(() => {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('landscape', 'px', [canvas.width / opts.scale, canvas.height / opts.scale]);
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / opts.scale, canvas.height / opts.scale);
         pdf.save('tops-des-tops-infographie.pdf');
         showToast('PDF généré !', 'success');
-      } catch(e) { showToast('Erreur PDF : ' + e.message, 'error'); }
+      }).catch(e => showToast('Erreur PDF : ' + e.message, 'error'));
     } else {
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/' + opts.format);
@@ -4607,14 +4640,16 @@
 
   function exportAsExcel() {
     if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
-    const { labels, datasets } = currentChartData;
-    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
-    labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
-    XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
-    showToast('Export Excel OK', 'success');
+    loadScriptOnce(EXPORT_LIBS.xlsx).then(() => {
+      const { labels, datasets } = currentChartData;
+      const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
+      labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+      XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
+      showToast('Export Excel OK', 'success');
+    }).catch(e => showToast('Erreur Excel : ' + e.message, 'error'));
   }
 
   // ── SAISIE LOT ───────────────────────────────────────────────────────
@@ -5199,47 +5234,38 @@
   }
 
   /**
-   * Exécute un plan d'écriture séquentiellement (un appel serveur par date).
+   * Écrit tout le plan en un seul appel serveur.
    * plan : [{ date, entries }].
    */
   function runBulkPlan(plan, btn) {
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
-    const restore = startBtnLoading(btn, 'Écriture 1/' + plan.length);
+    const restore = startBtnLoading(btn, 'Écriture…');
 
-    // Build stable gid per groupTag; entries without groupTag share a global gid only when plan spans multiple dates.
-    const globalGid = plan.length > 1 ? ('G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)) : '';
-    const groupTagToGid = {};
-    plan.forEach(dayPlan => {
-      dayPlan.entries.forEach(entry => {
-        if (entry.groupTag && !groupTagToGid[entry.groupTag]) {
-          groupTagToGid[entry.groupTag] = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        }
-        entry.gid = entry.groupTag ? groupTagToGid[entry.groupTag] : globalGid;
-      });
-    });
+    // On n'envoie que les champs réellement écrits côté serveur (le groupId reste vide,
+    // comme auparavant — le regroupement se fait via l'onglet Outils).
+    const payload = plan.map(dayPlan => ({
+      date: dayPlan.date,
+      entries: dayPlan.entries.map(e => ({
+        player:      e.player,
+        category:    e.category,
+        points:      e.points,
+        times:       e.times,
+        description: e.description
+      }))
+    }));
 
-    let i = 0;
-    const next = () => {
-      if (i >= plan.length) {
-        restore();
-        flashSaved(btn);
-        document.getElementById('entryContainer').innerHTML = '';
-        lotGroupMap.clear();
-        lotGroupSeq = 0;
-        addEntryRow();
-        updateLotSummary();
-        applyFilters();
-        baremeEntries = null;
-        showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
-        return;
-      }
-      btn.innerHTML = '⏳ Écriture ' + (i + 1) + '/' + plan.length;
-      const entries = plan[i].entries.map(e => ({ ...e, gid: e.gid }));
-      callServer('apiAddBulkScores', [entries, plan[i].date, ''], () => {
-        i++; next();
-      }, 'Envoi lot', () => { restore(); });
-    };
-    next();
+    callServer('apiAddBulkPlan', [payload], () => {
+      restore();
+      flashSaved(btn);
+      document.getElementById('entryContainer').innerHTML = '';
+      lotGroupMap.clear();
+      lotGroupSeq = 0;
+      addEntryRow();
+      updateLotSummary();
+      applyFilters();
+      baremeEntries = null;
+      showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
+    }, 'Envoi lot', () => { restore(); });
   }
 
   // ── HISTORY BULK SELECTION ───────────────────────────────────────────
