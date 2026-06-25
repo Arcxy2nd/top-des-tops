@@ -109,10 +109,10 @@
     .who-am-i-arrow { font-size: 0.65rem; opacity: 0.6; transition: transform 0.2s; }
     .who-am-i-wrap.open .who-am-i-arrow { transform: rotate(180deg); }
     .who-am-i-dropdown {
-      display: none; position: absolute; top: calc(100% + 6px); right: 0;
+      display: none; position: fixed; top: 0; left: 0;
       background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 6px; min-width: 180px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 300;
+      border-radius: 12px; padding: 6px; min-width: 200px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 9999;
       flex-direction: column; gap: 2px;
     }
     .who-am-i-wrap.open .who-am-i-dropdown { display: flex; animation: fadeIn 0.15s ease; }
@@ -869,11 +869,17 @@
     .hist-group-chevron.open { transform: rotate(90deg); }
     .hist-group-child td { padding-left: 24px; opacity: 0.85; }
 
-    /* Avatars empilés pour groupes multi-joueurs */
+    /* Avatars empilés pour groupes multi-joueurs (file indienne en biais) */
     .hist-avatar-stack {
-      display: inline-flex; align-items: center; margin-right: 6px; vertical-align: middle;
+      display: inline-flex; align-items: flex-start;
+      margin-right: 10px; vertical-align: middle; position: relative;
     }
-    .hist-avatar-stack .history-avatar { margin-right: -8px; border: 2px solid var(--bg); }
+    .hist-avatar-stack .history-avatar {
+      border: 2px solid var(--bg); margin-right: -10px; position: relative;
+    }
+    .hist-avatar-stack .history-avatar:nth-child(1) { z-index: 3; }
+    .hist-avatar-stack .history-avatar:nth-child(2) { z-index: 2; transform: translateY(4px); }
+    .hist-avatar-stack .history-avatar:nth-child(3) { z-index: 1; transform: translateY(8px); }
     .hist-avatar-stack .history-avatar:last-of-type { margin-right: 0; }
     .hist-avatar-more {
       display: inline-flex; align-items: center; justify-content: center;
@@ -1069,11 +1075,13 @@
     }
     /* Avatar fondu en arrière-plan de la ligne */
     .row-avatar-bg {
-      position: absolute; right: 0; top: 0; bottom: 0; width: 90px;
+      position: absolute; right: 0; top: 0; bottom: 0; width: 160px;
       background-size: cover; background-position: center top;
       border-radius: 0 6px 6px 0;
-      pointer-events: none; opacity: 0.08;
+      pointer-events: none; opacity: 0.12;
       transition: background-image 0.35s;
+      mask-image: linear-gradient(to right, transparent 0%, black 45%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 45%);
     }
 
     /* Wrapper sélecteur Top — remplace le select nu */
@@ -1129,9 +1137,20 @@
       font-size: 0.75rem; transition: color 0.2s, transform 0.25s;
       line-height: 1;
     }
-    .phrases-collapse-btn:hover { color: var(--text); }
-    .phrases-card-collapsible.collapsed .phrases-collapse-btn { transform: rotate(180deg); }
-    .phrases-card-collapsible.collapsed #phrasesList { display: none; }
+    /* ── Collapsible générique ── */
+    .card-collapse-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;
+    }
+    .card-collapse-header h2 { margin: 0; }
+    .collapse-toggle-btn {
+      background: none; border: none; cursor: pointer; padding: 4px 6px;
+      color: var(--text-muted); transition: color 0.15s; display: flex; align-items: center;
+      flex-shrink: 0;
+    }
+    .collapse-toggle-btn:hover { color: var(--text); }
+    .collapse-arrow { display: inline-block; transition: transform 0.2s; font-size: 0.75rem; }
+    .card-collapsible.collapsed .collapse-arrow { transform: rotate(-90deg); }
+    .card-collapsible.collapsed > *:not(.card-collapse-header) { display: none; }
 
     .phrases-card-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -1590,6 +1609,10 @@
   .cat-phrases-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; font-style: italic; }
   .phrase-item-cat { opacity: 0.92; }
   .phrase-item-cat .phrase-rank-label { font-style: italic; font-size: 0.78rem; }
+  .phrases-cat-empty {
+    font-size: 0.82rem; color: var(--text-muted); font-style: italic;
+    padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
 
   </style>
 </head>
@@ -1625,13 +1648,12 @@
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
 
-    <!-- ══ COMMENTAIRES CLASSEMENT (toujours en haut, collapsible) ══ -->
-    <div class="card phrases-card-collapsible" id="phrasesCard">
-      <div class="phrases-card-header">
-        <h2>🎭 Commentaires</h2>
+    <!-- ══ PODIUM (toujours en haut, collapsible) ══ -->
+    <div class="card card-collapsible" id="phrasesCard">
+      <div class="phrases-card-header card-collapse-header">
+        <h2>🏆 Podium</h2>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
-          <button class="phrases-collapse-btn" id="phrasesCollapseBtn" title="Réduire / Agrandir">▲</button>
         </div>
       </div>
       <div id="phrasesList" class="phrases-list">
@@ -1639,8 +1661,10 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>🔍 Filtres croisés</h2>
+    <div class="card card-collapsible" id="filtersCard">
+      <div class="card-collapse-header">
+        <h2>🔍 Filtres croisés</h2>
+      </div>
       <div class="filter-panel">
         <div class="fp-section">
           <div class="fp-label">Joueurs</div>
@@ -1670,8 +1694,8 @@
       </div>
     </div>
 
-    <div class="card card-accent">
-      <div class="chart-header">
+    <div class="card card-accent card-collapsible" id="chartCard">
+      <div class="chart-header card-collapse-header">
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
         <div class="export-buttons">
           <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
@@ -2226,7 +2250,6 @@
     '#f368e0','#54a0ff','#feca57','#ff6348'
   ];
   // ── PHRASES : COUCHE DE DONNÉES ─────────────────────────────────────────
-  const PHRASES_PRESET_KEY = 'tdt_active_preset';
   const PHRASES_DEFAULT_ID  = '__default__';
 
   const POOL_LABELS = {
@@ -2242,14 +2265,15 @@
   const POOL_ORDER = ['first', 'second', 'third', 'mid', 'last', 'tied', 'solo'];
 
   let _customPhrases = null; // [{rowIndex, preset, pool, text}] — null = pas encore chargé
+  let _activePreset  = PHRASES_DEFAULT_ID;
 
   function getActivePresetId() {
-    try { return localStorage.getItem(PHRASES_PRESET_KEY) || PHRASES_DEFAULT_ID; }
-    catch { return PHRASES_DEFAULT_ID; }
+    return _activePreset;
   }
 
   function setActivePresetId(id) {
-    try { localStorage.setItem(PHRASES_PRESET_KEY, id); } catch {}
+    _activePreset = id || PHRASES_DEFAULT_ID;
+    callServer('apiSetActivePhrasePreset', [_activePreset], null, 'Sauvegarde preset actif');
   }
 
   function getCustomPresetNames() {
@@ -2742,7 +2766,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'cat-phrases-hint';
-    hint.textContent = 'Ces phrases apparaissent dans le Dashboard quand exactement un Top est filtré.';
+    hint.textContent = 'Ces phrases apparaissent dans la section "Podium" du Dashboard pour chaque Top. Ajoutez-en pour les voir apparaître.';
     container.appendChild(hint);
 
     cachedCategories.forEach(cat => container.appendChild(buildCatPhraseBlock(presetName, cat)));
@@ -3065,17 +3089,17 @@
 
       catItems.sort((a, b) => (b.topPts || 0) - (a.topPts || 0));
 
+      const section = document.createElement('div');
+      section.className = 'phrases-cat-section';
+
+      const catHeader = document.createElement('div');
+      catHeader.className = 'phrases-cat-header';
+      catHeader.textContent = '💬 Commentaires par Top';
+
+      const body = document.createElement('div');
+      body.className = 'phrases-cat-body';
+
       if (catItems.length) {
-        const section = document.createElement('div');
-        section.className = 'phrases-cat-section';
-
-        const header = document.createElement('div');
-        header.className = 'phrases-cat-header';
-        header.textContent = '💬 Commentaires par Top';
-
-        const body = document.createElement('div');
-        body.className = 'phrases-cat-body';
-
         catItems.forEach((item, i) => {
           const col = typeof categoryColor === 'function' ? categoryColor(item.cat.name) : 'var(--accent)';
           const el  = document.createElement('div');
@@ -3090,11 +3114,18 @@
             '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
           body.appendChild(el);
         });
-
-        section.appendChild(header);
-        section.appendChild(body);
-        list.appendChild(section);
+      } else {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'phrases-cat-empty';
+        emptyEl.innerHTML =
+          '<span class="phrases-empty-icon">🎯</span>' +
+          'Ajoutez des phrases par Top dans <strong>Paramètres → Phrases → "Phrases par Top"</strong> pour les voir ici.';
+        body.appendChild(emptyEl);
       }
+
+      section.appendChild(catHeader);
+      section.appendChild(body);
+      list.appendChild(section);
     }
   }
 
@@ -6805,6 +6836,23 @@
     });
   }
 
+  // ── COLLAPSIBLE SECTIONS ─────────────────────────────────────────────
+  function makeCollapsible(cardEl, storageKey) {
+    if (!cardEl) return;
+    const header = cardEl.querySelector('.card-collapse-header');
+    if (!header) return;
+    const btn = document.createElement('button');
+    btn.className = 'collapse-toggle-btn';
+    btn.setAttribute('aria-label', 'Enrouler/Dérouler');
+    btn.innerHTML = '<span class="collapse-arrow">▾</span>';
+    header.appendChild(btn);
+    if (localStorage.getItem(storageKey) === '1') cardEl.classList.add('collapsed');
+    btn.addEventListener('click', () => {
+      cardEl.classList.toggle('collapsed');
+      localStorage.setItem(storageKey, cardEl.classList.contains('collapsed') ? '1' : '0');
+    });
+  }
+
   // ── INIT ─────────────────────────────────────────────────────────────
   window.onload = () => {
     initTheme();
@@ -6813,19 +6861,23 @@
     bindExportButtons();
     initPhraseSettings();
     loadCustomPhrases(() => {
-      const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
-      if (!hasDefault) {
-        const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
-          texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
-        callServer('apiSavePhrasesBatch', [seed], res => {
-          _customPhrases = res.phrases;
+      callServer('apiGetActivePhrasePreset', [], presetRes => {
+        _activePreset = (presetRes && presetRes.preset) || PHRASES_DEFAULT_ID;
+        const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
+        if (!hasDefault) {
+          const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
+            texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
+          callServer('apiSavePhrasesBatch', [seed], res => {
+            _customPhrases = res.phrases;
+            renderPresetChips();
+            renderPhrasesEditorSection();
+          }, 'Initialisation Défaut');
+        } else {
           renderPresetChips();
           renderPhrasesEditorSection();
-        }, 'Initialisation Défaut');
-      } else {
-        renderPresetChips();
-        renderPhrasesEditorSection();
-      }
+        }
+        if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
+      }, 'Chargement preset actif');
     });
 
     // Bouton « date/plage par défaut » du lot : ouvre le même éditeur que les lignes.
@@ -6846,19 +6898,23 @@
     lastRefreshTime = new Date();
     updateRefreshBadge();
 
-    // Collapse phrases card
-    const PHRASES_COLLAPSED_KEY = 'tdt_phrases_collapsed';
-    const phrasesCard = document.getElementById('phrasesCard');
-    const phrasesCollapseBtn = document.getElementById('phrasesCollapseBtn');
-    if (localStorage.getItem(PHRASES_COLLAPSED_KEY) === '1') phrasesCard.classList.add('collapsed');
-    phrasesCollapseBtn.addEventListener('click', () => {
-      phrasesCard.classList.toggle('collapsed');
-      localStorage.setItem(PHRASES_COLLAPSED_KEY, phrasesCard.classList.contains('collapsed') ? '1' : '0');
-    });
+    makeCollapsible(document.getElementById('phrasesCard'),  'tdt_collapsed_podium');
+    makeCollapsible(document.getElementById('filtersCard'),  'tdt_collapsed_filters');
+    makeCollapsible(document.getElementById('chartCard'),    'tdt_collapsed_chart');
 
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
-      document.getElementById('whoAmIWrap').classList.toggle('open');
+      const wrap = document.getElementById('whoAmIWrap');
+      const isOpen = wrap.classList.contains('open');
+      if (!isOpen) {
+        renderWhoAmI();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dropdown = document.getElementById('whoAmIDropdown');
+        dropdown.style.top  = (rect.bottom + 6) + 'px';
+        dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
+        dropdown.style.width = '220px';
+      }
+      wrap.classList.toggle('open');
     });
     document.addEventListener('click', () => {
       const wrap = document.getElementById('whoAmIWrap');
