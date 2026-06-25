@@ -93,6 +93,40 @@
       touch-action: manipulation;
     }
 
+    /* ── Sélecteur Qui suis-je ? ── */
+    .who-am-i-wrap { position: relative; flex-shrink: 0; margin: 0 4px; }
+    .who-am-i-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--btn-alt); border: none; border-radius: 20px;
+      padding: 5px 10px 5px 6px; cursor: pointer; color: var(--text);
+      font-size: 0.8rem; font-weight: 600; min-height: 36px;
+      transition: background 0.2s; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .who-am-i-btn:hover { background: rgba(255,255,255,0.12); }
+    .who-am-i-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .who-am-i-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+    .who-am-i-arrow { font-size: 0.65rem; opacity: 0.6; transition: transform 0.2s; }
+    .who-am-i-wrap.open .who-am-i-arrow { transform: rotate(180deg); }
+    .who-am-i-dropdown {
+      display: none; position: absolute; top: calc(100% + 6px); right: 0;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 6px; min-width: 180px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 300;
+      flex-direction: column; gap: 2px;
+    }
+    .who-am-i-wrap.open .who-am-i-dropdown { display: flex; animation: fadeIn 0.15s ease; }
+    .who-am-i-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 8px; border: none;
+      background: transparent; color: var(--text); cursor: pointer;
+      font-size: 0.85rem; text-align: left; width: 100%;
+      transition: background 0.15s; font-family: inherit;
+    }
+    .who-am-i-option:hover { background: rgba(255,255,255,0.06); }
+    .who-am-i-option.active { font-weight: 700; background: rgba(255,255,255,0.08); }
+    .who-am-i-option img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
     /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; 
       padding-left: max(16px, env(safe-area-inset-left));
@@ -1033,6 +1067,14 @@
       box-shadow: 0 0 0 2.5px var(--player-ring, var(--btn-alt));
       transition: box-shadow 0.22s;
     }
+    /* Avatar fondu en arrière-plan de la ligne */
+    .row-avatar-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 90px;
+      background-size: cover; background-position: center top;
+      border-radius: 0 6px 6px 0;
+      pointer-events: none; opacity: 0.08;
+      transition: background-image 0.35s;
+    }
 
     /* Wrapper sélecteur Top — remplace le select nu */
     .c-sel-wrap {
@@ -1080,6 +1122,17 @@
 
     /* ── CARD PHRASES D'ACCROCHE ── */
 
+    /* ── Collapse du card Commentaires ── */
+    .phrases-collapse-btn {
+      background: var(--btn-alt); border: none; border-radius: 20px;
+      padding: 5px 10px; cursor: pointer; color: var(--text-muted);
+      font-size: 0.75rem; transition: color 0.2s, transform 0.25s;
+      line-height: 1;
+    }
+    .phrases-collapse-btn:hover { color: var(--text); }
+    .phrases-card-collapsible.collapsed .phrases-collapse-btn { transform: rotate(180deg); }
+    .phrases-card-collapsible.collapsed #phrasesList { display: none; }
+
     .phrases-card-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 16px;
@@ -1111,10 +1164,13 @@
     .phrase-podium-medal { font-size: 1.6rem; line-height: 1; }
     .phrase-podium-card.first .phrase-podium-medal { font-size: 2rem; }
     .phrase-podium-player {
+      display: flex; align-items: center; gap: 6px;
       font-size: 0.72rem; font-weight: 900; text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--phrase-color, var(--accent));
     }
     .phrase-podium-card.first .phrase-podium-player { font-size: 0.8rem; }
+    .phrase-podium-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .phrase-podium-card.first .phrase-podium-avatar { width: 28px; height: 28px; }
     .phrase-podium-text {
       font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; font-style: italic;
     }
@@ -1123,12 +1179,13 @@
     /* ── Feed compact (4ème+) ── */
     .phrases-feed { display: flex; flex-direction: column; gap: 4px; }
     .phrase-feed-item {
-      display: flex; align-items: baseline; gap: 7px;
+      display: flex; align-items: center; gap: 7px;
       padding: 7px 10px; border-radius: 8px;
       background: rgba(255,255,255,0.03); border: 1px solid transparent;
       transition: border-color 0.2s, background 0.2s;
       animation: fadeIn 0.3s ease both;
     }
+    .phrase-feed-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .phrase-feed-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); }
     .phrase-feed-emoji { font-size: 0.95rem; flex-shrink: 0; }
     .phrase-feed-player {
@@ -1139,28 +1196,17 @@
     .phrase-feed-sep { color: var(--border); flex-shrink: 0; }
     .phrase-feed-text { font-size: 0.81rem; color: var(--text-muted); line-height: 1.4; min-width: 0; }
 
-    /* ── Accordion commentaires par Top ── */
-    .phrases-cat-accordion { border-top: 1px solid var(--border); padding-top: 12px; }
-    .phrases-cat-toggle {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.81rem; font-weight: 600; color: var(--text-muted);
-      cursor: pointer; user-select: none; padding: 2px 0;
-      transition: color 0.2s; background: none; border: none;
-      text-align: left; width: 100%; -webkit-tap-highlight-color: transparent;
+    /* ── Commentaires par Top (section plate, toujours visible) ── */
+    .phrases-cat-section { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+    .phrases-cat-header {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
     }
-    .phrases-cat-toggle:hover { color: var(--text); }
-    .phrases-cat-count {
-      font-size: 0.68rem; background: rgba(255,255,255,0.08);
-      border-radius: 20px; padding: 1px 7px; font-weight: 700; color: var(--text-muted);
-    }
-    .phrases-cat-toggle-arrow { font-size: 0.65rem; transition: transform 0.2s; margin-left: auto; }
-    .phrases-cat-accordion.open .phrases-cat-toggle-arrow { transform: rotate(90deg); }
     .phrases-cat-body {
-      display: none; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; gap: 8px; padding: 12px 0 4px;
+      display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; gap: 8px; padding: 0 0 4px;
     }
     .phrases-cat-body::-webkit-scrollbar { display: none; }
-    .phrases-cat-accordion.open .phrases-cat-body { display: flex; }
     .phrase-cat-card {
       flex-shrink: 0; width: 152px; border-radius: 10px; padding: 11px 11px 10px;
       background: rgba(255,255,255,0.04); border: 1px solid var(--border);
@@ -1201,6 +1247,35 @@
     .phrases-count-val {
       font-size: 0.9rem; font-weight: 700; min-width: 20px; text-align: center;
     }
+
+    /* ── BOUTONS ACTION SAISIE LOT ── */
+    .lot-action-row {
+      display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .btn-add-row {
+      background: transparent; border: 1.5px dashed var(--border);
+      border-radius: 8px; color: var(--text-muted); padding: 9px 16px;
+      font-size: 0.85rem; cursor: pointer; font-family: inherit;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-add-row:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-group-mode {
+      background: rgba(255,170,0,0.08); border: 1.5px solid rgba(255,170,0,0.35);
+      border-radius: 8px; color: #ffaa00; padding: 9px 16px;
+      font-size: 0.85rem; cursor: pointer; font-family: inherit;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-group-mode:hover { background: rgba(255,170,0,0.18); border-color: #ffaa00; }
+    .btn-group-mode.active { background: rgba(255,170,0,0.22); border-color: #ffaa00; font-weight: 700; }
+    .btn-submit-lot {
+      margin-left: auto;
+      background: var(--accent); border: none; border-radius: 10px;
+      color: #fff; padding: 10px 26px; font-size: 0.92rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em; font-family: inherit;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-submit-lot:hover { opacity: 0.86; }
+    .btn-submit-lot:active { transform: scale(0.97); }
 
     /* ── GROUPEMENT EN SAISIE LOT ── */
     .entry-row.lot-group-selectable { cursor: pointer; }
@@ -1527,11 +1602,18 @@
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
     <button class="nav-btn" data-tab="tab-notes">📝 Notes<span class="nav-count" id="notesCount"></span></button>
     <button class="nav-btn" data-tab="tab-history">📜 Historique<span class="nav-count" id="historyCount"></span></button>
-    <button class="nav-btn" data-tab="tab-tools">🔧 Outils</button>
     <button class="nav-btn" data-tab="tab-guide">❓ Guide</button>
     <div class="nav-refresh-wrap">
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
+    </div>
+    <div class="who-am-i-wrap" id="whoAmIWrap">
+      <button class="who-am-i-btn" id="whoAmIBtn" title="Sélectionner mon identité">
+        <img class="who-am-i-avatar" id="whoAmIAvatar" src="" alt="" />
+        <span class="who-am-i-name" id="whoAmIName">Qui suis-je ?</span>
+        <span class="who-am-i-arrow">▾</span>
+      </button>
+      <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
   </div>
@@ -1542,6 +1624,21 @@
 
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
+
+    <!-- ══ COMMENTAIRES CLASSEMENT (toujours en haut, collapsible) ══ -->
+    <div class="card phrases-card-collapsible" id="phrasesCard">
+      <div class="phrases-card-header">
+        <h2>🎭 Commentaires</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
+          <button class="phrases-collapse-btn" id="phrasesCollapseBtn" title="Réduire / Agrandir">▲</button>
+        </div>
+      </div>
+      <div id="phrasesList" class="phrases-list">
+        <div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>
+      </div>
+    </div>
+
     <div class="card">
       <h2>🔍 Filtres croisés</h2>
       <div class="filter-panel">
@@ -1607,16 +1704,6 @@
       <div id="topStatsStrip"></div>
     </div>
 
-    <!-- ══ PHRASES D'ACCROCHE ══════════════════════════════════════════ -->
-    <div class="card" id="phrasesCard">
-      <div class="phrases-card-header">
-        <h2>🎭 Commentaires</h2>
-        <button class="secondary small" id="phrasesRerollBtn" title="Générer de nouveaux commentaires">🎲 Nouveau tirage</button>
-      </div>
-      <div id="phrasesList" class="phrases-list">
-        <div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>
-      </div>
-    </div>
   </div>
 
   <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
@@ -1647,10 +1734,10 @@
         <button id="lotGroupApplyBtn" class="primary small" disabled>🔗 Grouper la sélection</button>
         <button id="lotGroupCancelBtn" class="secondary small">✕ Annuler</button>
       </div>
-      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        <button id="addRowBtn" class="secondary">+ Ligne</button>
-        <button id="lotGroupModeBtn" class="secondary" style="font-size:0.84rem;">🔗 Grouper</button>
-        <button id="submitLotBtn" class="secondary" style="font-size:0.84rem;">Inscrire le lot</button>
+      <div class="lot-action-row">
+        <button id="addRowBtn" class="btn-add-row">＋ Ligne</button>
+        <button id="lotGroupModeBtn" class="btn-group-mode">🔗 Grouper</button>
+        <button id="submitLotBtn" class="btn-submit-lot">✓ Inscrire le lot</button>
       </div>
       <!-- Barre récap sticky — visible dès 2 lignes -->
       <div id="lotSummaryBar" class="hidden">
@@ -1672,6 +1759,7 @@
       <button class="settings-nav-btn" data-stab="stab-categories">🎯 Tops</button>
       <button class="settings-nav-btn" data-stab="stab-bareme">⚖️ Barème</button>
       <button class="settings-nav-btn" data-stab="stab-phrases">🎭 Commentaires</button>
+      <button class="settings-nav-btn" data-stab="stab-tools">🔧 Outils</button>
     </div>
 
     <!-- ─ Joueurs ─ -->
@@ -1741,6 +1829,46 @@
 
     </div>
 
+    <!-- ─ Outils ─ -->
+    <div id="stab-tools" class="settings-tab-pane card">
+      <h2>🔧 Rapport de santé</h2>
+      <div class="health-grid" id="healthGrid">
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+        <div class="health-stat skeleton" style="height:90px;"></div>
+      </div>
+      <div style="text-align:right;">
+        <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+
+      <h2>🛠️ Actions de nettoyage</h2>
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Supprimer les entrées à 0 point</strong>
+          <span>Supprime toutes les lignes dont le score est ≤ 0.</span>
+        </div>
+        <button class="danger small" id="fixZeroBtn">Nettoyer</button>
+      </div>
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Supprimer les entrées orphelines</strong>
+          <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
+        </div>
+        <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+
+      <h2>🔗 Regrouper les lots répartis</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
+      </p>
+      <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
+      <div id="detectResults" class="detect-results"></div>
+    </div>
+
   </div>
 
   <!-- ══ NOTES ═════════════════════════════════════════════════════════ -->
@@ -1796,116 +1924,68 @@
     </div>
   </div>
 
-  <!-- ══ OUTILS ════════════════════════════════════════════════════════ -->
-  <div id="tab-tools" class="tab-content">
-    <div class="card">
-      <h2>🔧 Rapport de santé</h2>
-      <div class="health-grid" id="healthGrid">
-        <div class="health-stat skeleton" style="height:90px;"></div>
-        <div class="health-stat skeleton" style="height:90px;"></div>
-        <div class="health-stat skeleton" style="height:90px;"></div>
-      </div>
-      <div style="text-align:right;">
-        <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>🛠️ Actions de nettoyage</h2>
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Supprimer les entrées à 0 point</strong>
-          <span>Supprime toutes les lignes dont le score est ≤ 0.</span>
-        </div>
-        <button class="danger small" id="fixZeroBtn">Nettoyer</button>
-      </div>
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Supprimer les entrées orphelines</strong>
-          <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
-        </div>
-        <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>🔗 Regrouper les lots répartis</h2>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
-      </p>
-      <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
-      <div id="detectResults" class="detect-results"></div>
-    </div>
-  </div>
-
   <!-- ══ GUIDE ═════════════════════════════════════════════════════════ -->
   <div id="tab-guide" class="tab-content">
     <div class="card">
       <h2>❓ Comment utiliser le site</h2>
 
       <div class="guide-section open">
-        <h3>Tableau de bord (Dashboard)</h3>
+        <h3>📊 Dashboard</h3>
         <div class="guide-body">
-          <p>C'est la page d'accueil. Elle affiche un <strong>graphique</strong> qui résume les scores de chaque joueur.</p>
-          <p><strong>Filtres :</strong> en haut, tu peux cliquer sur les noms de joueurs ou de Tops pour n'afficher que ceux-là. Tu peux aussi choisir une période (7 jours, ce mois, etc.).</p>
-          <p><strong>Types de graphique :</strong> les boutons Empilé, Groupé, Courbes, Radar, Donut, Classement changent la façon de voir les scores. « Classement » montre le total général de chaque joueur.</p>
-          <p><strong>Options :</strong> sous les boutons de type, des options apparaissent selon le graphique choisi (tri, échelle, totaux…).</p>
-          <p><strong>Export :</strong> les boutons en haut à droite (Infographie, CSV, Excel) permettent de télécharger le graphique ou les données.</p>
+          <p>Page d'accueil. Tout en haut : la card <strong>🎭 Commentaires</strong> — elle affiche en permanence le classement global avec des phrases générées automatiquement. Tu peux la replier en cliquant sur le bouton ▲ en haut à droite de la card.</p>
+          <p>En dessous : les <strong>filtres</strong> (joueurs, Tops, période), puis le <strong>graphique</strong>.</p>
+          <p><strong>Types de graphique :</strong> Empilé, Groupé, Courbes, Radar, Donut, Classement. Le Classement affiche les barres horizontales par joueur — survoler une barre met en évidence la bonne ligne.</p>
+          <p><strong>Commentaires par Top :</strong> si des phrases de catégorie sont configurées dans Paramètres → Commentaires, elles apparaissent sous le classement, triées par le score le plus élevé dans chaque Top.</p>
+          <p><strong>Export :</strong> boutons Infographie, CSV, Excel en haut à droite de la card graphique.</p>
         </div>
       </div>
 
       <div class="guide-section">
-        <h3>Saisir un Lot</h3>
+        <h3>✍️ Saisir un Lot</h3>
         <div class="guide-body">
-          <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne du lot correspond à une entrée : un joueur, un Top, un nombre de points, et une date.</p>
-          <p><strong>Raccourcis de points :</strong> les boutons 1, 3, 5, 7… permettent de choisir rapidement. Tu peux aussi taper un nombre personnalisé.</p>
-          <p><strong>Plage de dates :</strong> coche « Plage » pour étaler une entrée sur plusieurs jours. Tu peux choisir « Répéter » (même score chaque jour) ou « Répartir » (le total est divisé sur les jours). Le sélecteur de jours de la semaine permet de ne garder que certains jours (ex : jours ouvrés).</p>
-          <p><strong>Description :</strong> champ optionnel en bas de chaque ligne pour ajouter un contexte.</p>
-          <p><strong>Dupliquer :</strong> le bouton 📋 copie une ligne existante pour aller plus vite.</p>
+          <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne = un joueur, un Top, un score, une date.</p>
+          <p><strong>Raccourcis de points :</strong> les boutons rapides (1, 3, 5…) permettent de cliquer directement. Tu peux aussi saisir une valeur personnalisée.</p>
+          <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours. Mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé). Le filtre par jour de semaine permet de n'inclure que certains jours (ex : du lundi au vendredi).</p>
+          <p><strong>Boutons en bas :</strong> <em>＋ Ligne</em> ajoute une ligne, <em>🔗 Grouper</em> permet de lier des lignes en lot visible dans l'Historique, <em>✓ Inscrire le lot</em> enregistre tout.</p>
+          <p><strong>Dupliquer :</strong> bouton 📋 sur chaque ligne pour copier rapidement.</p>
+          <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points.</p>
         </div>
       </div>
 
       <div class="guide-section">
-        <h3>Paramètres</h3>
+        <h3>⚙️ Paramètres</h3>
         <div class="guide-body">
-          <p>On y gère les <strong>joueurs</strong> (nom, avatar, couleur) et les <strong>Tops</strong> (nom, description, emoji, couleur).</p>
-          <p>Le <strong>barème</strong> en bas permet de définir des règles de points pour chaque Top (ex : « 🍺 Apéro → Ramener des chips = 3 pts »). C'est un aide-mémoire consultable via le bouton ⚖️ en bas à gauche.</p>
+          <p>Cinq sous-onglets :</p>
+          <p><strong>👤 Joueurs :</strong> ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</p>
+          <p><strong>🎯 Tops :</strong> gérer les catégories (nom, description, emoji, couleur).</p>
+          <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton flottant ⚖️ (raccourci clavier : <strong>?</strong>).</p>
+          <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases. Les variables disponibles dans les phrases sont <code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>. Les pools <code>first</code>, <code>second</code>, <code>third</code>, <code>mid</code>, <code>last</code>, <code>tied</code>, <code>solo</code> permettent de cibler chaque position. Le pool <code>cat:NomDuTop</code> génère des commentaires spécifiques à un Top.</p>
+          <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point ou orphelines, détection et fusion de lots répartis.</p>
         </div>
       </div>
 
       <div class="guide-section">
-        <h3>Notes</h3>
+        <h3>📝 Notes</h3>
         <div class="guide-body">
-          <p>Espace pour écrire des <strong>remarques libres</strong> sur chaque joueur.</p>
-          <p>La <strong>barre rapide</strong> en haut permet d'ajouter une note en une seconde : choisis le joueur, tape la note, appuie sur Entrée.</p>
-          <p>Les notes de chaque joueur sont visibles en dessous dans des blocs dédiés.</p>
+          <p>Espace de <strong>remarques libres</strong> par joueur. La barre rapide en haut permet d'ajouter une note en une seconde : choisis le joueur (chip), tape la note, appuie sur Entrée.</p>
+          <p>Les blocs par joueur en dessous montrent toutes ses notes avec date et option de suppression.</p>
         </div>
       </div>
 
       <div class="guide-section">
-        <h3>Historique</h3>
+        <h3>📜 Historique</h3>
         <div class="guide-body">
-          <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur ou par Top.</p>
-          <p><strong>Sélection :</strong> le bouton « ☑ Sélectionner » active un mode où tu peux cocher des entrées pour les supprimer en bloc ou leur donner la même description.</p>
-          <p><strong>Regroupement :</strong> les entrées identiques consécutives (même joueur, Top, points, description) sont regroupées. Clique sur le groupe pour voir chaque ligne individuelle.</p>
-          <p>Chaque entrée peut être éditée (description) ou supprimée individuellement.</p>
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <h3>Outils</h3>
-        <div class="guide-body">
-          <p><strong>Rapport de santé :</strong> montre le nombre total d'entrées, celles à 0 point, et les orphelines (joueur ou Top supprimé).</p>
-          <p><strong>Nettoyage :</strong> deux boutons pour supprimer les entrées à 0 point ou les orphelines.</p>
-          <p><strong>Détection de lots répartis :</strong> scanne l'historique pour trouver des séries d'entrées identiques étalées sur plusieurs jours (typiquement créées avec « Répartir »). Tu choisis lesquels supprimer, avec double confirmation car c'est irréversible.</p>
+          <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top, ou par recherche texte.</p>
+          <p><strong>Regroupement automatique :</strong> les entrées identiques consécutives sont groupées. Clique sur un groupe pour le déplier.</p>
+          <p><strong>Mode sélection (☑) :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, ou les grouper en lot.</p>
         </div>
       </div>
 
       <div class="guide-section">
         <h3>Barème (bouton ⚖️)</h3>
         <div class="guide-body">
-          <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans les Paramètres. C'est un <strong>aide-mémoire rapide</strong> consultable depuis n'importe quel onglet.</p>
-          <p>Raccourci clavier : appuie sur <strong>?</strong> pour ouvrir/fermer.</p>
+          <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans Paramètres → Barème. Aide-mémoire rapide accessible depuis n'importe quel onglet.</p>
+          <p>Raccourci clavier : <strong>?</strong></p>
         </div>
       </div>
     </div>
@@ -2057,6 +2137,10 @@
   // Dashboard filter chip state (empty Set = "all")
   let selectedPlayerChips   = new Set();
   let selectedCategoryChips = new Set();
+
+  // ── QUI SUIS-JE ? ───────────────────────────────────────────────────
+  const WHO_AM_I_KEY = 'tdt_who_am_i';
+  let _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
 
   // ── SETTINGS PHRASES D'ACCROCHE ─────────────────────────────────────────
   const PHRASE_SETTINGS_KEY = 'tdt_phrase_settings';
@@ -2274,6 +2358,25 @@
     POOL_ORDER.forEach(pool => container.appendChild(buildPoolBlock(presetName, pool)));
   }
 
+  // Construit une ligne de phrase éditable (texte + boutons ✏️/🗑️).
+  // Partagé à l'identique par les blocs « par rang » et « par Top ».
+  // `displayLabel` est optionnel (utilisé seulement pour les pools de catégorie).
+  function buildPhraseEditRow(entry, presetName, pool, displayLabel) {
+    const row = document.createElement('div');
+    row.className = 'phrase-edit-item';
+    row.innerHTML =
+      '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
+      '<div class="phrase-edit-btns">' +
+        '<button class="secondary small" title="Modifier">✏️</button>' +
+        '<button class="danger small" title="Supprimer">🗑️</button>' +
+      '</div>';
+    row.querySelector('[title="Modifier"]').addEventListener('click', () =>
+      openPhraseModal(entry, presetName, pool, displayLabel));
+    row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
+      deletePhraseWithUndo(entry, presetName));
+    return row;
+  }
+
   function buildPoolBlock(presetName, pool) {
     const meta    = POOL_LABELS[pool];
     const entries = (_customPhrases || []).filter(p => p.preset === presetName && p.pool === pool);
@@ -2344,21 +2447,8 @@
         block.appendChild(section);
       }
     } else {
-      entries.forEach(entry => {
-        const row = document.createElement('div');
-        row.className = 'phrase-edit-item';
-        row.innerHTML =
-          '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
-          '<div class="phrase-edit-btns">' +
-            '<button class="secondary small" title="Modifier">✏️</button>' +
-            '<button class="danger small" title="Supprimer">🗑️</button>' +
-          '</div>';
-        row.querySelector('[title="Modifier"]').addEventListener('click', () =>
-          openPhraseModal(entry, presetName, pool));
-        row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
-          deletePhraseWithUndo(entry, presetName));
-        block.appendChild(row);
-      });
+      entries.forEach(entry =>
+        block.appendChild(buildPhraseEditRow(entry, presetName, pool)));
     }
     return block;
   }
@@ -2577,6 +2667,7 @@
         const target = btn.dataset.stab;
         document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
+        if (target === 'stab-tools') loadDataHealth();
       });
     });
   }
@@ -2704,21 +2795,8 @@
       empty.textContent = 'Aucune phrase. Ajoutez-en pour personnaliser les commentaires de ce Top.';
       block.appendChild(empty);
     } else {
-      entries.forEach(entry => {
-        const row = document.createElement('div');
-        row.className = 'phrase-edit-item';
-        row.innerHTML =
-          '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
-          '<div class="phrase-edit-btns">' +
-            '<button class="secondary small" title="Modifier">✏️</button>' +
-            '<button class="danger small" title="Supprimer">🗑️</button>' +
-          '</div>';
-        row.querySelector('[title="Modifier"]').addEventListener('click', () =>
-          openPhraseModal(entry, presetName, poolKey, catLabel));
-        row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
-          deletePhraseWithUndo(entry, presetName));
-        block.appendChild(row);
-      });
+      entries.forEach(entry =>
+        block.appendChild(buildPhraseEditRow(entry, presetName, poolKey, catLabel)));
     }
     return block;
   }
@@ -2825,6 +2903,18 @@
     lastPhraseSortedRows = null;
   }
 
+  function computeRankedTotals(chartData) {
+    if (!chartData || !chartData.labels || !chartData.labels.length) return [];
+    const rows = chartData.labels.map((p, i) => ({
+      player: p,
+      index:  i,
+      total:  (chartData.datasets || []).reduce((s, ds) => s + (ds.data[i] || 0), 0)
+    }));
+    rows.sort((a, b) => b.total - a.total);
+    rows.forEach((r, i) => { r.rank = i + 1; });
+    return rows;
+  }
+
   function renderPhrasesCard(sortedRows) {
     lastPhraseSortedRows = sortedRows;
     const settings  = getPhraseSettings();
@@ -2857,15 +2947,34 @@
         podiumPhrases.forEach(p => { if (p.rank <= 3) slots[visualOrder[p.rank] ?? 0] = p; });
 
         slots.filter(Boolean).forEach((p, vi) => {
-          const color = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
-          const el    = document.createElement('div');
+          const color  = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
+          const plData = cachedPlayers.find(pl => pl.name === p.player);
+          const el     = document.createElement('div');
           el.className = 'phrase-podium-card' + (p.rank === 1 ? ' first' : '');
           el.style.setProperty('--phrase-color', color);
           el.style.animationDelay = (vi * 0.08) + 's';
-          el.innerHTML =
-            '<div class="phrase-podium-medal">' + escapeHtml(p.emoji || '') + '</div>' +
-            '<div class="phrase-podium-player">' + escapeHtml(p.player) + '</div>' +
-            '<div class="phrase-podium-text">' + escapeHtml(p.text) + '</div>';
+
+          const medal = document.createElement('div');
+          medal.className = 'phrase-podium-medal';
+          medal.textContent = p.emoji || '';
+
+          const playerRow = document.createElement('div');
+          playerRow.className = 'phrase-podium-player';
+          const avImg = document.createElement('img');
+          avImg.className = 'phrase-podium-avatar';
+          avImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
+          avImg.onerror = () => { avImg.src = getAvatarUrl(p.player, ''); };
+          avImg.alt = '';
+          playerRow.appendChild(avImg);
+          playerRow.appendChild(document.createTextNode(p.player));
+
+          const phraseText = document.createElement('div');
+          phraseText.className = 'phrase-podium-text';
+          phraseText.textContent = p.text;
+
+          el.appendChild(medal);
+          el.appendChild(playerRow);
+          el.appendChild(phraseText);
           podiumWrap.appendChild(el);
         });
 
@@ -2877,16 +2986,40 @@
         const feedWrap = document.createElement('div');
         feedWrap.className = 'phrases-feed';
         feedPhrases.forEach((p, i) => {
-          const color = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
-          const el    = document.createElement('div');
+          const color  = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
+          const plData = cachedPlayers.find(pl => pl.name === p.player);
+          const el     = document.createElement('div');
           el.className = 'phrase-feed-item';
           el.style.setProperty('--phrase-color', color);
           el.style.animationDelay = (i * 0.06) + 's';
-          el.innerHTML =
-            '<span class="phrase-feed-emoji">' + escapeHtml(p.emoji || '') + '</span>' +
-            '<span class="phrase-feed-player">' + escapeHtml(p.player) + '</span>' +
-            '<span class="phrase-feed-sep">·</span>' +
-            '<span class="phrase-feed-text">' + escapeHtml(p.text) + '</span>';
+
+          const emojiSpan = document.createElement('span');
+          emojiSpan.className = 'phrase-feed-emoji';
+          emojiSpan.textContent = p.emoji || '';
+
+          const feedAv = document.createElement('img');
+          feedAv.className = 'phrase-feed-avatar';
+          feedAv.src = getAvatarUrl(p.player, plData ? plData.meta : '');
+          feedAv.onerror = () => { feedAv.src = getAvatarUrl(p.player, ''); };
+          feedAv.alt = '';
+
+          const playerSpan = document.createElement('span');
+          playerSpan.className = 'phrase-feed-player';
+          playerSpan.textContent = p.player;
+
+          const sepSpan = document.createElement('span');
+          sepSpan.className = 'phrase-feed-sep';
+          sepSpan.textContent = '·';
+
+          const textSpan = document.createElement('span');
+          textSpan.className = 'phrase-feed-text';
+          textSpan.textContent = p.text;
+
+          el.appendChild(emojiSpan);
+          el.appendChild(feedAv);
+          el.appendChild(playerSpan);
+          el.appendChild(sepSpan);
+          el.appendChild(textSpan);
           feedWrap.appendChild(el);
         });
         list.appendChild(feedWrap);
@@ -2896,10 +3029,11 @@
       return;
     }
 
-    // ── Commentaires par Top (accordion replié) ──
-    if (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size !== 1) {
+    // ── Commentaires par Top (section plate, toujours visible) ──
+    {
       const presetId    = getActivePresetId();
-      const activeChips = selectedCategoryChips.size > 1 ? selectedCategoryChips : null;
+      const activeChips = (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size > 1)
+        ? selectedCategoryChips : null;
       const catsToShow  = (cachedCategories || []).filter(c => !activeChips || activeChips.has(c.name));
 
       const catItems = catsToShow.map(cat => {
@@ -2908,35 +3042,36 @@
           .map(p => p.text);
         if (!pool.length) return null;
 
-        // Points spécifiques au Top (bug fix Task 3)
+        // Points spécifiques au Top avec gap réel (proportionnel)
         let topPlayer = (sortedRows[0] || {}).player || '';
         let topPts    = (sortedRows[0] || {}).total  || 0;
+        let secondPts = 0;
         if (typeof currentChartData !== 'undefined' && currentChartData && currentChartData.datasets) {
           const ds = currentChartData.datasets.find(d => d.label === cat.name);
           if (ds && currentChartData.labels) {
-            let maxPts = -Infinity, maxIdx = 0;
-            ds.data.forEach((v, i) => { if ((v || 0) > maxPts) { maxPts = v; maxIdx = i; } });
-            topPlayer = currentChartData.labels[maxIdx] || topPlayer;
-            topPts    = maxPts >= 0 ? maxPts : topPts;
+            const ranked = ds.data
+              .map((v, i) => ({ v: v || 0, player: currentChartData.labels[i] }))
+              .sort((a, b) => b.v - a.v);
+            if (ranked.length) { topPlayer = ranked[0].player; topPts = ranked[0].v; }
+            if (ranked.length > 1) secondPts = ranked[1].v;
           }
         }
 
         const tpl  = pool[Math.floor(Math.random() * pool.length)];
-        const vars = { player: topPlayer, pts: topPts, gap: 0, behind: 0, rank: 1 };
+        const vars = { player: topPlayer, pts: topPts, gap: topPts - secondPts, behind: 0, rank: 1 };
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
-        return { cat, text };
+        return { cat, text, topPts };
       }).filter(Boolean);
 
-      if (catItems.length) {
-        const accordion = document.createElement('div');
-        accordion.className = 'phrases-cat-accordion';
+      catItems.sort((a, b) => (b.topPts || 0) - (a.topPts || 0));
 
-        const toggle = document.createElement('button');
-        toggle.className = 'phrases-cat-toggle';
-        toggle.innerHTML =
-          '<span>💬 Commentaires par Top</span>' +
-          '<span class="phrases-cat-count">' + catItems.length + '</span>' +
-          '<span class="phrases-cat-toggle-arrow">▸</span>';
+      if (catItems.length) {
+        const section = document.createElement('div');
+        section.className = 'phrases-cat-section';
+
+        const header = document.createElement('div');
+        header.className = 'phrases-cat-header';
+        header.textContent = '💬 Commentaires par Top';
 
         const body = document.createElement('div');
         body.className = 'phrases-cat-body';
@@ -2956,10 +3091,9 @@
           body.appendChild(el);
         });
 
-        toggle.addEventListener('click', () => accordion.classList.toggle('open'));
-        accordion.appendChild(toggle);
-        accordion.appendChild(body);
-        list.appendChild(accordion);
+        section.appendChild(header);
+        section.appendChild(body);
+        list.appendChild(section);
       }
     }
   }
@@ -3341,7 +3475,6 @@
       const tabId = activeTab.id;
       if (tabId === 'tab-history') loadHistoryPage(currentHistoryPage);
       if (tabId === 'tab-notes')   loadNotes();
-      if (tabId === 'tab-tools')   loadDataHealth();
     }
     lastRefreshTime = new Date();
     updateRefreshBadge();
@@ -3488,8 +3621,54 @@
       if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
 
       if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
+      renderWhoAmI();
 
     }, 'Chargement settings');
+  }
+
+  function renderWhoAmI() {
+    const wrap     = document.getElementById('whoAmIWrap');
+    const avatar   = document.getElementById('whoAmIAvatar');
+    const nameSpan = document.getElementById('whoAmIName');
+    const dropdown = document.getElementById('whoAmIDropdown');
+    if (!wrap) return;
+
+    if (_whoAmI && !cachedPlayers.find(p => p.name === _whoAmI)) _whoAmI = null;
+
+    const updateBtn = () => {
+      const p = cachedPlayers.find(p => p.name === _whoAmI);
+      if (p) {
+        avatar.src = getAvatarUrl(p.name, p.meta);
+        avatar.onerror = () => { avatar.src = getAvatarUrl(p.name, ''); };
+        nameSpan.textContent = p.name;
+      } else {
+        avatar.src = getAvatarUrl('?', '');
+        nameSpan.textContent = 'Qui suis-je ?';
+      }
+    };
+    updateBtn();
+
+    dropdown.innerHTML = '';
+    cachedPlayers.forEach(p => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'who-am-i-option' + (p.name === _whoAmI ? ' active' : '');
+      const img = document.createElement('img');
+      img.src = getAvatarUrl(p.name, p.meta);
+      img.onerror = () => { img.src = getAvatarUrl(p.name, ''); };
+      img.alt = '';
+      opt.appendChild(img);
+      opt.appendChild(document.createTextNode(p.name));
+      opt.addEventListener('click', () => {
+        _whoAmI = p.name;
+        localStorage.setItem(WHO_AM_I_KEY, p.name);
+        updateBtn();
+        wrap.classList.remove('open');
+        dropdown.querySelectorAll('.who-am-i-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+      });
+      dropdown.appendChild(opt);
+    });
   }
 
   function renderEntityList(container, items, type) {
@@ -3670,6 +3849,9 @@
       } else if (currentChartType !== 'ranking') {
         clearTopStatsStrip();
       }
+      // Phrases card always populated from global totals
+      const ranked = computeRankedTotals(res.chartData);
+      if (ranked.length) renderPhrasesCard(ranked);
     }, 'Chargement graphique');
   }
 
@@ -4099,7 +4281,12 @@
         options: {
           ...baseOpts,
           indexAxis: 'y',
-          plugins: { ...baseOpts.plugins, legend: { display: chartOptions.detailed, labels: { color: c.text } } },
+          interaction: { mode: 'index', axis: 'y', intersect: false },
+          plugins: {
+            ...baseOpts.plugins,
+            tooltip: { mode: 'index', axis: 'y', intersect: false },
+            legend: { display: chartOptions.detailed, labels: { color: c.text } }
+          },
           scales: {
             x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
             y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
@@ -4660,6 +4847,11 @@
     const url = getAvatarUrl(opt.value, player ? player.meta : '');
     img.src = url;
     img.onerror = () => { img.src = getAvatarUrl(opt.value, ''); };
+    const row = sel.closest('.entry-row');
+    if (row) {
+      const bg = row.querySelector('.row-avatar-bg');
+      if (bg) bg.style.backgroundImage = 'url(' + url + ')';
+    }
   }
 
   function createPtsToggle(defaultVal) {
@@ -4723,6 +4915,11 @@
     const div = document.createElement('div');
     div.className = 'entry-row';
     div.id = 'row_' + rowCounter;
+
+    // Avatar fondu en fond
+    const avatarBg = document.createElement('div');
+    avatarBg.className = 'row-avatar-bg';
+    div.appendChild(avatarBg);
 
     // ── Joueur ──────────────────────────────────────────────────────────
     const wrap = document.createElement('div');
@@ -6199,7 +6396,6 @@
       btn.classList.add('active');
       if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
       if (tabId === 'tab-notes')   { loadNotes(); }
-      if (tabId === 'tab-tools')   { loadDataHealth(); }
       if (tabId === 'tab-guide')   { initGuideAccordion(); }
     });
   });
@@ -6649,6 +6845,25 @@
 
     lastRefreshTime = new Date();
     updateRefreshBadge();
+
+    // Collapse phrases card
+    const PHRASES_COLLAPSED_KEY = 'tdt_phrases_collapsed';
+    const phrasesCard = document.getElementById('phrasesCard');
+    const phrasesCollapseBtn = document.getElementById('phrasesCollapseBtn');
+    if (localStorage.getItem(PHRASES_COLLAPSED_KEY) === '1') phrasesCard.classList.add('collapsed');
+    phrasesCollapseBtn.addEventListener('click', () => {
+      phrasesCard.classList.toggle('collapsed');
+      localStorage.setItem(PHRASES_COLLAPSED_KEY, phrasesCard.classList.contains('collapsed') ? '1' : '0');
+    });
+
+    document.getElementById('whoAmIBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('whoAmIWrap').classList.toggle('open');
+    });
+    document.addEventListener('click', () => {
+      const wrap = document.getElementById('whoAmIWrap');
+      if (wrap) wrap.classList.remove('open');
+    });
 
     loadEntities();
     applyFilters();
