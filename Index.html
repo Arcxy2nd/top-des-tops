@@ -1179,6 +1179,12 @@
       opacity: 0.05; pointer-events: none;
     }
     .phrase-podium-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .phrase-podium-bg-avatar {
+      position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+      width: 90px; height: 90px; border-radius: 50%; object-fit: cover;
+      opacity: 0.07; pointer-events: none; z-index: 0;
+    }
+    .phrase-podium-card.first .phrase-podium-bg-avatar { width: 110px; height: 110px; opacity: 0.08; }
     .phrase-podium-card.first { flex: 1.45; padding: 18px 14px; }
     .phrase-podium-medal { font-size: 1.6rem; line-height: 1; }
     .phrase-podium-card.first .phrase-podium-medal { font-size: 2rem; }
@@ -1705,12 +1711,12 @@
       </div>
 
       <div class="chart-type-bar" id="chartTypeBar">
-        <button class="chart-type-btn" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
+        <button class="chart-type-btn active" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
         <button class="chart-type-btn" data-chart-type="grouped" title="Barres côte à côte — compare les Tops entre joueurs">📊 Groupé</button>
         <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
         <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
         <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
-        <button class="chart-type-btn active" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
+        <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
       </div>
 
       <div class="chart-controls" id="chartControls" style="display:none;"></div>
@@ -1928,7 +1934,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th id="histSelAllTh" class="hist-sel-th" style="display:none;"></th><th>Date</th><th>Joueur</th><th>Top</th><th>Pts</th><th></th></tr>
+            <tr><th id="histSelAllTh" class="hist-sel-th" style="display:none;"></th><th>Date</th><th>Joueur</th><th>Top</th><th>Pts</th><th>Saiseur</th><th></th></tr>
           </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
@@ -2125,7 +2131,7 @@
   // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
   let currentChart     = null;
   let currentChartData = null;
-  let currentChartType = 'ranking';
+  let currentChartType = 'stacked';
   let cachedPlayers    = [];
   let cachedCategories = [];
   let rowCounter       = 0;
@@ -2956,7 +2962,8 @@
     list.innerHTML = '';
 
     // ── Commentaires de classement ──
-    const phrases = generateRankingPhrases(sortedRows, settings.count);
+    const activeRows = sortedRows.filter(r => r.total > 0);
+    const phrases = generateRankingPhrases(activeRows, settings.count);
     if (phrases.length) {
       const podiumPhrases = phrases.filter(p => p.rank <= 3);
       const feedPhrases   = phrases.filter(p => p.rank > 3);
@@ -2996,6 +3003,13 @@
           phraseText.className = 'phrase-podium-text';
           phraseText.textContent = p.text;
 
+          const bgAvImg = document.createElement('img');
+          bgAvImg.className = 'phrase-podium-bg-avatar';
+          bgAvImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
+          bgAvImg.onerror = () => { bgAvImg.style.display = 'none'; };
+          bgAvImg.alt = '';
+
+          el.appendChild(bgAvImg);
           el.appendChild(medal);
           el.appendChild(playerRow);
           el.appendChild(phraseText);
@@ -3056,7 +3070,7 @@
     // ── Commentaires par Top (section plate, toujours visible) ──
     {
       const presetId    = getActivePresetId();
-      const activeChips = (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size > 1)
+      const activeChips = (typeof selectedCategoryChips !== 'undefined' && selectedCategoryChips.size > 0)
         ? selectedCategoryChips : null;
       const catsToShow  = (cachedCategories || []).filter(c => !activeChips || activeChips.has(c.name));
 
@@ -3066,28 +3080,29 @@
           .map(p => p.text);
         if (!pool.length) return null;
 
-        // Points spécifiques au Top avec gap réel (proportionnel)
-        let topPlayer = (sortedRows[0] || {}).player || '';
-        let topPts    = (sortedRows[0] || {}).total  || 0;
-        let secondPts = 0;
-        if (typeof currentChartData !== 'undefined' && currentChartData && currentChartData.datasets) {
-          const ds = currentChartData.datasets.find(d => d.label === cat.name);
-          if (ds && currentChartData.labels) {
-            const ranked = ds.data
-              .map((v, i) => ({ v: v || 0, player: currentChartData.labels[i] }))
-              .sort((a, b) => b.v - a.v);
-            if (ranked.length) { topPlayer = ranked[0].player; topPts = ranked[0].v; }
-            if (ranked.length > 1) secondPts = ranked[1].v;
-          }
-        }
+        if (!currentChartData || !currentChartData.datasets || !currentChartData.labels) return null;
+        const ds = currentChartData.datasets.find(d => d.label === cat.name);
+        if (!ds) return null;
+
+        const ranked = ds.data
+          .map((v, i) => ({ v: Number(v) || 0, player: currentChartData.labels[i] }))
+          .filter(r => r.v > 0)
+          .sort((a, b) => b.v - a.v);
+        if (!ranked.length) return null;
+
+        const topPlayer    = ranked[0].player;
+        const topPts       = ranked[0].v;
+        const secondPts    = ranked.length > 1 ? ranked[1].v : 0;
+        const categoryTotal = ds.data.reduce((s, v) => s + (Number(v) || 0), 0);
+        const dominance    = categoryTotal > 0 ? topPts / categoryTotal : 0;
 
         const tpl  = pool[Math.floor(Math.random() * pool.length)];
         const vars = { player: topPlayer, pts: topPts, gap: topPts - secondPts, behind: 0, rank: 1 };
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
-        return { cat, text, topPts };
+        return { cat, text, topPts, dominance };
       }).filter(Boolean);
 
-      catItems.sort((a, b) => (b.topPts || 0) - (a.topPts || 0));
+      catItems.sort((a, b) => (b.dominance || 0) - (a.dominance || 0));
 
       const section = document.createElement('div');
       section.className = 'phrases-cat-section';
@@ -4046,37 +4061,10 @@
       pill.appendChild(name);
 
       pill.addEventListener('click', () => {
-        // Mettre à jour la sélection (même logique que les chips du haut)
-        if (selectedCategoryChips.has(t.name)) {
-          selectedCategoryChips.delete(t.name);
-        } else {
-          if (selectedCategoryChips.size === 0) {
-            data.datasets.forEach(ds => {
-              if (ds.label !== t.name) selectedCategoryChips.add(ds.label);
-            });
-          } else {
-            selectedCategoryChips.add(t.name);
-          }
-        }
-        if (selectedCategoryChips.size === data.datasets.length) selectedCategoryChips.clear();
-
-        // Synchroniser les chips du haut visuellement
+        if (selectedCategoryChips.has(t.name)) selectedCategoryChips.delete(t.name);
+        else selectedCategoryChips.add(t.name);
         renderCategoryChips();
-
-        // Mettre à jour la visibilité dans le graphique sans appel serveur
-        if (currentChart) {
-          currentChart.data.datasets.forEach((ds, chartIdx) => {
-            const match = data.datasets.find(d => catDisplay(d.label) === ds.label || d.label === ds.label);
-            if (match) {
-              const isVisible = !selectedCategoryChips.size || selectedCategoryChips.has(match.label);
-              currentChart.setDatasetVisibility(chartIdx, isVisible);
-            }
-          });
-          currentChart.update('none');
-        }
-
-        // Redessiner les pills pour refléter le nouvel état
-        renderTopStatsStrip(data);
+        scheduleApplyFilters();
       });
 
       strip.appendChild(pill);
@@ -5478,7 +5466,8 @@
         category:    e.category,
         points:      e.points,
         times:       e.times,
-        description: e.description
+        description: e.description,
+        saiseur:     _whoAmI || ''
       }))
     }));
 
@@ -5694,7 +5683,7 @@
       if (!logs.length) {
         const tr = tbody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = histSelectMode ? 6 : 5;
+        td.colSpan = histSelectMode ? 7 : 6;
         td.innerHTML = emptyIllustration('📭', 'Aucune entrée trouvée.');
         document.getElementById('historyPagination').innerHTML = '';
         histVisibleRows = [];
@@ -5983,6 +5972,25 @@
     badge.textContent = log.points;
     ptsCell.appendChild(badge);
 
+    const saiseurCell = tr.insertCell();
+    saiseurCell.className = 'hist-player-cell';
+    if (log.saiseur) {
+      const sp = cachedPlayers.find(p => p.name === log.saiseur);
+      const sImg = document.createElement('img');
+      sImg.className = 'history-avatar';
+      sImg.style.width = '20px'; sImg.style.height = '20px';
+      sImg.src = getAvatarUrl(log.saiseur, sp ? sp.meta : '');
+      sImg.onerror = () => { sImg.src = getAvatarUrl(log.saiseur, ''); };
+      const sName = document.createElement('span');
+      sName.className = 'hist-player-name'; sName.textContent = log.saiseur;
+      saiseurCell.appendChild(sImg); saiseurCell.appendChild(sName);
+    } else {
+      const dash = document.createElement('span');
+      dash.style.cssText = 'color:var(--muted);font-size:0.85em;';
+      dash.textContent = '—';
+      saiseurCell.appendChild(dash);
+    }
+
     const actCell = tr.insertCell();
     actCell.className = 'hist-actions-cell';
     actCell.style.cssText = 'white-space:nowrap;';
@@ -5990,7 +5998,7 @@
     const fullEditBtn = document.createElement('button');
     fullEditBtn.className = 'small';
     fullEditBtn.textContent = '✏️';
-    fullEditBtn.title = 'Modifier cette entrée (date, joueur, Top, points, description)';
+    fullEditBtn.title = 'Modifier cette entrée (date, joueur, Top, points, description, saiseur)';
     fullEditBtn.style.marginRight = '4px';
     fullEditBtn.addEventListener('click', () => openFullEditHistoryModal(log));
 
@@ -6333,6 +6341,10 @@
     const catOptions = cachedCategories.map(c =>
       '<option value="' + escapeHtml(c.name) + '"' + (c.name === log.category ? ' selected' : '') + '>' + escapeHtml(catDisplay(c.name)) + '</option>'
     ).join('');
+    const saiseurOptions = '<option value=""' + (!log.saiseur ? ' selected' : '') + '>— inconnu —</option>' +
+      cachedPlayers.map(p =>
+        '<option value="' + escapeHtml(p.name) + '"' + (p.name === log.saiseur ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'
+      ).join('');
 
     const d = log.timestamp ? new Date(log.timestamp) : new Date();
     const dateVal = isNaN(d) ? toDateStr(new Date()) : toDateStr(d);
@@ -6355,6 +6367,10 @@
         '<div class="modal-field"><label>Description (optionnelle)</label>' +
           '<input type="text" id="mEditDesc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…"></div>' +
       '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Saiseur</label>' +
+          '<select id="mEditSaiseur">' + saiseurOptions + '</select></div>' +
+      '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
         '<button id="mCancel" class="secondary">Annuler</button>' +
@@ -6366,6 +6382,7 @@
       const player   = document.getElementById('mEditPlayer').value;
       const category = document.getElementById('mEditCategory').value;
       const desc     = document.getElementById('mEditDesc').value.trim();
+      const saiseur  = document.getElementById('mEditSaiseur').value;
 
       if (!date)              { showToast('Date requise.', 'error'); return; }
       if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
@@ -6373,7 +6390,7 @@
       if (!category)          { showToast('Top requis.', 'error'); return; }
 
       closeModal();
-      callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc }],
+      callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }],
         res => {
           if (res && res.success === false) {
             showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');

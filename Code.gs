@@ -208,6 +208,7 @@ const StorageService = {
       points,
       description: row[4] ? row[4].toString() : '',
       groupId:     row[5] ? row[5].toString() : '',
+      saiseur:     row[6] ? row[6].toString() : '',
       hasEntities: !!(player && category),
       pointsValid: !(isNaN(points) || points <= 0)
     };
@@ -232,13 +233,13 @@ const StorageService = {
         const tms = parseInt(e.times,  10);
         if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
         if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
-        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', '']);
+        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', '', e.saiseur || '']);
       });
     });
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
 
     const { history } = ConfigService.getSheets();
-    history.getRange(history.getLastRow() + 1, 1, rows.length, 6).setValues(rows);
+    history.getRange(history.getLastRow() + 1, 1, rows.length, 7).setValues(rows);
   },
 
   /** Reads and parses every valid History row straight from the sheet (no cache). */
@@ -305,7 +306,7 @@ const StorageService = {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { logs: [], total: 0 };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
 
@@ -328,6 +329,7 @@ const StorageService = {
         points:      rec.points,
         description: rec.description,
         groupId:     rec.groupId,
+        saiseur:     rec.saiseur,
         rowIndex:    rec.rowIndex
       });
     }
@@ -388,9 +390,10 @@ const StorageService = {
     if (isNaN(pts) || pts < 1) throw new Error("Les points doivent être ≥ 1.");
     const targetDate = new Date((fields.date || '').trim() + 'T12:00:00');
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
-    ConfigService.getSheets().history
-      .getRange(idx, 1, 1, 5)
+    const sheet = ConfigService.getSheets().history;
+    sheet.getRange(idx, 1, 1, 5)
       .setValues([[targetDate, fields.player, fields.category, pts, fields.description || '']]);
+    sheet.getRange(idx, 7).setValue(fields.saiseur || '');
   },
 
   // ── OUTILS NETTOYAGE ────────────────────────────────────────────────
@@ -1157,7 +1160,7 @@ function apiDetectDistributedLots() {
     if (lastRow <= 1) return { success: true, lots: [] };
 
     const pad = function(n) { return String(n).padStart(2, '0'); };
-    const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const entries = [];
     for (var i = 0; i < data.length; i++) {
       var rec = StorageService._parseHistoryRow(data[i], i);
