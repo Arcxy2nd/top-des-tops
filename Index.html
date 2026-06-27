@@ -1310,16 +1310,20 @@
     }
     .bareme-quick-row.has-entries { display: flex; }
     .bareme-quick-header {
-      display: flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 5px;
       cursor: pointer; user-select: none;
-      background: none; border: none; padding: 0;
-      font-family: inherit; font-size: 0.72rem; color: var(--text-muted);
-      transition: color 0.15s;
+      background: rgba(255,170,0,0.09);
+      border: 1px solid rgba(255,170,0,0.32);
+      border-radius: 6px; padding: 3px 9px;
+      font-family: inherit; font-size: 0.72rem;
+      font-weight: 600; color: #ffb700;
+      transition: background 0.13s, border-color 0.13s;
+      align-self: flex-start;
     }
-    .bareme-quick-header:hover { color: var(--text); }
+    .bareme-quick-header:hover { background: rgba(255,170,0,0.18); border-color: #ffb700; }
     .bareme-quick-header .bq-chevron {
       font-size: 0.6rem; display: inline-block;
-      transition: transform 0.15s; margin-left: 2px;
+      transition: transform 0.15s;
     }
     .bareme-quick-header.open .bq-chevron { transform: rotate(90deg); }
     .bareme-quick-btns {
@@ -1329,15 +1333,14 @@
     .bq-btn {
       background: rgba(255,170,0,0.07);
       border: 1px solid rgba(255,170,0,0.28);
-      border-radius: 6px; padding: 4px 10px;
+      border-radius: 6px; padding: 5px 10px;
       font-size: 0.75rem; cursor: pointer; color: #ffb700;
       font-family: inherit; transition: background 0.13s, border-color 0.13s;
-      white-space: nowrap; max-width: 180px;
-      overflow: hidden; text-overflow: ellipsis;
+      white-space: normal; word-break: break-word;
       display: flex; align-items: center; gap: 5px;
     }
     .bq-btn:hover { background: rgba(255,170,0,0.18); border-color: #ffb700; color: #ffd060; }
-    .bq-btn .bq-action { overflow: hidden; text-overflow: ellipsis; }
+    .bq-btn .bq-action { flex: 1; }
     .bq-btn .bq-pts {
       font-weight: 700; font-variant-numeric: tabular-nums;
       font-size: 0.8rem; flex-shrink: 0;
@@ -1746,11 +1749,11 @@
     <div class="card card-accent card-collapsible" id="chartCard">
       <div class="chart-header card-collapse-header">
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
-        <div class="export-buttons">
-          <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
-          <button class="export-btn" data-export="csv">📊 CSV</button>
-          <button class="export-btn" data-export="xlsx">📗 Excel</button>
-        </div>
+      </div>
+      <div class="export-buttons">
+        <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
+        <button class="export-btn" data-export="csv">📊 CSV</button>
+        <button class="export-btn" data-export="xlsx">📗 Excel</button>
       </div>
 
       <div class="chart-type-bar" id="chartTypeBar">
@@ -3977,8 +3980,8 @@
     const titleEl = document.getElementById('chartTitle');
     if (titleEl) {
       const titles = {
-        stacked:  '📈 Scores par Top',
-        grouped:  '📈 Scores par Top (groupé)',
+        stacked:  '📈 Graphiques',
+        grouped:  '📈 Graphiques',
         trend:    '📈 Évolution temporelle',
         radar:    '🕸️ Radar des scores',
         doughnut: '🍩 Répartition par Top',
@@ -5197,13 +5200,14 @@
     baremeRow.appendChild(bqHeader);
     baremeRow.appendChild(bqBtns);
 
-    function applyBaremePts(pts) {
+    function applyBaremePts(pts, action) {
       customPtsInput.value = pts;
       ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
         const match = parseInt(b.dataset.val, 10) === pts;
         b.classList.toggle('active', match);
         if (match) { b.classList.add('pts-pop'); setTimeout(() => b.classList.remove('pts-pop'), 220); }
       });
+      if (action) descInput.value = action;
       updateLotSummary();
     }
 
@@ -5218,7 +5222,7 @@
         btn.className = 'bq-btn';
         btn.title = entry.action + ' : ' + entry.pts + ' pts';
         btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + entry.pts + '</span>';
-        btn.addEventListener('click', () => applyBaremePts(entry.pts));
+        btn.addEventListener('click', () => applyBaremePts(entry.pts, entry.action));
         bqBtns.appendChild(btn);
       });
     }
