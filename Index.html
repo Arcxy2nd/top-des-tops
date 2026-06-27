@@ -244,9 +244,10 @@
 
     /* ── CHART ── */
     .chart-header {
-      display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: flex-start;
+      gap: 8px; margin-bottom: 8px;
     }
+    .chart-header h2 { flex: 1; margin: 0; }
     .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
     .export-btn {
       background: var(--btn-alt); border: none;
@@ -1749,11 +1750,11 @@
     <div class="card card-accent card-collapsible" id="chartCard">
       <div class="chart-header card-collapse-header">
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
-      </div>
-      <div class="export-buttons">
-        <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
-        <button class="export-btn" data-export="csv">📊 CSV</button>
-        <button class="export-btn" data-export="xlsx">📗 Excel</button>
+        <div class="export-buttons">
+          <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
+          <button class="export-btn" data-export="csv">📊 CSV</button>
+          <button class="export-btn" data-export="xlsx">📗 Excel</button>
+        </div>
       </div>
 
       <div class="chart-type-bar" id="chartTypeBar">
@@ -4523,7 +4524,55 @@
     ctx.closePath();
   }
 
-  function buildInfographicCanvas(opts, forceScale) {
+  function getRelevantPlayerNames() {
+    if (currentChartType === 'doughnut') return _donutPlayer ? [_donutPlayer] : [];
+    if (currentChartData && currentChartData.labels) return currentChartData.labels.slice(0, 8);
+    return cachedPlayers.map(p => p.name).slice(0, 8);
+  }
+
+  async function loadAvatarImages(playerNames, enabled) {
+    const result = new Map();
+    if (!enabled || !playerNames.length) return result;
+    await Promise.all(playerNames.map(name => {
+      const player = cachedPlayers.find(p => p.name === name);
+      const color   = playerColor(name);
+      const initial = name.charAt(0).toUpperCase();
+      if (!player || !player.meta) { result.set(name, { img: null, color, initial }); return Promise.resolve(); }
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const done = () => { result.set(name, { img: img.complete && img.naturalWidth > 0 ? img : null, color, initial }); resolve(); };
+        img.onload = done;
+        img.onerror = () => { result.set(name, { img: null, color, initial }); resolve(); };
+        setTimeout(() => { result.set(name, { img: null, color, initial }); resolve(); }, 3000);
+        img.src = player.meta;
+      });
+    }));
+    return result;
+  }
+
+  function drawAvatarOnCanvas(ctx, av, cx, cy, r, S) {
+    if (av && av.img) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(av.img, cx - r, cy - r, r * 2, r * 2);
+      ctx.restore();
+    } else {
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = (av && av.color) || '#555'; ctx.fill();
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold ' + Math.round(r * 0.9) + 'px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText((av && av.initial) || '?', cx, cy);
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = (av && av.color) || '#555';
+    ctx.lineWidth = Math.round(Math.max(1.5, 2 * S)); ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  function buildInfographicCanvas(opts, forceScale, avatarImages) {
     const S = forceScale !== undefined ? forceScale : opts.scale;
     const W = Math.round(1200 * S);
     const H = Math.round(700 * S);
@@ -4563,8 +4612,28 @@
       ctx.fillStyle = MUTED;
       ctx.font = Math.round(13 * S) + 'px sans-serif';
       ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
-      // Period (right-aligned)
-      if (opts.period) {
+      // Right side: avatar (donut) OR period text
+      const avatarR = Math.round(22 * S);
+      const avatarCX = W - Math.round(34 * S);
+      const avatarCY = Math.round(32 * S);
+      if (opts.avatars && avatarImages && currentChartType === 'doughnut' && _donutPlayer) {
+        // Draw player avatar circle
+        drawAvatarOnCanvas(ctx, avatarImages.get(_donutPlayer) || null, avatarCX, avatarCY, avatarR, S);
+        // Player name to the left of the avatar
+        ctx.fillStyle = FG;
+        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(_donutPlayer, avatarCX - avatarR - Math.round(8 * S), Math.round(28 * S));
+        ctx.fillStyle = MUTED;
+        ctx.font = Math.round(11 * S) + 'px sans-serif';
+        if (opts.period) {
+          const sd = document.getElementById('startDate').value;
+          const ed = document.getElementById('endDate').value;
+          const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
+          ctx.fillText(periodTxt, avatarCX - avatarR - Math.round(8 * S), Math.round(44 * S));
+        }
+        ctx.textAlign = 'left';
+      } else if (opts.period) {
         const sd = document.getElementById('startDate').value;
         const ed = document.getElementById('endDate').value;
         const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
@@ -4664,23 +4733,43 @@
 
       if (playerTotals.length) {
         const pillW = Math.round((W - 20 * S) / playerTotals.length);
+        const useAvatars = opts.avatars && avatarImages && avatarImages.size > 0;
         playerTotals.forEach((t, i) => {
           const px = Math.round(10 * S) + i * pillW;
           const py = yOff;
           const pw = pillW - Math.round(6 * S);
           const ph = Math.round(38 * S);
+          // Pill background + border
           ctx.fillStyle = t.color; ctx.globalAlpha = 0.18;
           roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.fill();
           ctx.globalAlpha = 1;
           ctx.strokeStyle = t.color; ctx.lineWidth = Math.round(1.5 * S); ctx.globalAlpha = 0.5;
           roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.stroke();
           ctx.globalAlpha = 1;
-          ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
-          ctx.fillStyle = MUTED; ctx.font = Math.round(10 * S) + 'px sans-serif';
-          ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
-          ctx.textAlign = 'left';
+          if (useAvatars) {
+            // Avatar left, text right
+            const avR = Math.round(13 * S);
+            const avCX = px + Math.round(16 * S);
+            const avCY = py + ph / 2;
+            drawAvatarOnCanvas(ctx, avatarImages.get(t.name) || { img: null, color: t.color, initial: t.name.charAt(0).toUpperCase() }, avCX, avCY, avR, S);
+            const textX = px + Math.round(34 * S);
+            const maxChars = Math.max(4, Math.floor((pw - Math.round(38 * S)) / Math.round(7 * S)));
+            const nameStr = t.name.length > maxChars ? t.name.slice(0, maxChars - 1) + '…' : t.name;
+            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(11 * S) + 'px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(t.total + ' pts', textX, py + Math.round(15 * S));
+            ctx.fillStyle = MUTED; ctx.font = Math.round(9 * S) + 'px sans-serif';
+            ctx.fillText(nameStr, textX, py + Math.round(28 * S));
+            ctx.textAlign = 'left';
+          } else {
+            // Text-only (original)
+            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
+            ctx.fillStyle = MUTED; ctx.font = Math.round(10 * S) + 'px sans-serif';
+            ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
+            ctx.textAlign = 'left';
+          }
         });
       }
       yOff += playersH;
@@ -4730,8 +4819,9 @@
     return cv;
   }
 
-  function generateInfographic(opts) {
-    const canvas = buildInfographicCanvas(opts, opts.scale);
+  async function generateInfographic(opts) {
+    const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), opts.avatars);
+    const canvas = buildInfographicCanvas(opts, opts.scale, avatarImages);
     if (opts.format === 'pdf') {
       loadScriptOnce(EXPORT_LIBS.jspdf).then(() => {
         const { jsPDF } = window.jspdf;
@@ -4760,6 +4850,7 @@
       period:      true,
       stats:       true,
       players:     true,
+      avatars:     true,
       scale:       1,
       legend:      true,
       watermark:   true,
@@ -4820,6 +4911,7 @@
     optsGroup.appendChild(checkOpt('Inclure la période (droite)', 'period'));
     optsGroup.appendChild(checkOpt('Totaux par catégorie (pills)', 'stats'));
     optsGroup.appendChild(checkOpt('Totaux par joueur (pills)', 'players'));
+    optsGroup.appendChild(checkOpt('Avatars des joueurs', 'avatars'));
     optsGroup.appendChild(checkOpt('Pied de page (date export)', 'footer'));
     box.appendChild(optsGroup);
 
@@ -4868,9 +4960,10 @@
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 
-    // Live preview (always at 1x for speed)
-    function updatePreview() {
-      const canvas = buildInfographicCanvas(exportOpts, 1);
+    // Live preview (always at 1x for speed) — async for avatar loading
+    async function updatePreview() {
+      const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), exportOpts.avatars);
+      const canvas = buildInfographicCanvas(exportOpts, 1, avatarImages);
       prevImg.src = canvas.toDataURL('image/png');
     }
     updatePreview();
