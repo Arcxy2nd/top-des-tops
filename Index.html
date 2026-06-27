@@ -1757,28 +1757,30 @@
         </div>
       </div>
 
-      <div class="chart-type-bar" id="chartTypeBar">
-        <button class="chart-type-btn active" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
-        <button class="chart-type-btn" data-chart-type="grouped" title="Barres côte à côte — compare les Tops entre joueurs">📊 Groupé</button>
-        <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
-        <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
-        <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
-        <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
-      </div>
+      <div class="chart-body">
+        <div class="chart-type-bar" id="chartTypeBar">
+          <button class="chart-type-btn active" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
+          <button class="chart-type-btn" data-chart-type="grouped" title="Barres côte à côte — compare les Tops entre joueurs">📊 Groupé</button>
+          <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
+          <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
+          <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
+          <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
+        </div>
 
-      <div class="chart-controls" id="chartControls" style="display:none;"></div>
+        <div class="chart-controls" id="chartControls" style="display:none;"></div>
 
-      <div id="donutPlayerWrap" style="display:none; margin-bottom:10px;">
-        <label style="font-size:0.78rem; color:var(--text-muted);">Joueur pour le Donut</label>
-        <div id="donutPlayerChips" class="fchip-row" style="margin-top:6px;"></div>
-      </div>
+        <div id="donutPlayerWrap" style="display:none; margin-bottom:10px;">
+          <label style="font-size:0.78rem; color:var(--text-muted);">Joueur pour le Donut</label>
+          <div id="donutPlayerChips" class="fchip-row" style="margin-top:6px;"></div>
+        </div>
 
-      <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
-      <div class="chart-wrapper" id="chartWrapper" style="display:none;">
-        <canvas id="mainChart"></canvas>
-        <div id="chartCustomTooltip" role="tooltip"></div>
+        <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
+        <div class="chart-wrapper" id="chartWrapper" style="display:none;">
+          <canvas id="mainChart"></canvas>
+          <div id="chartCustomTooltip" role="tooltip"></div>
+        </div>
+        <div id="topStatsStrip"></div>
       </div>
-      <div id="topStatsStrip"></div>
     </div>
 
   </div>
