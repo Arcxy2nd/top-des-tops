@@ -233,7 +233,7 @@ const StorageService = {
         const tms = parseInt(e.times,  10);
         if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
         if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
-        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', '', e.saiseur || '']);
+        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', e.groupTag || '', e.saiseur || '']);
       });
     });
     if (!rows.length) throw new Error("Aucune donnée à injecter.");

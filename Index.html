@@ -1302,6 +1302,49 @@
     .btn-submit-lot:hover { opacity: 0.86; }
     .btn-submit-lot:active { transform: scale(0.97); }
 
+    /* ── BARÈME RAPIDE PAR TOP ── */
+    .bareme-quick-row {
+      display: none; /* hidden when no entries for current top */
+      flex-direction: column; gap: 4px;
+      padding: 4px 0 2px;
+    }
+    .bareme-quick-row.has-entries { display: flex; }
+    .bareme-quick-header {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; user-select: none;
+      background: none; border: none; padding: 0;
+      font-family: inherit; font-size: 0.72rem; color: var(--text-muted);
+      transition: color 0.15s;
+    }
+    .bareme-quick-header:hover { color: var(--text); }
+    .bareme-quick-header .bq-chevron {
+      font-size: 0.6rem; display: inline-block;
+      transition: transform 0.15s; margin-left: 2px;
+    }
+    .bareme-quick-header.open .bq-chevron { transform: rotate(90deg); }
+    .bareme-quick-btns {
+      display: none; flex-wrap: wrap; gap: 5px; padding: 2px 0;
+    }
+    .bareme-quick-btns.open { display: flex; }
+    .bq-btn {
+      background: rgba(255,170,0,0.07);
+      border: 1px solid rgba(255,170,0,0.28);
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 0.75rem; cursor: pointer; color: #ffb700;
+      font-family: inherit; transition: background 0.13s, border-color 0.13s;
+      white-space: nowrap; max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .bq-btn:hover { background: rgba(255,170,0,0.18); border-color: #ffb700; color: #ffd060; }
+    .bq-btn .bq-action { overflow: hidden; text-overflow: ellipsis; }
+    .bq-btn .bq-pts {
+      font-weight: 700; font-variant-numeric: tabular-nums;
+      font-size: 0.8rem; flex-shrink: 0;
+      background: rgba(255,170,0,0.18); border-radius: 4px;
+      padding: 0 4px;
+    }
+
     /* ── GROUPEMENT EN SAISIE LOT ── */
     .entry-row.lot-group-selectable { cursor: pointer; }
     .entry-row.lot-group-selected {
@@ -1775,7 +1818,6 @@
           <strong id="lotRowCount">0</strong> ligne(s) · <strong id="lotPtsTotal">0</strong> pts au total
         </div>
         <div id="lotSummaryDetails" style="font-size:0.75rem;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-        <button id="submitLotBtnSummary" class="primary small">✓ Inscrire le Lot</button>
       </div>
     </div>
   </div>
@@ -5135,8 +5177,67 @@
     bottomRow.appendChild(ptsToggle);
     bottomRow.appendChild(dateCell);
 
+    // ── Barème rapide par Top ────────────────────────────────────────────
+    const baremeRow = document.createElement('div');
+    baremeRow.className = 'bareme-quick-row';
+
+    const bqHeader = document.createElement('button');
+    bqHeader.type = 'button';
+    bqHeader.className = 'bareme-quick-header';
+    bqHeader.innerHTML = '⚖️ Barème <span class="bq-chevron">▶</span>';
+
+    const bqBtns = document.createElement('div');
+    bqBtns.className = 'bareme-quick-btns';
+
+    bqHeader.addEventListener('click', () => {
+      const open = bqBtns.classList.toggle('open');
+      bqHeader.classList.toggle('open', open);
+    });
+
+    baremeRow.appendChild(bqHeader);
+    baremeRow.appendChild(bqBtns);
+
+    function applyBaremePts(pts) {
+      customPtsInput.value = pts;
+      ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
+        const match = parseInt(b.dataset.val, 10) === pts;
+        b.classList.toggle('active', match);
+        if (match) { b.classList.add('pts-pop'); setTimeout(() => b.classList.remove('pts-pop'), 220); }
+      });
+      updateLotSummary();
+    }
+
+    function renderBaremeQuickBtns(entries, topName) {
+      bqBtns.innerHTML = '';
+      const matching = entries.filter(e => e.top === topName && e.pts > 0);
+      if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
+      baremeRow.classList.add('has-entries');
+      matching.forEach(entry => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bq-btn';
+        btn.title = entry.action + ' : ' + entry.pts + ' pts';
+        btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + entry.pts + '</span>';
+        btn.addEventListener('click', () => applyBaremePts(entry.pts));
+        bqBtns.appendChild(btn);
+      });
+    }
+
+    function refreshBaremeForTop(topName) {
+      if (baremeEntries) {
+        renderBaremeQuickBtns(baremeEntries, topName);
+      } else {
+        callServer('apiGetBareme', [], res => {
+          if (res.success) { baremeEntries = res.entries; renderBaremeQuickBtns(res.entries, topName); }
+        }, 'Barème rapide');
+      }
+    }
+
+    cSel.addEventListener('change', () => refreshBaremeForTop(cSel.value));
+
     div.appendChild(topRow);
     div.appendChild(bottomRow);
+    div.appendChild(baremeRow);
     div.appendChild(descRowWrapper);
     container.appendChild(div);
 
@@ -5151,6 +5252,7 @@
     div.style.setProperty('--row-accent', initCatCol);
     catDot.style.background = initCatCol;
     img.style.setProperty('--player-ring', playerColor(pSel.value));
+    refreshBaremeForTop(cSel.value);
     updateLotSummary();
   }
 
@@ -5457,8 +5559,6 @@
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
     const restore = startBtnLoading(btn, 'Écriture…');
 
-    // On n'envoie que les champs réellement écrits côté serveur (le groupId reste vide,
-    // comme auparavant — le regroupement se fait via l'onglet Outils).
     const payload = plan.map(dayPlan => ({
       date: dayPlan.date,
       entries: dayPlan.entries.map(e => ({
@@ -5467,6 +5567,7 @@
         points:      e.points,
         times:       e.times,
         description: e.description,
+        groupTag:    e.groupTag || '',
         saiseur:     _whoAmI || ''
       }))
     }));
@@ -6511,7 +6612,6 @@
 
     document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
-    document.getElementById('submitLotBtnSummary').addEventListener('click', submitBulk);
     document.getElementById('lotGroupModeBtn').addEventListener('click', enterLotGroupMode);
     document.getElementById('lotGroupApplyBtn').addEventListener('click', applyLotGroup);
     document.getElementById('lotGroupCancelBtn').addEventListener('click', exitLotGroupMode);
