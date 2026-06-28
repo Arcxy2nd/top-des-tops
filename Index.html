@@ -992,6 +992,62 @@
     }
     .top-stat-pill.tsp-hidden:hover { opacity: 0.75; }
 
+    /* ── RICH SELECT ── */
+    .rich-select {
+      position: relative; display: flex; width: 100%;
+    }
+    .rs-trigger {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 9px 12px; cursor: pointer; text-align: left;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 0.88rem;
+      transition: border-color 0.15s;
+    }
+    .rs-trigger:hover,
+    .rs-trigger.rs-open { border-color: var(--accent); }
+    .rs-trigger.rs-mixed {
+      background: rgba(255, 71, 87, 0.06);
+      border-style: dashed; color: var(--text-muted);
+    }
+    .rs-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rs-chevron {
+      font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0;
+      transition: transform 0.15s; display: inline-block;
+    }
+    .rs-trigger.rs-open .rs-chevron { transform: rotate(180deg); }
+    .rs-panel {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--card-bg, var(--bg)); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+      max-height: 220px; overflow-y: auto; z-index: 200;
+    }
+    .rs-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; cursor: pointer; font-size: 0.86rem;
+      transition: background 0.1s;
+    }
+    .rs-option:hover    { background: rgba(255,255,255,0.06); }
+    .rs-option.rs-selected { background: rgba(255, 71, 87, 0.1); }
+    .rs-thumb {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--btn-alt); overflow: hidden; font-size: 1rem; line-height: 1;
+    }
+    .rs-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .rs-thumb-dot { border-radius: 50%; }
+    .rs-thumb-emoji { background: transparent; font-size: 1.1rem; }
+    .rs-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rs-cat-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    /* Ajustements pour les wrappers existants qui accueillent un RS */
+    .player-sel-wrap.rs-host,
+    .c-sel-wrap.rs-host {
+      padding: 0; border: none; background: transparent;
+    }
+    .player-sel-wrap.rs-host:focus-within,
+    .c-sel-wrap.rs-host:focus-within { border: none; }
+
     /* ── CHIPS FILTRES HISTORIQUE ── */
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -1990,10 +2046,7 @@
       <div id="historyPagination" class="pagination"></div>
       <div id="histBulkBar" class="hist-bulk-bar" style="display:none;">
         <span id="histBulkCount">0 sélectionné(s)</span>
-        <div class="hist-bulk-desc-wrap">
-          <input type="text" id="histBulkDescInput" placeholder="Nouvelle description…">
-          <button id="histBulkDescApply" class="primary small">📝 Appliquer</button>
-        </div>
+        <button id="histBulkEdit" class="secondary">✏️ Modifier la sélection</button>
         <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
         <button id="histBulkGroup" class="secondary small">🔗 Grouper</button>
         <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
@@ -2193,6 +2246,7 @@
   let histSelectMode  = false;
   let histSelected    = new Set();
   let histVisibleRows = [];
+  let histPageLogs    = [];
 
   // Pending deletions: Map<id, {rowIndexes, timerId, toastEl}>
   const pendingDeletions = new Map();
@@ -3210,6 +3264,190 @@
     const i = cachedCategories.findIndex(c => c.name === name);
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
+
+  // ── RICH SELECT ──────────────────────────────────────────────────────
+  function closeAllRichSelects() {
+    document.querySelectorAll('.rs-panel').forEach(function(panel) {
+      if (panel.style.display !== 'none') {
+        panel.style.display = 'none';
+        var trigger = panel.previousElementSibling;
+        if (trigger) {
+          trigger.classList.remove('rs-open');
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+  }
+
+  /**
+   * Builds a custom rich dropdown replacing a native <select>.
+   * config.type      : 'player' | 'category' | 'saiseur'
+   * config.value     : initial string value (or null)
+   * config.onChange  : callback(newValue: string|null)
+   * config.nullable  : bool — adds "— inconnu —" as first option
+   * config.mixedState: bool — starts in mixed-value state
+   * Returns a div.rich-select with _getValue(), _isMixed(), _setValue(val), _setMixed() methods.
+   */
+  function buildRichSelect(config) {
+    var type       = config.type;
+    var onChange   = config.onChange || function() {};
+    var nullable   = !!config.nullable;
+    var isMixed    = !!config.mixedState;
+    var curVal     = config.value || null;
+
+    var wrap    = document.createElement('div');
+    wrap.className = 'rich-select';
+    wrap.dataset.type = type;
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    var thumb   = document.createElement('span');
+    thumb.className = 'rs-thumb';
+    var label   = document.createElement('span');
+    label.className = 'rs-label';
+    var chevron = document.createElement('span');
+    chevron.className = 'rs-chevron';
+    chevron.textContent = '▾';
+    trigger.appendChild(thumb);
+    trigger.appendChild(label);
+    trigger.appendChild(chevron);
+
+    var panel = document.createElement('div');
+    panel.className = 'rs-panel';
+    panel.style.display = 'none';
+    panel.setAttribute('role', 'listbox');
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+
+    function makeThumb(container, val, isCategory) {
+      container.innerHTML = '';
+      container.className = 'rs-thumb';
+      container.style.background = '';
+      if (!val) return;
+      if (isCategory) {
+        var icon = catIcon(val);
+        if (icon) {
+          container.textContent = icon;
+          container.className = 'rs-thumb rs-thumb-emoji';
+        } else {
+          container.className = 'rs-thumb rs-thumb-dot';
+          container.style.background = categoryColor(val);
+        }
+      } else {
+        var pData = cachedPlayers.find(function(p) { return p.name === val; });
+        var img = document.createElement('img');
+        img.src = getAvatarUrl(val, pData ? pData.meta : '');
+        img.alt = '';
+        img.onerror = function() { img.remove(); };
+        container.appendChild(img);
+      }
+    }
+
+    function renderTrigger() {
+      var isCategory = (type === 'category');
+      if (isMixed) {
+        thumb.innerHTML = ''; thumb.className = 'rs-thumb'; thumb.style.background = '';
+        label.textContent = '— Valeurs mixtes —';
+        trigger.className = 'rs-trigger rs-mixed';
+      } else if (!curVal && nullable) {
+        thumb.innerHTML = ''; thumb.className = 'rs-thumb'; thumb.style.background = '';
+        label.textContent = '— inconnu —';
+        trigger.className = 'rs-trigger';
+      } else if (curVal) {
+        makeThumb(thumb, curVal, isCategory);
+        label.textContent = curVal;
+        trigger.className = 'rs-trigger';
+      } else {
+        thumb.innerHTML = ''; thumb.className = 'rs-thumb'; thumb.style.background = '';
+        var first = isCategory
+          ? (cachedCategories[0] ? cachedCategories[0].name : '')
+          : (cachedPlayers[0]    ? cachedPlayers[0].name    : '');
+        label.textContent = first || '—';
+        trigger.className = 'rs-trigger';
+      }
+    }
+
+    function buildPanel() {
+      panel.innerHTML = '';
+      var isCategory = (type === 'category');
+      var items = [];
+      if (nullable) items.push({ val: null, isNull: true });
+      if (isCategory) {
+        cachedCategories.forEach(function(c) { items.push({ val: c.name }); });
+      } else {
+        cachedPlayers.forEach(function(p) { items.push({ val: p.name }); });
+      }
+      items.forEach(function(item) {
+        var opt = document.createElement('div');
+        opt.className = 'rs-option' + (item.val === curVal ? ' rs-selected' : '');
+        opt.setAttribute('role', 'option');
+
+        var optThumb = document.createElement('span');
+        if (!item.isNull) {
+          makeThumb(optThumb, item.val, isCategory);
+        } else {
+          optThumb.className = 'rs-thumb';
+        }
+        var optLabel = document.createElement('span');
+        optLabel.className = 'rs-opt-label';
+        optLabel.textContent = item.isNull ? '— inconnu —' : item.val;
+        opt.appendChild(optThumb);
+        opt.appendChild(optLabel);
+        if (isCategory && !item.isNull) {
+          var dot = document.createElement('span');
+          dot.className = 'rs-cat-dot';
+          dot.style.background = categoryColor(item.val);
+          opt.appendChild(dot);
+        }
+        opt.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          isMixed  = false;
+          curVal   = item.val;
+          closePanel();
+          renderTrigger();
+          onChange(curVal);
+        });
+        panel.appendChild(opt);
+      });
+    }
+
+    function openPanel() {
+      closeAllRichSelects();
+      buildPanel();
+      panel.style.display = '';
+      trigger.classList.add('rs-open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function closePanel() {
+      panel.style.display = 'none';
+      trigger.classList.remove('rs-open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    trigger.addEventListener('click', function() {
+      if (panel.style.display === 'none') {
+        isMixed = false;
+        openPanel();
+      } else {
+        closePanel();
+      }
+    });
+
+    // Public API
+    wrap._getValue  = function() { return curVal; };
+    wrap._isMixed   = function() { return isMixed; };
+    wrap._setValue  = function(val) { curVal = val; isMixed = false; renderTrigger(); };
+    wrap._setMixed  = function() { isMixed = true; renderTrigger(); };
+
+    renderTrigger();
+    return wrap;
+  }
+
   function refreshColorDependentViews() {
     if (currentChart) {
       if (currentChartType === 'trend') renderTrendChart(currentChartData);
@@ -5083,44 +5321,26 @@
     // ── Joueur ──────────────────────────────────────────────────────────
     const wrap = document.createElement('div');
     wrap.className = 'player-sel-wrap';
-    const img = document.createElement('img');
-    img.className = 'row-avatar'; img.alt = '';
-    const pSel = document.createElement('select');
-    pSel.className = 'p-sel';
-    cachedPlayers.forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.name; o.textContent = p.name;
-      pSel.appendChild(o);
-    });
-    pSel.addEventListener('change', () => {
-      updateRowAvatar(pSel, img);
-      img.style.setProperty('--player-ring', playerColor(pSel.value));
-    });
-    wrap.appendChild(img); wrap.appendChild(pSel);
+    const pSel = document.createElement('input');
+    pSel.type = 'hidden'; pSel.className = 'p-sel';
+    pSel.value = (cachedPlayers[0] && cachedPlayers[0].name) || '';
+    const playerRsHost = document.createElement('div');
+    playerRsHost.className = 'player-rs-host';
+    wrap.appendChild(pSel);
+    wrap.appendChild(playerRsHost);
 
     // ── Top ─────────────────────────────────────────────────────────────
-    const cSel = document.createElement('select');
-    cSel.className = 'c-sel';
-    cachedCategories.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.name; o.textContent = catDisplay(c.name);
-      cSel.appendChild(o);
-    });
+    const cSel = document.createElement('input');
+    cSel.type = 'hidden'; cSel.className = 'c-sel';
+    cSel.value = (cachedCategories[0] && cachedCategories[0].name) || '';
 
-    // Wrapper pastille couleur + select
+    // Wrapper RichSelect catégorie
     const cSelWrap = document.createElement('div');
     cSelWrap.className = 'c-sel-wrap';
-    const catDot = document.createElement('span');
-    catDot.className = 'cat-color-dot';
-    cSelWrap.appendChild(catDot);
+    const catRsHost = document.createElement('div');
+    catRsHost.className = 'cat-rs-host';
     cSelWrap.appendChild(cSel);
-
-    cSel.addEventListener('change', () => {
-      const col = categoryColor(cSel.value);
-      div.style.setProperty('--row-accent', col);
-      catDot.style.background = col;
-      updateLotSummary();
-    });
+    cSelWrap.appendChild(catRsHost);
 
     // ── Raccourcis Points ────────────────────────────────────────────────
     const defaultPts = parseInt((preset && (preset.customPts || preset.points)) || '1', 10) || 1;
@@ -5332,26 +5552,58 @@
       }
     }
 
-    cSel.addEventListener('change', () => refreshBaremeForTop(cSel.value));
-
     div.appendChild(topRow);
     div.appendChild(bottomRow);
     div.appendChild(baremeRow);
     div.appendChild(descRowWrapper);
     container.appendChild(div);
 
-    if (preset) {
-      if (preset.player)   pSel.value = preset.player;
-      if (preset.category) cSel.value = preset.category;
-    }
-    updateRowAvatar(pSel, img);
+    // Valeurs initiales (preset ou premier item du cache)
+    const initPlayer   = (preset && preset.player)   || pSel.value;
+    const initCategory = (preset && preset.category) || cSel.value;
+    pSel.value = initPlayer;
+    cSel.value = initCategory;
 
-    // Couleurs initiales
-    const initCatCol = categoryColor(cSel.value);
+    // Fonction helper : met à jour l'avatar de fond de la ligne
+    function applyRowAvatar(playerName) {
+      const player = cachedPlayers.find(p => p.name === playerName);
+      const url = getAvatarUrl(playerName, player ? player.meta : '');
+      const bg = div.querySelector('.row-avatar-bg');
+      if (bg) bg.style.backgroundImage = 'url(' + url + ')';
+      div.style.setProperty('--player-ring', playerColor(playerName));
+    }
+
+    // Monte le RichSelect joueur
+    const playerRS = buildRichSelect({
+      type: 'player',
+      value: initPlayer || null,
+      onChange: function(v) {
+        pSel.value = v || '';
+        applyRowAvatar(v || '');
+        updateLotSummary();
+      }
+    });
+    playerRsHost.appendChild(playerRS);
+
+    // Monte le RichSelect catégorie
+    const categoryRS = buildRichSelect({
+      type: 'category',
+      value: initCategory || null,
+      onChange: function(v) {
+        cSel.value = v || '';
+        const col = categoryColor(v || '');
+        div.style.setProperty('--row-accent', col);
+        refreshBaremeForTop(v || '');
+        updateLotSummary();
+      }
+    });
+    catRsHost.appendChild(categoryRS);
+
+    // Couleurs et avatar initiaux
+    applyRowAvatar(initPlayer);
+    const initCatCol = categoryColor(initCategory);
     div.style.setProperty('--row-accent', initCatCol);
-    catDot.style.background = initCatCol;
-    img.style.setProperty('--player-ring', playerColor(pSel.value));
-    refreshBaremeForTop(cSel.value);
+    refreshBaremeForTop(initCategory);
     updateLotSummary();
   }
 
@@ -5892,6 +6144,7 @@
 
       // Track visible row indexes for select-all
       histVisibleRows = logs.map(l => l.rowIndex);
+      histPageLogs    = logs;
 
       // 1) Collect tagged groups, build ordered render list
       const byGroupId = {};
@@ -6531,22 +6784,157 @@
     setTimeout(() => { const el = document.getElementById('mDescText'); if (el) el.focus(); }, 50);
   }
 
+  function openBulkEditModal() {
+    if (!histSelected.size) return;
+
+    // Collecter les logs des lignes sélectionnées
+    const selectedLogs = histPageLogs.filter(function(l) {
+      return histSelected.has(l.rowIndex);
+    });
+    if (!selectedLogs.length) return;
+
+    // Analyser chaque champ : identique → pré-rempli, différent → mixte
+    function analyze(fn) {
+      const vals = selectedLogs.map(fn);
+      const first = vals[0];
+      const allSame = vals.every(function(v) { return v === first; });
+      return { value: allSame ? first : null, mixed: !allSame };
+    }
+
+    const aDate = analyze(function(l) {
+      return l.timestamp ? toDateStr(new Date(l.timestamp)) : '';
+    });
+    const aPts  = analyze(function(l) { return String(l.points || ''); });
+    const aPlay = analyze(function(l) { return l.player || ''; });
+    const aCat  = analyze(function(l) { return l.category || ''; });
+    const aDesc = analyze(function(l) { return l.description || ''; });
+    const aSais = analyze(function(l) { return l.saiseur || ''; });
+
+    const n = histSelected.size;
+    const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+
+    box.innerHTML =
+      '<h3>✏️ Modifier ' + n + ' entrée' + (n > 1 ? 's' : '') + '</h3>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Date</label>' +
+          '<input type="date" id="mbDate"' + (aDate.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aDate.value || '') + '"') + '></div>' +
+        '<div class="modal-field"><label>Points</label>' +
+          '<input type="number" id="mbPts" min="1" step="1" inputmode="numeric"' + (aPts.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aPts.value || '') + '"') + '></div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Joueur</label><div id="mbPlayerRS"></div></div>' +
+        '<div class="modal-field"><label>Top</label><div id="mbCategoryRS"></div></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Description (optionnelle)</label>' +
+          '<input type="text" id="mbDesc"' + (aDesc.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aDesc.value || '') + '"') + '></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Saiseur</label><div id="mbSaiseurRS"></div></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mbSave" class="primary">Enregistrer</button>' +
+        '<button id="mbCancel" class="secondary">Annuler</button>' +
+      '</div>';
+
+    // CSS pour inputs mixtes (injecté une fois)
+    if (!document.getElementById('_mbMixedStyle')) {
+      var s = document.createElement('style');
+      s.id = '_mbMixedStyle';
+      s.textContent =
+        'input.rs-mixed-input { border-style: dashed; background: rgba(var(--accent-rgb, 99,102,241), 0.08); color: var(--text-muted); }' +
+        'input.rs-mixed-input:focus { background: var(--bg); color: var(--text); border-style: solid; }';
+      document.head.appendChild(s);
+    }
+
+    const playerRS   = buildRichSelect({ type: 'player',   value: aPlay.value, onChange: function() {}, mixedState: aPlay.mixed });
+    const categoryRS = buildRichSelect({ type: 'category', value: aCat.value,  onChange: function() {}, mixedState: aCat.mixed });
+    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: aSais.value, onChange: function() {}, nullable: true, mixedState: aSais.mixed });
+
+    document.getElementById('mbPlayerRS').appendChild(playerRS);
+    document.getElementById('mbCategoryRS').appendChild(categoryRS);
+    document.getElementById('mbSaiseurRS').appendChild(saiseurRS);
+
+    document.getElementById('mbSave').onclick = function() {
+      const rowIndexes = Array.from(histSelected);
+      const fields = {};
+
+      // Date
+      const dateEl = document.getElementById('mbDate');
+      const dateVal = dateEl.value;
+      if (dateVal && !dateEl.classList.contains('rs-mixed-input')) {
+        fields.date = dateVal;
+      } else if (dateVal && dateEl.classList.contains('rs-mixed-input') && dateEl !== document.activeElement) {
+        // L'utilisateur a saisi une valeur dans un champ mixte
+        if (dateVal) fields.date = dateVal;
+      }
+
+      // Points
+      const ptsEl = document.getElementById('mbPts');
+      const ptsVal = ptsEl.value;
+      const ptsNum = parseInt(ptsVal, 10);
+      if (ptsVal && !isNaN(ptsNum) && ptsNum >= 1) {
+        if (!ptsEl.classList.contains('rs-mixed-input') || ptsVal !== '') {
+          fields.points = ptsNum;
+        }
+      }
+
+      // Joueur
+      if (!playerRS._isMixed()) {
+        const pv = playerRS._getValue();
+        if (pv) fields.player = pv;
+      }
+
+      // Catégorie
+      if (!categoryRS._isMixed()) {
+        const cv = categoryRS._getValue();
+        if (cv) fields.category = cv;
+      }
+
+      // Description (toujours envoyée si pas mixte ou modifiée)
+      const descEl = document.getElementById('mbDesc');
+      const descVal = descEl.value;
+      if (!descEl.classList.contains('rs-mixed-input') || descVal !== '') {
+        fields.description = descVal.trim();
+      }
+
+      // Saiseur
+      if (!saiseurRS._isMixed()) {
+        fields.saiseur = saiseurRS._getValue() || '';
+      }
+
+      if (!Object.keys(fields).length) {
+        showToast('Aucun champ modifié.', 'error');
+        return;
+      }
+
+      closeModal();
+      callServer('apiUpdateBulkEntries', [rowIndexes, fields],
+        function(res) {
+          if (res && res.success === false) {
+            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+          } else {
+            const skipped = (res && res.skipped && res.skipped.length) ? res.skipped.length : 0;
+            const done = rowIndexes.length - skipped;
+            showToast(done + ' entrée' + (done > 1 ? 's' : '') + ' modifiée' + (done > 1 ? 's' : '') + (skipped ? ' (' + skipped + ' ignorée' + (skipped > 1 ? 's' : '') + ')' : '') + '.', 'success');
+            histSelected.clear();
+            loadHistoryPage(currentHistoryPage);
+            applyFilters();
+          }
+        }, 'Modification groupée'
+      );
+    };
+
+    document.getElementById('mbCancel').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
   function openFullEditHistoryModal(log) {
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
 
-    const playerOptions = cachedPlayers.map(p =>
-      '<option value="' + escapeHtml(p.name) + '"' + (p.name === log.player ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'
-    ).join('');
-    const catOptions = cachedCategories.map(c =>
-      '<option value="' + escapeHtml(c.name) + '"' + (c.name === log.category ? ' selected' : '') + '>' + escapeHtml(catDisplay(c.name)) + '</option>'
-    ).join('');
-    const saiseurOptions = '<option value=""' + (!log.saiseur ? ' selected' : '') + '>— inconnu —</option>' +
-      cachedPlayers.map(p =>
-        '<option value="' + escapeHtml(p.name) + '"' + (p.name === log.saiseur ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'
-      ).join('');
-
-    const d = log.timestamp ? new Date(log.timestamp) : new Date();
+    const d       = log.timestamp ? new Date(log.timestamp) : new Date();
     const dateVal = isNaN(d) ? toDateStr(new Date()) : toDateStr(d);
 
     box.innerHTML =
@@ -6559,9 +6947,9 @@
       '</div>' +
       '<div class="modal-grid">' +
         '<div class="modal-field"><label>Joueur</label>' +
-          '<select id="mEditPlayer">' + playerOptions + '</select></div>' +
+          '<div id="mEditPlayerRS"></div></div>' +
         '<div class="modal-field"><label>Top</label>' +
-          '<select id="mEditCategory">' + catOptions + '</select></div>' +
+          '<div id="mEditCategoryRS"></div></div>' +
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Description (optionnelle)</label>' +
@@ -6569,29 +6957,37 @@
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Saiseur</label>' +
-          '<select id="mEditSaiseur">' + saiseurOptions + '</select></div>' +
+          '<div id="mEditSaiseurRS"></div></div>' +
       '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
         '<button id="mCancel" class="secondary">Annuler</button>' +
       '</div>';
 
-    document.getElementById('mSave').onclick = () => {
+    const playerRS   = buildRichSelect({ type: 'player',   value: log.player,        onChange: function() {} });
+    const categoryRS = buildRichSelect({ type: 'category', value: log.category,       onChange: function() {} });
+    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: log.saiseur || null, onChange: function() {}, nullable: true });
+
+    document.getElementById('mEditPlayerRS').appendChild(playerRS);
+    document.getElementById('mEditCategoryRS').appendChild(categoryRS);
+    document.getElementById('mEditSaiseurRS').appendChild(saiseurRS);
+
+    document.getElementById('mSave').onclick = function() {
       const date     = document.getElementById('mEditDate').value;
       const pts      = parseInt(document.getElementById('mEditPts').value, 10);
-      const player   = document.getElementById('mEditPlayer').value;
-      const category = document.getElementById('mEditCategory').value;
+      const player   = playerRS._getValue();
+      const category = categoryRS._getValue();
       const desc     = document.getElementById('mEditDesc').value.trim();
-      const saiseur  = document.getElementById('mEditSaiseur').value;
+      const saiseur  = saiseurRS._getValue() || '';
 
-      if (!date)              { showToast('Date requise.', 'error'); return; }
+      if (!date)                 { showToast('Date requise.', 'error'); return; }
       if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
-      if (!player)            { showToast('Joueur requis.', 'error'); return; }
-      if (!category)          { showToast('Top requis.', 'error'); return; }
+      if (!player)               { showToast('Joueur requis.', 'error'); return; }
+      if (!category)             { showToast('Top requis.', 'error'); return; }
 
       closeModal();
       callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }],
-        res => {
+        function(res) {
           if (res && res.success === false) {
             showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
           } else {
@@ -6604,7 +7000,7 @@
     };
     document.getElementById('mCancel').onclick = closeModal;
     document.getElementById('modalBackdrop').style.display = 'flex';
-    setTimeout(() => { const el = document.getElementById('mEditPts'); if (el) el.focus(); }, 50);
+    setTimeout(function() { const el = document.getElementById('mEditPts'); if (el) el.focus(); }, 50);
   }
 
   // ── OUTILS ───────────────────────────────────────────────────────────
@@ -6820,29 +7216,8 @@
       updateHistBulkBar();
     });
 
-    // ── Bulk description apply ──
-    document.getElementById('histBulkDescApply').addEventListener('click', () => {
-      if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
-      const desc = document.getElementById('histBulkDescInput').value.trim();
-      openConfirmModal(
-        'Appliquer la description « ' + (desc || '(vide)') + ' » à ' + histSelected.size + ' entrée(s) ?',
-        () => {
-          const btn = document.getElementById('histBulkDescApply');
-          const restore = startBtnLoading(btn, '…');
-          callServer('apiUpdateBulkDescription', [[...histSelected], desc], res => {
-            restore();
-            if (res.success) {
-              flashSaved(btn);
-              showToast('Description mise à jour.', 'success');
-              document.getElementById('histBulkDescInput').value = '';
-              loadHistoryPage(currentHistoryPage);
-            } else {
-              showToast(res.error || 'Erreur.', 'error');
-            }
-          }, 'Desc. en masse', () => restore());
-        }
-      );
-    });
+    // ── Bulk edit ──
+    document.getElementById('histBulkEdit').onclick = openBulkEditModal;
 
     // ── Detection tool ──
     document.getElementById('detectLotsBtn').addEventListener('click', scanDistributedLots);
@@ -7135,6 +7510,11 @@
     document.addEventListener('click', () => {
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap) wrap.classList.remove('open');
+    });
+
+    // Close any open RichSelect when clicking outside
+    document.addEventListener('mousedown', function(e) {
+      if (!e.target.closest('.rich-select')) closeAllRichSelects();
     });
 
     loadEntities();

@@ -1153,6 +1153,56 @@ function apiUpdateBulkDescription(rowIndexes, description) {
   } catch(e) { return fail(e); }
 }
 
+function apiUpdateBulkEntries(rowIndexes, partialFields) {
+  try {
+    if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
+    if (!partialFields || !Object.keys(partialFields).length) return { success: true };
+    return withLock(function() {
+      var history  = ConfigService.getSheets().history;
+      var lastRow  = history.getLastRow();
+      if (lastRow <= 1) return { success: true, skipped: [] };
+
+      var allData  = history.getRange(2, 1, lastRow - 1, 7).getValues();
+      var indexSet = new Set(rowIndexes.map(function(ri) { return parseInt(ri, 10); }));
+      var skipped  = [];
+
+      var hasDate   = 'date'        in partialFields;
+      var hasPlayer = 'player'      in partialFields;
+      var hasCat    = 'category'    in partialFields;
+      var hasPts    = 'points'      in partialFields;
+      var hasDesc   = 'description' in partialFields;
+      var hasSais   = 'saiseur'     in partialFields;
+
+      indexSet.forEach(function(idx) {
+        var rowI = idx - 2;
+        if (rowI < 0 || rowI >= allData.length) { skipped.push(idx); return; }
+        var row      = allData[rowI];
+        var player   = hasPlayer ? partialFields.player   : (row[1] ? row[1].toString() : '');
+        var category = hasCat    ? partialFields.category : (row[2] ? row[2].toString() : '');
+        var pts      = hasPts    ? parseInt(partialFields.points, 10) : parseInt(row[3], 10);
+        var desc     = hasDesc   ? (partialFields.description || '') : (row[4] ? row[4].toString() : '');
+        var saiseur  = hasSais   ? (partialFields.saiseur  || '') : (row[6] ? row[6].toString() : '');
+
+        if (!player || !category || isNaN(pts) || pts < 1) { skipped.push(idx); return; }
+
+        var targetDate;
+        if (hasDate) {
+          targetDate = new Date(partialFields.date + 'T12:00:00');
+          if (isNaN(targetDate.getTime())) { skipped.push(idx); return; }
+        } else {
+          targetDate = (row[0] instanceof Date) ? row[0] : new Date(row[0]);
+        }
+
+        history.getRange(idx, 1, 1, 5).setValues([[targetDate, player, category, pts, desc]]);
+        if (hasSais) history.getRange(idx, 7).setValue(saiseur);
+      });
+
+      ConfigService.clearCache();
+      return { success: true, skipped: skipped };
+    });
+  } catch(e) { return fail(e); }
+}
+
 function apiDetectDistributedLots() {
   try {
     const sheet = ConfigService.getSheets().history;
