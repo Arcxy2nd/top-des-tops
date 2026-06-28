@@ -28,10 +28,11 @@ const ConfigService = (() => {
       if (!history || !players || !categories)
         throw new Error("Onglets 'History', 'Players' ou 'Categories' manquants.");
       // La feuille Notes est optionnelle : null si absente (pas d'erreur bloquante).
-      const notes   = ss.getSheetByName('Notes')   || null;
-      const bareme  = ss.getSheetByName('Bareme')  || null;
-      const phrases = ss.getSheetByName('Phrases') || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases };
+      const notes    = ss.getSheetByName('Notes')    || null;
+      const bareme   = ss.getSheetByName('Bareme')   || null;
+      const phrases  = ss.getSheetByName('Phrases')  || null;
+      const auditLog = ss.getSheetByName('AuditLog') || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -91,6 +92,41 @@ function _bumpLogsVersion() {
   const next = (parseInt(p.getProperty('logs_version') || '0', 10) + 1) % 1000000000;
   p.setProperty('logs_version', String(next));
 }
+
+// ─── AUDIT SERVICE ─────────────────────────────────────────────────────────────
+const AuditService = (() => {
+  /** Auto-creates the AuditLog sheet if absent (same lazy pattern as Notes/Bareme). */
+  function _getOrCreateSheet() {
+    const cache = ConfigService.getSheets();
+    if (cache.auditLog) return cache.auditLog;
+    const sheet = cache.spreadsheet.insertSheet('AuditLog');
+    sheet.appendRow(['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']);
+    sheet.getRange(1, 1, 1, 7).setFontWeight('bold');
+    ConfigService.clearCache();
+    return ConfigService.getSheets().auditLog;
+  }
+
+  /**
+   * Appends one audit row. Never throws — audit failure must not break the caller.
+   * Must be called inside a withLock() block (lock is already held by the caller).
+   */
+  function log(author, action, entity, before, after, detail) {
+    try {
+      const sheet = _getOrCreateSheet();
+      sheet.appendRow([
+        new Date(),
+        author  || '',
+        action  || '',
+        entity  || '',
+        before  || '',
+        after   || '',
+        detail  || ''
+      ]);
+    } catch (_) {}
+  }
+
+  return { log };
+})();
 
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
 const SettingsService = {
@@ -894,65 +930,97 @@ function apiGetBareme() {
   } catch(e) { return fail(e); }
 }
 
-function apiAddBaremeEntry(top, action, pts) {
+function apiAddBaremeEntry(top, action, pts, author) {
   try {
     return withLock(() => {
       BaremeService.addEntry(top, action, pts);
+      const after = [top || '', action || '', String(Number(pts) || 0) + ' pts'].join(' | ');
+      AuditService.log(author, 'Règle ajoutée', 'Barème', '', after, '');
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateBaremeEntry(rowIndex, action, pts) {
+function apiUpdateBaremeEntry(rowIndex, action, pts, author) {
   try {
     return withLock(() => {
+      const before = _baremeRowSummary(rowIndex);
       BaremeService.updateEntry(rowIndex, action, pts);
+      const after = (action || '') + ' | ' + String(Number(pts) || 0) + ' pts';
+      AuditService.log(author, 'Règle modifiée', 'Barème', before, after, 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteBaremeEntry(rowIndex) {
+function apiDeleteBaremeEntry(rowIndex, author) {
   try {
     return withLock(() => {
+      const before = _baremeRowSummary(rowIndex);
       BaremeService.deleteEntry(rowIndex);
+      AuditService.log(author, 'Règle supprimée', 'Barème', before, '', 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiSetColor(type, name, color) {
+function apiSetColor(type, name, color, author) {
   try {
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
     return withLock(() => {
+      const before = _entityColorSummary(type, name);
       SettingsService.setEntityColor(type, name, color);
+      const label = type === 'Players' ? 'Joueur' : 'Top';
+      AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + name,
+        before, color || '', '');
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiManageEntity(action, type, newName, newMeta, oldName, newIcon) {
+function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, author) {
   try {
     if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
     return withLock(() => {
-      if (action === 'ADD')    SettingsService.addEntity(type, newName, newMeta, newIcon);
-      if (action === 'DELETE') SettingsService.deleteEntity(type, oldName);
-      if (action === 'RENAME') SettingsService.renameEntity(type, oldName, newName, newMeta, newIcon);
+      const label = type === 'Players' ? 'Joueur' : 'Top';
+
+      if (action === 'ADD') {
+        SettingsService.addEntity(type, newName, newMeta, newIcon);
+        const after = type === 'Players'
+          ? (newName || '') + ' (avatar: ' + (newMeta || '') + ')'
+          : (newName || '') + ' (' + (newMeta || '') + ', ' + (newIcon || '') + ')';
+        AuditService.log(author, label + ' ajouté', label + ': ' + (newName || ''), '', after, '');
+      }
+      if (action === 'DELETE') {
+        const before = _entitySummary(type, oldName);
+        SettingsService.deleteEntity(type, oldName);
+        AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, '', '');
+      }
+      if (action === 'RENAME') {
+        SettingsService.renameEntity(type, oldName, newName, newMeta, newIcon);
+        AuditService.log(author, label + ' renommé', label + ': ' + (oldName || ''),
+          oldName || '', newName || '', '');
+      }
+
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiAddBulkPlan(plan) {
+function apiAddBulkPlan(plan, author) {
   try {
     return withLock(() => {
       StorageService.appendBulkPlan(plan);
+      const totalEntries = plan.reduce(function(s, d) { return s + (d.entries || []).length; }, 0);
+      const firstDate    = plan[0] && plan[0].date ? plan[0].date : '';
+      AuditService.log(author, 'Saisie de points', 'History', '', totalEntries + ' entrée(s)',
+        firstDate ? 'à partir du ' + firstDate : '');
       return { success: true };
     });
   } catch(e) { return fail(e); }
@@ -980,28 +1048,95 @@ function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filt
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteHistoryEntry(rowIndex) {
+// ─── AUDIT BEFORE-STATE HELPERS ────────────────────────────────────────────────
+// Read current state before destructive mutations so the audit log can record
+// a human-readable "before". Every function swallows errors — a bad rowIndex
+// must never prevent the main operation from completing.
+
+function _historyRowSummary(rowIndex) {
+  try {
+    const row = ConfigService.getSheets().history.getRange(rowIndex, 1, 1, 5).getValues()[0];
+    const d   = new Date(row[0]);
+    const pad  = n => String(n).padStart(2, '0');
+    const ds   = isNaN(d.getTime()) ? '?'
+      : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+    return [row[1] || '?', row[2] || '?', (parseInt(row[3], 10) || '?') + ' pts', ds, row[4] || ''].join(' | ');
+  } catch (_) { return 'ligne #' + rowIndex; }
+}
+
+function _historyDescSummary(rowIndex) {
+  try {
+    return ConfigService.getSheets().history.getRange(rowIndex, 5).getValue().toString();
+  } catch (_) { return ''; }
+}
+
+function _noteRowSummary(rowIndex) {
+  try {
+    const sheet = ConfigService.getSheets().notes;
+    if (!sheet) return '';
+    const row = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+    return (row[1] || '') + ' : ' + (row[2] || '');
+  } catch (_) { return ''; }
+}
+
+function _baremeRowSummary(rowIndex) {
+  try {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) return '';
+    const row = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+    return [row[0] || '', row[1] || '', String(row[2] || 0) + ' pts'].join(' | ');
+  } catch (_) { return ''; }
+}
+
+function _phraseRowSummary(rowIndex) {
+  try {
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) return '';
+    const row = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+    return '[' + (row[1] || '') + '] ' + (row[2] || '') + ' (preset: ' + (row[0] || '') + ')';
+  } catch (_) { return ''; }
+}
+
+function _entitySummary(type, name) {
+  try {
+    const found = SettingsService.getEntities(type).find(function(e) { return e.name === name; });
+    if (!found) return name;
+    if (type === 'Players')
+      return name + ' (avatar: ' + (found.meta || '') + ', couleur: ' + (found.color || '') + ')';
+    return name + ' (' + (found.meta || '') + ', ' + (found.icon || '') + ', ' + (found.color || '') + ')';
+  } catch (_) { return name; }
+}
+
+function _entityColorSummary(type, name) {
+  try {
+    const found = SettingsService.getEntities(type).find(function(e) { return e.name === name; });
+    return found ? (found.color || '') : '';
+  } catch (_) { return ''; }
+}
+
+function apiDeleteHistoryEntry(rowIndex, author) {
   try {
     return withLock(() => {
+      const before = _historyRowSummary(rowIndex);
       StorageService.deleteHistoryEntry(rowIndex);
+      AuditService.log(author, 'Suppression entrée', 'History', before, '', 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteHistoryEntries(rowIndexes) {
+function apiDeleteHistoryEntries(rowIndexes, author) {
   try {
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const sorted = [...rowIndexes].sort((a, b) => b - a);
       sorted.forEach(ri => history.deleteRow(ri));
+      AuditService.log(author, 'Suppression bulk', 'History', '', '', rowIndexes.length + ' entrée(s)');
       ConfigService.clearCache();
       return { success: true };
     });
-  } catch(e) {
-    return fail(e);
-  }
+  } catch(e) { return fail(e); }
 }
 
 function apiGetAvailableYears() {
@@ -1057,40 +1192,91 @@ function apiGetDataHealth() {
   } catch(e) { return fail(e); }
 }
 
-function apiFixZeroPoints() {
+// ── Journal d'audit (lecture paginée et filtrable) ─────────────────────────────
+function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, endDate) {
+  try {
+    const sheet = ConfigService.getSheets().auditLog;
+    if (!sheet) return { success: true, logs: [], total: 0 };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, logs: [], total: 0 };
+
+    const data  = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    // Date bounds parsed in server local time (GAS runs UTC). Frontend sends YYYY-MM-DD.
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
+
+    const filtered = [];
+    for (let i = data.length - 1; i >= 0; i--) {  // reverse → les plus récents d'abord
+      const row = data[i];
+      const ts  = new Date(row[0]);
+      if (isNaN(ts.getTime())) continue;
+      if (filterAuthor && row[1] !== filterAuthor) continue;
+      if (filterAction && row[2] !== filterAction) continue;
+      if (start && ts < start) continue;
+      if (end   && ts > end)   continue;
+      filtered.push({
+        timestamp: ts.toISOString(),
+        author:    row[1] ? row[1].toString() : '',
+        action:    row[2] ? row[2].toString() : '',
+        entity:    row[3] ? row[3].toString() : '',
+        before:    row[4] ? row[4].toString() : '',
+        after:     row[5] ? row[5].toString() : '',
+        detail:    row[6] ? row[6].toString() : ''
+      });
+    }
+
+    const total  = filtered.length;
+    const ps     = parseInt(pageSize, 10) || 20;
+    const offset = ((parseInt(page, 10) || 1) - 1) * ps;
+    return { success: true, logs: filtered.slice(offset, offset + ps), total };
+  } catch(e) { return fail(e); }
+}
+
+function apiFixZeroPoints(author) {
   try {
     return withLock(() => {
       const result = StorageService.fixZeroPoints();
+      AuditService.log(author, 'Nettoyage zéros', 'History', '', '',
+        result.deleted + ' entrée(s) supprimée(s)');
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteOrphans() {
+function apiDeleteOrphans(author) {
   try {
     return withLock(() => {
       const result = StorageService.deleteOrphans();
+      AuditService.log(author, 'Nettoyage orphelins', 'History', '', '',
+        result.deleted + ' entrée(s) supprimée(s)');
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateHistoryDescription(rowIndex, description) {
+function apiUpdateHistoryDescription(rowIndex, description, author) {
   try {
     return withLock(() => {
+      const before = _historyDescSummary(rowIndex);
       StorageService.updateHistoryDescription(rowIndex, description);
+      AuditService.log(author, 'Description modifiée', 'History', before, description || '', 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateHistoryEntry(rowIndex, fields) {
+function apiUpdateHistoryEntry(rowIndex, fields, author) {
   try {
     return withLock(() => {
+      const before = _historyRowSummary(rowIndex);
       StorageService.updateHistoryEntry(rowIndex, fields);
+      const after = [fields.player || '?', fields.category || '?',
+        (parseInt(fields.points, 10) || '?') + ' pts', fields.date || '',
+        fields.description || ''].join(' | ');
+      AuditService.log(author, 'Modification entrée', 'History', before, after, 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1106,34 +1292,41 @@ function apiGetAllNotes() {
   } catch(e) { return fail(e); }
 }
 
-function apiAddNote(player, text, dateStr) {
+function apiAddNote(player, text, dateStr, author) {
   try {
     return withLock(() => {
       NotesService.addNote(player, text, dateStr);
+      AuditService.log(author, 'Note ajoutée', 'Note: ' + (player || ''),
+        '', (player || '') + ' : ' + (text || '').trim(), '');
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteNote(rowIndex) {
+function apiDeleteNote(rowIndex, author) {
   try {
     return withLock(() => {
+      const before = _noteRowSummary(rowIndex);
       NotesService.deleteNote(rowIndex);
+      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'ligne #' + rowIndex);
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiEditNote(rowIndex, newText) {
+function apiEditNote(rowIndex, newText, author) {
   try {
     return withLock(() => {
+      const before = _noteRowSummary(rowIndex);
       NotesService.editNote(rowIndex, newText);
+      AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
+        'ligne #' + rowIndex);
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateBulkDescription(rowIndexes, description) {
+function apiUpdateBulkDescription(rowIndexes, description, author) {
   try {
     if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
     return withLock(() => {
@@ -1147,13 +1340,15 @@ function apiUpdateBulkDescription(rowIndexes, description) {
         if (indexSet.has(i + 2)) values[i][0] = description || '';
       }
       colRange.setValues(values);
+      AuditService.log(author, 'Description bulk', 'History', '', description || '',
+        rowIndexes.length + ' entrée(s)');
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateBulkEntries(rowIndexes, partialFields) {
+function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
   try {
     if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
     if (!partialFields || !Object.keys(partialFields).length) return { success: true };
@@ -1197,6 +1392,9 @@ function apiUpdateBulkEntries(rowIndexes, partialFields) {
         if (hasSais) history.getRange(idx, 7).setValue(saiseur);
       });
 
+      var changedFields = Object.keys(partialFields).join(', ');
+      AuditService.log(author, 'Modification bulk', 'History', '', changedFields,
+        (rowIndexes.length - skipped.length) + ' entrée(s) modifiée(s)');
       ConfigService.clearCache();
       return { success: true, skipped: skipped };
     });
@@ -1288,35 +1486,33 @@ function apiDetectDistributedLots() {
   } catch(e) { return fail(e); }
 }
 
-function apiGroupDistributedLots(lotsToGroup) {
+function apiGroupDistributedLots(lotsToGroup, author) {
   try {
     if (!lotsToGroup || !lotsToGroup.length) throw new Error("Aucun lot fourni.");
     return withLock(() => {
-    const sheet = ConfigService.getSheets().history;
-
-    lotsToGroup.forEach(function(lot) {
-      var rows = lot.rowIndexes;
-      if (!rows || rows.length < 2) return;
-      var gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-      rows.forEach(function(r) {
-        sheet.getRange(r, 6).setValue(gid);
+      const sheet = ConfigService.getSheets().history;
+      lotsToGroup.forEach(function(lot) {
+        var rows = lot.rowIndexes;
+        if (!rows || rows.length < 2) return;
+        var gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        rows.forEach(function(r) { sheet.getRange(r, 6).setValue(gid); });
       });
-    });
-
-    ConfigService.clearCache();
-    return { success: true };
+      AuditService.log(author, 'Lots auto-groupés', 'History', '', '',
+        lotsToGroup.length + ' lot(s)');
+      ConfigService.clearCache();
+      return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiGroupRows(rowIndexes) {
+function apiGroupRows(rowIndexes, author) {
   try {
     if (!rowIndexes || rowIndexes.length < 2) throw new Error("Sélectionnez au moins 2 entrées.");
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const lastRow = history.getLastRow();
       if (lastRow <= 1) throw new Error("Historique vide.");
-      const gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      const gid      = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
       const colRange = history.getRange(2, 6, lastRow - 1, 1);
       const values   = colRange.getValues();
       const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
@@ -1324,13 +1520,15 @@ function apiGroupRows(rowIndexes) {
         if (indexSet.has(i + 2)) values[i][0] = gid;
       }
       colRange.setValues(values);
+      AuditService.log(author, 'Groupement lot', 'History', '', '',
+        rowIndexes.length + ' entrée(s), gid: ' + gid);
       ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUngroupLot(groupId) {
+function apiUngroupLot(groupId, author) {
   try {
     if (!groupId) throw new Error("GroupID manquant.");
     return withLock(() => {
@@ -1343,6 +1541,7 @@ function apiUngroupLot(groupId) {
           sheet.getRange(i + 2, 6).setValue('');
         }
       }
+      AuditService.log(author, 'Dégroupement lot', 'History', groupId, '', '');
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1357,57 +1556,68 @@ function apiGetPhrases() {
   } catch(e) { return fail(e); }
 }
 
-function apiAddPhrase(preset, pool, text) {
+function apiAddPhrase(preset, pool, text, author) {
   try {
     return withLock(() => {
       PhrasesService.addPhrase(preset, pool, text);
+      const after = '[' + (pool || '') + '] ' + (text || '').trim() + ' (preset: ' + (preset || '') + ')';
+      AuditService.log(author, 'Phrase ajoutée', 'Phrases: ' + (preset || ''), '', after, '');
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiSavePhrasesBatch(entries) {
+function apiSavePhrasesBatch(entries, author) {
   try {
     return withLock(() => {
       PhrasesService.saveBatch(entries);
+      const preset = entries && entries.length ? entries[0].preset : '';
+      AuditService.log(author, 'Phrases batch', 'Phrases: ' + (preset || ''), '', '',
+        (entries || []).length + ' phrase(s)');
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiUpdatePhrase(rowIndex, text) {
+function apiUpdatePhrase(rowIndex, text, author) {
   try {
     return withLock(() => {
+      const before = _phraseRowSummary(rowIndex);
       PhrasesService.updatePhrase(rowIndex, text);
+      AuditService.log(author, 'Phrase modifiée', 'Phrases', before, (text || '').trim(),
+        'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeletePhrase(rowIndex) {
+function apiDeletePhrase(rowIndex, author) {
   try {
     return withLock(() => {
+      const before = _phraseRowSummary(rowIndex);
       PhrasesService.deletePhrase(rowIndex);
+      AuditService.log(author, 'Phrase supprimée', 'Phrases', before, '', 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiDeletePreset(presetName) {
+function apiDeletePreset(presetName, author) {
   try {
     return withLock(() => {
       PhrasesService.deletePreset(presetName);
+      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '', '');
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiRenamePreset(oldName, newName) {
+function apiRenamePreset(oldName, newName, author) {
   try {
     if (!newName || !newName.trim()) throw new Error("Nouveau nom vide.");
     if (oldName === newName.trim()) return { success: true, phrases: PhrasesService.getAll() };
@@ -1422,6 +1632,7 @@ function apiRenamePreset(oldName, newName) {
         if (data[i][0].toString() === oldName) { data[i][0] = newName.trim(); modified = true; }
       }
       if (modified) sheet.getRange(2, 1, lastRow - 1, 1).setValues(data);
+      AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(), '');
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
