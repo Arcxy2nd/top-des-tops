@@ -1047,6 +1047,8 @@
     }
     .player-sel-wrap.rs-host:focus-within,
     .c-sel-wrap.rs-host:focus-within { border: none; }
+    /* Les divs hôtes remplissent le flex parent */
+    .player-rs-host, .cat-rs-host { flex: 1; min-width: 0; }
 
     /* ── CHIPS FILTRES HISTORIQUE ── */
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
@@ -5320,7 +5322,7 @@
 
     // ── Joueur ──────────────────────────────────────────────────────────
     const wrap = document.createElement('div');
-    wrap.className = 'player-sel-wrap';
+    wrap.className = 'player-sel-wrap rs-host';
     const pSel = document.createElement('input');
     pSel.type = 'hidden'; pSel.className = 'p-sel';
     pSel.value = (cachedPlayers[0] && cachedPlayers[0].name) || '';
@@ -5336,7 +5338,7 @@
 
     // Wrapper RichSelect catégorie
     const cSelWrap = document.createElement('div');
-    cSelWrap.className = 'c-sel-wrap';
+    cSelWrap.className = 'c-sel-wrap rs-host';
     const catRsHost = document.createElement('div');
     catRsHost.className = 'cat-rs-host';
     cSelWrap.appendChild(cSel);
