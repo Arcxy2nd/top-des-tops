@@ -5032,7 +5032,7 @@
     // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
     const displayData = {
       labels: sorted.labels,
-      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label), _catName: ds.label }))
+      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
     };
 
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
@@ -5046,7 +5046,7 @@
           y: yScale
         }
       },
-      plugins: [totalsPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
+      plugins: [totalsPlugin, buildCustomTooltipPlugin()]
     });
   }
 
