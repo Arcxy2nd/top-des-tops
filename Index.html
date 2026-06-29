@@ -550,6 +550,14 @@
     .note-card {
       background: rgba(0,0,0,0.15); border: 1px solid var(--border);
       border-radius: 10px; padding: 12px 14px;
+      position: relative; overflow: hidden;
+    }
+    .note-card-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 120px;
+      background-size: cover; background-position: center top;
+      border-radius: 0 10px 10px 0;
+      pointer-events: none; opacity: 0.12;
+      transition: background-image 0.35s;
     }
     .note-card-head {
       display: flex; align-items: center; gap: 8px;
@@ -833,8 +841,16 @@
     .notes-flash-bar {
       display: flex; flex-direction: column; gap: 8px;
       padding: 12px; margin-bottom: 16px;
+      position: relative; overflow: hidden;
       background: rgba(0,0,0,0.12); border: 1px solid var(--border);
       border-radius: 12px;
+    }
+    .notes-flash-avatar-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 160px;
+      background-size: cover; background-position: center top;
+      border-radius: 0 12px 12px 0;
+      pointer-events: none; opacity: 0.12;
+      transition: background-image 0.35s;
     }
     .notes-flash-chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .notes-player-chip {
@@ -1440,6 +1456,150 @@
       padding: 0 4px;
     }
 
+    /* ── HISTORIQUE RAPIDE PAR JOUEUR+TOP ── */
+    .hist-quick-row {
+      display: none;
+      flex-direction: column; gap: 4px;
+      padding: 4px 0 2px;
+    }
+    .hist-quick-row.has-entries { display: flex; }
+    .hist-quick-header {
+      display: inline-flex; align-items: center; gap: 5px;
+      cursor: pointer; user-select: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 9px;
+      font-family: inherit; font-size: 0.72rem;
+      font-weight: 600; color: var(--text-muted);
+      transition: background 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s;
+      align-self: flex-start;
+    }
+    .hist-quick-header:hover {
+      background: var(--btn-alt);
+      border-color: var(--row-accent, var(--border));
+      color: var(--text);
+    }
+    .hist-quick-header.open {
+      background: var(--btn-alt);
+      border-color: var(--row-accent, var(--border));
+      color: var(--text);
+    }
+    .hist-quick-header .hq-chevron {
+      font-size: 0.6rem; display: inline-block;
+      transition: transform 0.18s cubic-bezier(0.4,0,0.2,1);
+    }
+    .hist-quick-header.open .hq-chevron { transform: rotate(90deg); }
+
+    .hist-quick-panel {
+      display: none;
+      flex-direction: column; gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      animation: hq-expand 0.16s cubic-bezier(0.4,0,0.2,1);
+    }
+    .hist-quick-panel.open { display: flex; }
+    @keyframes hq-expand {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hq-checks {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .hq-checks-label {
+      font-size: 0.68rem; color: var(--text-muted);
+      font-weight: 600; letter-spacing: 0.03em;
+      text-transform: uppercase; margin-right: 2px;
+    }
+    .hq-check-label {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.72rem; font-weight: 600; cursor: pointer;
+      color: var(--text-muted);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 8px;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .hq-check-label:has(input:checked) {
+      background: color-mix(in srgb, var(--row-accent, var(--accent)) 14%, transparent);
+      border-color: var(--row-accent, var(--accent));
+      color: var(--row-accent, var(--accent));
+    }
+    .hq-check-label input[type="checkbox"] { display: none; }
+
+    .hq-list { display: flex; flex-direction: column; gap: 4px; }
+
+    .hq-entry-card {
+      display: grid;
+      grid-template-columns: 68px 54px 1fr;
+      align-items: center; gap: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px;
+      font-family: inherit; font-size: 0.75rem;
+      cursor: pointer; color: var(--text);
+      text-align: left;
+      transition: background 0.12s, border-color 0.12s, transform 0.1s;
+    }
+    .hq-entry-card:hover {
+      background: color-mix(in srgb, var(--row-accent, var(--accent)) 10%, transparent);
+      border-color: var(--row-accent, var(--accent));
+      transform: translateX(2px);
+    }
+    .hq-entry-card:active { transform: translateX(0) scale(0.98); }
+    .hq-entry-date {
+      font-size: 0.68rem; color: var(--text-muted);
+      font-variant-numeric: tabular-nums; flex-shrink: 0;
+    }
+    .hq-entry-pts {
+      font-weight: 700; font-variant-numeric: tabular-nums;
+      font-size: 0.78rem; color: var(--row-accent, var(--accent));
+      background: color-mix(in srgb, var(--row-accent, var(--accent)) 14%, transparent);
+      border-radius: 4px; padding: 1px 6px;
+      text-align: center; flex-shrink: 0;
+    }
+    .hq-entry-desc {
+      color: var(--text); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .hq-entry-no-desc { color: var(--text-muted); font-style: italic; }
+
+    .hq-empty {
+      font-size: 0.78rem; color: var(--text-muted);
+      font-style: italic; text-align: center;
+      padding: 12px 8px;
+    }
+    @keyframes hq-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.6; } }
+    .hq-skel {
+      height: 34px; border-radius: 6px;
+      background: var(--border);
+      animation: hq-pulse 1.4s ease-in-out infinite;
+    }
+
+    .hq-pagination {
+      display: none; align-items: center; justify-content: center; gap: 10px;
+      padding-top: 4px; border-top: 1px solid var(--border);
+    }
+    .hq-page-btn {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 9px; font-size: 0.8rem;
+      cursor: pointer; color: var(--text); font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+      min-height: 26px; line-height: 1;
+    }
+    .hq-page-btn:hover:not(:disabled) {
+      background: var(--row-accent, var(--btn-alt));
+      border-color: var(--row-accent, var(--border));
+      color: #fff;
+    }
+    .hq-page-btn:disabled { opacity: 0.35; cursor: default; }
+    .hq-page-info { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+
     /* ── GROUPEMENT EN SAISIE LOT ── */
     .entry-row.lot-group-selectable { cursor: pointer; }
     .entry-row.lot-group-selected {
@@ -1488,6 +1648,10 @@
     }
     #chartCustomTooltip .ctt-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    #chartCustomTooltip .ctt-emoji-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 4px; font-size: 13px; flex-shrink: 0;
     }
     #chartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #chartCustomTooltip .ctt-val {
@@ -4635,9 +4799,20 @@
             const row = document.createElement('div');
             row.className = 'ctt-row';
 
-            const dot = document.createElement('span');
-            dot.className = 'ctt-dot';
-            dot.style.background = color;
+            const icon = dp.dataset._catName  ? catIcon(dp.dataset._catName)
+                       : dp.dataset._catNames ? catIcon(dp.dataset._catNames[dp.dataIndex])
+                       : '';
+            let indicator;
+            if (icon) {
+              indicator = document.createElement('span');
+              indicator.className = 'ctt-emoji-badge';
+              indicator.style.background = color;
+              indicator.textContent = icon;
+            } else {
+              indicator = document.createElement('span');
+              indicator.className = 'ctt-dot';
+              indicator.style.background = color;
+            }
 
             const label = document.createElement('span');
             label.className = 'ctt-label';
@@ -4647,7 +4822,7 @@
             val.className = 'ctt-val';
             val.textContent = dp.formattedValue + ' pts';
 
-            row.appendChild(dot); row.appendChild(label); row.appendChild(val);
+            row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
             el.appendChild(row);
           });
 
@@ -4728,9 +4903,9 @@
 
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors }] },
+        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors, _catNames: segLabels }] },
         options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } },
-        plugins: [centerPlugin, buildCustomTooltipPlugin()]
+        plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
       });
       return;
     }
@@ -4777,6 +4952,7 @@
       if (chartOptions.detailed) {
         datasets = data.datasets.map((ds, ci) => ({
           label: catDisplay(ds.label),
+          _catName: ds.label,
           data:  totals.map(t => ds.data[t.index] || 0),
           backgroundColor: categoryColor(ds.label),
           borderRadius: 3
@@ -4807,7 +4983,7 @@
             y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
           }
         },
-        plugins: [buildCustomTooltipPlugin()]
+        plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
       });
 
       // Phrases d'accroche — card dédiée, indépendante du mode détaillé
@@ -4856,7 +5032,7 @@
     // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
     const displayData = {
       labels: sorted.labels,
-      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
+      datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label), _catName: ds.label }))
     };
 
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
@@ -4870,8 +5046,66 @@
           y: yScale
         }
       },
-      plugins: [totalsPlugin, buildCustomTooltipPlugin()]
+      plugins: [totalsPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
     });
+  }
+
+  function buildEmojiOverlayPlugin() {
+    return {
+      id: 'emojiOverlay',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const type = chart.config.type;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+
+        if (type === 'bar') {
+          const isHorizontal = chart.options.indexAxis === 'y';
+          chart.data.datasets.forEach((ds, di) => {
+            const icon = ds._catName ? catIcon(ds._catName) : '';
+            if (!icon) return;
+            const meta = chart.getDatasetMeta(di);
+            if (meta.hidden) return;
+            meta.data.forEach(bar => {
+              if (bar.base == null) return;
+              if (isHorizontal) {
+                const w = Math.abs(bar.x - bar.base);
+                if (w < 24) return;
+                const fontSize = Math.min(Math.floor(w * 0.35), 16);
+                ctx.font = fontSize + 'px sans-serif';
+                ctx.fillText(icon, (bar.x + bar.base) / 2, bar.y);
+              } else {
+                const h = Math.abs(bar.base - bar.y);
+                if (h < 20) return;
+                const fontSize = Math.min(Math.floor(h * 0.55), 16);
+                ctx.font = fontSize + 'px sans-serif';
+                ctx.fillText(icon, bar.x, (bar.y + bar.base) / 2);
+              }
+            });
+          });
+        }
+
+        if (type === 'doughnut') {
+          const ds = chart.data.datasets[0];
+          const catNames = ds._catNames || [];
+          const meta = chart.getDatasetMeta(0);
+          ctx.font = '16px sans-serif';
+          meta.data.forEach((arc, i) => {
+            const icon = catNames[i] ? catIcon(catNames[i]) : '';
+            if (!icon) return;
+            const angle = arc.endAngle - arc.startAngle;
+            if (angle < 0.35) return;
+            const midAngle = (arc.startAngle + arc.endAngle) / 2;
+            const r = (arc.innerRadius + arc.outerRadius) / 2;
+            ctx.fillText(icon, arc.x + Math.cos(midAngle) * r, arc.y + Math.sin(midAngle) * r);
+          });
+        }
+
+        ctx.restore();
+      }
+    };
   }
 
   function renderTrendChart(trendData) {
@@ -5054,7 +5288,7 @@
       ctx.fillStyle = FG;
       ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       if (opts.watermark !== false) {
-        ctx.fillText('Tops des Tops', Math.round(18 * S), Math.round(24 * S));
+        ctx.fillText(opts.watermarkText || 'Tops des Tops', Math.round(18 * S), Math.round(24 * S));
       }
       // Chart label (or custom title)
       const chartTitleEl = document.getElementById('chartTitle');
@@ -5262,7 +5496,7 @@
       ctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('TOPS DES TOPS', 0, 0);
+      ctx.fillText((opts.watermarkText || 'Tops des Tops').toUpperCase(), 0, 0);
       ctx.restore();
     }
 
@@ -5294,19 +5528,20 @@
 
     // Modal state
     let exportOpts = {
-      format:      'png',
-      theme:       document.body.classList.contains('light') ? 'light' : 'dark',
-      title:       true,
-      period:      true,
-      stats:       true,
-      players:     true,
-      avatars:     true,
-      scale:       1,
-      legend:      true,
-      watermark:   true,
-      filters:     true,
-      footer:      true,
-      customTitle: ''
+      format:        'png',
+      theme:         document.body.classList.contains('light') ? 'light' : 'dark',
+      title:         true,
+      period:        true,
+      stats:         true,
+      players:       true,
+      avatars:       true,
+      scale:         1,
+      legend:        true,
+      watermark:     true,
+      watermarkText: 'Tops des Tops',
+      filters:       true,
+      footer:        true,
+      customTitle:   ''
     };
 
     const overlay = document.createElement('div');
@@ -5371,7 +5606,24 @@
     const advLbl = document.createElement('label'); advLbl.textContent = 'Contenu avancé';
     advGroup.appendChild(advLbl);
     advGroup.appendChild(checkOpt('Légende du graphique', 'legend'));
-    advGroup.appendChild(checkOpt('Filigrane "Tops des Tops"', 'watermark'));
+    const wmWrap = document.createElement('div');
+    wmWrap.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+    const wmCheck = checkOpt('Filigrane', 'watermark');
+    const wmInput = document.createElement('input');
+    wmInput.type = 'text';
+    wmInput.value = exportOpts.watermarkText;
+    wmInput.placeholder = 'Tops des Tops';
+    wmInput.style.cssText = 'display:' + (exportOpts.watermark ? 'block' : 'none') + ';margin-top:2px;font-size:0.82rem;';
+    wmInput.addEventListener('input', () => {
+      exportOpts.watermarkText = wmInput.value.trim() || 'Tops des Tops';
+      updatePreview();
+    });
+    wmCheck.querySelector('input[type="checkbox"]').addEventListener('change', function() {
+      wmInput.style.display = this.checked ? 'block' : 'none';
+    });
+    wmWrap.appendChild(wmCheck);
+    wmWrap.appendChild(wmInput);
+    advGroup.appendChild(wmWrap);
     advGroup.appendChild(checkOpt('Résumé des filtres actifs', 'filters'));
     box.appendChild(advGroup);
 
@@ -5771,6 +6023,174 @@
     div.appendChild(topRow);
     div.appendChild(bottomRow);
     div.appendChild(baremeRow);
+
+    // ── Historique rapide (joueur + Top) ─────────────────────────────────
+    const histRow = document.createElement('div');
+    histRow.className = 'hist-quick-row';
+
+    const hqHeader = document.createElement('button');
+    hqHeader.type = 'button';
+    hqHeader.className = 'hist-quick-header';
+    hqHeader.innerHTML = '🕐 Historique <span class="hq-chevron">▶</span>';
+
+    const hqPanel = document.createElement('div');
+    hqPanel.className = 'hist-quick-panel';
+
+    // Checkboxes de sélection des champs à recopier
+    const hqChecks = document.createElement('div');
+    hqChecks.className = 'hq-checks';
+    const hqChecksLbl = document.createElement('span');
+    hqChecksLbl.className = 'hq-checks-label';
+    hqChecksLbl.textContent = 'Copier :';
+    hqChecks.appendChild(hqChecksLbl);
+    const checkState = { pts: true, desc: true, date: true };
+    const checkDefs = [
+      { key: 'pts',  label: '🔢 Points' },
+      { key: 'desc', label: '📝 Description' },
+      { key: 'date', label: '📅 Date' }
+    ];
+    const checkEls = {};
+    checkDefs.forEach(function(def) {
+      const lbl = document.createElement('label');
+      lbl.className = 'hq-check-label';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = true;
+      cb.addEventListener('change', function() { checkState[def.key] = cb.checked; });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + def.label));
+      hqChecks.appendChild(lbl);
+      checkEls[def.key] = cb;
+    });
+
+    const hqList = document.createElement('div');
+    hqList.className = 'hq-list';
+
+    const hqPagination = document.createElement('div');
+    hqPagination.className = 'hq-pagination';
+    const hqPrevBtn = document.createElement('button');
+    hqPrevBtn.type = 'button'; hqPrevBtn.className = 'hq-page-btn';
+    hqPrevBtn.innerHTML = '‹'; hqPrevBtn.disabled = true;
+    const hqPageInfo = document.createElement('span');
+    hqPageInfo.className = 'hq-page-info';
+    const hqNextBtn = document.createElement('button');
+    hqNextBtn.type = 'button'; hqNextBtn.className = 'hq-page-btn';
+    hqNextBtn.innerHTML = '›'; hqNextBtn.disabled = true;
+    hqPagination.appendChild(hqPrevBtn);
+    hqPagination.appendChild(hqPageInfo);
+    hqPagination.appendChild(hqNextBtn);
+
+    hqPanel.appendChild(hqChecks);
+    hqPanel.appendChild(hqList);
+    hqPanel.appendChild(hqPagination);
+    histRow.appendChild(hqHeader);
+    histRow.appendChild(hqPanel);
+
+    let _histPage = 1;
+    let _histTotalPages = 1;
+    let _histLoading = false;
+    const HIST_PAGE_SIZE = 5;
+
+    function applyHistEntry(entry) {
+      if (checkState.pts && entry.points !== undefined) {
+        customPtsInput.value = entry.points;
+        ptsToggle.querySelectorAll('.pts-btn').forEach(function(b) {
+          const match = parseInt(b.dataset.val, 10) === entry.points;
+          b.classList.toggle('active', match);
+          if (match) { b.classList.add('pts-pop'); setTimeout(function() { b.classList.remove('pts-pop'); }, 220); }
+        });
+        customPtsInput.classList.remove('pts-val-anim');
+        void customPtsInput.offsetWidth;
+        customPtsInput.classList.add('pts-val-anim');
+        setTimeout(function() { customPtsInput.classList.remove('pts-val-anim'); }, 300);
+        updateLotSummary();
+      }
+      if (checkState.desc && entry.description) {
+        descInput.value = entry.description;
+      }
+      if (checkState.date && entry.timestamp) {
+        const d = new Date(entry.timestamp);
+        startInput.value = toDateStr(d);
+      }
+      hqPanel.classList.remove('open');
+      hqHeader.classList.remove('open');
+    }
+
+    function renderHistEntries(entries, page, total) {
+      hqList.innerHTML = '';
+      _histTotalPages = Math.max(1, Math.ceil(total / HIST_PAGE_SIZE));
+      hqPageInfo.textContent = 'Page ' + page + ' / ' + _histTotalPages;
+      hqPrevBtn.disabled = page <= 1;
+      hqNextBtn.disabled = page >= _histTotalPages;
+      hqPagination.style.display = _histTotalPages > 1 ? 'flex' : 'none';
+      if (!entries || !entries.length) {
+        hqList.innerHTML = '<div class="hq-empty">Aucun historique pour ce joueur dans ce Top.</div>';
+        return;
+      }
+      entries.forEach(function(entry) {
+        const card = document.createElement('button');
+        card.type = 'button'; card.className = 'hq-entry-card';
+        const d = new Date(entry.timestamp);
+        const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' });
+        card.innerHTML =
+          '<span class="hq-entry-date">' + dateStr + '</span>' +
+          '<span class="hq-entry-pts">' + entry.points + ' pts</span>' +
+          (entry.description
+            ? '<span class="hq-entry-desc">' + entry.description.replace(/</g, '&lt;') + '</span>'
+            : '<span class="hq-entry-desc hq-entry-no-desc">—</span>');
+        card.addEventListener('click', function() { applyHistEntry(entry); });
+        hqList.appendChild(card);
+      });
+    }
+
+    function loadHistPage(page) {
+      if (_histLoading) return;
+      const player = pSel.value;
+      const category = cSel.value;
+      if (!player || !category) return;
+      _histLoading = true;
+      hqList.innerHTML = '<div class="hq-skel"></div><div class="hq-skel"></div><div class="hq-skel"></div>';
+      hqPagination.style.display = 'none';
+      callServer('apiGetHistoryPage', [page, HIST_PAGE_SIZE, [player], [category], null], function(res) {
+        _histLoading = false;
+        if (res.success) {
+          _histPage = page;
+          renderHistEntries(res.logs, page, res.total);
+        } else {
+          hqList.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+        }
+      }, 'Historique rapide');
+    }
+
+    hqHeader.addEventListener('click', function() {
+      const opening = !hqPanel.classList.contains('open');
+      hqPanel.classList.toggle('open', opening);
+      hqHeader.classList.toggle('open', opening);
+      if (opening && hqList.children.length === 0) loadHistPage(1);
+    });
+    hqPrevBtn.addEventListener('click', function() { if (_histPage > 1) loadHistPage(_histPage - 1); });
+    hqNextBtn.addEventListener('click', function() { if (_histPage < _histTotalPages) loadHistPage(_histPage + 1); });
+
+    function refreshHistVisibility() {
+      const player   = pSel.value;
+      const category = cSel.value;
+      if (!player || !category) {
+        histRow.classList.remove('has-entries');
+        hqPanel.classList.remove('open');
+        hqHeader.classList.remove('open');
+        hqList.innerHTML = '';
+        _histPage = 1;
+      } else {
+        histRow.classList.add('has-entries');
+        // Reset on player/category change so user fetches fresh data
+        if (hqPanel.classList.contains('open')) {
+          hqList.innerHTML = '';
+          _histPage = 1;
+          loadHistPage(1);
+        }
+      }
+    }
+
+    div.appendChild(histRow);
     div.appendChild(descRowWrapper);
     container.appendChild(div);
 
@@ -5796,6 +6216,7 @@
       onChange: function(v) {
         pSel.value = v || '';
         applyRowAvatar(v || '');
+        refreshHistVisibility();
         updateLotSummary();
       }
     });
@@ -5810,6 +6231,7 @@
         const col = categoryColor(v || '');
         div.style.setProperty('--row-accent', col);
         refreshBaremeForTop(v || '');
+        refreshHistVisibility();
         updateLotSummary();
       }
     });
@@ -5820,6 +6242,7 @@
     const initCatCol = categoryColor(initCategory);
     div.style.setProperty('--row-accent', initCatCol);
     refreshBaremeForTop(initCategory);
+    refreshHistVisibility();
     updateLotSummary();
   }
 
@@ -6860,6 +7283,13 @@
     const flash = document.createElement('div');
     flash.className = 'notes-flash-bar';
 
+    // Avatar watermark — mis à jour au changement de joueur
+    const flashAvatarBg = document.createElement('div');
+    flashAvatarBg.className = 'notes-flash-avatar-bg';
+    const _initFlashPlayer = cachedPlayers.find(p => p.name === _flashPlayer);
+    flashAvatarBg.style.backgroundImage = 'url(' + getAvatarUrl(_flashPlayer, _initFlashPlayer ? _initFlashPlayer.meta : '') + ')';
+    flash.appendChild(flashAvatarBg);
+
     // Chips joueurs — sélection visuelle immédiate
     let flashPlayer = _flashPlayer;
     const chipRow = document.createElement('div');
@@ -6879,6 +7309,7 @@
         _flashPlayer = p.name;
         chipRow.querySelectorAll('.notes-player-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
+        flashAvatarBg.style.backgroundImage = 'url(' + getAvatarUrl(p.name, p.meta) + ')';
         fInput.focus();
       });
       chipRow.appendChild(chip);
@@ -7032,6 +7463,12 @@
 
     const card = document.createElement('div');
     card.className = 'note-card';
+
+    const noteBg = document.createElement('div');
+    noteBg.className = 'note-card-bg';
+    const notePlayer = cachedPlayers.find(p => p.name === note.player);
+    noteBg.style.backgroundImage = 'url(' + getAvatarUrl(note.player, notePlayer ? notePlayer.meta : '') + ')';
+    card.appendChild(noteBg);
 
     const headc = document.createElement('div');
     headc.className = 'note-card-head';

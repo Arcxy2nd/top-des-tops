@@ -259,9 +259,11 @@ const StorageService = {
     if (!plan || !plan.length) throw new Error("Aucune donnée à injecter.");
 
     const rows = [];
+    const _now = new Date();
     plan.forEach(day => {
       if (!day.date || !day.date.trim()) throw new Error("Date manquante dans le plan.");
-      const targetDate = new Date(day.date.trim() + 'T12:00:00');
+      const _parts = day.date.trim().split('-').map(Number);
+      const targetDate = new Date(_parts[0], _parts[1] - 1, _parts[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
       if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
       (day.entries || []).forEach(e => {
         if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
@@ -424,7 +426,9 @@ const StorageService = {
     if (!fields.category) throw new Error("Top requis.");
     const pts = parseInt(fields.points, 10);
     if (isNaN(pts) || pts < 1) throw new Error("Les points doivent être ≥ 1.");
-    const targetDate = new Date((fields.date || '').trim() + 'T12:00:00');
+    const _now = new Date();
+    const _dp = (fields.date || '').trim().split('-').map(Number);
+    const targetDate = new Date(_dp[0], _dp[1] - 1, _dp[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
     const sheet = ConfigService.getSheets().history;
     sheet.getRange(idx, 1, 1, 5)
@@ -560,13 +564,13 @@ const NotesService = {
     if (!player) throw new Error("Joueur manquant.");
     if (!text || !text.trim()) throw new Error("La note ne peut pas être vide.");
 
+    const _now = new Date();
     let targetDate;
     if (dateStr && dateStr.trim()) {
-      targetDate = new Date(dateStr.trim() + 'T12:00:00');
+      const _parts = dateStr.trim().split('-').map(Number);
+      targetDate = new Date(_parts[0], _parts[1] - 1, _parts[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
     } else {
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      targetDate = new Date(`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T12:00:00`);
+      targetDate = _now;
     }
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
@@ -1382,7 +1386,9 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
 
         var targetDate;
         if (hasDate) {
-          targetDate = new Date(partialFields.date + 'T12:00:00');
+          var _now = new Date();
+          var _dp = (partialFields.date + '').split('-').map(Number);
+          targetDate = new Date(_dp[0], _dp[1] - 1, _dp[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
           if (isNaN(targetDate.getTime())) { skipped.push(idx); return; }
         } else {
           targetDate = (row[0] instanceof Date) ? row[0] : new Date(row[0]);
