@@ -3373,8 +3373,8 @@
       };
     });
 
-    // Priorité d'affichage : 1er → dernier → 2e → milieu → avant-dernier
-    const priority = [0, n - 1, 1, Math.floor(n / 2), n - 2];
+    // Priorité d'affichage : 1er → 2e → 3e (podium complet) → dernier → milieu → avant-dernier
+    const priority = [0, 1, 2, n - 1, Math.floor(n / 2), n - 2];
     const seen = new Set();
     const selected = [];
     for (const idx of priority) {
