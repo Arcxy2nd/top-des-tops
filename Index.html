@@ -50,6 +50,30 @@
       padding-right: env(safe-area-inset-right);
     }
     .navbar::-webkit-scrollbar { display: none; }
+    /* ── Bandeau résumé rapide ── */
+    .quick-stats-bar {
+      display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; padding: 10px max(10px, env(safe-area-inset-left));
+      max-width: 1200px; margin: 0 auto; background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .quick-stats-bar::-webkit-scrollbar { display: none; }
+    .qs-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 14px; flex-shrink: 0;
+      min-width: 150px;
+    }
+    .qs-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .qs-pill-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .qs-pill-label { font-size: 0.7rem; color: var(--text-muted); }
+    .qs-pill-value {
+      font-size: 0.88rem; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    @media (max-width: 640px) {
+      .qs-pill { min-width: 128px; padding: 7px 10px; }
+    }
     .nav-container {
       display: flex; min-width: max-content;
       width: 100%; max-width: 1200px; gap: 2px;
@@ -67,6 +91,14 @@
     }
     .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+    /* ── Identité de l'app (titre + logo) ── */
+    .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 4px; flex-shrink: 0; }
+    .app-brand-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+    .app-brand-title { font-weight: 800; font-size: 1rem; color: var(--accent); white-space: nowrap; letter-spacing: 0.2px; }
+    @media (max-width: 640px) {
+      .app-brand-title { font-size: 0.85rem; }
+    }
 
     /* Bouton refresh + badge */
     .nav-refresh-wrap {
@@ -480,6 +512,19 @@
     .toast.error   { border-color: var(--error);   color: var(--error);   }
     @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @keyframes fadeOut { to { opacity: 0; transform: translateY(6px); } }
+
+    /* ── Animation "+X pts" sur ajout de ligne ── */
+    .float-pts-badge {
+      position: fixed; transform: translateX(-50%);
+      pointer-events: none; font-weight: 700; font-size: 0.95rem;
+      color: var(--accent); z-index: 9999;
+      animation: float-pts-rise 600ms ease-out forwards;
+    }
+    @keyframes float-pts-rise {
+      0%   { opacity: 0; transform: translate(-50%, 0); }
+      15%  { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -28px); }
+    }
 
     /* ── MOBILE ── */
     @media (max-width: 640px) {
@@ -1286,6 +1331,7 @@
       background: var(--phrase-color, var(--accent));
       opacity: 0.05; pointer-events: none;
     }
+    .phrase-podium-card { box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
     .phrase-podium-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     .phrase-podium-bg-avatar {
       position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
@@ -1341,19 +1387,39 @@
     }
     .phrases-cat-body::-webkit-scrollbar { display: none; }
     .phrase-cat-card {
-      flex-shrink: 0; width: 152px; border-radius: 10px; padding: 11px 11px 10px;
+      flex-shrink: 0; width: 168px; border-radius: 12px; padding: 12px 12px 11px;
       background: rgba(255,255,255,0.04); border: 1px solid var(--border);
       border-top: 3px solid var(--phrase-color, var(--accent));
       display: flex; flex-direction: column; gap: 6px;
-      animation: fadeIn 0.25s ease both; transition: transform 0.18s;
+      position: relative; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s;
     }
-    .phrase-cat-card:hover { transform: translateY(-2px); }
+    .phrase-cat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--phrase-color, var(--accent));
+      opacity: 0.04; pointer-events: none;
+    }
+    .phrase-cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+    .phrase-cat-bg-avatar {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 90px;
+      background-size: cover; background-position: center top;
+      pointer-events: none; opacity: 0.12; z-index: 0;
+      mask-image: linear-gradient(to right, transparent 0%, black 55%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 55%);
+    }
     .phrase-cat-header {
-      display: flex; align-items: center; gap: 5px;
+      display: flex; align-items: center; gap: 6px;
       font-size: 0.69rem; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.05em; color: var(--phrase-color, var(--accent));
+      position: relative; z-index: 1;
     }
-    .phrase-cat-text { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; font-style: italic; }
+    .phrase-cat-header span:first-child {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; font-size: 0.85rem;
+      background: var(--phrase-color, var(--accent)); opacity: 0.9; flex-shrink: 0;
+    }
+    .phrase-cat-text { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; font-style: italic; position: relative; z-index: 1; }
 
     @keyframes phraseSlideUp {
       from { opacity: 0; transform: translateY(8px); }
@@ -1964,6 +2030,10 @@
 
 <nav class="navbar">
   <div class="nav-container">
+    <div class="app-brand" id="appBrand">
+      <img class="app-brand-logo" id="appBrandLogo" src="" alt="" style="display:none;">
+      <span class="app-brand-title" id="appBrandTitle">Tops des Tops</span>
+    </div>
     <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
     <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
     <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
@@ -1985,6 +2055,35 @@
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
   </div>
 </nav>
+
+<div id="quickStatsBar" class="quick-stats-bar">
+  <div class="qs-pill qs-leader">
+    <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🏆 Leader</span>
+      <span class="qs-pill-value" id="qsLeaderValue">—</span>
+    </div>
+  </div>
+  <div class="qs-pill">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">📊 Écart</span>
+      <span class="qs-pill-value" id="qsGapValue">—</span>
+    </div>
+  </div>
+  <div class="qs-pill">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">📅 Ce mois-ci</span>
+      <span class="qs-pill-value" id="qsMonthValue">—</span>
+    </div>
+  </div>
+  <div class="qs-pill qs-last">
+    <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🕐 Dernier event</span>
+      <span class="qs-pill-value" id="qsLastValue">—</span>
+    </div>
+  </div>
+</div>
 
 <div class="container">
   <div id="toastContainer"></div>
@@ -2138,6 +2237,7 @@
       <button class="settings-nav-btn" data-stab="stab-bareme">⚖️ Barème</button>
       <button class="settings-nav-btn" data-stab="stab-phrases">🎭 Commentaires</button>
       <button class="settings-nav-btn" data-stab="stab-tools">🔧 Outils</button>
+      <button class="settings-nav-btn" data-stab="stab-identity">🎨 Identité</button>
     </div>
 
     <!-- ─ Joueurs ─ -->
@@ -2245,6 +2345,18 @@
       </p>
       <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
       <div id="detectResults" class="detect-results"></div>
+    </div>
+
+    <!-- ─ Identité de l'app ─ -->
+    <div id="stab-identity" class="settings-tab-pane card">
+      <h2>🎨 Identité de l'app</h2>
+      <div class="add-form">
+        <p class="add-form-label">Nom de l'application</p>
+        <input type="text" id="appSettingsTitle" placeholder="Tops des Tops">
+        <p class="add-form-label">URL du logo (optionnel)</p>
+        <input type="url" id="appSettingsLogo" placeholder="https://…">
+        <button id="saveAppSettingsBtn" class="primary small">💾 Enregistrer</button>
+      </div>
     </div>
 
   </div>
@@ -2671,6 +2783,86 @@
     if (meta && meta.trim()) return meta.trim();
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
            '&background=2a313d&color=e0e6ed&bold=true&size=64';
+  }
+
+  // ── IDENTITÉ DE L'APP (titre + logo) ──────────────────────────────────
+  let _appSettings = { appTitle: 'Tops des Tops', logoUrl: '' };
+
+  function applyAppBranding() {
+    document.title = _appSettings.appTitle;
+    document.getElementById('appBrandTitle').textContent = _appSettings.appTitle;
+    const logoImg = document.getElementById('appBrandLogo');
+    if (_appSettings.logoUrl) {
+      logoImg.src = _appSettings.logoUrl;
+      logoImg.onerror = () => { logoImg.style.display = 'none'; };
+      logoImg.style.display = '';
+    } else {
+      logoImg.style.display = 'none';
+    }
+  }
+
+  function populateAppSettingsForm() {
+    const titleInput = document.getElementById('appSettingsTitle');
+    const logoInput  = document.getElementById('appSettingsLogo');
+    if (titleInput) titleInput.value = _appSettings.appTitle;
+    if (logoInput)  logoInput.value  = _appSettings.logoUrl;
+  }
+
+  function loadAppBranding() {
+    callServer('apiGetAppSettings', [], res => {
+      _appSettings = { appTitle: res.appTitle, logoUrl: res.logoUrl };
+      applyAppBranding();
+      populateAppSettingsForm();
+    }, 'Chargement identité app');
+  }
+
+  // ── BANDEAU RÉSUMÉ RAPIDE ─────────────────────────────────────────────
+  function timeAgo(date) {
+    const diffMs = new Date() - date;
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 1) return 'à l\'instant';
+    if (mins < 60) return 'il y a ' + mins + ' min';
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return 'il y a ' + hours + 'h';
+    const days = Math.round(hours / 24);
+    return 'il y a ' + days + 'j';
+  }
+
+  function loadQuickStats() {
+    callServer('apiGetQuickStats', [], res => {
+      const s = res.stats;
+      const leaderAvatar = document.getElementById('qsLeaderAvatar');
+      const leaderValue  = document.getElementById('qsLeaderValue');
+      const gapValue     = document.getElementById('qsGapValue');
+      const monthValue   = document.getElementById('qsMonthValue');
+      const lastAvatar   = document.getElementById('qsLastAvatar');
+      const lastValue    = document.getElementById('qsLastValue');
+
+      if (s.leader) {
+        const p = cachedPlayers.find(pl => pl.name === s.leader.player);
+        leaderAvatar.src = getAvatarUrl(s.leader.player, p ? p.meta : '');
+        leaderAvatar.onerror = () => { leaderAvatar.src = getAvatarUrl(s.leader.player, ''); };
+        leaderAvatar.style.display = '';
+        leaderValue.textContent = s.leader.player + ' · ' + s.leader.points + ' pts';
+      } else {
+        leaderAvatar.style.display = 'none';
+        leaderValue.textContent = 'Pas encore de scores';
+      }
+
+      gapValue.textContent = (s.gap === null) ? '—' : (s.gap === 0 ? 'Égalité' : s.gap + ' pts');
+      monthValue.textContent = s.monthCount + ' event' + (s.monthCount > 1 ? 's' : '');
+
+      if (s.lastEvent) {
+        const p = cachedPlayers.find(pl => pl.name === s.lastEvent.player);
+        lastAvatar.src = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
+        lastAvatar.onerror = () => { lastAvatar.src = getAvatarUrl(s.lastEvent.player, ''); };
+        lastAvatar.style.display = '';
+        lastValue.textContent = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + timeAgo(new Date(s.lastEvent.date));
+      } else {
+        lastAvatar.style.display = 'none';
+        lastValue.textContent = 'Aucun event';
+      }
+    }, 'Chargement résumé');
   }
 
   // ── ICÔNES DE CATÉGORIE (emoji) ──────────────────────────────────────
@@ -3141,6 +3333,7 @@
         document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
         if (target === 'stab-tools') loadDataHealth();
+        if (target === 'stab-identity') populateAppSettingsForm();
       });
     });
   }
@@ -3558,7 +3751,7 @@
         const tpl  = pool[Math.floor(Math.random() * pool.length)];
         const vars = { player: topPlayer, pts: topPts, gap: topPts - secondPts, behind: 0, rank: 1 };
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
-        return { cat, text, topPts, dominance };
+        return { cat, text, topPts, dominance, topPlayer };
       }).filter(Boolean);
 
       catItems.sort((a, b) => (b.dominance || 0) - (a.dominance || 0));
@@ -3581,11 +3774,15 @@
           el.style.setProperty('--phrase-color', col);
           el.style.animationDelay = (i * 0.05) + 's';
           el.innerHTML =
+            '<div class="phrase-cat-bg-avatar"></div>' +
             '<div class="phrase-cat-header">' +
               '<span>' + escapeHtml(item.cat.icon || '🎯') + '</span>' +
               '<span>' + escapeHtml(item.cat.name) + '</span>' +
             '</div>' +
             '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
+          const catPlayer = cachedPlayers.find(p => p.name === item.topPlayer);
+          const catBg = el.querySelector('.phrase-cat-bg-avatar');
+          catBg.style.backgroundImage = 'url(' + getAvatarUrl(item.topPlayer, catPlayer ? catPlayer.meta : '') + ')';
           body.appendChild(el);
         });
       } else {
@@ -3859,6 +4056,19 @@
     }, 900);
   }
 
+  // Texte "+X pts" qui remonte en fondu depuis un bouton (ajout de ligne au constructeur de lot).
+  function floatPointsBadge(sourceEl, points) {
+    if (!sourceEl) return;
+    const rect = sourceEl.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'float-pts-badge';
+    el.textContent = '+' + points + ' pts';
+    el.style.left = (rect.left + rect.width / 2) + 'px';
+    el.style.top = rect.top + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 650);
+  }
+
   // État vide illustré réutilisable.
   function emptyIllustration(emoji, msg) {
     return '<div class="empty-illustration"><div class="emoji">' + emoji +
@@ -3898,25 +4108,6 @@
       { label: "1er mois préc.",     value: mk(t.getFullYear(), t.getMonth() - 1, 1) },
       { label: "Il y a 3 mois",      value: toDateStr(minus3m) }
     ];
-  }
-
-  function buildDateShortcuts(targetInputId) {
-    const shortcuts = dateShortcutItems();
-
-    const wrap = document.getElementById(targetInputId + 'Shortcuts') || null;
-    if (!wrap) return;
-
-    wrap.innerHTML = '';
-    shortcuts.forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'date-shortcut';
-      btn.type = 'button';
-      btn.textContent = s.label;
-      btn.addEventListener('click', () => {
-        document.getElementById(targetInputId).value = s.value;
-      });
-      wrap.appendChild(btn);
-    });
   }
 
   // Plages prédéfinies (réutilisées par le Dashboard et par l'éditeur de date des lignes).
@@ -4159,6 +4350,8 @@
   function globalRefresh() {
     loadEntities();
     applyFilters();
+    loadQuickStats();
+    loadAppBranding();
     const activeTab = document.querySelector('.tab-content.active');
     if (activeTab) {
       const tabId = activeTab.id;
@@ -5699,20 +5892,6 @@
   }
 
   // ── SAISIE LOT ───────────────────────────────────────────────────────
-  function updateRowAvatar(sel, img) {
-    const opt = sel.options[sel.selectedIndex];
-    if (!opt) return;
-    const player = cachedPlayers.find(p => p.name === opt.value);
-    const url = getAvatarUrl(opt.value, player ? player.meta : '');
-    img.src = url;
-    img.onerror = () => { img.src = getAvatarUrl(opt.value, ''); };
-    const row = sel.closest('.entry-row');
-    if (row) {
-      const bg = row.querySelector('.row-avatar-bg');
-      if (bg) bg.style.backgroundImage = 'url(' + url + ')';
-    }
-  }
-
   function createPtsToggle(defaultVal) {
     const wrap = document.createElement('div');
     wrap.className = 'pts-toggle-wrap';
@@ -5755,7 +5934,7 @@
     return wrap;
   }
 
-  function addEntryRow(preset) {
+  function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
     const es = container.querySelector('.empty-state');
     if (es) es.remove();
@@ -5940,7 +6119,7 @@
       fill:        fillToggle.dataset.fill,
       days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
       description: descInput.value
-    }));
+    }, dupBtn));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.innerHTML = '✕'; delBtn.title = 'Supprimer cette ligne';
     delBtn.addEventListener('click', () => {
@@ -6244,6 +6423,7 @@
     refreshBaremeForTop(initCategory);
     refreshHistVisibility();
     updateLotSummary();
+    if (animateFromBtn) floatPointsBadge(animateFromBtn, defaultPts);
   }
 
   function updateLotSummary() {
@@ -6356,93 +6536,6 @@
     });
     showToast('Groupe ' + lotGroupSeq + ' créé (' + lotGroupSel.size + ' lignes).', 'success');
     exitLotGroupMode();
-  }
-
-  function fmtFr(s) {
-    if (!s) return '';
-    const d = new Date(s + 'T12:00:00');
-    return isNaN(d) ? s : d.toLocaleDateString('fr-FR');
-  }
-
-  // Met à jour le libellé du bouton-date d'une ligne selon son état (jour unique ou plage).
-  function updateDateBtnLabel(btn) {
-    const s = btn.dataset.start, e = btn.dataset.end;
-    if (!e) {
-      btn.textContent = '📅 ' + fmtFr(s);
-    } else {
-      const mode = btn.dataset.fill === 'distribute' ? 'Répartir' : 'Répéter';
-      btn.textContent = '📅 ' + fmtFr(s) + ' → ' + fmtFr(e) + ' · ' + mode;
-    }
-  }
-
-  // Éditeur de date d'une ligne : jour unique OU plage, avec boutons rapides et Répéter/Répartir.
-  function openLineDateModal(btn) {
-    const box = document.getElementById('modalBox');
-    const isRange = !!btn.dataset.end;
-    box.innerHTML =
-      '<h3>Date de la ligne</h3>' +
-      '<label class="chart-control toggle" style="margin-bottom:10px;">' +
-        '<input type="checkbox" id="mIsRange"' + (isRange ? ' checked' : '') + '> Plage de dates (plusieurs jours)' +
-      '</label>' +
-      '<div class="mini">Du</div>' +
-      '<input type="date" id="mStart" value="' + escapeHtml(btn.dataset.start) + '">' +
-      '<div class="date-shortcuts" id="mStartChips" style="margin:6px 0;"></div>' +
-      '<div id="mRangeBox" style="' + (isRange ? '' : 'display:none;') + '">' +
-        '<div class="mini">Au</div>' +
-        '<input type="date" id="mEnd" value="' + escapeHtml(btn.dataset.end) + '">' +
-        '<div class="date-shortcuts" id="mRangeChips" style="margin:6px 0;"></div>' +
-        '<div class="mini" style="margin-top:8px;">Étalement sur l\'intervalle :</div>' +
-        '<div id="mFillSlot" style="margin-top:4px;"></div>' +
-      '</div>' +
-      '<div class="modal-actions">' +
-        '<button id="mSave" class="primary">OK</button>' +
-        '<button id="mCancel" class="secondary">Annuler</button>' +
-      '</div>';
-
-    const cb = document.getElementById('mIsRange');
-    const rangeBox = document.getElementById('mRangeBox');
-    cb.addEventListener('change', () => { rangeBox.style.display = cb.checked ? 'block' : 'none'; });
-
-    // Boutons rapides "jour unique" → remplissent Du.
-    const sc = document.getElementById('mStartChips');
-    dateShortcutItems().forEach(s => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = s.label;
-      b.addEventListener('click', () => { document.getElementById('mStart').value = s.value; });
-      sc.appendChild(b);
-    });
-
-    // Boutons rapides "plage" → remplissent Du + Au et activent la plage.
-    const rc = document.getElementById('mRangeChips');
-    rangePresetItems().forEach(r => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'date-shortcut'; b.textContent = r.label;
-      b.addEventListener('click', () => {
-        document.getElementById('mStart').value = r.from;
-        document.getElementById('mEnd').value   = r.to;
-      });
-      rc.appendChild(b);
-    });
-
-    // Choix Répéter / Répartir.
-    const fillToggle = createFillToggle(btn.dataset.fill);
-    document.getElementById('mFillSlot').appendChild(fillToggle);
-
-    document.getElementById('mSave').onclick = () => {
-      const start = document.getElementById('mStart').value || toDateStr(new Date());
-      let end = '';
-      if (cb.checked) {
-        const e = document.getElementById('mEnd').value;
-        if (e && new Date(e + 'T12:00:00') > new Date(start + 'T12:00:00')) end = e;
-      }
-      btn.dataset.start = start;
-      btn.dataset.end   = end;
-      btn.dataset.fill  = fillToggle.dataset.fill;
-      updateDateBtnLabel(btn);
-      closeModal();
-    };
-    document.getElementById('mCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
   // Dates "YYYY-MM-DD" de start à end inclus ; [start] si end vide/invalide.
@@ -7544,38 +7637,6 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  function openEditDescModal(log) {
-    const box = document.getElementById('modalBox');
-    const d = log.timestamp ? new Date(log.timestamp) : null;
-    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
-    box.innerHTML =
-      '<h3>Description de l\'entrée</h3>' +
-      '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">' +
-        escapeHtml(dateStr) + ' — ' + escapeHtml(log.player) +
-        ' · ' + escapeHtml(log.category) +
-        ' <strong>(' + escapeHtml(String(log.points)) + ' pts)</strong>' +
-      '</p>' +
-      '<input type="text" id="mDescText" value="' + escapeHtml(log.description || '') +
-        '" placeholder="Description (optionnelle)…">' +
-      '<div class="modal-actions">' +
-        '<button id="mSave" class="primary">Enregistrer</button>' +
-        '<button id="mCancel" class="secondary">Annuler</button>' +
-      '</div>';
-    document.getElementById('mSave').onclick = () => {
-      if (!requireIdentity()) return;
-      const v = document.getElementById('mDescText').value.trim();
-      closeModal();
-      callServer('apiUpdateHistoryDescription', [log.rowIndex, v, _whoAmI || ''], () => {
-        log.description = v;
-        loadHistoryPage(currentHistoryPage);
-        showToast('Description mise à jour.', 'success');
-      }, 'Description');
-    };
-    document.getElementById('mCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
-    setTimeout(() => { const el = document.getElementById('mDescText'); if (el) el.focus(); }, 50);
-  }
-
   function openBulkEditModal() {
     if (!requireIdentity()) return;
     if (!histSelected.size) return;
@@ -7902,7 +7963,19 @@
       }, 'Ajout Top');
     });
 
-    document.getElementById('addRowBtn').addEventListener('click', () => addEntryRow());
+    document.getElementById('addRowBtn').addEventListener('click', (e) => addEntryRow(undefined, e.currentTarget));
+    document.getElementById('saveAppSettingsBtn').addEventListener('click', (e) => {
+      if (!requireIdentity()) return;
+      const btn   = e.currentTarget;
+      const title = document.getElementById('appSettingsTitle').value.trim();
+      const logo  = document.getElementById('appSettingsLogo').value.trim();
+      callServer('apiSaveAppSettings', [title, logo, _whoAmI || ''], () => {
+        _appSettings = { appTitle: title || 'Tops des Tops', logoUrl: logo };
+        applyAppBranding();
+        flashSaved(btn);
+        showToast('Identité de l\'app enregistrée.', 'success');
+      }, 'Enregistrement identité app');
+    });
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('lotGroupModeBtn').addEventListener('click', enterLotGroupMode);
     document.getElementById('lotGroupApplyBtn').addEventListener('click', applyLotGroup);
@@ -8334,6 +8407,8 @@
 
     loadEntities();
     applyFilters();
+    loadQuickStats();
+    loadAppBranding();
   };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────

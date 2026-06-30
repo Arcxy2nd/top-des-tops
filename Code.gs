@@ -5,6 +5,7 @@
  * Categories: [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
  * Notes     : [0] Date | [1] Player   | [2] Note text
  * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
+ * Settings  : [0] Key  | [1] Value  (optional sheet, auto-created — app_title, logo_url)
  */
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -32,7 +33,8 @@ const ConfigService = (() => {
       const bareme   = ss.getSheetByName('Bareme')   || null;
       const phrases  = ss.getSheetByName('Phrases')  || null;
       const auditLog = ss.getSheetByName('AuditLog') || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog };
+      const settings = ss.getSheetByName('Settings') || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -403,10 +405,6 @@ const StorageService = {
     return { logs: paged, total: totalVisual, totalEntries: allWithIndex.length };
   },
 
-  deleteHistoryEntry(rowIndex) {
-    ConfigService.getSheets().history.deleteRow(rowIndex);
-  },
-
   updateHistoryDescription(rowIndex, description) {
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
@@ -653,24 +651,6 @@ const AnalyticsService = {
       : "Aucune infraction détectée sur cette période.";
   },
 
-  getAggregatedData(filterYear, filterMonth) {
-    const all = StorageService.getAllLogs();
-    let logs  = all;
-    if (filterYear  && filterYear  !== "All") logs = logs.filter(l => l.timestamp.getFullYear() === parseInt(filterYear, 10));
-    if (filterMonth && filterMonth !== "All") logs = logs.filter(l => l.timestamp.getMonth()    === parseInt(filterMonth, 10));
-
-    const players    = SettingsService.getEntities('Players').map(p => p.name);
-    const categories = SettingsService.getEntities('Categories').map(c => c.name);
-    const { scores, orphanCount } = this._aggregate(logs, players, categories);
-
-    return {
-      scores,
-      categories,
-      insights: this.generateInsights(scores, categories, orphanCount),
-      orphanCount
-    };
-  },
-
   getFilteredChartData(players, categories, startDate, endDate) {
     const logs = StorageService.getFilteredLogs(
       players    && players.length    ? players    : null,
@@ -773,15 +753,6 @@ const AnalyticsService = {
     });
 
     return { labels, series };
-  },
-
-  getAvailableYears() {
-    const logs = StorageService.getAllLogs();
-    const years = new Set();
-    logs.forEach(l => years.add(l.timestamp.getFullYear()));
-    const current = new Date().getFullYear();
-    years.add(current);
-    return Array.from(years).sort((a, b) => b - a);
   }
 };
 
@@ -801,6 +772,68 @@ function apiGetSettings() {
     };
   } catch(e) { return fail(e); }
 }
+
+function apiGetAppSettings() {
+  try {
+    const all = SettingsSheetService.getAll();
+    return {
+      success:  true,
+      appTitle: all.app_title || 'Tops des Tops',
+      logoUrl:  all.logo_url  || ''
+    };
+  } catch(e) { return fail(e); }
+}
+
+function apiSaveAppSettings(title, logoUrl, author) {
+  try {
+    return withLock(() => {
+      SettingsSheetService.setValue('app_title', (title || '').trim());
+      SettingsSheetService.setValue('logo_url', (logoUrl || '').trim());
+      AuditService.log(author, 'Identité app modifiée', 'Settings', '', (title || '').trim(), '');
+      ConfigService.clearCache();
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+// ─── SETTINGS SHEET SERVICE ────────────────────────────────────────────────────
+// Sheet "Settings" : [0] Key | [1] Value  (optional sheet, auto-created)
+const SettingsSheetService = {
+  _getOrCreateSheet() {
+    const cache = ConfigService.getSheets();
+    if (cache.settings) return cache.settings;
+    const sheet = cache.spreadsheet.insertSheet('Settings');
+    sheet.appendRow(['Key', 'Value']);
+    sheet.appendRow(['app_title', '']);
+    sheet.appendRow(['logo_url', '']);
+    ConfigService.clearCache();
+    return ConfigService.getSheets().settings;
+  },
+
+  /** Read-only: never auto-creates. Returns {} if the sheet doesn't exist yet. */
+  getAll() {
+    const sheet = ConfigService.getSheets().settings;
+    if (!sheet) return {};
+    const data = sheet.getDataRange().getValues();
+    const result = {};
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0]) result[data[i][0].toString()] = data[i][1] ? data[i][1].toString() : '';
+    }
+    return result;
+  },
+
+  setValue(key, value) {
+    const sheet = this._getOrCreateSheet();
+    const data  = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        sheet.getRange(i + 1, 2).setValue(value);
+        return;
+      }
+    }
+    sheet.appendRow([key, value]);
+  }
+};
 
 // ─── BAREME SERVICE ────────────────────────────────────────────────────────────
 // Sheet "Bareme" : [0] Top (category name) | [1] Action | [2] Points
@@ -1037,12 +1070,6 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
   } catch(e) { return fail(e); }
 }
 
-function apiGetData(year, month) {
-  try {
-    return { success: true, data: AnalyticsService.getAggregatedData(year, month) };
-  } catch(e) { return fail(e); }
-}
-
 function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
   try {
     const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
@@ -1118,18 +1145,6 @@ function _entityColorSummary(type, name) {
   } catch (_) { return ''; }
 }
 
-function apiDeleteHistoryEntry(rowIndex, author) {
-  try {
-    return withLock(() => {
-      const before = _historyRowSummary(rowIndex);
-      StorageService.deleteHistoryEntry(rowIndex);
-      AuditService.log(author, 'Suppression entrée', 'History', before, '', 'ligne #' + rowIndex);
-      ConfigService.clearCache();
-      return { success: true };
-    });
-  } catch(e) { return fail(e); }
-}
-
 function apiDeleteHistoryEntries(rowIndexes, author) {
   try {
     return withLock(() => {
@@ -1140,12 +1155,6 @@ function apiDeleteHistoryEntries(rowIndexes, author) {
       ConfigService.clearCache();
       return { success: true };
     });
-  } catch(e) { return fail(e); }
-}
-
-function apiGetAvailableYears() {
-  try {
-    return { success: true, years: AnalyticsService.getAvailableYears() };
   } catch(e) { return fail(e); }
 }
 
@@ -1186,6 +1195,51 @@ function apiGetPlayerTotals(players, startDate, endDate) {
       }
     };
   } catch(e) { return fail(e); }
+}
+
+function apiGetQuickStats() {
+  try {
+    const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
+    const logs = StorageService.getFilteredLogs(allPlayers, null, null, null);
+
+    const totals = {};
+    allPlayers.forEach(p => { totals[p] = 0; });
+    logs.forEach(log => {
+      if (Object.prototype.hasOwnProperty.call(totals, log.player)) {
+        totals[log.player] += log.points;
+      }
+    });
+
+    const ranked = allPlayers
+      .map(p => ({ player: p, points: totals[p] || 0 }))
+      .sort((a, b) => b.points - a.points);
+
+    const leader = ranked.length ? ranked[0] : null;
+    const second = ranked.length > 1 ? ranked[1] : null;
+    const gap = (leader && second) ? (leader.points - second.points) : null;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthCount = logs.filter(l => l.timestamp >= monthStart).length;
+
+    const sortedByDate = logs.slice().sort((a, b) => b.timestamp - a.timestamp);
+    const last = sortedByDate.length ? sortedByDate[0] : null;
+
+    return {
+      success: true,
+      stats: {
+        leader: leader ? { player: leader.player, points: leader.points } : null,
+        gap: gap,
+        monthCount: monthCount,
+        lastEvent: last ? {
+          player:   last.player,
+          category: last.category,
+          points:   last.points,
+          date:     last.timestamp.toISOString()
+        } : null
+      }
+    };
+  } catch (e) { return fail(e); }
 }
 
 // ── Outils de nettoyage ──────────────────────────────────────────────────────
@@ -1325,28 +1379,6 @@ function apiEditNote(rowIndex, newText, author) {
       NotesService.editNote(rowIndex, newText);
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
         'ligne #' + rowIndex);
-      return { success: true };
-    });
-  } catch(e) { return fail(e); }
-}
-
-function apiUpdateBulkDescription(rowIndexes, description, author) {
-  try {
-    if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
-    return withLock(() => {
-      const { history } = ConfigService.getSheets();
-      const lastRow = history.getLastRow();
-      if (lastRow <= 1) return { success: true };
-      const colRange = history.getRange(2, 5, lastRow - 1, 1);
-      const values   = colRange.getValues();
-      const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
-      for (let i = 0; i < values.length; i++) {
-        if (indexSet.has(i + 2)) values[i][0] = description || '';
-      }
-      colRange.setValues(values);
-      AuditService.log(author, 'Description bulk', 'History', '', description || '',
-        rowIndexes.length + ' entrée(s)');
-      ConfigService.clearCache();
       return { success: true };
     });
   } catch(e) { return fail(e); }
