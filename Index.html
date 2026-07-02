@@ -304,6 +304,12 @@
       border-radius: 8px;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-text {
+      display: inline-block;
+      height: 0.9em;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
 
     /* ── SAISIE LOT ── */
     .batch-header { display: none; }
@@ -1001,12 +1007,6 @@
     .guide-section.open .guide-body { display: block; }
     .guide-body p { margin: 0 0 8px; }
     .guide-body strong { color: var(--text); }
-
-    @keyframes bareme-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.6; } }
-    .bareme-skel {
-      height: 60px; border-radius: 11px; background: var(--btn-alt);
-      animation: bareme-pulse 1.4s ease-in-out infinite;
-    }
 
     /* ── EXPORT MODAL ── */
     .export-modal-overlay {
@@ -2669,6 +2669,14 @@
   let totalHistoryEntries = 0;
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
+  // Préchargement client de la page suivante de l'Historique : clé = "page|joueurs|catégories|texte".
+  // Vidée à chaque changement de filtre/texte (les points d'entrée qui rechargent déjà
+  // la page 1 après une mutation la vident aussi, via clearHistPrefetchCache()).
+  const histPrefetchCache = new Map();
+  function histPrefetchKey(page, players, cats, text) {
+    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '');
+  }
+  function clearHistPrefetchCache() { histPrefetchCache.clear(); }
   const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
 
   // History bulk-selection state
@@ -2829,14 +2837,17 @@
   }
 
   function loadQuickStats() {
+    const leaderValue = document.getElementById('qsLeaderValue');
+    const gapValue     = document.getElementById('qsGapValue');
+    const monthValue   = document.getElementById('qsMonthValue');
+    const lastValue    = document.getElementById('qsLastValue');
+    [leaderValue, gapValue, monthValue, lastValue].forEach(el => skeletonizeText(el, 60));
+
     callServer('apiGetQuickStats', [], res => {
       const s = res.stats;
       const leaderAvatar = document.getElementById('qsLeaderAvatar');
-      const leaderValue  = document.getElementById('qsLeaderValue');
-      const gapValue     = document.getElementById('qsGapValue');
-      const monthValue   = document.getElementById('qsMonthValue');
       const lastAvatar   = document.getElementById('qsLastAvatar');
-      const lastValue    = document.getElementById('qsLastValue');
+      [leaderValue, gapValue, monthValue, lastValue].forEach(el => unskeletonizeText(el));
 
       if (s.leader) {
         const p = cachedPlayers.find(pl => pl.name === s.leader.player);
@@ -4016,6 +4027,51 @@
     return 'rgba(' + parseInt(m[1],16) + ',' + parseInt(m[2],16) + ',' + parseInt(m[3],16) + ',' + alpha + ')';
   }
 
+  // ── SKELETONS (feedback de chargement générique) ─────────────────────
+  // Remplace tout le contenu d'un conteneur par N blocs de squelette (tableaux
+  // sans en-tête, listes, grilles de stats). Le contenu réel, une fois arrivé,
+  // écrase innerHTML normalement — pas besoin de fonction hideSkeleton dédiée.
+  function showSkeleton(container, opts) {
+    // À l'appelant de choisir un tag compatible avec le conteneur (ex: 'li' pour <ul>/<ol>, 'div' sinon).
+    if (!container) return;
+    opts = opts || {};
+    const rows       = opts.rows || 3;
+    const height     = opts.height || 44;
+    const tag        = opts.tag || 'div';
+    const extraClass = opts.extraClass ? (' ' + opts.extraClass) : '';
+    let html = '';
+    for (let i = 0; i < rows; i++) {
+      html += '<' + tag + ' class="skeleton' + extraClass + '" style="height:' + height + 'px;margin-bottom:8px;"></' + tag + '>';
+    }
+    container.innerHTML = html;
+  }
+
+  // Pour un tableau : les <tr> doivent contenir un <td colspan> valide, showSkeleton
+  // seul produirait du HTML de table invalide (le navigateur sortirait les <div> de <tbody>).
+  function showTableSkeleton(tbody, colCount, rows) {
+    if (!tbody) return;
+    let html = '';
+    for (let i = 0; i < (rows || 5); i++) {
+      html += '<tr><td colspan="' + colCount + '"><div class="skeleton" style="height:32px;"></div></td></tr>';
+    }
+    tbody.innerHTML = html;
+  }
+
+  // Pour un élément existant qu'on veut garder en place (ex: la valeur d'une pastille
+  // Quick Stats) : affiche un bandeau shimmer par-dessus le texte sans toucher au
+  // reste du DOM parent (avatars, labels…), puis unskeletonizeText restaure le texte réel.
+  function skeletonizeText(el, width) {
+    if (!el) return;
+    el.classList.add('skeleton', 'skeleton-text');
+    el.style.width = (width || 50) + 'px';
+    el.textContent = ' ';
+  }
+  function unskeletonizeText(el) {
+    if (!el) return;
+    el.classList.remove('skeleton', 'skeleton-text');
+    el.style.width = '';
+  }
+
   function showToast(msg, type, duration) {
     const t = document.createElement('div');
     t.className = 'toast ' + type;
@@ -4484,6 +4540,8 @@
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
   function loadEntities() {
+    showSkeleton(document.getElementById('playersList'),    { rows: 3, height: 44, tag: 'li' });
+    showSkeleton(document.getElementById('categoriesList'), { rows: 3, height: 44, tag: 'li' });
     callServer('apiGetSettings', [], res => {
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
@@ -4516,7 +4574,24 @@
       if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
       renderWhoAmI();
 
-    }, 'Chargement settings');
+      // applyFilters/loadQuickStats affichent des avatars résolus via cachedPlayers :
+      // on les déclenche seulement une fois cachedPlayers rempli, sinon le premier
+      // chargement de page rate les avatars (course avec apiGetSettings) et il
+      // faut actualiser pour les voir apparaître.
+      applyFilters();
+      loadQuickStats();
+
+    }, 'Chargement settings', () => {
+      // apiGetSettings a échoué : les skeletons affichés au chargement de la page
+      // (chart, phrases, listes joueurs/catégories) ne seront jamais nettoyés par
+      // applyFilters/loadQuickStats/renderEntityList puisqu'ils ne s'exécutent jamais.
+      // On les efface pour ne pas bloquer l'UI.
+      clearPhrasesCard();
+      document.getElementById('chartSkeleton').style.display = 'none';
+      document.getElementById('chartWrapper').style.display  = 'block';
+      document.getElementById('playersList').innerHTML    = '';
+      document.getElementById('categoriesList').innerHTML = '';
+    });
   }
 
   function renderWhoAmI() {
@@ -6604,12 +6679,20 @@
 
       if (dates.length > 1) hasRange = true;
 
+      // Une ligne étalée sur plusieurs dates doit rester reconnaissable comme un
+      // seul lot dans l'historique : si elle n'a pas déjà une étiquette de groupe
+      // manuelle, on lui en attribue une automatiquement (sinon les entrées
+      // générées arrivent éparpillées et non groupées).
+      const effectiveGroupTag = it.groupTag || (dates.length > 1
+        ? ('rng_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7))
+        : '');
+
       if (dates.length === 1 || it.fill === 'repeat') {
         // Répéter : la ligne complète sur chaque jour de l'intervalle.
         dates.forEach(dk => {
           (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: it.points, times: it.times,
-            description: it.description, groupTag: it.groupTag || ''
+            description: it.description, groupTag: effectiveGroupTag
           });
         });
       } else {
@@ -6620,7 +6703,7 @@
           const val = base + (k < rem ? 1 : 0);
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: val, times: 1,
-            description: it.description, groupTag: it.groupTag || ''
+            description: it.description, groupTag: effectiveGroupTag
           });
         });
       }
@@ -6885,7 +6968,7 @@
     };
 
     const allP = makeChip('Tous', selectedHistPlayers.size === 0, null, () => {
-      selectedHistPlayers.clear(); currentHistoryPage = 1;
+      selectedHistPlayers.clear(); currentHistoryPage = 1; clearHistPrefetchCache();
       renderHistoryFilterChips(); loadHistoryPage(1);
     });
     allP.classList.add('tous'); pc.appendChild(allP);
@@ -6894,12 +6977,12 @@
       pc.appendChild(makeChip(p.name, active, active ? playerColor(p.name) : null, () => {
         if (selectedHistPlayers.has(p.name)) selectedHistPlayers.delete(p.name);
         else selectedHistPlayers.add(p.name);
-        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+        currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
       }, getAvatarUrl(p.name, p.meta)));
     });
 
     const allC = makeChip('Tous', selectedHistCategories.size === 0, null, () => {
-      selectedHistCategories.clear(); currentHistoryPage = 1;
+      selectedHistCategories.clear(); currentHistoryPage = 1; clearHistPrefetchCache();
       renderHistoryFilterChips(); loadHistoryPage(1);
     });
     allC.classList.add('tous'); cc.appendChild(allC);
@@ -6908,7 +6991,7 @@
       cc.appendChild(makeChip(catDisplay(c.name), active, active ? categoryColor(c.name) : null, () => {
         if (selectedHistCategories.has(c.name)) selectedHistCategories.delete(c.name);
         else selectedHistCategories.add(c.name);
-        currentHistoryPage = 1; renderHistoryFilterChips(); loadHistoryPage(1);
+        currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
       }));
     });
   }
@@ -6981,13 +7064,7 @@
     flushPendingDeletions(() => _doLoadHistoryPage(page));
   }
 
-  function _doLoadHistoryPage(page) {
-    currentHistoryPage = page;
-    const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
-    const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
-    const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
-
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null], res => {
+  function _renderHistoryPage(page, res) {
       const logs  = res.logs  || [];
       const total = res.total || 0;
       const totalEntries = res.totalEntries || total;
@@ -7199,7 +7276,45 @@
       }
 
       renderPagination(total);
+  }
+
+  function _doLoadHistoryPage(page) {
+    currentHistoryPage = page;
+    const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
+    const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
+    const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
+    const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim());
+
+    const prefetched = histPrefetchCache.get(key);
+    if (prefetched) {
+      histPrefetchCache.delete(key);
+      _renderHistoryPage(page, prefetched);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter);
+      return;
+    }
+
+    showTableSkeleton(document.getElementById('historyTableBody'), histSelectMode ? 7 : 6, PAGE_SIZE);
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null], res => {
+      _renderHistoryPage(page, res);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter);
     }, 'Chargement historique');
+  }
+
+  // Précharge silencieusement la page suivante (pas de skeleton, pas de toast d'erreur
+  // visible) pour que le clic "suivant" soit instantané. N'écrase pas une entrée déjà
+  // présente dans le cache (évite de reprécharger en boucle si l'utilisateur va-et-vient).
+  function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter) {
+    const nextPage = page + 1;
+    const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim());
+    if (histPrefetchCache.has(key)) return;
+    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null],
+      res => { histPrefetchCache.set(key, res); },
+      null,
+      // Pas de toast (échec silencieux pour l'utilisateur : la page suivante sera
+      // rechargée normalement au clic) — mais on garde une trace en console pour
+      // ne pas perdre le signal si les préchargements se mettaient à échouer en masse.
+      e => { console.warn('[hist-prefetch] échec préchargement', e); }
+    );
   }
 
   function buildHistRow(log, tbody) {
@@ -7351,6 +7466,7 @@
   let _flashPlayer = ''; // persists across re-renders so selection survives note saves
 
   function loadNotes() {
+    showSkeleton(document.getElementById('notesPlayersContainer'), { rows: 3, height: 70 });
     callServer('apiGetAllNotes', [], res => {
       renderNotesUI(res.notes || []);
     }, 'Chargement notes');
@@ -7862,11 +7978,7 @@
   // ── OUTILS ───────────────────────────────────────────────────────────
   function loadDataHealth() {
     const grid = document.getElementById('healthGrid');
-    grid.innerHTML = `
-      <div class="health-stat skeleton" style="height:90px;"></div>
-      <div class="health-stat skeleton" style="height:90px;"></div>
-      <div class="health-stat skeleton" style="height:90px;"></div>
-    `;
+    showSkeleton(grid, { rows: 3, height: 90, extraClass: 'health-stat' });
     callServer('apiGetDataHealth', [], res => {
       const h = res.health;
       grid.innerHTML = `
@@ -7894,7 +8006,7 @@
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       btn.classList.add('active');
-      if (tabId === 'tab-history') { currentHistoryPage = 1; loadHistoryPage(1); }
+      if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
       if (tabId === 'tab-notes')   { loadNotes(); }
       if (tabId === 'tab-guide')   { initGuideAccordion(); }
     });
@@ -8028,7 +8140,7 @@
 
 
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
-      currentHistoryPage = 1; loadHistoryPage(1);
+      currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1);
     });
 
     document.getElementById('auditRefreshBtn').addEventListener('click',   () => loadAuditLog(1));
@@ -8044,7 +8156,7 @@
     if (textFilterEl) {
       textFilterEl.addEventListener('input', () => {
         clearTimeout(_histSearchTimeout);
-        _histSearchTimeout = setTimeout(() => { currentHistoryPage = 1; loadHistoryPage(1); }, 400);
+        _histSearchTimeout = setTimeout(() => { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }, 400);
       });
     }
 
@@ -8119,7 +8231,7 @@
   function scanDistributedLots() {
     const btn = document.getElementById('detectLotsBtn');
     const container = document.getElementById('detectResults');
-    container.innerHTML = '';
+    showSkeleton(container, { rows: 3, height: 60 });
     const restore = startBtnLoading(btn, 'Scan…');
 
     callServer('apiDetectDistributedLots', [], res => {
@@ -8129,7 +8241,7 @@
         return;
       }
       renderDetectedLots(res.lots, container);
-    }, 'Détection lots', () => { restore(); showToast('Erreur lors du scan.', 'error'); });
+    }, 'Détection lots', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
   function renderDetectedLots(lots, container) {
@@ -8333,6 +8445,7 @@
     bindButtons();
     bindExportButtons();
     initPhraseSettings();
+    showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
     loadCustomPhrases(() => {
       callServer('apiGetActivePhrasePreset', [], presetRes => {
         _activePreset = (presetRes && presetRes.preset) || PHRASES_DEFAULT_ID;
@@ -8406,8 +8519,6 @@
     });
 
     loadEntities();
-    applyFilters();
-    loadQuickStats();
     loadAppBranding();
   };
 
@@ -8419,7 +8530,7 @@
       container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;font-style:italic;">Ajoutez d\'abord des Tops dans Paramètres.</p>';
       return;
     }
-    container.innerHTML = '<div class="bareme-skel" style="height:60px;margin-bottom:10px;"></div>'.repeat(Math.min(cachedCategories.length, 3));
+    showSkeleton(container, { rows: Math.min(cachedCategories.length, 3), height: 60 });
     callServer('apiGetBareme', [], res => {
       if (!res.success) { container.innerHTML = '<p style="color:var(--error)">Erreur de chargement.</p>'; return; }
       baremeEntries = res.entries;
@@ -8575,7 +8686,7 @@
 
   function loadBareme() {
     const body = document.getElementById('baremeBody');
-    body.innerHTML = [1,2,3].map(() => '<div class="bareme-skel"></div>').join('');
+    showSkeleton(body, { rows: 3, height: 60 });
     callServer('apiGetBareme', [], res => {
       if (res.success) { baremeEntries = res.entries; renderBaremeDrawer(res.entries); }
       else body.innerHTML = '<p class="bareme-empty">Erreur de chargement.</p>';

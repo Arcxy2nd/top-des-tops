@@ -296,6 +296,50 @@ const StorageService = {
       .filter(Boolean);
   },
 
+  /**
+   * Reads every valid History row with all 7 columns (unlike _readLogsFromSheet,
+   * which only keeps 4 fields for the lighter getAllLogs cache). Used by
+   * getHistoryPage, which still applies its own filters/pagination on top —
+   * only the sheet read itself is shared/cached.
+   */
+  _readFullHistoryRows() {
+    const sheet   = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return [];
+    return sheet.getRange(2, 1, lastRow - 1, 7).getValues()
+      .map((row, i) => {
+        const rec = this._parseHistoryRow(row, i);
+        if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) return null;
+        return {
+          date: rec.date, player: rec.player, category: rec.category, points: rec.points,
+          description: rec.description, groupId: rec.groupId, saiseur: rec.saiseur,
+          rowIndex: rec.rowIndex
+        };
+      })
+      .filter(Boolean);
+  },
+
+  /**
+   * Cross-request cached wrapper around _readFullHistoryRows, keyed on the same
+   * write-version counter _logsVersion() as getAllLogs — invalidated by any
+   * mutation (withLock bumps it), so pagination/filter changes never re-read
+   * the sheet as long as nothing has been written since the last read.
+   */
+  getFullHistoryRowsCached() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'hist_full_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try {
+        return JSON.parse(raw).map(r => Object.assign({}, r, { date: new Date(r.date) }));
+      } catch (e) { /* corrupt entry → fall through to a fresh read */ }
+    }
+    const result = this._readFullHistoryRows();
+    const serial = JSON.stringify(result.map(r => Object.assign({}, r, { date: r.date.toISOString() })));
+    if (serial.length <= 95000) cache.put(key, serial, 600);
+    return result;
+  },
+
   getAllLogs() {
     const l1 = ConfigService.getLogsCache();      // within-request cache (1 read per call chain)
     if (l1) return l1;
@@ -342,18 +386,13 @@ const StorageService = {
   },
 
   getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
-    const sheet   = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { logs: [], total: 0 };
-
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
 
     let allWithIndex = [];
-    for (let i = 0; i < data.length; i++) {
-      const rec = this._parseHistoryRow(data[i], i);
-      if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) continue;
+    for (let i = 0; i < rows.length; i++) {
+      const rec = rows[i];
       if (hasPlayerFilter   && !filterPlayers.includes(rec.player))     continue;
       if (hasCategoryFilter && !filterCategories.includes(rec.category)) continue;
       if (filterText) {
@@ -438,6 +477,18 @@ const StorageService = {
 
   /** Retourne des stats de santé du sheet sans modifier quoi que ce soit */
   getDataHealth() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'health_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) { /* corrupt entry → recompute */ }
+    }
+    const result = this._computeDataHealth();
+    cache.put(key, JSON.stringify(result), 600);
+    return result;
+  },
+
+  _computeDataHealth() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { zeros: 0, orphans: 0, total: 0 };
@@ -1441,6 +1492,13 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
 
 function apiDetectDistributedLots() {
   try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'lots_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return { success: true, lots: JSON.parse(raw) }; } catch (e) { /* corrupt entry → recompute */ }
+    }
+
     const sheet = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, lots: [] };
@@ -1520,6 +1578,8 @@ function apiDetectDistributedLots() {
     });
 
     lots.sort(function(a, b) { return b.count - a.count; });
+    const serial = JSON.stringify(lots);
+    if (serial.length <= 95000) cache.put(key, serial, 600);
     return { success: true, lots: lots };
   } catch(e) { return fail(e); }
 }
