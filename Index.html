@@ -149,21 +149,33 @@
     .who-am-i-dropdown {
       display: none; position: fixed; top: 0; left: 0;
       background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 6px; min-width: 200px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 9999;
+      border-radius: 14px; padding: 8px; min-width: 220px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 9999;
       flex-direction: column; gap: 2px;
     }
     .who-am-i-wrap.open .who-am-i-dropdown { display: flex; animation: fadeIn 0.15s ease; }
+    .who-am-i-header {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      padding: 4px 10px 8px; border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
     .who-am-i-option {
       display: flex; align-items: center; gap: 10px;
-      padding: 8px 10px; border-radius: 8px; border: none;
+      padding: 8px 10px; border-radius: 10px; border: none;
       background: transparent; color: var(--text); cursor: pointer;
       font-size: 0.85rem; text-align: left; width: 100%;
-      transition: background 0.15s; font-family: inherit;
+      transition: background 0.15s, transform 0.1s; font-family: inherit;
     }
-    .who-am-i-option:hover { background: rgba(255,255,255,0.06); }
+    .who-am-i-option:hover { background: rgba(255,255,255,0.06); transform: translateX(2px); }
     .who-am-i-option.active { font-weight: 700; background: rgba(255,255,255,0.08); }
-    .who-am-i-option img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .who-am-i-option img {
+      width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--wai-color, transparent);
+    }
+    .who-am-i-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .who-am-i-badge { font-size: 0.75rem; opacity: 0.7; flex-shrink: 0; min-width: 16px; text-align: right; }
+    .who-am-i-option.active .who-am-i-badge { color: #2ed573; opacity: 1; font-weight: 700; }
 
     /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; 
@@ -500,6 +512,26 @@
       width: 32px; height: 32px; border-radius: 8px;
       border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
     }
+
+    /* ── Identity password modal ── */
+    .identity-pwd-box { max-width: 320px; text-align: center; }
+    .identity-pwd-avatar {
+      width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+      margin: 0 auto 10px; display: block;
+      border: 3px solid var(--identity-pwd-color, var(--border));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--identity-pwd-color, transparent) 25%, transparent);
+    }
+    .identity-pwd-sub { color: var(--text-muted); font-size: 0.85rem; }
+    .identity-pwd-error {
+      color: var(--error); font-size: 0.8rem; font-weight: 600; margin: 4px 0 0;
+    }
+    .identity-pwd-box.shake { animation: pwd-shake 0.35s ease; }
+    @keyframes pwd-shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .identity-pwd-box .modal-field input { text-align: center; letter-spacing: 2px; }
 
     /* ── TOASTS ── */
     #toastContainer {
@@ -2508,7 +2540,7 @@
           <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours. Mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé). Le filtre par jour de semaine permet de n'inclure que certains jours (ex : du lundi au vendredi).</p>
           <p><strong>Boutons en bas :</strong> <em>＋ Ligne</em> ajoute une ligne, <em>🔗 Grouper</em> permet de lier des lignes en lot visible dans l'Historique, <em>✓ Inscrire le lot</em> enregistre tout.</p>
           <p><strong>Dupliquer :</strong> bouton 📋 sur chaque ligne pour copier rapidement.</p>
-          <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points.</p>
+          <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points. Les identités marquées 🔒 sont protégées par un mot de passe : demande-le au gestionnaire du classeur. Le mot de passe se définit directement dans la colonne D de la feuille <em>Players</em> du Google Sheet (invisible dans l'app).</p>
         </div>
       </div>
 
@@ -2608,6 +2640,24 @@
       <div class="modal-actions">
         <button id="presetCreateCancel" class="secondary">Annuler</button>
         <button id="presetCreateSave" class="primary">Créer le preset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL : MOT DE PASSE IDENTITÉ ════════════════════════════════════ -->
+  <div id="identityPwdModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal-box identity-pwd-box">
+      <img class="identity-pwd-avatar" id="identityPwdAvatar" src="" alt="" />
+      <h3 id="identityPwdTitle">Confirme ton identité</h3>
+      <p class="identity-pwd-sub">Entre le mot de passe de <strong id="identityPwdName"></strong></p>
+      <div class="modal-field">
+        <label for="identityPwdInput">Mot de passe</label>
+        <input type="password" id="identityPwdInput" placeholder="Mot de passe" autocomplete="off" />
+      </div>
+      <p class="identity-pwd-error" id="identityPwdError" style="display:none;">Mot de passe incorrect.</p>
+      <div class="modal-actions">
+        <button id="identityPwdCancel" class="secondary" type="button">Annuler</button>
+        <button id="identityPwdSubmit" class="primary" type="button">Valider</button>
       </div>
     </div>
   </div>
@@ -4594,6 +4644,62 @@
     });
   }
 
+  let _identityPwdTarget = null; // player object pending verification
+
+  function closeIdentityPwdModal() {
+    document.getElementById('identityPwdModal').style.display = 'none';
+    document.getElementById('identityPwdInput').value = '';
+    document.getElementById('identityPwdError').style.display = 'none';
+    _identityPwdTarget = null;
+  }
+
+  function openIdentityPwdModal(player) {
+    _identityPwdTarget = player;
+    const modal  = document.getElementById('identityPwdModal');
+    const avatar = document.getElementById('identityPwdAvatar');
+    avatar.src = getAvatarUrl(player.name, player.meta);
+    avatar.onerror = () => { avatar.src = getAvatarUrl(player.name, ''); };
+    document.getElementById('identityPwdName').textContent = player.name;
+    modal.querySelector('.identity-pwd-box').style
+      .setProperty('--identity-pwd-color', player.color || 'var(--border)');
+    document.getElementById('identityPwdError').style.display = 'none';
+    document.getElementById('identityPwdInput').value = '';
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('identityPwdInput').focus(), 50);
+  }
+
+  function submitIdentityPwd() {
+    if (!_identityPwdTarget) return;
+    const player = _identityPwdTarget;
+    const pwd    = document.getElementById('identityPwdInput').value;
+    const btn    = document.getElementById('identityPwdSubmit');
+    btn.disabled = true;
+    callServer('apiVerifyIdentity', [player.name, pwd], res => {
+      btn.disabled = false;
+      if (_identityPwdTarget !== player) return; // modal was cancelled before this response arrived
+      if (res && res.granted) {
+        applyIdentity(player.name);
+        closeIdentityPwdModal();
+        showToast(`Identité confirmée : ${player.name}`, 'success');
+      } else {
+        const box = document.querySelector('#identityPwdModal .identity-pwd-box');
+        document.getElementById('identityPwdError').style.display = 'block';
+        box.classList.remove('shake');
+        void box.offsetWidth; // restart animation
+        box.classList.add('shake');
+        document.getElementById('identityPwdInput').select();
+      }
+    }, 'Vérification identité', () => { btn.disabled = false; });
+  }
+
+  /** Sets the current identity and refreshes the who-am-i button + dropdown. */
+  function applyIdentity(name) {
+    _whoAmI = name;
+    localStorage.setItem(WHO_AM_I_KEY, name);
+    renderWhoAmI();
+    document.getElementById('whoAmIWrap').classList.remove('open');
+  }
+
   function renderWhoAmI() {
     const wrap     = document.getElementById('whoAmIWrap');
     const avatar   = document.getElementById('whoAmIAvatar');
@@ -4621,23 +4727,41 @@
     updateBtn();
 
     dropdown.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'who-am-i-header';
+    header.textContent = 'Qui suis-je ?';
+    dropdown.appendChild(header);
+
     cachedPlayers.forEach(p => {
       const opt = document.createElement('button');
       opt.type = 'button';
       opt.className = 'who-am-i-option' + (p.name === _whoAmI ? ' active' : '');
+      if (p.color) opt.style.setProperty('--wai-color', p.color);
+
       const img = document.createElement('img');
       img.src = getAvatarUrl(p.name, p.meta);
       img.onerror = () => { img.src = getAvatarUrl(p.name, ''); };
       img.alt = '';
       opt.appendChild(img);
-      opt.appendChild(document.createTextNode(p.name));
+
+      const label = document.createElement('span');
+      label.className = 'who-am-i-label';
+      label.textContent = p.name;
+      opt.appendChild(label);
+
+      const badge = document.createElement('span');
+      badge.className = 'who-am-i-badge';
+      badge.textContent = p.name === _whoAmI ? '✓' : (p.hasPassword ? '🔒' : '');
+      opt.appendChild(badge);
+
       opt.addEventListener('click', () => {
-        _whoAmI = p.name;
-        localStorage.setItem(WHO_AM_I_KEY, p.name);
-        updateBtn();
-        wrap.classList.remove('open');
-        dropdown.querySelectorAll('.who-am-i-option').forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
+        if (p.name === _whoAmI) { wrap.classList.remove('open'); return; }
+        if (p.hasPassword) {
+          wrap.classList.remove('open');
+          openIdentityPwdModal(p);
+        } else {
+          applyIdentity(p.name);
+        }
       });
       dropdown.appendChild(opt);
     });
@@ -8511,6 +8635,16 @@
     document.addEventListener('click', () => {
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap) wrap.classList.remove('open');
+    });
+
+    document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
+    document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
+    document.getElementById('identityPwdInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitIdentityPwd();
+      if (e.key === 'Escape') closeIdentityPwdModal();
+    });
+    document.getElementById('identityPwdModal').addEventListener('click', e => {
+      if (e.target.id === 'identityPwdModal') closeIdentityPwdModal();
     });
 
     // Close any open RichSelect when clicking outside

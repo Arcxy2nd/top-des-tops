@@ -1,7 +1,7 @@
 /**
  * SPREADSHEET STRUCTURE
  * History   : [0] Date | [1] Player   | [2] Category  | [3] Points | [4] Description
- * Players   : [0] Name | [1] Avatar URL | [2] Hex color
+ * Players   : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client)
  * Categories: [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
  * Notes     : [0] Date | [1] Player   | [2] Note text
  * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
@@ -140,12 +140,13 @@ const SettingsService = {
     const data  = sheet.getDataRange().getValues();
     return data.filter(r => r[0]).map(r => {
       if (type === 'Players') {
-        // Players : [0] Name | [1] Avatar URL | [2] Hex color
+        // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client)
         return {
           name:  r[0].toString(),
           meta:  r[1] ? r[1].toString() : "",
           icon:  "",
-          color: r[2] ? r[2].toString() : ""
+          color: r[2] ? r[2].toString() : "",
+          hasPassword: !!(r[3] && r[3].toString().trim())
         };
       } else {
         // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
@@ -220,6 +221,20 @@ const SettingsService = {
       }
       if (modified) range.setValues(vals);
     }
+  },
+
+  /** Returns true if the given password matches the player's password (column D of Players). */
+  verifyIdentity(name, password) {
+    const sheet = ConfigService.getSheets().players;
+    const data  = sheet.getDataRange().getValues();
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] === name) {
+        const stored = data[i][3] ? data[i][3].toString().trim() : "";
+        if (!stored) return true; // no password configured → free access
+        return stored === (password || "").toString().trim();
+      }
+    }
+    throw new Error(`Joueur "${name}" introuvable.`);
   }
 };
 
@@ -1194,6 +1209,15 @@ function _entityColorSummary(type, name) {
     const found = SettingsService.getEntities(type).find(function(e) { return e.name === name; });
     return found ? (found.color || '') : '';
   } catch (_) { return ''; }
+}
+
+/** Verifies an identity password server-side. Never returns the password itself. */
+function apiVerifyIdentity(name, password) {
+  try {
+    return { success: true, granted: SettingsService.verifyIdentity(name, password) };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 }
 
 function apiDeleteHistoryEntries(rowIndexes, author) {
