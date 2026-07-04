@@ -353,6 +353,24 @@
     .seg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .entry-row:hover { border-color: var(--accent); }
 
+    /* ── TRI / RÉORGANISATION DES LIGNES ── */
+    .lot-sort-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .lot-sort-btn {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 12px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .lot-sort-btn:hover { border-color: var(--accent); color: var(--text); }
+    .lot-sort-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .lot-sort-btn .sort-arrow { display: inline-block; width: 10px; }
+    .row-drag-handle {
+      cursor: grab; color: var(--text-muted); font-size: 1rem; user-select: none;
+      padding: 0 2px; display: flex; align-items: center; flex-shrink: 0;
+    }
+    .row-drag-handle:active { cursor: grabbing; }
+    .entry-row.row-dragging { opacity: 0.4; }
+    .entry-row.row-drop-target { border-top: 2px solid var(--accent); }
+
     /* ── LAYOUT INTERNE LIGNE (2 rangées) ── */
     .row-top {
       display: flex; align-items: center; gap: 10px;
@@ -2244,6 +2262,12 @@
         <button id="lotGroupApplyBtn" class="primary small" disabled>🔗 Grouper la sélection</button>
         <button id="lotGroupCancelBtn" class="secondary small">✕ Annuler</button>
       </div>
+      <div class="lot-sort-bar">
+        <button type="button" class="lot-sort-btn" data-sort-criterion="player">👤 Joueur <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="category">🏷️ Top <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="points">🔢 Points <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="date">📅 Date <span class="sort-arrow"></span></button>
+      </div>
       <div class="lot-action-row">
         <button id="addRowBtn" class="btn-add-row">＋ Ligne</button>
         <button id="lotGroupModeBtn" class="btn-group-mode">🔗 Grouper</button>
@@ -2866,12 +2890,13 @@
     if (logoInput)  logoInput.value  = _appSettings.logoUrl;
   }
 
-  function loadAppBranding() {
+  function loadAppBranding(onDone) {
     callServer('apiGetAppSettings', [], res => {
       _appSettings = { appTitle: res.appTitle, logoUrl: res.logoUrl };
       applyAppBranding();
       populateAppSettingsForm();
-    }, 'Chargement identité app');
+      if (onDone) onDone();
+    }, 'Chargement identité app', () => { if (onDone) onDone(); });
   }
 
   // ── BANDEAU RÉSUMÉ RAPIDE ─────────────────────────────────────────────
@@ -4454,18 +4479,26 @@
 
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
   function globalRefresh() {
-    loadEntities();
-    applyFilters();
-    loadQuickStats();
-    loadAppBranding();
+    const btn = document.getElementById('globalRefreshBtn');
+    const stopLoading = startBtnLoading(btn);
+    let pending = 2; // loadEntities + loadAppBranding
+    const onDone = () => {
+      if (--pending > 0) return;
+      stopLoading();
+      flashSaved(btn);
+      lastRefreshTime = new Date();
+      updateRefreshBadge();
+    };
+
+    loadEntities(onDone);
+    loadAppBranding(onDone);
+
     const activeTab = document.querySelector('.tab-content.active');
     if (activeTab) {
       const tabId = activeTab.id;
       if (tabId === 'tab-history') loadHistoryPage(currentHistoryPage);
       if (tabId === 'tab-notes')   loadNotes();
     }
-    lastRefreshTime = new Date();
-    updateRefreshBadge();
   }
 
   function updateRefreshBadge() {
@@ -4589,7 +4622,7 @@
   });
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
-  function loadEntities() {
+  function loadEntities(onDone) {
     showSkeleton(document.getElementById('playersList'),    { rows: 3, height: 44, tag: 'li' });
     showSkeleton(document.getElementById('categoriesList'), { rows: 3, height: 44, tag: 'li' });
     callServer('apiGetSettings', [], res => {
@@ -4630,6 +4663,7 @@
       // faut actualiser pour les voir apparaître.
       applyFilters();
       loadQuickStats();
+      if (onDone) onDone();
 
     }, 'Chargement settings', () => {
       // apiGetSettings a échoué : les skeletons affichés au chargement de la page
@@ -4641,6 +4675,7 @@
       document.getElementById('chartWrapper').style.display  = 'block';
       document.getElementById('playersList').innerHTML    = '';
       document.getElementById('categoriesList').innerHTML = '';
+      if (onDone) onDone();
     });
   }
 
@@ -6133,6 +6168,117 @@
     return wrap;
   }
 
+  // ── TRI / RÉORGANISATION DES LIGNES ─────────────────────────────────
+  let activeSortCriterion = null; // 'player' | 'category' | 'points' | 'date' | null
+  let activeSortAscending = true;
+  let draggedRow = null;
+
+  function listIndexOf(list, name) {
+    const i = list.findIndex(x => x.name === name);
+    return i === -1 ? list.length : i;
+  }
+
+  function rowPlayerName(row) { return (row.querySelector('.p-sel') || {}).value || ''; }
+  function rowCategoryName(row) { return (row.querySelector('.c-sel') || {}).value || ''; }
+  function rowPoints(row) { return parseInt((row.querySelector('.custom-pts-in') || {}).value, 10) || 0; }
+  function rowDate(row) { return (row.querySelector('.d-start') || {}).value || ''; }
+
+  function compareByPlayer(a, b) {
+    return listIndexOf(cachedPlayers, rowPlayerName(a)) - listIndexOf(cachedPlayers, rowPlayerName(b));
+  }
+  function compareByCategory(a, b) {
+    return listIndexOf(cachedCategories, rowCategoryName(a)) - listIndexOf(cachedCategories, rowCategoryName(b));
+  }
+  function compareByPoints(a, b) { return rowPoints(a) - rowPoints(b); }
+  function compareByDate(a, b) { return rowDate(a) < rowDate(b) ? -1 : (rowDate(a) > rowDate(b) ? 1 : 0); }
+
+  const SORT_COMPARATORS = {
+    player: compareByPlayer,
+    category: compareByCategory,
+    points: compareByPoints,
+    date: compareByDate
+  };
+  const SORT_CHAIN_ORDER = ['player', 'category', 'points', 'date'];
+
+  function sortEntryRows(criterion) {
+    if (activeSortCriterion === criterion) {
+      activeSortAscending = !activeSortAscending;
+    } else {
+      activeSortCriterion = criterion;
+      activeSortAscending = true;
+    }
+
+    const chain = [criterion, ...SORT_CHAIN_ORDER.filter(c => c !== criterion)];
+    const container = document.getElementById('entryContainer');
+    const rows = Array.from(container.querySelectorAll('.entry-row'));
+
+    rows.sort((a, b) => {
+      for (let i = 0; i < chain.length; i++) {
+        const cmp = SORT_COMPARATORS[chain[i]](a, b);
+        if (cmp !== 0) {
+          return (i === 0 && !activeSortAscending) ? -cmp : cmp;
+        }
+      }
+      return 0;
+    });
+
+    rows.forEach(r => container.appendChild(r));
+    updateSortButtonsUI();
+  }
+
+  function updateSortButtonsUI() {
+    document.querySelectorAll('.lot-sort-btn').forEach(btn => {
+      const c = btn.dataset.sortCriterion;
+      const isActive = c === activeSortCriterion;
+      btn.classList.toggle('active', isActive);
+      const arrow = btn.querySelector('.sort-arrow');
+      if (arrow) arrow.textContent = isActive ? (activeSortAscending ? '↑' : '↓') : '';
+    });
+  }
+
+  function clearActiveSortState() {
+    activeSortCriterion = null;
+    activeSortAscending = true;
+    updateSortButtonsUI();
+  }
+
+  function attachRowDragEvents(row) {
+    row.addEventListener('dragstart', (e) => {
+      draggedRow = row;
+      row.classList.add('row-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('row-dragging');
+      document.querySelectorAll('.entry-row.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
+      draggedRow = null;
+    });
+
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!draggedRow || draggedRow === row) return;
+      document.querySelectorAll('.entry-row.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
+      row.classList.add('row-drop-target');
+    });
+
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('row-drop-target');
+      if (!draggedRow || draggedRow === row) return;
+      const container = document.getElementById('entryContainer');
+      const rows = Array.from(container.querySelectorAll('.entry-row'));
+      const draggedIndex = rows.indexOf(draggedRow);
+      const targetIndex = rows.indexOf(row);
+      if (draggedIndex < targetIndex) {
+        row.after(draggedRow);
+      } else {
+        row.before(draggedRow);
+      }
+      clearActiveSortState();
+    });
+  }
+
   function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
     const es = container.querySelector('.empty-state');
@@ -6152,6 +6298,8 @@
     const div = document.createElement('div');
     div.className = 'entry-row';
     div.id = 'row_' + rowCounter;
+    div.draggable = true;
+    attachRowDragEvents(div);
 
     // Avatar fondu en fond
     const avatarBg = document.createElement('div');
@@ -6330,6 +6478,11 @@
     // Rangée principale : joueur, top, valeur pts, actions
     const topRow = document.createElement('div');
     topRow.className = 'row-top';
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'row-drag-handle';
+    dragHandle.textContent = '⠿';
+    dragHandle.title = 'Glisser pour réorganiser';
+    topRow.appendChild(dragHandle);
     topRow.appendChild(wrap);
     topRow.appendChild(cSelWrap);
     topRow.appendChild(customPtsInput);
@@ -8200,6 +8353,9 @@
     });
 
     document.getElementById('addRowBtn').addEventListener('click', (e) => addEntryRow(undefined, e.currentTarget));
+    document.querySelectorAll('.lot-sort-btn').forEach(btn => {
+      btn.addEventListener('click', () => sortEntryRows(btn.dataset.sortCriterion));
+    });
     document.getElementById('saveAppSettingsBtn').addEventListener('click', (e) => {
       if (!requireIdentity()) return;
       const btn   = e.currentTarget;
