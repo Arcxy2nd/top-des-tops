@@ -6,6 +6,7 @@
  * Notes     : [0] Date | [1] Player   | [2] Note text
  * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
  * Settings  : [0] Key  | [1] Value  (optional sheet, auto-created — app_title, logo_url)
+ * AutoRules : automatic point-granting rules (optional sheet, auto-created — see AutoPoints.gs)
  */
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -34,7 +35,8 @@ const ConfigService = (() => {
       const phrases  = ss.getSheetByName('Phrases')  || null;
       const auditLog = ss.getSheetByName('AuditLog') || null;
       const settings = ss.getSheetByName('Settings') || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings };
+      const autoRules = ss.getSheetByName('AutoRules') || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -1305,6 +1307,7 @@ function apiGetQuickStats() {
       stats: {
         leader: leader ? { player: leader.player, points: leader.points } : null,
         gap: gap,
+        chaser: second ? { player: second.player, points: second.points } : null,
         monthCount: monthCount,
         lastEvent: last ? {
           player:   last.player,
@@ -1326,7 +1329,7 @@ function apiGetDataHealth() {
 }
 
 // ── Journal d'audit (lecture paginée et filtrable) ─────────────────────────────
-function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, endDate) {
+function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, endDate, searchText) {
   try {
     const sheet = ConfigService.getSheets().auditLog;
     if (!sheet) return { success: true, logs: [], total: 0 };
@@ -1337,6 +1340,7 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
     // Date bounds parsed in server local time (GAS runs UTC). Frontend sends YYYY-MM-DD.
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
+    const needle = (searchText || '').trim().toLowerCase();
 
     const filtered = [];
     for (let i = data.length - 1; i >= 0; i--) {  // reverse → les plus récents d'abord
@@ -1347,6 +1351,10 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
       if (filterAction && row[2] !== filterAction) continue;
       if (start && ts < start) continue;
       if (end   && ts > end)   continue;
+      if (needle) {
+        const haystack = (row[3] + ' ' + row[4] + ' ' + row[5] + ' ' + row[6]).toLowerCase();
+        if (haystack.indexOf(needle) === -1) continue;
+      }
       filtered.push({
         timestamp: ts.toISOString(),
         author:    row[1] ? row[1].toString() : '',
@@ -1664,6 +1672,28 @@ function apiUngroupLot(groupId, author) {
         }
       }
       AuditService.log(author, 'Dégroupement lot', 'History', groupId, '', '');
+      ConfigService.clearCache();
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiDeleteGroup(groupId, author) {
+  try {
+    if (!groupId) throw new Error("GroupID manquant.");
+    return withLock(() => {
+      const sheet = ConfigService.getSheets().history;
+      const lastRow = sheet.getLastRow();
+      if (lastRow <= 1) return { success: true };
+      const data = sheet.getRange(2, 6, lastRow - 1, 1).getValues();
+      const rowsToDelete = [];
+      for (let i = 0; i < data.length; i++) {
+        if (data[i][0] && data[i][0].toString() === groupId) rowsToDelete.push(i + 2);
+      }
+      if (!rowsToDelete.length) throw new Error("Groupe introuvable.");
+      rowsToDelete.sort((a, b) => b - a).forEach(ri => sheet.deleteRow(ri));
+      AuditService.log(author, 'Suppression groupe', 'History', groupId, '',
+        rowsToDelete.length + ' entrée(s)');
       ConfigService.clearCache();
       return { success: true };
     });

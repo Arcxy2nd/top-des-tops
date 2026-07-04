@@ -18,12 +18,14 @@
       --accent: #ff4757; --accent-hover: #ff6b81;
       --text: #e0e6ed; --text-muted: #9aa5be;
       --success: #2ed573; --error: #ff4757;
+      --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
       --btn-alt: #353b48; --tap-min: 44px;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
       --accent: #e53e3e; --accent-hover: #c53030;
       --text: #1a202c; --text-muted: #4a5568;
+      --warn: #d97706; --info: #4f5fd6; --clean: #0e7490;
       --btn-alt: #e2e8f0;
     }
     *, *::before, *::after { box-sizing: border-box; }
@@ -62,8 +64,11 @@
       display: flex; align-items: center; gap: 8px;
       background: rgba(0,0,0,0.2); border: 1px solid var(--border);
       border-radius: 10px; padding: 8px 14px; flex-shrink: 0;
-      min-width: 150px;
+      min-width: 150px; font: inherit; color: inherit; text-align: left;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
     }
+    .qs-pill:hover { background: rgba(0,0,0,0.32); border-color: var(--accent, #7c9cff); }
+    .qs-pill:active { transform: scale(0.98); }
     .qs-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .qs-pill-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .qs-pill-label { font-size: 0.7rem; color: var(--text-muted); }
@@ -354,7 +359,33 @@
     .entry-row:hover { border-color: var(--accent); }
 
     /* ── TRI / RÉORGANISATION DES LIGNES ── */
-    .lot-sort-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .lot-sort-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+    .lot-sort-label { font-size: 0.8rem; color: var(--text-muted); margin-right: 2px; }
+    .lot-recap-list { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; max-height: 40vh; overflow-y: auto; }
+    .lot-recap-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      background: rgba(0,0,0,0.15); border-radius: 8px;
+    }
+    .lot-recap-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .lot-recap-name { flex: 1; font-weight: 600; }
+    .lot-recap-pts { font-weight: 700; color: var(--accent); }
+    .auto-weekday-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
+    .auto-weekday-row label { display: flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--text-muted); }
+    .auto-rules-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .auto-rule-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: rgba(0,0,0,0.15); border-radius: 8px; flex-wrap: wrap;
+    }
+    .auto-rule-row.inactive { opacity: 0.5; }
+    .auto-rule-main { flex: 1; min-width: 200px; font-size: 0.85rem; }
+    .auto-rule-main strong { color: var(--accent); }
+    .auto-rule-schedule { font-size: 0.75rem; color: var(--text-muted); }
+    .audit-clickable-cell {
+      display: flex; align-items: center; gap: 6px; background: none; border: none;
+      color: inherit; font: inherit; cursor: pointer; padding: 2px 4px; border-radius: 6px;
+      text-align: left;
+    }
+    .audit-clickable-cell:hover { background: rgba(0,0,0,0.15); }
     .lot-sort-btn {
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
       padding: 6px 12px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;
@@ -2013,6 +2044,29 @@
   .audit-filters select, .audit-filters input[type="date"] {
     width: auto; flex: 1; min-width: 120px;
   }
+  .audit-search-input { flex: 2; min-width: 180px; }
+  .audit-time-rel { font-size: 0.7rem; opacity: 0.75; }
+  .audit-row { animation: auditRowIn 0.2s ease; }
+  @keyframes auditRowIn { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+  .audit-day-sep-row td {
+    padding: 10px 8px 4px !important; border: none !important; background: transparent !important;
+  }
+  .audit-day-sep {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 6px;
+  }
+  .audit-action-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px !important; border-radius: 999px; font-weight: 600; font-size: 0.78rem;
+    border: 1px solid transparent; background: rgba(255,255,255,0.05);
+  }
+  .audit-action-icon { font-size: 0.85rem; line-height: 1; }
+  .audit-cat-create { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); border-color: color-mix(in srgb, var(--success) 35%, transparent); }
+  .audit-cat-delete { color: var(--error);   background: color-mix(in srgb, var(--error) 14%, transparent);   border-color: color-mix(in srgb, var(--error) 35%, transparent); }
+  .audit-cat-update { color: var(--warn);    background: color-mix(in srgb, var(--warn) 14%, transparent);    border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .audit-cat-auto   { color: var(--info);    background: color-mix(in srgb, var(--info) 14%, transparent);    border-color: color-mix(in srgb, var(--info) 35%, transparent); }
+  .audit-cat-clean  { color: var(--clean);   background: color-mix(in srgb, var(--clean) 14%, transparent);   border-color: color-mix(in srgb, var(--clean) 35%, transparent); }
+  .audit-cat-other  { color: var(--text-muted); background: rgba(255,255,255,0.04); }
   @media (max-width: 640px) {
     .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; }
   }
@@ -2107,32 +2161,32 @@
 </nav>
 
 <div id="quickStatsBar" class="quick-stats-bar">
-  <div class="qs-pill qs-leader">
+  <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
     <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
     <div class="qs-pill-text">
       <span class="qs-pill-label">🏆 Leader</span>
       <span class="qs-pill-value" id="qsLeaderValue">—</span>
     </div>
-  </div>
-  <div class="qs-pill">
+  </button>
+  <button type="button" class="qs-pill" id="qsGapPill" title="Voir le classement complet">
     <div class="qs-pill-text">
       <span class="qs-pill-label">📊 Écart</span>
       <span class="qs-pill-value" id="qsGapValue">—</span>
     </div>
-  </div>
-  <div class="qs-pill">
+  </button>
+  <button type="button" class="qs-pill" id="qsMonthPill" title="Voir l'historique de ce mois-ci">
     <div class="qs-pill-text">
       <span class="qs-pill-label">📅 Ce mois-ci</span>
       <span class="qs-pill-value" id="qsMonthValue">—</span>
     </div>
-  </div>
-  <div class="qs-pill qs-last">
+  </button>
+  <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
     <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
     <div class="qs-pill-text">
       <span class="qs-pill-label">🕐 Dernier event</span>
       <span class="qs-pill-value" id="qsLastValue">—</span>
     </div>
-  </div>
+  </button>
 </div>
 
 <div class="container">
@@ -2263,10 +2317,11 @@
         <button id="lotGroupCancelBtn" class="secondary small">✕ Annuler</button>
       </div>
       <div class="lot-sort-bar">
-        <button type="button" class="lot-sort-btn" data-sort-criterion="player">👤 Joueur <span class="sort-arrow"></span></button>
-        <button type="button" class="lot-sort-btn" data-sort-criterion="category">🏷️ Top <span class="sort-arrow"></span></button>
-        <button type="button" class="lot-sort-btn" data-sort-criterion="points">🔢 Points <span class="sort-arrow"></span></button>
-        <button type="button" class="lot-sort-btn" data-sort-criterion="date">📅 Date <span class="sort-arrow"></span></button>
+        <span class="lot-sort-label">🔀 Trier par :</span>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="player" title="Trier les lignes par joueur">👤 Joueur <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="category" title="Trier les lignes par Top">🏷️ Top <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="points" title="Trier les lignes par nombre de points">🔢 Points <span class="sort-arrow"></span></button>
+        <button type="button" class="lot-sort-btn" data-sort-criterion="date" title="Trier les lignes par date">📅 Date <span class="sort-arrow"></span></button>
       </div>
       <div class="lot-action-row">
         <button id="addRowBtn" class="btn-add-row">＋ Ligne</button>
@@ -2401,6 +2456,57 @@
       </p>
       <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
       <div id="detectResults" class="detect-results"></div>
+
+      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+
+      <h2>🤖 Points automatiques</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+        Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
+      </p>
+      <div class="tool-action">
+        <div class="tool-action-info">
+          <strong>Exécution automatique</strong>
+          <span id="autoTriggerStatus">—</span>
+        </div>
+        <button id="autoTriggerToggleBtn" class="secondary small">…</button>
+      </div>
+
+      <div class="add-form" style="margin-top:14px;">
+        <p class="add-form-label">Joueur</p>
+        <select id="autoRulePlayer"></select>
+        <p class="add-form-label">Top (catégorie)</p>
+        <select id="autoRuleCategory"></select>
+        <p class="add-form-label">Points à ajouter</p>
+        <input type="number" id="autoRulePoints" min="1" step="1" value="1">
+        <p class="add-form-label">Description (optionnelle)</p>
+        <input type="text" id="autoRuleDescription" placeholder="Ex : Bonus de régularité">
+        <p class="add-form-label">Régularité</p>
+        <select id="autoRuleFrequency">
+          <option value="daily">Tous les jours</option>
+          <option value="weekly">Certains jours de la semaine</option>
+          <option value="monthly">Un jour précis du mois</option>
+        </select>
+        <div id="autoRuleWeekdays" class="auto-weekday-row" style="display:none;">
+          <label><input type="checkbox" value="1"> Lun</label>
+          <label><input type="checkbox" value="2"> Mar</label>
+          <label><input type="checkbox" value="3"> Mer</label>
+          <label><input type="checkbox" value="4"> Jeu</label>
+          <label><input type="checkbox" value="5"> Ven</label>
+          <label><input type="checkbox" value="6"> Sam</label>
+          <label><input type="checkbox" value="0"> Dim</label>
+        </div>
+        <div id="autoRuleDayOfMonth" style="display:none;">
+          <p class="add-form-label">Jour du mois</p>
+          <input type="number" id="autoRuleDayOfMonthInput" min="1" max="31" step="1" value="1">
+        </div>
+        <p class="add-form-label">Répéter tous les <span id="autoRuleIntervalUnit">jours</span></p>
+        <input type="number" id="autoRuleInterval" min="1" step="1" value="1">
+        <p class="add-form-label">Démarrer à partir du</p>
+        <input type="date" id="autoRuleStartDate">
+        <button id="addAutoRuleBtn" class="primary small">＋ Créer la règle</button>
+      </div>
+
+      <div id="autoRulesList" class="auto-rules-list"></div>
     </div>
 
     <!-- ─ Identité de l'app ─ -->
@@ -2481,6 +2587,7 @@
       <div class="card">
         <h2>🔍 Journal d'audit</h2>
         <div class="audit-filters">
+          <input type="text" id="auditFilterSearch" placeholder="🔍 Rechercher (entité, détail…)" class="audit-search-input">
           <select id="auditFilterAuthor">
             <option value="">Tous les auteurs</option>
           </select>
@@ -2496,6 +2603,13 @@
             <option>Groupement lot</option>
             <option>Lots auto-groupés</option>
             <option>Dégroupement lot</option>
+            <option>Suppression groupe</option>
+            <option>Création règle auto</option>
+            <option>Modification règle auto</option>
+            <option>Suppression règle auto</option>
+            <option>Points automatiques</option>
+            <option>Activation auto-trigger</option>
+            <option>Désactivation auto-trigger</option>
             <option>Nettoyage zéros</option>
             <option>Nettoyage orphelins</option>
             <option>Joueur ajouté</option>
@@ -2528,7 +2642,7 @@
             <thead>
               <tr>
                 <th>Quand</th><th>Qui</th><th>Action</th>
-                <th>Entité</th><th>Avant → Après</th><th>Détail</th>
+                <th>Entité</th><th>Avant → Après</th><th>Détail</th><th></th>
               </tr>
             </thead>
             <tbody id="auditTableBody"></tbody>
@@ -2935,7 +3049,13 @@
         leaderValue.textContent = 'Pas encore de scores';
       }
 
-      gapValue.textContent = (s.gap === null) ? '—' : (s.gap === 0 ? 'Égalité' : s.gap + ' pts');
+      if (s.gap === null) {
+        gapValue.textContent = '—';
+      } else if (s.gap === 0) {
+        gapValue.textContent = s.chaser ? 'Égalité avec ' + s.chaser.player : 'Égalité';
+      } else {
+        gapValue.textContent = s.gap + ' pts' + (s.chaser ? ' devant ' + s.chaser.player : '');
+      }
       monthValue.textContent = s.monthCount + ' event' + (s.monthCount > 1 ? 's' : '');
 
       if (s.lastEvent) {
@@ -2950,6 +3070,15 @@
       }
     }, 'Chargement résumé');
   }
+
+  function goToPodium() {
+    goToTab('tab-dashboard');
+    document.getElementById('phrasesCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.getElementById('qsLeaderPill').addEventListener('click', goToPodium);
+  document.getElementById('qsGapPill').addEventListener('click', goToPodium);
+  document.getElementById('qsMonthPill').addEventListener('click', () => goToTab('tab-history'));
+  document.getElementById('qsLastPill').addEventListener('click', () => goToTab('tab-history'));
 
   // ── ICÔNES DE CATÉGORIE (emoji) ──────────────────────────────────────
   function catIcon(name) {
@@ -3418,7 +3547,7 @@
         const target = btn.dataset.stab;
         document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
-        if (target === 'stab-tools') loadDataHealth();
+        if (target === 'stab-tools') { loadDataHealth(); loadAutoRules(); }
         if (target === 'stab-identity') populateAppSettingsForm();
       });
     });
@@ -4527,6 +4656,38 @@
     box.innerHTML = '';
     box.style.maxWidth = '';
     box.classList.remove('wide');
+  }
+
+  function openLotRecapModal(plan) {
+    const perPlayer = {};
+    let totalPts = 0, totalEntries = 0;
+    plan.forEach(dayPlan => {
+      dayPlan.entries.forEach(e => {
+        perPlayer[e.player] = (perPlayer[e.player] || 0) + e.points;
+        totalPts += e.points;
+        totalEntries++;
+      });
+    });
+    const rows = Object.keys(perPlayer)
+      .sort((a, b) => perPlayer[b] - perPlayer[a])
+      .map(name => {
+        const p = cachedPlayers.find(pl => pl.name === name);
+        const avatar = getAvatarUrl(name, p ? p.meta : '');
+        return '<div class="lot-recap-row">' +
+          '<img class="lot-recap-avatar" src="' + escapeHtml(avatar) + '" alt="" onerror="this.src=getAvatarUrl(' + JSON.stringify(name) + ',\'\')">' +
+          '<span class="lot-recap-name">' + escapeHtml(name) + '</span>' +
+          '<span class="lot-recap-pts">+' + perPlayer[name] + ' pts</span>' +
+        '</div>';
+      }).join('');
+
+    const box = document.getElementById('modalBox');
+    box.innerHTML =
+      '<h3>✅ Lot enregistré</h3>' +
+      '<p style="color:var(--text-muted);margin-top:-6px;">' + totalEntries + ' entrée(s) sur ' + plan.length + ' date(s) · ' + totalPts + ' pts au total</p>' +
+      '<div class="lot-recap-list">' + rows + '</div>' +
+      '<div class="modal-actions"><button id="mRecapClose" class="primary">OK</button></div>';
+    document.getElementById('mRecapClose').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
   function openConfirmModal(msg, onConfirm) {
@@ -7049,6 +7210,7 @@
       applyFilters();
       baremeEntries = null;
       showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
+      openLotRecapModal(plan);
     }, 'Envoi lot', () => { restore(); });
   }
 
@@ -7119,12 +7281,35 @@
     const action = document.getElementById('auditFilterAction').value || null;
     const from   = document.getElementById('auditFilterFrom').value  || null;
     const to     = document.getElementById('auditFilterTo').value    || null;
+    const search = document.getElementById('auditFilterSearch').value.trim() || null;
     callServer(
       'apiGetAuditLog',
-      [_auditCurrentPage, AUDIT_PAGE_SIZE, author, action, from, to],
+      [_auditCurrentPage, AUDIT_PAGE_SIZE, author, action, from, to, search],
       res => renderAuditTable(res),
       'Chargement journal'
     );
+  }
+
+  // Catégorise une action du journal pour l'affichage (icône + couleur).
+  const AUDIT_CATEGORIES = [
+    { test: /auto/i,                                            icon: '🤖', cls: 'auto'   },
+    { test: /suppr/i,                                            icon: '🗑️', cls: 'delete' },
+    { test: /ajout|créé/i,                                       icon: '➕', cls: 'create' },
+    { test: /modif|renommé|couleur|description|groupement|dégroupement/i, icon: '✏️', cls: 'update' },
+    { test: /nettoyage/i,                                        icon: '🧹', cls: 'clean'  }
+  ];
+  function categorizeAuditAction(action) {
+    const found = AUDIT_CATEGORIES.find(c => c.test.test(action || ''));
+    return found || { icon: '•', cls: 'other' };
+  }
+
+  function auditDayLabel(d) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const day = new Date(d); day.setHours(0, 0, 0, 0);
+    if (day.getTime() === today.getTime())     return "Aujourd'hui";
+    if (day.getTime() === yesterday.getTime()) return 'Hier';
+    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
   function renderAuditTable(res) {
@@ -7136,31 +7321,56 @@
     if (!res || !res.success || !res.logs || !res.logs.length) {
       const empty = tbody.insertRow();
       const td = empty.insertCell();
-      td.colSpan = 6;
+      td.colSpan = 7;
       td.style.cssText = 'text-align:center;color:var(--text-muted);padding:24px;';
       td.textContent = 'Aucune entrée dans le journal.';
       return;
     }
 
     const pad2 = n => String(n).padStart(2, '0');
+    let lastDayKey = null;
 
     res.logs.forEach(log => {
+      const ts = new Date(log.timestamp);
+
+      // Séparateur de jour ("Aujourd'hui", "Hier", ou date complète)
+      if (!isNaN(ts.getTime())) {
+        const dayKey = ts.getFullYear() + '-' + ts.getMonth() + '-' + ts.getDate();
+        if (dayKey !== lastDayKey) {
+          lastDayKey = dayKey;
+          const sepTr = tbody.insertRow();
+          sepTr.className = 'audit-day-sep-row';
+          const sepTd = sepTr.insertCell();
+          sepTd.colSpan = 7;
+          sepTd.className = 'audit-day-sep';
+          sepTd.textContent = auditDayLabel(ts);
+        }
+      }
+
       const tr = tbody.insertRow();
+      tr.className = 'audit-row';
 
-      // Quand
-      const ts      = new Date(log.timestamp);
+      // Quand — date complète + heure relative
       const dateStr = isNaN(ts.getTime()) ? '—'
-        : ts.getDate() + '/' + pad2(ts.getMonth() + 1) + '/' + ts.getFullYear()
-          + ' ' + pad2(ts.getHours()) + ':' + pad2(ts.getMinutes());
+        : pad2(ts.getHours()) + ':' + pad2(ts.getMinutes());
       const tdWhen = tr.insertCell();
-      tdWhen.textContent = dateStr;
       tdWhen.style.cssText = 'font-size:0.78rem;color:var(--text-muted);white-space:nowrap;';
+      const timeMain = document.createElement('div');
+      timeMain.textContent = dateStr;
+      const timeRel = document.createElement('div');
+      timeRel.className = 'audit-time-rel';
+      timeRel.textContent = isNaN(ts.getTime()) ? '' : timeAgo(ts);
+      tdWhen.appendChild(timeMain);
+      tdWhen.appendChild(timeRel);
 
-      // Qui (avatar + nom — règle UX universelle)
+      // Qui (avatar + nom — règle UX universelle) — cliquable pour filtrer par cet auteur
       const tdWho = tr.insertCell();
       tdWho.className = 'hist-player-cell';
       if (log.author) {
         const p    = cachedPlayers.find(pl => pl.name === log.author);
+        const btn  = document.createElement('button');
+        btn.className = 'audit-clickable-cell';
+        btn.title  = 'Filtrer le journal sur ' + log.author;
         const img  = document.createElement('img');
         img.src    = getAvatarUrl(log.author, p ? p.meta : '');
         img.onerror = () => { img.src = getAvatarUrl(log.author, ''); };
@@ -7168,21 +7378,53 @@
         const span = document.createElement('span');
         span.className = 'hist-player-name';
         span.textContent = log.author;
-        tdWho.appendChild(img);
-        tdWho.appendChild(span);
+        btn.appendChild(img);
+        btn.appendChild(span);
+        btn.addEventListener('click', () => {
+          document.getElementById('auditFilterAuthor').value = log.author;
+          loadAuditLog(1);
+        });
+        tdWho.appendChild(btn);
       } else {
         tdWho.textContent = '—';
       }
 
-      // Action
+      // Action — pastille colorée par catégorie, cliquable pour filtrer
       const tdAction = tr.insertCell();
-      tdAction.textContent = log.action || '—';
-      tdAction.style.fontWeight = '600';
+      if (log.action) {
+        const cat = categorizeAuditAction(log.action);
+        const actionBtn = document.createElement('button');
+        actionBtn.className = 'audit-clickable-cell audit-action-pill audit-cat-' + cat.cls;
+        actionBtn.title = 'Filtrer le journal sur "' + log.action + '"';
+        actionBtn.innerHTML = '<span class="audit-action-icon">' + cat.icon + '</span><span>' + escapeHtml(log.action) + '</span>';
+        actionBtn.addEventListener('click', () => {
+          const sel = document.getElementById('auditFilterAction');
+          if (Array.from(sel.options).some(o => o.value === log.action)) {
+            sel.value = log.action;
+            loadAuditLog(1);
+          }
+        });
+        tdAction.appendChild(actionBtn);
+      } else {
+        tdAction.textContent = '—';
+      }
 
-      // Entité
+      // Entité — cliquable pour rechercher cette entité
       const tdEntity = tr.insertCell();
-      tdEntity.textContent = log.entity || '—';
-      tdEntity.style.cssText = 'font-size:0.82rem;color:var(--text-muted);';
+      if (log.entity) {
+        const entityBtn = document.createElement('button');
+        entityBtn.className = 'audit-clickable-cell';
+        entityBtn.style.cssText = 'font-size:0.82rem;color:var(--text-muted);';
+        entityBtn.textContent = log.entity;
+        entityBtn.title = 'Rechercher "' + log.entity + '" dans le journal';
+        entityBtn.addEventListener('click', () => {
+          document.getElementById('auditFilterSearch').value = log.entity;
+          loadAuditLog(1);
+        });
+        tdEntity.appendChild(entityBtn);
+      } else {
+        tdEntity.textContent = '—';
+      }
 
       // Avant → Après
       const tdDiff = tr.insertCell();
@@ -7204,10 +7446,43 @@
         tdDiff.textContent = '—';
       }
 
-      // Détail
+      // Détail — tronqué avec bouton "voir plus" si long
       const tdDetail = tr.insertCell();
-      tdDetail.textContent = log.detail || '';
       tdDetail.style.cssText = 'font-size:0.78rem;color:var(--text-muted);';
+      const DETAIL_LIMIT = 60;
+      if (log.detail && log.detail.length > DETAIL_LIMIT) {
+        const detailEl = document.createElement('span');
+        detailEl.className = 'hist-desc-toggle';
+        detailEl.textContent = log.detail.slice(0, DETAIL_LIMIT) + '…';
+        detailEl.title = 'Cliquer pour développer';
+        detailEl.addEventListener('click', () => {
+          const expanded = detailEl.dataset.expanded === 'true';
+          detailEl.dataset.expanded = expanded ? 'false' : 'true';
+          detailEl.textContent = expanded ? log.detail.slice(0, DETAIL_LIMIT) + '…' : log.detail;
+          detailEl.title = expanded ? 'Cliquer pour développer' : 'Cliquer pour replier';
+        });
+        tdDetail.appendChild(detailEl);
+      } else {
+        tdDetail.textContent = log.detail || '';
+      }
+
+      // Actions — copier la ligne
+      const tdActions = tr.insertCell();
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'small'; copyBtn.textContent = '📋';
+      copyBtn.title = 'Copier cette ligne du journal';
+      copyBtn.addEventListener('click', () => {
+        const fullDateStr = isNaN(ts.getTime()) ? '—'
+          : ts.getDate() + '/' + pad2(ts.getMonth() + 1) + '/' + ts.getFullYear() + ' ' + dateStr;
+        const line = [fullDateStr, log.author || '—', log.action || '—', log.entity || '—',
+          (log.before || log.after) ? (log.before || '') + ' → ' + (log.after || '') : '',
+          log.detail || ''].filter(Boolean).join(' · ');
+        navigator.clipboard.writeText(line).then(
+          () => showToast('Ligne copiée.', 'success'),
+          () => showToast('Copie impossible.', 'error')
+        );
+      });
+      tdActions.appendChild(copyBtn);
     });
 
     // Pagination
@@ -7539,6 +7814,25 @@
             );
           });
           actCell.appendChild(ungroupBtn);
+
+          const deleteGroupBtn = document.createElement('button');
+          deleteGroupBtn.className = 'small danger'; deleteGroupBtn.textContent = '🗑️';
+          deleteGroupBtn.title = 'Supprimer tout le groupe (' + members.length + ' entrées)';
+          deleteGroupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!requireIdentity()) return;
+            openConfirmModal(
+              'Supprimer définitivement ce groupe et ses ' + members.length + ' entrées ?',
+              () => {
+                buzz();
+                callServer('apiDeleteGroup', [groupId, _whoAmI || ''], res => {
+                  if (res.success) { showToast('Groupe supprimé.', 'success'); loadHistoryPage(currentHistoryPage); applyFilters(); }
+                  else showToast('Erreur lors de la suppression.', 'error');
+                }, 'Suppression groupe');
+              }
+            );
+          });
+          actCell.appendChild(deleteGroupBtn);
         }
 
         headerTr.addEventListener('click', () => {
@@ -8288,18 +8582,166 @@
     }, 'Chargement santé');
   }
 
-  // ── NAVIGATION ───────────────────────────────────────────────────────
-  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.dataset.tab;
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      btn.classList.add('active');
-      if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
-      if (tabId === 'tab-notes')   { loadNotes(); }
-      if (tabId === 'tab-guide')   { initGuideAccordion(); }
+  // ── POINTS AUTOMATIQUES ───────────────────────────────────────────────
+  const WEEKDAY_LABELS = { 0: 'dim', 1: 'lun', 2: 'mar', 3: 'mer', 4: 'jeu', 5: 'ven', 6: 'sam' };
+
+  function initAutoPointsPanel() {
+    const freqSel = document.getElementById('autoRuleFrequency');
+    freqSel.addEventListener('change', updateAutoRuleFormVisibility);
+    updateAutoRuleFormVisibility();
+    document.getElementById('autoRuleStartDate').value = new Date().toISOString().slice(0, 10);
+
+    document.getElementById('autoTriggerToggleBtn').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const btn = document.getElementById('autoTriggerToggleBtn');
+      const enable = btn.dataset.installed !== 'true';
+      callServer('apiSetAutoTrigger', [enable, _whoAmI || ''], res => {
+        showToast(enable ? 'Exécution automatique activée.' : 'Exécution automatique désactivée.', 'success');
+        renderAutoTriggerStatus(res.installed);
+      }, 'Configuration auto-trigger');
     });
+
+    document.getElementById('addAutoRuleBtn').addEventListener('click', handleAddAutoRule);
+  }
+
+  function updateAutoRuleFormVisibility() {
+    const freq = document.getElementById('autoRuleFrequency').value;
+    document.getElementById('autoRuleWeekdays').style.display   = freq === 'weekly'  ? 'flex' : 'none';
+    document.getElementById('autoRuleDayOfMonth').style.display = freq === 'monthly' ? '' : 'none';
+    document.getElementById('autoRuleIntervalUnit').textContent =
+      freq === 'daily' ? 'jours' : (freq === 'weekly' ? 'semaines' : 'mois');
+  }
+
+  function renderAutoTriggerStatus(installed) {
+    const btn = document.getElementById('autoTriggerToggleBtn');
+    const status = document.getElementById('autoTriggerStatus');
+    btn.dataset.installed = installed ? 'true' : 'false';
+    btn.textContent = installed ? '⏸️ Désactiver' : '▶️ Activer';
+    status.textContent = installed
+      ? 'Actif — les règles dues sont appliquées automatiquement (vérification chaque heure).'
+      : 'Inactif — les règles créées ci-dessous ne s\'exécuteront pas tant que ce n\'est pas activé.';
+  }
+
+  function loadAutoRules() {
+    const playerSel = document.getElementById('autoRulePlayer');
+    const catSel     = document.getElementById('autoRuleCategory');
+    playerSel.innerHTML = cachedPlayers.map(p => '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('');
+    catSel.innerHTML     = cachedCategories.map(c => '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>').join('');
+
+    callServer('apiGetAutoRules', [], res => {
+      renderAutoTriggerStatus(res.triggerInstalled);
+      renderAutoRules(res.rules);
+    }, 'Chargement des règles automatiques');
+  }
+
+  function describeAutoRuleSchedule(rule) {
+    if (rule.frequency === 'daily') {
+      return rule.interval > 1 ? 'Tous les ' + rule.interval + ' jours' : 'Tous les jours';
+    }
+    if (rule.frequency === 'weekly') {
+      const days = (rule.daysOfWeek || []).map(d => WEEKDAY_LABELS[d]).join(', ');
+      return (rule.interval > 1 ? 'Toutes les ' + rule.interval + ' semaines' : 'Chaque semaine') + (days ? ' (' + days + ')' : '');
+    }
+    return (rule.interval > 1 ? 'Tous les ' + rule.interval + ' mois' : 'Chaque mois') +
+      (rule.dayOfMonth ? ' le ' + rule.dayOfMonth : '');
+  }
+
+  function renderAutoRules(rules) {
+    const container = document.getElementById('autoRulesList');
+    if (!rules.length) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;">Aucune règle automatique pour le moment.</p>';
+      return;
+    }
+    container.innerHTML = '';
+    rules.forEach(rule => {
+      const row = document.createElement('div');
+      row.className = 'auto-rule-row' + (rule.active ? '' : ' inactive');
+
+      const p = cachedPlayers.find(pl => pl.name === rule.player);
+      const avatar = document.createElement('img');
+      avatar.className = 'qs-avatar';
+      avatar.src = getAvatarUrl(rule.player, p ? p.meta : '');
+      avatar.onerror = () => { avatar.src = getAvatarUrl(rule.player, ''); };
+      row.appendChild(avatar);
+
+      const main = document.createElement('div');
+      main.className = 'auto-rule-main';
+      main.innerHTML = '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ' +
+        escapeHtml(rule.category) + (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
+        '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
+        (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
+      row.appendChild(main);
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'secondary small';
+      toggleBtn.textContent = rule.active ? '⏸️' : '▶️';
+      toggleBtn.title = rule.active ? 'Désactiver cette règle' : 'Activer cette règle';
+      toggleBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
+        callServer('apiUpdateAutoRule', [rule.id, { active: !rule.active }, _whoAmI || ''], () => {
+          showToast(rule.active ? 'Règle désactivée.' : 'Règle activée.', 'success');
+          loadAutoRules();
+        }, 'Mise à jour règle');
+      });
+      row.appendChild(toggleBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger small'; delBtn.textContent = '🗑️';
+      delBtn.title = 'Supprimer cette règle';
+      delBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
+        openConfirmModal('Supprimer la règle "' + rule.player + ' +' + rule.points + '" ?', () => {
+          callServer('apiDeleteAutoRule', [rule.id, _whoAmI || ''], () => {
+            showToast('Règle supprimée.', 'success');
+            loadAutoRules();
+          }, 'Suppression règle');
+        });
+      });
+      row.appendChild(delBtn);
+
+      container.appendChild(row);
+    });
+  }
+
+  function handleAddAutoRule() {
+    if (!requireIdentity()) return;
+    const frequency = document.getElementById('autoRuleFrequency').value;
+    const daysOfWeek = Array.from(document.querySelectorAll('#autoRuleWeekdays input:checked')).map(cb => parseInt(cb.value, 10));
+    const rule = {
+      player:      document.getElementById('autoRulePlayer').value,
+      category:    document.getElementById('autoRuleCategory').value,
+      points:      parseInt(document.getElementById('autoRulePoints').value, 10),
+      description: document.getElementById('autoRuleDescription').value.trim(),
+      frequency:   frequency,
+      interval:    parseInt(document.getElementById('autoRuleInterval').value, 10) || 1,
+      daysOfWeek:  daysOfWeek,
+      dayOfMonth:  parseInt(document.getElementById('autoRuleDayOfMonthInput').value, 10) || null,
+      startDate:   document.getElementById('autoRuleStartDate').value
+    };
+    const btn = document.getElementById('addAutoRuleBtn');
+    const restore = startBtnLoading(btn, 'Création…');
+    callServer('apiAddAutoRule', [rule, _whoAmI || ''], () => {
+      restore();
+      showToast('Règle automatique créée.', 'success');
+      document.getElementById('autoRuleDescription').value = '';
+      loadAutoRules();
+    }, 'Création règle auto', () => restore());
+  }
+
+  // ── NAVIGATION ───────────────────────────────────────────────────────
+  function goToTab(tabId) {
+    const navBtn = document.querySelector('.nav-btn[data-tab="' + tabId + '"]');
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    if (navBtn) navBtn.classList.add('active');
+    if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
+    if (tabId === 'tab-notes')   { loadNotes(); }
+    if (tabId === 'tab-guide')   { initGuideAccordion(); }
+  }
+
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => goToTab(btn.dataset.tab));
   });
 
   // ── THÈME ─────────────────────────────────────────────────────────────
@@ -8441,6 +8883,12 @@
     document.getElementById('auditFilterAction').addEventListener('change', () => loadAuditLog(1));
     document.getElementById('auditFilterFrom').addEventListener('change',   () => loadAuditLog(1));
     document.getElementById('auditFilterTo').addEventListener('change',     () => loadAuditLog(1));
+    const auditSearchEl = document.getElementById('auditFilterSearch');
+    let _auditSearchTimeout;
+    auditSearchEl.addEventListener('input', () => {
+      clearTimeout(_auditSearchTimeout);
+      _auditSearchTimeout = setTimeout(() => loadAuditLog(1), 350);
+    });
 
     document.getElementById('globalRefreshBtn').addEventListener('click', globalRefresh);
     setInterval(updateRefreshBadge, 60000);
@@ -8481,6 +8929,8 @@
         }, 'Suppression orphelins');
       });
     });
+
+    initAutoPointsPanel();
 
     // ── Notes ──
     document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
