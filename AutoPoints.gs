@@ -66,10 +66,24 @@ const AutoPointsService = (() => {
     return Math.min(day, lastDay);
   }
 
+  /** Monday 00:00 of the week containing `d` (ISO week start), used to count "active" weeks for a weekly interval. */
+  function _weekStart(d) {
+    const w = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const isoDay = (w.getDay() + 6) % 7; // 0=Monday..6=Sunday
+    w.setDate(w.getDate() - isoDay);
+    w.setHours(0, 0, 0, 0);
+    return w;
+  }
+
   /**
    * Computes the next run datetime strictly after `fromDate`, honoring the
    * rule's frequency/interval and, for weekly/monthly rules, the requested
    * weekday(s) or day-of-month.
+   *
+   * Weekly rules with an interval > 1 only fire during "active" weeks — the
+   * week containing `rule.startDate`, then every Nth week after that — so
+   * "every 2 weeks, Mon/Wed" genuinely skips the in-between week instead of
+   * firing every week regardless of interval.
    */
   function computeNextRun(rule, fromDate) {
     const base = new Date(fromDate.getTime());
@@ -78,17 +92,18 @@ const AutoPointsService = (() => {
       return base;
     }
     if (rule.frequency === 'weekly') {
-      if (!rule.daysOfWeek.length) {
-        base.setDate(base.getDate() + 7 * rule.interval);
-        return base;
-      }
-      const sortedDays = rule.daysOfWeek.slice().sort((a, b) => a - b);
+      const sortedDays = rule.daysOfWeek.length ? rule.daysOfWeek.slice().sort((a, b) => a - b) : [base.getDay()];
+      const refWeekStart = _weekStart(rule.startDate ? new Date(rule.startDate) : base);
       const candidate = new Date(base.getTime());
-      for (let step = 1; step <= 7 * rule.interval + 7; step++) {
+      const maxSteps = 7 * Math.max(rule.interval, 1) * 8; // generous search window, still bounded
+      for (let step = 1; step <= maxSteps; step++) {
+        candidate.setTime(base.getTime());
         candidate.setDate(base.getDate() + step);
-        if (sortedDays.indexOf(candidate.getDay()) !== -1) return candidate;
+        if (sortedDays.indexOf(candidate.getDay()) === -1) continue;
+        const weeksSinceRef = Math.round((_weekStart(candidate) - refWeekStart) / (7 * 86400000));
+        if (((weeksSinceRef % rule.interval) + rule.interval) % rule.interval === 0) return candidate;
       }
-      base.setDate(base.getDate() + 7 * rule.interval);
+      base.setDate(base.getDate() + 7 * rule.interval); // fallback, should not normally be reached
       return base;
     }
     // monthly
@@ -129,7 +144,8 @@ const AutoPointsService = (() => {
       frequency:  rule.frequency,
       interval:   parseInt(rule.interval, 10) || 1,
       daysOfWeek: rule.frequency === 'weekly' ? (rule.daysOfWeek || []) : [],
-      dayOfMonth: rule.frequency === 'monthly' ? (rule.dayOfMonth || startDate.getDate()) : null
+      dayOfMonth: rule.frequency === 'monthly' ? (rule.dayOfMonth || startDate.getDate()) : null,
+      startDate:  startDate
     };
     const nextRun = computeNextRun(normalized, new Date(startDate.getTime() - 1));
     sheet.appendRow([
@@ -190,21 +206,30 @@ const AutoPointsService = (() => {
 
   /**
    * Grants points for every active rule whose NextRun has passed, then
-   * reschedules it. Returns a summary. Must run inside withLock().
+   * reschedules it. Rules pointing at a player or category that no longer
+   * exists are skipped (and reported) instead of silently creating orphaned
+   * History rows. Returns a summary. Must run inside withLock().
    */
   function runDue(author) {
     const rules = getRules();
     const now = new Date();
     const due = rules.filter(r => r.active && r.nextRun && r.nextRun <= now);
-    if (!due.length) return { granted: 0, rules: [] };
+    if (!due.length) return { granted: 0, skipped: 0, rules: [] };
 
-    const today = Utilities.formatDate(now, Session.getScriptTimeZone() || 'Etc/UTC', 'yyyy-MM-dd');
-    const entries = due.map(r => ({
-      player: r.player, category: r.category, points: r.points, times: 1,
-      description: r.description || 'Points automatiques', groupTag: '',
-      saiseur: 'Auto (' + (r.createdBy || 'système') + ')'
-    }));
-    StorageService.appendBulkPlan([{ date: today, entries }]);
+    const knownPlayers    = SettingsService.getEntities('Players').map(p => p.name);
+    const knownCategories = SettingsService.getEntities('Categories').map(c => c.name);
+    const valid   = due.filter(r => knownPlayers.indexOf(r.player) !== -1 && knownCategories.indexOf(r.category) !== -1);
+    const invalid = due.filter(r => valid.indexOf(r) === -1);
+
+    if (valid.length) {
+      const today = Utilities.formatDate(now, Session.getScriptTimeZone() || 'Etc/UTC', 'yyyy-MM-dd');
+      const entries = valid.map(r => ({
+        player: r.player, category: r.category, points: r.points, times: 1,
+        description: r.description || 'Points automatiques', groupTag: '',
+        saiseur: 'Auto (' + (r.createdBy || 'système') + ')'
+      }));
+      StorageService.appendBulkPlan([{ date: today, entries }]);
+    }
 
     const sheet = ConfigService.getSheets().autoRules;
     due.forEach(r => {
@@ -213,10 +238,21 @@ const AutoPointsService = (() => {
     });
     ConfigService.clearCache();
 
-    AuditService.log(author || 'Auto', 'Points automatiques', 'AutoRules', '', '',
-      due.length + ' règle(s) exécutée(s), ' + due.map(r => r.player + ' +' + r.points).join(', '));
+    if (valid.length) {
+      AuditService.log(author || 'Auto', 'Points automatiques', 'AutoRules', '', '',
+        valid.length + ' règle(s) exécutée(s), ' + valid.map(r => r.player + ' +' + r.points).join(', '));
+    }
+    if (invalid.length) {
+      AuditService.log(author || 'Auto', 'Règle auto ignorée', 'AutoRules', '', '',
+        invalid.length + ' règle(s) avec joueur/Top introuvable : ' +
+        invalid.map(r => r.player + ' / ' + r.category).join(', '));
+    }
 
-    return { granted: due.length, rules: due.map(r => ({ player: r.player, points: r.points })) };
+    return {
+      granted: valid.length,
+      skipped: invalid.length,
+      rules: valid.map(r => ({ player: r.player, points: r.points }))
+    };
   }
 
   function isTriggerInstalled() {
@@ -253,7 +289,10 @@ function runAutoPoints() {
 
 function apiGetAutoRules() {
   try {
-    return { success: true, rules: AutoPointsService.getRules(), triggerInstalled: AutoPointsService.isTriggerInstalled() };
+    const rules = AutoPointsService.getRules();
+    let triggerInstalled = false;
+    try { triggerInstalled = AutoPointsService.isTriggerInstalled(); } catch (_) {}
+    return { success: true, rules, triggerInstalled };
   } catch (e) { return fail(e); }
 }
 

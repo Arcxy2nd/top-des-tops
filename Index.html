@@ -377,6 +377,14 @@
       background: rgba(0,0,0,0.15); border-radius: 8px; flex-wrap: wrap;
     }
     .auto-rule-row.inactive { opacity: 0.5; }
+    .auto-rule-row.broken { border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); background: color-mix(in srgb, var(--warn) 8%, rgba(0,0,0,0.15)); }
+    .auto-rule-warn { font-size: 0.9rem; }
+    .hist-auto-badge {
+      display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 600;
+      color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--info) 35%, transparent);
+      border-radius: 999px; padding: 2px 8px;
+    }
     .auto-rule-main { flex: 1; min-width: 200px; font-size: 0.85rem; }
     .auto-rule-main strong { color: var(--accent); }
     .auto-rule-schedule { font-size: 0.75rem; color: var(--text-muted); }
@@ -2608,6 +2616,7 @@
             <option>Modification règle auto</option>
             <option>Suppression règle auto</option>
             <option>Points automatiques</option>
+            <option>Règle auto ignorée</option>
             <option>Activation auto-trigger</option>
             <option>Désactivation auto-trigger</option>
             <option>Nettoyage zéros</option>
@@ -7292,6 +7301,7 @@
 
   // Catégorise une action du journal pour l'affichage (icône + couleur).
   const AUDIT_CATEGORIES = [
+    { test: /ignorée|ignoré/i,                                   icon: '⚠️', cls: 'update' },
     { test: /auto/i,                                            icon: '🤖', cls: 'auto'   },
     { test: /suppr/i,                                            icon: '🗑️', cls: 'delete' },
     { test: /ajout|créé/i,                                       icon: '➕', cls: 'create' },
@@ -7992,7 +8002,13 @@
 
     const saiseurCell = tr.insertCell();
     saiseurCell.className = 'hist-player-cell';
-    if (log.saiseur) {
+    if (log.saiseur && log.saiseur.indexOf('Auto (') === 0) {
+      const autoBadge = document.createElement('span');
+      autoBadge.className = 'hist-auto-badge';
+      autoBadge.title = 'Ajouté automatiquement — ' + log.saiseur;
+      autoBadge.textContent = '🤖 Auto';
+      saiseurCell.appendChild(autoBadge);
+    } else if (log.saiseur) {
       const sp = cachedPlayers.find(p => p.name === log.saiseur);
       const sImg = document.createElement('img');
       sImg.className = 'history-avatar';
@@ -8655,7 +8671,10 @@
     container.innerHTML = '';
     rules.forEach(rule => {
       const row = document.createElement('div');
-      row.className = 'auto-rule-row' + (rule.active ? '' : ' inactive');
+      const playerExists   = cachedPlayers.some(pl => pl.name === rule.player);
+      const categoryExists = cachedCategories.some(c => c.name === rule.category);
+      const broken = !playerExists || !categoryExists;
+      row.className = 'auto-rule-row' + (rule.active ? '' : ' inactive') + (broken ? ' broken' : '');
 
       const p = cachedPlayers.find(pl => pl.name === rule.player);
       const avatar = document.createElement('img');
@@ -8666,7 +8685,9 @@
 
       const main = document.createElement('div');
       main.className = 'auto-rule-main';
-      main.innerHTML = '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ' +
+      main.innerHTML =
+        (broken ? '<span class="auto-rule-warn" title="Cette règle ne s\'exécutera pas : joueur ou Top introuvable">⚠️</span> ' : '') +
+        '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ' +
         escapeHtml(rule.category) + (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
         '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
         (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
