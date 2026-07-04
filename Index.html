@@ -6182,6 +6182,7 @@
   function rowCategoryName(row) { return (row.querySelector('.c-sel') || {}).value || ''; }
   function rowPoints(row) { return parseInt((row.querySelector('.custom-pts-in') || {}).value, 10) || 0; }
   function rowDate(row) { return (row.querySelector('.d-start') || {}).value || ''; }
+  function rowInsertOrder(row) { return parseInt(row.dataset.insertOrder, 10) || 0; }
 
   function compareByPlayer(a, b) {
     return listIndexOf(cachedPlayers, rowPlayerName(a)) - listIndexOf(cachedPlayers, rowPlayerName(b));
@@ -6191,6 +6192,7 @@
   }
   function compareByPoints(a, b) { return rowPoints(a) - rowPoints(b); }
   function compareByDate(a, b) { return rowDate(a) < rowDate(b) ? -1 : (rowDate(a) > rowDate(b) ? 1 : 0); }
+  function compareByInsertOrder(a, b) { return rowInsertOrder(a) - rowInsertOrder(b); }
 
   const SORT_COMPARATORS = {
     player: compareByPlayer,
@@ -6201,15 +6203,25 @@
   const SORT_CHAIN_ORDER = ['player', 'category', 'points', 'date'];
 
   function sortEntryRows(criterion) {
-    if (activeSortCriterion === criterion) {
-      activeSortAscending = !activeSortAscending;
-    } else {
+    const container = document.getElementById('entryContainer');
+
+    if (activeSortCriterion !== criterion) {
       activeSortCriterion = criterion;
       activeSortAscending = true;
+    } else if (activeSortAscending) {
+      activeSortAscending = false;
+    } else {
+      // 3e clic sur le même critère : retour à l'ordre d'ajout des lignes (fixé à leur création).
+      const rows = Array.from(container.querySelectorAll('.entry-row'));
+      rows.sort(compareByInsertOrder);
+      rows.forEach(r => container.appendChild(r));
+      activeSortCriterion = null;
+      activeSortAscending = true;
+      updateSortButtonsUI();
+      return;
     }
 
     const chain = [criterion, ...SORT_CHAIN_ORDER.filter(c => c !== criterion)];
-    const container = document.getElementById('entryContainer');
     const rows = Array.from(container.querySelectorAll('.entry-row'));
 
     rows.sort((a, b) => {
@@ -6298,6 +6310,7 @@
     const div = document.createElement('div');
     div.className = 'entry-row';
     div.id = 'row_' + rowCounter;
+    div.dataset.insertOrder = String(rowCounter);
     div.draggable = true;
     attachRowDragEvents(div);
 
