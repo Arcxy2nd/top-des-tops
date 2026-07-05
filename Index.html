@@ -2136,6 +2136,46 @@
     padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
 
+  /* ── Mode d'affichage mobile (drawer + reflow) ─────────────────────── */
+  .drawer-hamburger { display: none; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text); padding: 4px 8px; }
+  .layout-mode-toggle { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text); padding: 4px 8px; }
+  .mobile-drawer {
+    position: fixed; top: 0; left: 0; height: 100%; width: 260px;
+    background: var(--card-bg, #1a1a1a); transform: translateX(-100%);
+    transition: transform 0.25s ease; z-index: 200; padding: 16px; box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
+  }
+  .mobile-drawer.open { transform: translateX(0); }
+  .mobile-drawer .nav-btn { width: 100%; text-align: left; }
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+  .drawer-overlay.open { display: block; }
+  .drawer-settings { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+
+  body[data-mode="mobile"] .nav-btn-group { display: none; }
+  body[data-mode="mobile"] .drawer-hamburger { display: inline-block; }
+  body[data-mode="mobile"] .container { padding-left: 8px; padding-right: 8px; }
+  body[data-mode="mobile"] .quick-stats-bar { flex-wrap: wrap; }
+  body[data-mode="mobile"] .history-filters,
+  body[data-mode="mobile"] .hist-filter-section { flex-direction: column; align-items: stretch; }
+
+  /* Historique en cartes plutôt qu'en tableau */
+  body[data-mode="mobile"] #stab-history-entries table,
+  body[data-mode="mobile"] #stab-history-entries thead,
+  body[data-mode="mobile"] #stab-history-entries tbody,
+  body[data-mode="mobile"] #stab-history-entries tr,
+  body[data-mode="mobile"] #stab-history-entries td { display: block; width: 100%; }
+  body[data-mode="mobile"] #stab-history-entries thead { display: none; }
+  body[data-mode="mobile"] #stab-history-entries tr {
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; padding: 8px;
+  }
+  body[data-mode="mobile"] #stab-history-entries td {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; border: none;
+  }
+  body[data-mode="mobile"] #stab-history-entries td[data-label]::before {
+    content: attr(data-label); font-weight: 600; color: var(--text-muted); margin-right: 8px;
+  }
+
   </style>
 </head>
 <body>
@@ -2143,15 +2183,11 @@
 <nav class="navbar">
   <div class="nav-container">
     <div class="app-brand" id="appBrand">
+      <button class="drawer-hamburger" id="drawerHamburger" aria-label="Ouvrir le menu">☰</button>
       <img class="app-brand-logo" id="appBrandLogo" src="" alt="" style="display:none;">
       <span class="app-brand-title" id="appBrandTitle">Tops des Tops</span>
     </div>
-    <button class="nav-btn active" data-tab="tab-dashboard">📊 Dashboard</button>
-    <button class="nav-btn" data-tab="tab-inject">✍️ Saisir un Lot</button>
-    <button class="nav-btn" data-tab="tab-settings">⚙️ Paramètres</button>
-    <button class="nav-btn" data-tab="tab-notes">📝 Notes<span class="nav-count" id="notesCount"></span></button>
-    <button class="nav-btn" data-tab="tab-history">📜 Historique<span class="nav-count" id="historyCount"></span></button>
-    <button class="nav-btn" data-tab="tab-guide">❓ Guide</button>
+    <div class="nav-btn-group" id="desktopNavGroup"></div>
     <div class="nav-refresh-wrap">
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
@@ -2165,8 +2201,17 @@
       <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
+    <button class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Forcer l'affichage mobile/desktop">🖥️</button>
   </div>
 </nav>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+  <div class="drawer-section" id="drawerNavList"></div>
+  <div class="drawer-section drawer-settings">
+    <button class="theme-toggle" id="drawerThemeToggle" aria-label="Basculer le thème">🌙</button>
+  </div>
+</div>
 
 <div id="quickStatsBar" class="quick-stats-bar">
   <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
@@ -7699,6 +7744,7 @@
 
         const dateCell = headerTr.insertCell();
         dateCell.className = 'hist-accent';
+        dateCell.setAttribute('data-label', 'Date');
         dateCell.style.setProperty('--player-color', pColor);
         const chevron = document.createElement('span');
         chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
@@ -7709,6 +7755,7 @@
 
         const playerCell = headerTr.insertCell();
         playerCell.className = 'hist-player-cell';
+        playerCell.setAttribute('data-label', 'Joueur');
         if (isMultiPlayer) {
           const stack = document.createElement('div');
           stack.className = 'hist-avatar-stack';
@@ -7744,6 +7791,7 @@
         }
 
         const catCell = headerTr.insertCell();
+        catCell.setAttribute('data-label', 'Top');
         if (isMultiCategory) {
           const mixedPill = document.createElement('span');
           mixedPill.className = 'hist-pill';
@@ -7792,6 +7840,7 @@
         }
 
         const ptsCell = headerTr.insertCell();
+        ptsCell.setAttribute('data-label', 'Pts');
         const badge = document.createElement('span');
         badge.className = 'hist-pts';
         badge.style.setProperty('--pts-bg', tint(pColor, 0.25));
@@ -7933,12 +7982,14 @@
 
     const dateCell = tr.insertCell();
     dateCell.className = 'hist-accent';
+    dateCell.setAttribute('data-label', 'Date');
     dateCell.style.setProperty('--player-color', pColor);
     const d = new Date(log.timestamp);
     dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
 
     const playerCell = tr.insertCell();
     playerCell.className = 'hist-player-cell';
+    playerCell.setAttribute('data-label', 'Joueur');
     playerCell.style.setProperty('--player-color', pColor);
     const player = cachedPlayers.find(p => p.name === log.player);
     const img = document.createElement('img');
@@ -7951,6 +8002,7 @@
     playerCell.appendChild(img); playerCell.appendChild(pName);
 
     const catCell = tr.insertCell();
+    catCell.setAttribute('data-label', 'Top');
     const cColor = categoryColor(log.category);
     const pill = document.createElement('span');
     pill.className = 'hist-pill';
@@ -7992,6 +8044,7 @@
     }
 
     const ptsCell = tr.insertCell();
+    ptsCell.setAttribute('data-label', 'Pts');
     const badge = document.createElement('span');
     badge.className = 'hist-pts';
     const intensity = Math.min(0.10 + Math.log10(log.points + 1) * 0.22, 0.9);
@@ -8002,6 +8055,7 @@
 
     const saiseurCell = tr.insertCell();
     saiseurCell.className = 'hist-player-cell';
+    saiseurCell.setAttribute('data-label', 'Saiseur');
     if (log.saiseur && log.saiseur.indexOf('Auto (') === 0) {
       const autoBadge = document.createElement('span');
       autoBadge.className = 'hist-auto-badge';
@@ -8750,36 +8804,98 @@
   }
 
   // ── NAVIGATION ───────────────────────────────────────────────────────
+  const NAV_PAGES = [
+    { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
+    { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
+    { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
+    { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
+    { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
+    { id: 'tab-guide',     icon: '❓', label: 'Guide' },
+  ];
+
+  function navButtonHtml(page, extraClass) {
+    const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
+    return '<button class="nav-btn' + (extraClass ? ' ' + extraClass : '') + '" data-tab="' + page.id + '">' +
+      page.icon + ' ' + page.label + countSpan + '</button>';
+  }
+
+  function openDrawer() {
+    document.getElementById('mobileDrawer').classList.add('open');
+    document.getElementById('drawerOverlay').classList.add('open');
+  }
+  function closeDrawer() {
+    document.getElementById('mobileDrawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+  }
+
+  function renderNav() {
+    document.getElementById('desktopNavGroup').innerHTML =
+      NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
+    document.getElementById('drawerNavList').innerHTML =
+      NAV_PAGES.map(p => navButtonHtml(p)).join('');
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => goToTab(btn.dataset.tab));
+    });
+    document.querySelectorAll('#drawerNavList .nav-btn').forEach(btn => {
+      btn.addEventListener('click', closeDrawer);
+    });
+  }
+
   function goToTab(tabId) {
-    const navBtn = document.querySelector('.nav-btn[data-tab="' + tabId + '"]');
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    if (navBtn) navBtn.classList.add('active');
+    document.querySelectorAll('.nav-btn[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
     if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
     if (tabId === 'tab-notes')   { loadNotes(); }
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
   }
 
-  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => goToTab(btn.dataset.tab));
-  });
+  renderNav();
+  document.getElementById('drawerHamburger').addEventListener('click', openDrawer);
+  document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+
+  // ── MODE D'AFFICHAGE (mobile / desktop) ────────────────────────────────
+  function resolveLayoutMode(pref) {
+    if (pref === 'mobile' || pref === 'desktop') return pref;
+    return window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop';
+  }
+
+  function applyLayoutMode(mode) {
+    document.body.setAttribute('data-mode', mode);
+    const btn = document.getElementById('layoutModeToggle');
+    if (btn) btn.textContent = mode === 'mobile' ? '📱' : '🖥️';
+    if (mode !== 'mobile') closeDrawer();
+  }
+
+  function initLayoutMode() {
+    const pref = localStorage.getItem('tdt_layout_mode') || 'auto';
+    applyLayoutMode(resolveLayoutMode(pref));
+    document.getElementById('layoutModeToggle').addEventListener('click', () => {
+      const current = document.body.getAttribute('data-mode');
+      const next = current === 'mobile' ? 'desktop' : 'mobile';
+      localStorage.setItem('tdt_layout_mode', next);
+      applyLayoutMode(next);
+    });
+  }
 
   // ── THÈME ─────────────────────────────────────────────────────────────
   function initTheme() {
     const saved = localStorage.getItem('topsdestops_theme');
     if (saved === 'light') document.body.classList.add('light');
-    const btn = document.getElementById('themeToggle');
-    btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
-    btn.addEventListener('click', () => {
-      document.body.classList.toggle('light');
-      const isLight = document.body.classList.contains('light');
-      localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
-      btn.textContent = isLight ? '☀️' : '🌙';
-      if (currentChart && currentChartData) {
-        if (currentChartType === 'trend') renderTrendChart(currentChartData);
-        else renderChart(currentChartData, currentChartType);
-      }
+    ['themeToggle', 'drawerThemeToggle'].forEach(id => {
+      const btn = document.getElementById(id);
+      btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+      btn.addEventListener('click', () => {
+        document.body.classList.toggle('light');
+        const isLight = document.body.classList.contains('light');
+        localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
+        document.querySelectorAll('#themeToggle, #drawerThemeToggle').forEach(b => { b.textContent = isLight ? '☀️' : '🌙'; });
+        if (currentChart && currentChartData) {
+          if (currentChartType === 'trend') renderTrendChart(currentChartData);
+          else renderChart(currentChartData, currentChartType);
+        }
+      });
     });
   }
 
@@ -9204,6 +9320,7 @@
   // ── INIT ─────────────────────────────────────────────────────────────
   window.onload = () => {
     initTheme();
+    initLayoutMode();
     initSettingsTabs();
     initHistoryTabs();
     bindButtons();
