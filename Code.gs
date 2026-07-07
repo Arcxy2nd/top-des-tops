@@ -9,6 +9,26 @@
  * AutoRules : automatic point-granting rules (optional sheet, auto-created — see AutoPoints.gs)
  */
 
+// ─── NAVIGATION REGISTRY ───────────────────────────────────────────────────────
+// Single source of truth for "which tabs exist, in what order, with which icon".
+// Consumed by both Index.html (desktop) and Mobile.html via apiGetNavPages() —
+// adding/removing/reordering a tab only ever requires editing this array.
+const NAV_PAGES = [
+  { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
+  { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
+  { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
+  { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
+  { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
+  { id: 'tab-outils',    icon: '🔧', label: 'Outils' },
+  { id: 'tab-guide',     icon: '❓', label: 'Guide' },
+];
+
+function apiGetNavPages() {
+  try {
+    return { success: true, pages: NAV_PAGES };
+  } catch(e) { return fail(e); }
+}
+
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
 const ConfigService = (() => {
   let _cache = null;
@@ -833,10 +853,61 @@ const AnalyticsService = {
 };
 
 // ─── API ENDPOINTS ─────────────────────────────────────────────────────────────
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
+
+/**
+ * Device routing: ?view=mobile serves Mobile.html, ?view=desktop serves Index.html.
+ * With no ?view param (first visit / bare /exec URL), serves a tiny inline
+ * redirect page: it checks localStorage for a remembered choice, falls back to
+ * a screen-width check, then reloads the same URL with ?view=<mobile|desktop>.
+ */
+function doGet(e) {
+  const view = e && e.parameter ? e.parameter.view : null;
+
+  if (view === 'mobile') {
+    return HtmlService.createHtmlOutputFromFile('Mobile')
+      .setTitle('Tops des Tops')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  if (view === 'desktop') {
+    return HtmlService.createHtmlOutputFromFile('Index')
+      .setTitle('Tops des Tops')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  return HtmlService.createHtmlOutput(_deviceRedirectBootstrapHtml())
     .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Inline redirect bootstrap — a handful of lines, not worth a separate HTML file.
+ * Reads the same 'tdt_layout_mode' localStorage key the in-app toggle writes, so a
+ * manual choice made from inside the app is honored on the very next cold load.
+ */
+function _deviceRedirectBootstrapHtml() {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tops des Tops</title>
+</head>
+<body style="background:#0b0c10;color:#e0e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+  <div>Chargement…</div>
+  <script>
+    (function() {
+      var pref = null;
+      try { pref = localStorage.getItem('tdt_layout_mode'); } catch (e) {}
+      var view = (pref === 'mobile' || pref === 'desktop')
+        ? pref
+        : (window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop');
+      var url = new URL(window.location.href);
+      url.searchParams.set('view', view);
+      window.location.href = url.toString();
+    })();
+  </script>
+</body>
+</html>`;
 }
 
 function apiGetSettings() {
@@ -1621,6 +1692,51 @@ function apiDetectDistributedLots() {
     const serial = JSON.stringify(lots);
     if (serial.length <= 95000) cache.put(key, serial, 600);
     return { success: true, lots: lots };
+  } catch(e) { return fail(e); }
+}
+
+function apiDetectLegacyGroups() {
+  try {
+    const LEGACY_GID_RE = /^G\d{1,6}$/;
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+
+    const rows = StorageService.getFullHistoryRowsCached();
+    const groups = {};
+    rows.forEach(function(r) {
+      if (!r.groupId || !LEGACY_GID_RE.test(r.groupId)) return;
+      (groups[r.groupId] = groups[r.groupId] || []).push(r);
+    });
+
+    const result = Object.keys(groups).map(function(gid) {
+      const members = groups[gid].slice().sort(function(a, b) { return a.date - b.date; });
+      const players    = new Set(members.map(function(m) { return m.player; }));
+      const categories = new Set(members.map(function(m) { return m.category; }));
+      const spanDays = Math.round((members[members.length - 1].date - members[0].date) / 86400000);
+
+      return {
+        groupId: gid,
+        distinctPlayers: players.size,
+        distinctCategories: categories.size,
+        spanDays: spanDays,
+        entries: members.map(function(m) {
+          return {
+            player: m.player, category: m.category, points: m.points,
+            description: m.description,
+            dateStr: m.date.getFullYear() + '-' + pad(m.date.getMonth() + 1) + '-' + pad(m.date.getDate()),
+            rowIndex: m.rowIndex
+          };
+        })
+      };
+    });
+
+    // Groupes les plus susceptibles d'être de vraies collisions en premier
+    // (plus de joueurs/catégories distincts) ; les groupes à 1 joueur/1 catégorie
+    // restent listés en fin de liste pour arbitrage manuel par l'utilisateur.
+    result.sort(function(a, b) {
+      return (b.distinctPlayers + b.distinctCategories) - (a.distinctPlayers + a.distinctCategories);
+    });
+
+    return { success: true, groups: result };
   } catch(e) { return fail(e); }
 }
 

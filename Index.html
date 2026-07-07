@@ -2517,6 +2517,15 @@
 
       <div class="settings-section-divider"></div>
 
+      <h2>⚠️ Groupes hérités à vérifier</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+        Avant une correction récente, deux lots saisis séparément depuis "Saisir un Lot" pouvaient recevoir le même identifiant court et apparaître fusionnés à tort dans l'Historique. Cet outil retrouve les groupes utilisant ce format d'ancien identifiant, pour vérification manuelle — rien n'est modifié tant que vous ne cliquez pas sur "Dissocier".
+      </p>
+      <button id="detectLegacyGroupsBtn" class="primary small">🔍 Scanner les groupes hérités</button>
+      <div id="detectLegacyResults" class="detect-results"></div>
+
+      <div class="settings-section-divider"></div>
+
       <h2>🤖 Points automatiques</h2>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
         Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
@@ -8934,14 +8943,10 @@
   }
 
   // ── NAVIGATION ───────────────────────────────────────────────────────
-  const NAV_PAGES = [
-    { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
-    { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
-    { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
-    { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
-    { id: 'tab-guide',     icon: '❓', label: 'Guide' },
-  ];
+  // NAV_PAGES n'est plus une constante locale : elle vient du serveur
+  // (apiGetNavPages, source commune avec Mobile.html) pour qu'ajouter/retirer un
+  // onglet ne nécessite qu'une seule modification, côté Code.gs.
+  let NAV_PAGES = [];
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
@@ -8974,14 +8979,25 @@
   function goToTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
+    // tab-outils n'a pas de <div> propre côté desktop : son contenu vit dans le
+    // sous-onglet Outils de Paramètres. On affiche Paramètres puis on bascule
+    // sur ce sous-onglet, sans dupliquer le HTML existant.
+    const realTabId = tabId === 'tab-outils' ? 'tab-settings' : tabId;
+    document.getElementById(realTabId).classList.add('active');
     document.querySelectorAll('.nav-btn[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
+    if (tabId === 'tab-outils') {
+      const toolsBtn = document.querySelector('.settings-nav-btn[data-stab="stab-tools"]');
+      if (toolsBtn) toolsBtn.click();
+    }
     if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
     if (tabId === 'tab-notes')   { loadNotes(); }
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
   }
 
-  renderNav();
+  callServer('apiGetNavPages', [], res => {
+    NAV_PAGES = res.pages;
+    renderNav();
+  }, 'Chargement du menu');
   document.getElementById('drawerHamburger').addEventListener('click', openDrawer);
   document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
 
@@ -9005,7 +9021,11 @@
       const current = document.body.getAttribute('data-mode');
       const next = current === 'mobile' ? 'desktop' : 'mobile';
       localStorage.setItem('tdt_layout_mode', next);
-      applyLayoutMode(next);
+      // Le choix manuel bascule maintenant vers l'autre FICHIER (Mobile.html a sa
+      // propre mise en page — le CSS data-mode local ne suffit plus à basculer).
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', next);
+      window.location.href = url.toString();
     });
   }
 
@@ -9223,6 +9243,7 @@
 
     // ── Detection tool ──
     document.getElementById('detectLotsBtn').addEventListener('click', scanDistributedLots);
+    document.getElementById('detectLegacyGroupsBtn').addEventListener('click', scanLegacyGroups);
   }
 
   // ── GUIDE ACCORDION ─────────────────────────────────────────────────
@@ -9238,6 +9259,24 @@
   }
 
   // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
+  const DISMISSED_LOTS_KEY = 'tdt_dismissed_lots';
+
+  function lotSignature(rowIndexes) {
+    return rowIndexes.slice().sort((a, b) => a - b).join(',');
+  }
+
+  function getDismissedLotSignatures() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_LOTS_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function dismissLotSignature(sig) {
+    const set = getDismissedLotSignatures();
+    set.add(sig);
+    try { localStorage.setItem(DISMISSED_LOTS_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota dépassé : ignoré, best-effort */ }
+  }
+
   function scanDistributedLots() {
     const btn = document.getElementById('detectLotsBtn');
     const container = document.getElementById('detectResults');
@@ -9246,11 +9285,13 @@
 
     callServer('apiDetectDistributedLots', [], res => {
       restore();
-      if (!res.lots || !res.lots.length) {
+      const dismissed = getDismissedLotSignatures();
+      const lots = (res.lots || []).filter(lot => !dismissed.has(lotSignature(lot.rowIndexes)));
+      if (!lots.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun lot réparti détecté. Tout est propre ✅</p>';
         return;
       }
-      renderDetectedLots(res.lots, container);
+      renderDetectedLots(lots, container);
     }, 'Détection lots', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
@@ -9285,22 +9326,60 @@
       });
 
       const label = document.createElement('span');
-      label.innerHTML =
-        '<strong>' + escapeHtml(lot.player) + '</strong> — ' +
-        escapeHtml(lot.category) + ' — ' +
-        lot.points + ' pts' +
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+
+      const pl = cachedPlayers.find(p => p.name === lot.player);
+      const avatarImg = document.createElement('img');
+      avatarImg.style.cssText = 'width:22px;height:22px;border-radius:50%;flex-shrink:0;';
+      avatarImg.src = getAvatarUrl(lot.player, pl ? pl.meta : '');
+      avatarImg.onerror = () => { avatarImg.src = getAvatarUrl(lot.player, ''); };
+      label.appendChild(avatarImg);
+
+      const nameEl = document.createElement('strong');
+      nameEl.textContent = lot.player;
+      label.appendChild(nameEl);
+
+      const col = categoryColor(lot.category);
+      const pill = document.createElement('span');
+      pill.className = 'hist-pill';
+      pill.style.setProperty('--pill-bg', tint(col, 0.16));
+      pill.style.setProperty('--pill-bd', tint(col, 0.55));
+      const ic = catIcon(lot.category);
+      if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+      pill.appendChild(document.createTextNode(lot.category));
+      label.appendChild(pill);
+
+      const rest = document.createElement('span');
+      rest.style.color = 'var(--text-muted)';
+      rest.innerHTML = lot.points + ' pts' +
         (lot.description ? ' — <em>' + escapeHtml(lot.description) + '</em>' : '') +
-        ' <span style="color:var(--text-muted);font-size:0.8rem;">(' +
+        ' <span style="font-size:0.8rem;">(' +
         lot.count + ' entrées, du ' + lot.dateFrom + ' au ' + lot.dateTo +
         ', total ' + lot.totalPts + ' pts)</span>';
+      label.appendChild(rest);
 
       head.appendChild(cb);
       head.appendChild(label);
       div.appendChild(head);
 
       const details = document.createElement('div');
-      details.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding-left:24px;';
-      details.textContent = 'Lignes : ' + lot.rowIndexes.join(', ');
+      details.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding-left:24px;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+      const detailsText = document.createElement('span');
+      detailsText.textContent = 'Lignes : ' + lot.rowIndexes.join(', ');
+      details.appendChild(detailsText);
+
+      const dismissBtn = document.createElement('button');
+      dismissBtn.className = 'small';
+      dismissBtn.textContent = 'Ignorer ce lot';
+      dismissBtn.addEventListener('click', () => {
+        dismissLotSignature(lotSignature(lot.rowIndexes));
+        div.remove();
+        showToast('Lot ignoré.', 'success');
+        if (!container.querySelector('.detect-lot')) {
+          container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun lot réparti détecté. Tout est propre ✅</p>';
+        }
+      });
+      details.appendChild(dismissBtn);
       div.appendChild(details);
 
       container.appendChild(div);
@@ -9344,6 +9423,165 @@
           }, 'Regroupement lots', () => { restore(); showToast('Erreur.', 'error'); });
         }
       );
+    });
+  }
+
+  // ── DETECTION GROUPES HÉRITÉS ────────────────────────────────────────
+  function scanLegacyGroups() {
+    const btn = document.getElementById('detectLegacyGroupsBtn');
+    const container = document.getElementById('detectLegacyResults');
+    showSkeleton(container, { rows: 3, height: 60 });
+    const restore = startBtnLoading(btn, 'Scan…');
+
+    callServer('apiDetectLegacyGroups', [], res => {
+      restore();
+      if (!res.groups || !res.groups.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun groupe hérité suspect détecté. Tout est propre ✅</p>';
+        return;
+      }
+      renderLegacyGroups(res.groups, container);
+    }, 'Détection groupes hérités', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  function buildLegacyEntryRow(entry) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;';
+
+    const pl = cachedPlayers.find(p => p.name === entry.player);
+    const img = document.createElement('img');
+    img.className = 'history-avatar';
+    img.style.cssText = 'width:22px;height:22px;border-radius:50%;flex-shrink:0;';
+    img.src = getAvatarUrl(entry.player, pl ? pl.meta : '');
+    img.onerror = () => { img.src = getAvatarUrl(entry.player, ''); };
+    row.appendChild(img);
+
+    const name = document.createElement('span');
+    name.textContent = entry.player;
+    name.style.fontWeight = '600';
+    row.appendChild(name);
+
+    const col = categoryColor(entry.category);
+    const pill = document.createElement('span');
+    pill.className = 'hist-pill';
+    pill.style.setProperty('--pill-bg', tint(col, 0.16));
+    pill.style.setProperty('--pill-bd', tint(col, 0.55));
+    const ic = catIcon(entry.category);
+    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+    pill.appendChild(document.createTextNode(entry.category));
+    row.appendChild(pill);
+
+    const rest = document.createElement('span');
+    rest.style.color = 'var(--text-muted)';
+    rest.textContent = entry.points + ' pts — ' + entry.dateStr;
+    row.appendChild(rest);
+
+    return row;
+  }
+
+  function renderLegacyGroups(groups, container) {
+    container.innerHTML = '';
+
+    const info = document.createElement('p');
+    info.style.cssText = 'font-size:0.82rem;color:var(--text-muted);margin:0 0 10px;';
+    info.textContent = groups.length + ' groupe(s) suspect(s). Dépliez pour voir le détail, cochez ceux à dissocier.';
+    container.appendChild(info);
+
+    const checkAll = document.createElement('label');
+    checkAll.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:0.85rem;cursor:pointer;';
+    const cbAll = document.createElement('input');
+    cbAll.type = 'checkbox';
+    checkAll.appendChild(cbAll);
+    checkAll.appendChild(document.createTextNode('Tout sélectionner'));
+    container.appendChild(checkAll);
+
+    const groupEls = [];
+    groups.forEach(group => {
+      const div = document.createElement('div');
+      div.className = 'detect-lot';
+
+      const head = document.createElement('div');
+      head.className = 'detect-lot-head';
+      head.style.cursor = 'pointer';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.addEventListener('click', e => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
+        cbAll.checked = [...allCbs].every(c => c.checked);
+      });
+
+      const summary = document.createElement('span');
+      summary.style.flex = '1';
+      summary.textContent = group.distinctPlayers + ' joueur(s) · ' + group.distinctCategories +
+        ' Top(s) · étalé sur ' + group.spanDays + ' jour(s)';
+
+      const chevron = document.createElement('span');
+      chevron.textContent = '▾';
+      chevron.style.cssText = 'transition:transform 0.15s;';
+
+      head.appendChild(cb);
+      head.appendChild(summary);
+      head.appendChild(chevron);
+      div.appendChild(head);
+
+      const detail = document.createElement('div');
+      detail.style.cssText = 'display:none;padding-left:24px;margin-top:6px;border-top:1px solid var(--border);padding-top:8px;';
+      group.entries.forEach(entry => detail.appendChild(buildLegacyEntryRow(entry)));
+      div.appendChild(detail);
+
+      head.addEventListener('click', () => {
+        const open = detail.style.display !== 'none';
+        detail.style.display = open ? 'none' : 'block';
+        chevron.style.transform = open ? '' : 'rotate(180deg)';
+      });
+
+      container.appendChild(div);
+      groupEls.push({ cb, group });
+    });
+
+    cbAll.addEventListener('change', () => {
+      groupEls.forEach(g => g.cb.checked = cbAll.checked);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'detect-actions';
+    const ungroupBtn = document.createElement('button');
+    ungroupBtn.className = 'danger small';
+    ungroupBtn.textContent = '🔓 Dissocier la sélection';
+    actions.appendChild(ungroupBtn);
+    container.appendChild(actions);
+
+    ungroupBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const selected = groupEls.filter(g => g.cb.checked);
+      if (!selected.length) { showToast('Aucun groupe coché.', 'error'); return; }
+
+      openConfirmModal(
+        'Dissocier ' + selected.length + ' groupe(s) ? Les entrées redeviendront indépendantes dans l\'Historique.',
+        () => {
+          buzz();
+          const restore = startBtnLoading(ungroupBtn, 'Dissociation…');
+          ungroupLegacyGroupsSequentially(selected.map(g => g.group.groupId), 0, () => {
+            restore();
+            showToast(selected.length + ' groupe(s) dissocié(s).', 'success');
+            scanLegacyGroups();
+            if (document.getElementById('tab-history').classList.contains('active')) {
+              loadHistoryPage(currentHistoryPage);
+            }
+          });
+        }
+      );
+    });
+  }
+
+  function ungroupLegacyGroupsSequentially(groupIds, i, onDone) {
+    if (i >= groupIds.length) { onDone(); return; }
+    callServer('apiUngroupLot', [groupIds[i], _whoAmI || ''], () => {
+      ungroupLegacyGroupsSequentially(groupIds, i + 1, onDone);
+    }, 'Dissociation groupe hérité', () => {
+      showToast('Erreur lors de la dissociation d\'un groupe.', 'error');
+      ungroupLegacyGroupsSequentially(groupIds, i + 1, onDone);
     });
   }
 
