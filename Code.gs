@@ -855,10 +855,20 @@ const AnalyticsService = {
 // ─── API ENDPOINTS ─────────────────────────────────────────────────────────────
 
 /**
- * Device routing: ?view=mobile serves Mobile.html, ?view=desktop serves Index.html.
- * With no ?view param (first visit / bare /exec URL), serves a tiny inline
- * redirect page: it checks localStorage for a remembered choice, falls back to
- * a screen-width check, then reloads the same URL with ?view=<mobile|desktop>.
+ * Device routing: ?view=mobile serves Mobile.html, anything else (?view=desktop,
+ * no param at all, or an unrecognized value) serves Index.html.
+ *
+ * There used to be a third case here: a tiny auto-redirect page shown on a bare
+ * /exec visit, which read localStorage and screen width to pick a view, then
+ * navigated itself to ?view=<mobile|desktop>. The deployed sandbox iframe silently
+ * blocks any script-triggered navigation that isn't the result of a real user
+ * click (confirmed: typing ?view=desktop by hand always works; the automatic
+ * redirect never did, whether served as a raw string or as its own file) — so
+ * that page never got anywhere and the app stayed stuck on "Chargement…".
+ * Defaulting straight to desktop matches the project's stated primary usage
+ * (PC first); the existing 🖥️/📱 toggle button — a real click, so it isn't
+ * blocked — lets a visitor switch to mobile, and that choice is remembered via
+ * ?view= on every link/bookmark they use afterwards.
  */
 function doGet(e) {
   const view = e && e.parameter ? e.parameter.view : null;
@@ -868,18 +878,7 @@ function doGet(e) {
       .setTitle('Tops des Tops')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-  if (view === 'desktop') {
-    return HtmlService.createHtmlOutputFromFile('Index')
-      .setTitle('Tops des Tops')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-
-  // File-based output (not a raw string via createHtmlOutput) so this small
-  // redirector goes through the same script-compliant rendering pipeline as
-  // Index.html/Mobile.html — a raw-string HtmlOutput's inline <script> gets
-  // silently blocked in the deployed sandbox iframe, leaving the page stuck
-  // on "Chargement…" forever instead of redirecting to ?view=<mobile|desktop>.
-  return HtmlService.createHtmlOutputFromFile('Bootstrap')
+  return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
