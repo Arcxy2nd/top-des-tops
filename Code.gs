@@ -874,40 +874,14 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-  return HtmlService.createHtmlOutput(_deviceRedirectBootstrapHtml())
+  // File-based output (not a raw string via createHtmlOutput) so this small
+  // redirector goes through the same script-compliant rendering pipeline as
+  // Index.html/Mobile.html — a raw-string HtmlOutput's inline <script> gets
+  // silently blocked in the deployed sandbox iframe, leaving the page stuck
+  // on "Chargement…" forever instead of redirecting to ?view=<mobile|desktop>.
+  return HtmlService.createHtmlOutputFromFile('Bootstrap')
     .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-/**
- * Inline redirect bootstrap — a handful of lines, not worth a separate HTML file.
- * Reads the same 'tdt_layout_mode' localStorage key the in-app toggle writes, so a
- * manual choice made from inside the app is honored on the very next cold load.
- */
-function _deviceRedirectBootstrapHtml() {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tops des Tops</title>
-</head>
-<body style="background:#0b0c10;color:#e0e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <div>Chargement…</div>
-  <script>
-    (function() {
-      var pref = null;
-      try { pref = localStorage.getItem('tdt_layout_mode'); } catch (e) {}
-      var view = (pref === 'mobile' || pref === 'desktop')
-        ? pref
-        : (window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop');
-      var url = new URL(window.location.href);
-      url.searchParams.set('view', view);
-      window.location.href = url.toString();
-    })();
-  </script>
-</body>
-</html>`;
 }
 
 function apiGetSettings() {
