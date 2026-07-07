@@ -278,6 +278,7 @@ const StorageService = {
     if (!plan || !plan.length) throw new Error("Aucune donnée à injecter.");
 
     const rows = [];
+    const tagToRealId = {};
     const _now = new Date();
     plan.forEach(day => {
       if (!day.date || !day.date.trim()) throw new Error("Date manquante dans le plan.");
@@ -290,7 +291,14 @@ const StorageService = {
         const tms = parseInt(e.times,  10);
         if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
         if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
-        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', e.groupTag || '', e.saiseur || '']);
+        let realGroupId = '';
+        if (e.groupTag) {
+          if (!tagToRealId[e.groupTag]) {
+            tagToRealId[e.groupTag] = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+          }
+          realGroupId = tagToRealId[e.groupTag];
+        }
+        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', realGroupId, e.saiseur || '']);
       });
     });
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
@@ -1672,6 +1680,19 @@ function apiUngroupLot(groupId, author) {
         }
       }
       AuditService.log(author, 'Dégroupement lot', 'History', groupId, '', '');
+      ConfigService.clearCache();
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiRemoveFromGroup(rowIndex, author) {
+  try {
+    if (!rowIndex) throw new Error("Index de ligne manquant.");
+    return withLock(() => {
+      const sheet = ConfigService.getSheets().history;
+      sheet.getRange(rowIndex, 6).setValue('');
+      AuditService.log(author, 'Retrait du groupe', 'History', String(rowIndex), '', '');
       ConfigService.clearCache();
       return { success: true };
     });

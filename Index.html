@@ -191,6 +191,13 @@
     .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+    .dashboard-wide-row { display: block; }
+    @media (min-width: 1400px) {
+      body[data-mode="desktop"] .dashboard-wide-row {
+        display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start;
+      }
+    }
+
     /* ── CARD ── */
     .card {
       background: var(--card); padding: 20px;
@@ -374,7 +381,7 @@
     .auto-rules-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
     .auto-rule-row {
       display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-      background: rgba(0,0,0,0.15); border-radius: 8px; flex-wrap: wrap;
+      background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap;
     }
     .auto-rule-row.inactive { opacity: 0.5; }
     .auto-rule-row.broken { border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); background: color-mix(in srgb, var(--warn) 8%, rgba(0,0,0,0.15)); }
@@ -524,6 +531,11 @@
     .health-stat.bad  .stat-value { color: var(--error); }
     .health-stat.warn .stat-value { color: #ffd166; }
     .health-stat.ok   .stat-value { color: var(--success); }
+    .settings-section-divider { border-top: 1px solid var(--border); margin: 20px 0 16px; }
+    .auto-rules-card {
+      background: rgba(0,0,0,0.1); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; margin-top: 14px;
+    }
     .tool-action {
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: 10px;
@@ -826,22 +838,6 @@
     }
     .chart-control.cc-toggle input { width: auto; min-width: 0; margin: 0; }
 
-    /* ── BARÈME FAB ── */
-    .bareme-fab {
-      position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 20px;
-      z-index: 1500; display: flex; align-items: center; gap: 7px;
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border); border-radius: 24px;
-      padding: 10px 16px; font-size: 0.88rem; font-weight: 600;
-      cursor: pointer; user-select: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-      min-height: var(--tap-min);
-    }
-    .bareme-fab:hover  { background: var(--btn-alt); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
-    .bareme-fab:active { transform: translateY(0); }
-    .bareme-fab[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
-
     /* ── BARÈME BACKDROP ── */
     .bareme-backdrop {
       position: fixed; inset: 0; z-index: 1500;
@@ -864,7 +860,6 @@
 
     /* Mobile : bottom sheet */
     @media (max-width: 640px) {
-      .bareme-fab .bareme-fab-label { display: none; }
       .bareme-drawer {
         top: auto; left: 0; right: 0; width: 100%; max-height: 80vh;
         border-left: none; border-top: 1px solid var(--border);
@@ -975,6 +970,12 @@
       background: rgba(0,0,0,0.08); border-radius: 6px;
       white-space: pre-wrap; word-break: break-word;
       animation: fadeIn 0.15s ease;
+    }
+
+    .notes-search-row { margin-bottom: 12px; }
+    .notes-search-row input {
+      width: 100%; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
     }
 
     /* ── NOTES FLASH BAR ── */
@@ -2191,6 +2192,7 @@
     <div class="nav-refresh-wrap">
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
+      <button class="nav-refresh-btn" id="baremeBtn" aria-expanded="false" title="Barème des Tops (touche ?)">⚖️</button>
     </div>
     <div class="who-am-i-wrap" id="whoAmIWrap">
       <button class="who-am-i-btn" id="whoAmIBtn" title="Sélectionner mon identité">
@@ -2210,6 +2212,7 @@
   <div class="drawer-section" id="drawerNavList"></div>
   <div class="drawer-section drawer-settings">
     <button class="theme-toggle" id="drawerThemeToggle" aria-label="Basculer le thème">🌙</button>
+    <button class="theme-toggle" id="baremeBtnMobile" aria-label="Barème des Tops">⚖️</button>
   </div>
 </div>
 
@@ -2261,6 +2264,7 @@
       </div>
     </div>
 
+    <div class="dashboard-wide-row">
     <div class="card card-collapsible" id="filtersCard">
       <div class="card-collapse-header">
         <h2>🔍 Filtres croisés</h2>
@@ -2328,6 +2332,7 @@
         </div>
         <div id="topStatsStrip"></div>
       </div>
+    </div>
     </div>
 
   </div>
@@ -2483,7 +2488,7 @@
         <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
       </div>
 
-      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+      <div class="settings-section-divider"></div>
 
       <h2>🛠️ Actions de nettoyage</h2>
       <div class="tool-action">
@@ -2501,7 +2506,7 @@
         <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
       </div>
 
-      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+      <div class="settings-section-divider"></div>
 
       <h2>🔗 Regrouper les lots répartis</h2>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
@@ -2510,12 +2515,13 @@
       <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
       <div id="detectResults" class="detect-results"></div>
 
-      <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+      <div class="settings-section-divider"></div>
 
       <h2>🤖 Points automatiques</h2>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
         Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
       </p>
+      <div class="auto-rules-card">
       <div class="tool-action">
         <div class="tool-action-info">
           <strong>Exécution automatique</strong>
@@ -2560,6 +2566,7 @@
       </div>
 
       <div id="autoRulesList" class="auto-rules-list"></div>
+      </div>
     </div>
 
     <!-- ─ Identité de l'app ─ -->
@@ -2582,6 +2589,9 @@
       <div class="chart-header">
         <h2 style="margin:0;">📝 Notes par joueur</h2>
         <button id="refreshNotesBtn" class="secondary small">🔄 Rafraîchir</button>
+      </div>
+      <div class="notes-search-row">
+        <input type="text" id="notesSearchInput" placeholder="🔍 Rechercher dans les notes…">
       </div>
       <div id="notesPlayersContainer"></div>
     </div>
@@ -2874,10 +2884,7 @@
 
 </div>
 
-<!-- ══ BARÈME FAB + DRAWER ═══════════════════════════════════════════ -->
-<button class="bareme-fab" id="baremeBtn" aria-expanded="false" title="Barème des Tops (touche ?)">
-  ⚖️ <span class="bareme-fab-label">Barème</span>
-</button>
+<!-- ══ BARÈME DRAWER ═══════════════════════════════════════════ -->
 <div class="bareme-backdrop" id="baremeBackdrop"></div>
 <aside class="bareme-drawer" id="baremeDrawer" aria-label="Barème des Tops">
   <div class="bareme-header">
@@ -3058,9 +3065,20 @@
     if (logoInput)  logoInput.value  = _appSettings.logoUrl;
   }
 
+  const APP_SETTINGS_CACHE_KEY = 'tdt_cache_appsettings';
+
   function loadAppBranding(onDone) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(APP_SETTINGS_CACHE_KEY) || 'null');
+      if (cached) {
+        _appSettings = cached;
+        applyAppBranding();
+      }
+    } catch (e) { /* cache corrompu : ignorer, chargement normal */ }
+
     callServer('apiGetAppSettings', [], res => {
       _appSettings = { appTitle: res.appTitle, logoUrl: res.logoUrl };
+      try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(_appSettings)); } catch (e) { /* best-effort */ }
       applyAppBranding();
       populateAppSettingsForm();
       if (onDone) onDone();
@@ -3418,6 +3436,7 @@
   let _phraseModalCtx = null; // { entry: null|{rowIndex,text}, presetName, pool }
 
   function openPhraseModal(entry, presetName, pool, displayLabel) {
+    if (!requireIdentity()) return;
     _phraseModalCtx = { entry, presetName, pool };
     const label = displayLabel || (POOL_LABELS[pool] ? POOL_LABELS[pool].label : pool);
     document.getElementById('phraseModalTitle').textContent =
@@ -3462,6 +3481,7 @@
 
   // ── PHRASES : GESTION PRESETS ────────────────────────────────────────────
   function openCreatePresetModal() {
+    if (!requireIdentity()) return;
     const copySelect = document.getElementById('presetCopyFromSelect');
     copySelect.innerHTML =
       '<option value="">Vide — j\'ajouterai mes phrases manuellement</option>' +
@@ -3555,6 +3575,7 @@
 
   // ── PHRASES : RENOMMAGE PRESET ───────────────────────────────────────────
   function openRenamePresetModal() {
+    if (!requireIdentity()) return;
     const active = getActivePresetId();
     if (active === PHRASES_DEFAULT_ID) return;
     document.getElementById('presetRenameInput').value = active;
@@ -3626,6 +3647,7 @@
   let _bulkImportCtx = null;
 
   function openBulkImportModal(presetName, pool, poolLabel) {
+    if (!requireIdentity()) return;
     _bulkImportCtx = { presetName, pool };
     document.getElementById('bulkImportModalTitle').textContent = 'Importer — ' + poolLabel;
     document.getElementById('bulkImportTextarea').value = '';
@@ -4757,6 +4779,7 @@
   }
 
   function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor) {
+    if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     const isCat  = entityType === 'Categories';
@@ -4837,59 +4860,88 @@
   });
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
+  const SETTINGS_CACHE_KEY = 'tdt_cache_settings';
+
+  // Effectue tous les rendus qui dépendent de cachedPlayers/cachedCategories — appelée
+  // à la fois pour un rendu instantané depuis le cache et pour le rendu final avec les
+  // données fraîches du serveur, afin de ne pas dupliquer cette longue séquence.
+  function _paintEntitiesUI() {
+    const auSel = document.getElementById('auditFilterAuthor');
+    if (auSel) {
+      while (auSel.options.length > 1) auSel.remove(1);
+      (cachedPlayers || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name; opt.textContent = p.name;
+        auSel.appendChild(opt);
+      });
+    }
+
+    // Remove any players/categories that no longer exist from chip selection
+    selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
+    selectedCategoryChips.forEach(n => { if (!cachedCategories.find(c => c.name === n)) selectedCategoryChips.delete(n); });
+    renderPlayerChips();
+    renderCategoryChips();
+
+    renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
+    renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
+    loadBaremeSettings();
+
+    updateHistoryFilters();
+    updateDonutPlayerSelect();
+    // Les notes dépendent de la liste des joueurs : on rafraîchit si l'onglet est ouvert.
+    if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
+
+    if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
+    renderWhoAmI();
+
+    // applyFilters/loadQuickStats affichent des avatars résolus via cachedPlayers :
+    // on les déclenche seulement une fois cachedPlayers rempli, sinon le premier
+    // chargement de page rate les avatars (course avec apiGetSettings) et il
+    // faut actualiser pour les voir apparaître.
+    applyFilters();
+    loadQuickStats();
+  }
+
   function loadEntities(onDone) {
-    showSkeleton(document.getElementById('playersList'),    { rows: 3, height: 44, tag: 'li' });
-    showSkeleton(document.getElementById('categoriesList'), { rows: 3, height: 44, tag: 'li' });
+    let paintedFromCache = false;
+    try {
+      const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
+      if (cached && cached.players && cached.categories) {
+        cachedPlayers    = cached.players;
+        cachedCategories = cached.categories;
+        _paintEntitiesUI();
+        paintedFromCache = true;
+      }
+    } catch (e) { /* cache corrompu : ignorer, chargement normal */ }
+
+    if (!paintedFromCache) {
+      showSkeleton(document.getElementById('playersList'),    { rows: 3, height: 44, tag: 'li' });
+      showSkeleton(document.getElementById('categoriesList'), { rows: 3, height: 44, tag: 'li' });
+    }
+
     callServer('apiGetSettings', [], res => {
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
-
-      const auSel = document.getElementById('auditFilterAuthor');
-      if (auSel) {
-        while (auSel.options.length > 1) auSel.remove(1);
-        (cachedPlayers || []).forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.name; opt.textContent = p.name;
-          auSel.appendChild(opt);
-        });
-      }
-
-      // Remove any players/categories that no longer exist from chip selection
-      selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
-      selectedCategoryChips.forEach(n => { if (!cachedCategories.find(c => c.name === n)) selectedCategoryChips.delete(n); });
-      renderPlayerChips();
-      renderCategoryChips();
-
-      renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
-      renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
-      loadBaremeSettings();
-
-      updateHistoryFilters();
-      updateDonutPlayerSelect();
-      // Les notes dépendent de la liste des joueurs : on rafraîchit si l'onglet est ouvert.
-      if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
-
-      if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
-      renderWhoAmI();
-
-      // applyFilters/loadQuickStats affichent des avatars résolus via cachedPlayers :
-      // on les déclenche seulement une fois cachedPlayers rempli, sinon le premier
-      // chargement de page rate les avatars (course avec apiGetSettings) et il
-      // faut actualiser pour les voir apparaître.
-      applyFilters();
-      loadQuickStats();
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+      } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
+      _paintEntitiesUI();
       if (onDone) onDone();
 
     }, 'Chargement settings', () => {
-      // apiGetSettings a échoué : les skeletons affichés au chargement de la page
-      // (chart, phrases, listes joueurs/catégories) ne seront jamais nettoyés par
-      // applyFilters/loadQuickStats/renderEntityList puisqu'ils ne s'exécutent jamais.
-      // On les efface pour ne pas bloquer l'UI.
-      clearPhrasesCard();
-      document.getElementById('chartSkeleton').style.display = 'none';
-      document.getElementById('chartWrapper').style.display  = 'block';
-      document.getElementById('playersList').innerHTML    = '';
-      document.getElementById('categoriesList').innerHTML = '';
+      // apiGetSettings a échoué : si rien n'a pu être peint depuis le cache, les
+      // skeletons affichés au chargement (chart, phrases, listes joueurs/catégories)
+      // ne seront jamais nettoyés par applyFilters/loadQuickStats/renderEntityList
+      // puisqu'ils ne s'exécutent jamais — on les efface pour ne pas bloquer l'UI.
+      // Si un rendu depuis le cache a déjà eu lieu, on le laisse tel quel : un échec
+      // réseau ne doit pas effacer une interface déjà correctement affichée.
+      if (!paintedFromCache) {
+        clearPhrasesCard();
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+        document.getElementById('playersList').innerHTML    = '';
+        document.getElementById('categoriesList').innerHTML = '';
+      }
       if (onDone) onDone();
     });
   }
@@ -6470,7 +6522,12 @@
   }
 
   function attachRowDragEvents(row) {
+    row.addEventListener('mousedown', (e) => {
+      row.draggable = !!e.target.closest('.row-drag-handle');
+    });
+
     row.addEventListener('dragstart', (e) => {
+      if (!e.target.closest('.row-drag-handle')) { e.preventDefault(); return; }
       draggedRow = row;
       row.classList.add('row-dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -6478,6 +6535,7 @@
 
     row.addEventListener('dragend', () => {
       row.classList.remove('row-dragging');
+      row.draggable = false;
       document.querySelectorAll('.entry-row.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
       draggedRow = null;
     });
@@ -7152,8 +7210,8 @@
           days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
           player:      pSel.value,
           category:    cSel.value,
-          points:      customPtsEl.value || '1',
-          times:       '1',
+          points:      parseInt(customPtsEl.value || '1', 10),
+          times:       1,
           description: descEl ? descEl.value.trim() : '',
           groupTag:    lotGroupMap.get(r.id) || ''
         });
@@ -7287,7 +7345,7 @@
 
   function updateHistBulkBar() {
     const count = document.getElementById('histBulkCount');
-    if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '');
+    if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '') + ' sur cette page';
   }
 
   function confirmGroupRows() {
@@ -7923,6 +7981,10 @@
 
   function _doLoadHistoryPage(page) {
     currentHistoryPage = page;
+    if (histSelectMode && histSelected.size) {
+      histSelected.clear();
+      updateHistBulkBar();
+    }
     const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
     const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
     const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
@@ -8089,6 +8151,25 @@
     fullEditBtn.title = 'Modifier cette entrée (date, joueur, Top, points, description, saiseur)';
     fullEditBtn.style.marginRight = '4px';
     fullEditBtn.addEventListener('click', () => openFullEditHistoryModal(log));
+    actCell.appendChild(fullEditBtn);
+
+    if (log.groupId) {
+      const unlinkBtn = document.createElement('button');
+      unlinkBtn.className = 'small'; unlinkBtn.textContent = '➖';
+      unlinkBtn.title = 'Retirer cette entrée du groupe';
+      unlinkBtn.style.marginRight = '4px';
+      unlinkBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!requireIdentity()) return;
+        openConfirmModal('Retirer cette entrée du groupe ? Elle redeviendra indépendante.', () => {
+          callServer('apiRemoveFromGroup', [log.rowIndex, _whoAmI || ''], res => {
+            if (res.success) { showToast('Entrée retirée du groupe.', 'success'); loadHistoryPage(currentHistoryPage); }
+            else showToast('Erreur lors du retrait.', 'error');
+          }, 'Retrait du groupe');
+        });
+      });
+      actCell.appendChild(unlinkBtn);
+    }
 
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
@@ -8098,7 +8179,7 @@
         scheduleDeletion([log.rowIndex]);
       });
     });
-    actCell.appendChild(fullEditBtn); actCell.appendChild(delBtn);
+    actCell.appendChild(delBtn);
     return tr;
   }
 
@@ -8118,6 +8199,8 @@
 
   // ── NOTES (une zone permanente par joueur) ───────────────────────────
   let _flashPlayer = ''; // persists across re-renders so selection survives note saves
+  let _allNotesRaw = [];
+  let _notesSearchQuery = '';
 
   function loadNotes() {
     showSkeleton(document.getElementById('notesPlayersContainer'), { rows: 3, height: 70 });
@@ -8234,12 +8317,43 @@
     flash.appendChild(inputRow);
     container.appendChild(flash);
 
-    // Regrouper les notes par joueur
+    _allNotesRaw = notes;
+
+    const searchInput = document.getElementById('notesSearchInput');
+    if (searchInput) {
+      searchInput.value = _notesSearchQuery;
+      searchInput.oninput = () => {
+        _notesSearchQuery = searchInput.value;
+        renderNotesBlocks();
+      };
+    }
+
+    const blocksContainer = document.createElement('div');
+    blocksContainer.id = 'notesBlocksContainer';
+    container.appendChild(blocksContainer);
+
+    renderNotesBlocks();
+  }
+
+  function renderNotesBlocks() {
+    const blocksContainer = document.getElementById('notesBlocksContainer');
+    if (!blocksContainer) return;
+    blocksContainer.innerHTML = '';
+
+    const query = _notesSearchQuery.trim().toLowerCase();
+    const filtered = query
+      ? _allNotesRaw.filter(n => (n.text || '').toLowerCase().includes(query))
+      : _allNotesRaw;
+
+    // Regrouper les notes par joueur, triées par date décroissante (plus récentes en premier)
     const byPlayer = {};
-    notes.forEach(n => { (byPlayer[n.player] = byPlayer[n.player] || []).push(n); });
+    filtered.forEach(n => { (byPlayer[n.player] = byPlayer[n.player] || []).push(n); });
+    Object.keys(byPlayer).forEach(name => {
+      byPlayer[name].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    });
 
     cachedPlayers.forEach(p => {
-      container.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
+      blocksContainer.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
     });
   }
 
@@ -8310,7 +8424,8 @@
     listEl.className = 'npb-notes';
     if (!notes.length) {
       const e = document.createElement('div');
-      e.className = 'npb-empty'; e.textContent = 'Aucune note pour le moment.';
+      e.className = 'npb-empty';
+      e.textContent = _notesSearchQuery.trim() ? 'Aucune note ne correspond à la recherche.' : 'Aucune note pour le moment.';
       listEl.appendChild(e);
     } else {
       notes.forEach(note => listEl.appendChild(buildNoteCard(note)));
@@ -8320,9 +8435,20 @@
     return block;
   }
 
+  function relativeDateLabel(date) {
+    if (!date || isNaN(date.getTime())) return '';
+    const days = Math.floor((new Date().setHours(0,0,0,0) - new Date(date).setHours(0,0,0,0)) / 86400000);
+    if (days === 0) return "aujourd'hui";
+    if (days === 1) return 'hier';
+    if (days > 1 && days < 30) return 'il y a ' + days + ' jours';
+    if (days < 0) return 'dans le futur';
+    return '';
+  }
+
   function buildNoteCard(note) {
     const d = note.timestamp ? new Date(note.timestamp) : null;
     const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+    const relStr   = d && !isNaN(d) ? relativeDateLabel(d) : '';
 
     const card = document.createElement('div');
     card.className = 'note-card';
@@ -8336,7 +8462,8 @@
     const headc = document.createElement('div');
     headc.className = 'note-card-head';
     const dt = document.createElement('span');
-    dt.className = 'note-date'; dt.textContent = dateStr;
+    dt.className = 'note-date';
+    dt.textContent = dateStr + (relStr ? ' · ' + relStr : '');
     headc.appendChild(dt);
 
     const txt = document.createElement('div');
@@ -8366,6 +8493,7 @@
   }
 
   function openEditNoteModal(note) {
+    if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     const d = note.timestamp ? new Date(note.timestamp) : null;
@@ -8556,6 +8684,7 @@
   }
 
   function openFullEditHistoryModal(log) {
+    if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
 
@@ -8701,6 +8830,7 @@
     callServer('apiGetAutoRules', [], res => {
       renderAutoTriggerStatus(res.triggerInstalled);
       renderAutoRules(res.rules);
+      if (res.triggerError) showToast(res.triggerError, 'error');
     }, 'Chargement des règles automatiques');
   }
 
@@ -9632,9 +9762,11 @@
     if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans ⚙️ Paramètres.</p>';
   }
 
-  document.getElementById('baremeBtn').addEventListener('click', () => {
+  const openCloseBareme = () => {
     document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
-  });
+  };
+  document.getElementById('baremeBtn').addEventListener('click', openCloseBareme);
+  document.getElementById('baremeBtnMobile').addEventListener('click', () => { closeDrawer(); openCloseBareme(); });
   document.getElementById('baremeBackdrop').addEventListener('click', closeBareme);
   document.getElementById('baremeCloseBtn').addEventListener('click', closeBareme);
   document.getElementById('baremeRefreshBtn').addEventListener('click', () => {

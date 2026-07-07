@@ -291,8 +291,13 @@ function apiGetAutoRules() {
   try {
     const rules = AutoPointsService.getRules();
     let triggerInstalled = false;
-    try { triggerInstalled = AutoPointsService.isTriggerInstalled(); } catch (_) {}
-    return { success: true, rules, triggerInstalled };
+    let triggerError = '';
+    try {
+      triggerInstalled = AutoPointsService.isTriggerInstalled();
+    } catch (triggerErr) {
+      triggerError = triggerErr && triggerErr.message ? triggerErr.message : String(triggerErr);
+    }
+    return { success: true, rules, triggerInstalled, triggerError };
   } catch (e) { return fail(e); }
 }
 
