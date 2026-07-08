@@ -136,7 +136,7 @@ function loadGas(extraMocks) {
     'apiGetAppSettings, apiSaveAppSettings, apiVerifyIdentity, apiRemoveFromGroup, ' +
     'AutoPointsService, apiGetAutoRules, NAV_PAGES, apiGetNavPages, doGet, ' +
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +
-    'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, ' +
+    'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, ScriptApp, ' +
     'apiGetQuickStats: (typeof apiGetQuickStats === "undefined" ? undefined : apiGetQuickStats) };';
   vm.runInContext(code + '\n' + autoPointsCode + epilogue, sandbox, { filename: 'Code.gs+AutoPoints.gs' });
   return sandbox.__exports;

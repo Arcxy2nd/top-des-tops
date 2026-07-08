@@ -21,6 +21,14 @@ test('doGet injects the deployment\'s real public URL into the template (appUrl)
   assert.strictEqual(out._appUrl, 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec');
 });
 
+test('doGet still serves the page (with an empty appUrl) when ScriptApp.getService() is not authorized', () => {
+  const gas = loadGas();
+  gas.ScriptApp.getService = () => { throw new Error('Vous n\'êtes pas autorisé à appeler ScriptApp.getService.'); };
+  const out = gas.doGet({ parameter: { view: 'desktop' } });
+  assert.strictEqual(out._file, 'Index');
+  assert.strictEqual(out._appUrl, '');
+});
+
 // No auto-redirect page anymore: the sandboxed deployment silently blocks any
 // script-triggered navigation that isn't a real user click, so a bare /exec visit
 // (or any unrecognized ?view value) goes straight to Index.html (desktop) rather

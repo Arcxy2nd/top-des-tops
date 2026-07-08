@@ -9109,6 +9109,12 @@
     // par le serveur (APP_URL), pas une URL relative qui se résoudrait contre
     // l'origine du bac à sable au lieu de la vraie adresse du site.
     const link = document.getElementById('layoutModeToggle');
+    if (!APP_URL) {
+      link.title = 'Bascule indisponible pour le moment';
+      link.style.opacity = '0.4';
+      link.style.pointerEvents = 'none';
+      return;
+    }
     link.href = APP_URL + '?view=mobile';
     link.addEventListener('click', () => {
       localStorage.setItem('tdt_layout_mode', 'mobile');

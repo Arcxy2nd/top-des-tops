@@ -477,10 +477,19 @@
   // l'intérieur de l'iframe sandbox de Google laisse un écran blanc tant qu'on n'a
   // pas rafraîchi manuellement. window.top navigue le vrai onglet du navigateur,
   // autorisé ici car déclenché par un clic — comme taper l'URL à la main.
-  document.getElementById('mViewToggle').href = APP_URL + '?view=desktop';
-  document.getElementById('mViewToggle').addEventListener('click', () => {
-    localStorage.setItem('tdt_layout_mode', 'desktop');
-  });
+  (function initViewToggle() {
+    const link = document.getElementById('mViewToggle');
+    if (!APP_URL) {
+      link.title = 'Bascule indisponible pour le moment';
+      link.style.opacity = '0.4';
+      link.style.pointerEvents = 'none';
+      return;
+    }
+    link.href = APP_URL + '?view=desktop';
+    link.addEventListener('click', () => {
+      localStorage.setItem('tdt_layout_mode', 'desktop');
+    });
+  })();
 
   // ── IDENTITÉ DE L'APP (titre + logo, réutilise apiGetAppSettings) ──
   function loadAppBranding() {

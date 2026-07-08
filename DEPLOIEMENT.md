@@ -70,6 +70,22 @@ Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En ca
 
 ---
 
+## Note — Message "Vous n'êtes pas autorisé à appeler ScriptApp.getProjectTriggers"
+
+Ce message peut apparaître dans l'onglet 🔧 Outils → 🤖 Points automatiques ("Exécution automatique"). Ce n'est pas un bug : c'est Google qui demande une autorisation supplémentaire, que les déploiements automatiques (via `clasp`/GitHub Actions) ne peuvent pas accorder eux-mêmes — seul un humain peut cliquer "Autoriser" dans l'éditeur.
+
+L'app continue de fonctionner normalement pour tout le reste ; seule la case à cocher "activer/désactiver l'exécution automatique" reste indisponible tant que l'autorisation n'a pas été donnée.
+
+**Pour corriger, une seule fois par copie du script :**
+
+1. Ouvre le projet dans [script.google.com](https://script.google.com)
+2. Dans l'éditeur, sélectionne la fonction `runAutoPoints` dans le menu déroulant en haut
+3. Clique sur **"Exécuter"**
+4. Google affiche l'écran d'autorisation ("Google n'a pas validé cette application") — clique **"Paramètres avancés"** puis **"Accéder à [nom du projet] (non sécurisé)"** puis **"Autoriser"** (même écran qu'à l'Étape 4 du déploiement initial)
+5. Recharge l'app : le message disparaît, l'exécution automatique des règles de points redevient disponible
+
+---
+
 ## Note — Si le SPREADSHEET_ID n'est pas configuré
 
 Si l'app affiche une erreur `SPREADSHEET_ID est manquant`, il faut le configurer manuellement :
