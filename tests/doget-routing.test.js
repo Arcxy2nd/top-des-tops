@@ -15,6 +15,12 @@ test('doGet with ?view=desktop serves Index.html', () => {
   assert.strictEqual(out._file, 'Index');
 });
 
+test('doGet injects the deployment\'s real public URL into the template (appUrl)', () => {
+  const gas = loadGas();
+  const out = gas.doGet({ parameter: { view: 'desktop' } });
+  assert.strictEqual(out._appUrl, 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec');
+});
+
 // No auto-redirect page anymore: the sandboxed deployment silently blocks any
 // script-triggered navigation that isn't a real user click, so a bare /exec visit
 // (or any unrecognized ?view value) goes straight to Index.html (desktop) rather

@@ -2143,7 +2143,11 @@
   }
 
   /* ── Bascule vers la version mobile dédiée (Mobile.html) ────────────── */
-  .layout-mode-toggle { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text); padding: 4px 8px; }
+  .layout-mode-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; text-decoration: none;
+    font-size: 1.1rem; cursor: pointer; color: var(--text); padding: 4px 8px;
+  }
 
   </style>
 </head>
@@ -2170,7 +2174,7 @@
       <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
-    <button class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Passer à la version mobile">🖥️</button>
+    <a class="layout-mode-toggle" id="layoutModeToggle" target="_top" aria-label="Basculer l'affichage mobile/desktop" title="Passer à la version mobile">🖥️</a>
   </div>
 </nav>
 
@@ -2878,10 +2882,15 @@
 </div>
 
 <script>
-  // Le code JavaScript reste parfaitement identique car il gérait déjà bien la logique, 
+  // Adresse publique exacte du déploiement courant, fournie par le serveur
+  // (ScriptApp.getService().getUrl() côté Code.gs) — nécessaire pour toute
+  // navigation vers l'autre fichier (?view=mobile/desktop) : une URL relative
+  // se résoudrait contre l'origine du bac à sable Google, pas contre celle-ci.
+  const APP_URL = <?!= JSON.stringify(appUrl) ?>;
+  // Le code JavaScript reste parfaitement identique car il gérait déjà bien la logique,
   // Seules les requêtes ont besoin de réagir à la nouvelle disposition CSS.
   // [Le reste du JavaScript du[cite: 1] est injecté ici à l'identique]
-  
+
   // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
   let currentChart     = null;
   let currentChartData = null;
@@ -9089,34 +9098,20 @@
   // ── MODE D'AFFICHAGE (mobile / desktop) ────────────────────────────────
   // Index.html ne sait plus rendre sa propre version mobile (reflow interne
   // abandonné au profit de Mobile.html, qui a sa vraie mise en page tactile).
-  // Si le mode résolu est "mobile" (préférence explicite, ou écran étroit
-  // détecté en absence de préférence), on redirige immédiatement au lieu de
-  // rester sur Index.html : cette page n'est jamais rendue en mode mobile.
-  function resolveLayoutMode(pref) {
-    if (pref === 'mobile' || pref === 'desktop') return pref;
-    return window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop';
-  }
-
   function initLayoutMode() {
-    const pref = localStorage.getItem('tdt_layout_mode') || 'auto';
-    if (resolveLayoutMode(pref) === 'mobile') {
-      window.top.location.href = '?view=mobile';
-      return;
-    }
-    // Le clic bascule vers l'autre FICHIER (Mobile.html a sa propre mise en
-    // page). Navigation sur window.top : le contenu tourne dans l'iframe
-    // sandbox de Google, et se re-naviguer soi-même y laisse un écran blanc
-    // tant qu'on n'a pas rafraîchi manuellement. On écrit sur
-    // window.top.location (autorisé cross-origin, déclenché par un clic) mais
-    // on ne LIT jamais window.top.location.href : cette lecture est
-    // cross-origin (l'iframe sandbox GAS est sur un domaine différent de
-    // script.google.com) et lève une SecurityError silencieuse — c'est ce qui
-    // rendait ce bouton inopérant. Une URL relative laisse le navigateur
-    // résoudre le chemin lui-même, sans que notre code ait besoin d'accéder
-    // à l'URL cible.
-    document.getElementById('layoutModeToggle').addEventListener('click', () => {
+    // Pas de redirection automatique : le bac à sable Google bloque
+    // catégoriquement toute navigation du cadre du haut déclenchée par script
+    // sans clic réel de l'utilisateur (confirmé en usage réel — l'ancienne
+    // tentative ici plantait window.onload et empêchait tout le reste de
+    // l'initialisation de s'exécuter, y compris le chargement des données).
+    // Index.html reste donc la version servie par défaut ; seul un vrai clic
+    // sur ce lien envoie vers Mobile.html — avec l'adresse absolue fournie
+    // par le serveur (APP_URL), pas une URL relative qui se résoudrait contre
+    // l'origine du bac à sable au lieu de la vraie adresse du site.
+    const link = document.getElementById('layoutModeToggle');
+    link.href = APP_URL + '?view=mobile';
+    link.addEventListener('click', () => {
       localStorage.setItem('tdt_layout_mode', 'mobile');
-      window.top.location.href = '?view=mobile';
     });
   }
 

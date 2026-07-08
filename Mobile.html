@@ -103,9 +103,10 @@
     .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 4px; }
     .m-nav-btn, .m-side-item {
       display: flex; align-items: center; gap: 14px; width: 100%;
-      background: transparent; border: none; border-radius: 0;
+      background: transparent; border: none; border-radius: 0; text-decoration: none;
       color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
       padding: 13px 16px; min-height: 48px; white-space: nowrap; justify-content: flex-start;
+      box-sizing: border-box;
     }
     .m-nav-btn.active { color: var(--accent); background: rgba(255,71,87,0.08); }
     .m-nav-icon { font-size: 1.25rem; position: relative; width: 24px; text-align: center; flex-shrink: 0; }
@@ -184,9 +185,9 @@
     <button class="m-side-item" id="mThemeToggle" aria-label="Basculer le thème">
       <span class="m-nav-icon">🌙</span><span class="m-side-label">Thème</span>
     </button>
-    <button class="m-side-item" id="mViewToggle" title="Basculer vers la version PC">
+    <a class="m-side-item" id="mViewToggle" target="_top" title="Basculer vers la version PC">
       <span class="m-nav-icon">🖥️</span><span class="m-side-label">Version PC</span>
-    </button>
+    </a>
   </div>
 </nav>
 <div class="m-side-overlay" id="mSideOverlay"></div>
@@ -229,6 +230,12 @@
 
 
 <script>
+  // Adresse publique exacte du déploiement courant, fournie par le serveur
+  // (ScriptApp.getService().getUrl() côté Code.gs) — nécessaire pour toute
+  // navigation vers l'autre fichier (?view=mobile/desktop) : une URL relative
+  // se résoudrait contre l'origine du bac à sable Google, pas contre celle-ci.
+  const APP_URL = <?!= JSON.stringify(appUrl) ?>;
+
   // ══════════════════════════════════════════════════════════════════════
   // HELPERS DUPLIQUÉS — plomberie technique stable, dupliquée depuis Index.html
   // faute de mécanisme de partage JS entre fichiers HTML en Apps Script sans
@@ -470,12 +477,9 @@
   // l'intérieur de l'iframe sandbox de Google laisse un écran blanc tant qu'on n'a
   // pas rafraîchi manuellement. window.top navigue le vrai onglet du navigateur,
   // autorisé ici car déclenché par un clic — comme taper l'URL à la main.
+  document.getElementById('mViewToggle').href = APP_URL + '?view=desktop';
   document.getElementById('mViewToggle').addEventListener('click', () => {
     localStorage.setItem('tdt_layout_mode', 'desktop');
-    // On ne lit jamais window.top.location.href (cross-origin dans l'iframe sandbox
-    // GAS, lève une SecurityError silencieuse) — seulement une écriture avec une
-    // URL relative, résolue par le navigateur lui-même.
-    window.top.location.href = '?view=desktop';
   });
 
   // ── IDENTITÉ DE L'APP (titre + logo, réutilise apiGetAppSettings) ──

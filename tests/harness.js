@@ -100,7 +100,24 @@ function gasMocks() {
         setTitle() { return this; },
         setXFrameOptionsMode() { return this; }
       }),
+      createTemplateFromFile: name => {
+        const tpl = {
+          _file: name,
+          evaluate() {
+            return {
+              _file: tpl._file,
+              _appUrl: tpl.appUrl,
+              setTitle() { return this; },
+              setXFrameOptionsMode() { return this; }
+            };
+          }
+        };
+        return tpl;
+      },
       XFrameOptionsMode: { ALLOWALL: 1 }
+    },
+    ScriptApp: {
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec' })
     },
     Logger: { log: () => {} }
   };

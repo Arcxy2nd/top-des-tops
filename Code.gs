@@ -874,13 +874,16 @@ const AnalyticsService = {
  */
 function doGet(e) {
   const view = e && e.parameter ? e.parameter.view : null;
+  const file = view === 'mobile' ? 'Mobile' : 'Index';
 
-  if (view === 'mobile') {
-    return HtmlService.createHtmlOutputFromFile('Mobile')
-      .setTitle('Tops des Tops')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-  return HtmlService.createHtmlOutputFromFile('Index')
+  // Rendu templaté (pas createHtmlOutputFromFile) pour injecter l'adresse
+  // publique exacte du déploiement courant : une URL relative écrite depuis le
+  // client se résout contre l'origine du bac à sable Google (une adresse
+  // interne du type n-xxxx-script.googleusercontent.com), jamais contre
+  // l'adresse réelle du site — d'où les liens cassés observés en pratique.
+  const template = HtmlService.createTemplateFromFile(file);
+  template.appUrl = ScriptApp.getService().getUrl();
+  return template.evaluate()
     .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
