@@ -60,14 +60,13 @@ Après le déploiement, une fenêtre s'affiche avec :
 
 ## Étape 6 — Mettre à jour après une modification du code
 
-Chaque fois que tu modifies `Code.gs` ou `Index.html`, le lien existant **ne se met pas à jour automatiquement**. Il faut redéployer :
+Depuis la mise en place de la synchronisation automatique (voir `SETUP-AUTOSYNC.md`), cette étape est **automatique** :
 
-1. Clique sur **"Déployer"** → **"Gérer les déploiements"**
-2. Clique sur l'icône **crayon** (modifier) à côté du déploiement existant
-3. Dans "Version", choisis **"Nouvelle version"**
-4. Clique sur **"Déployer"**
+1. Modifie `Code.gs`, `AutoPoints.gs`, `Index.html`, `Mobile.html` ou `appsscript.json` localement
+2. `git push` vers `main`
+3. GitHub Actions pousse le code, archive l'ancien déploiement, en crée un nouveau, et met à jour le lien short.io — sans action manuelle
 
-Le même lien `/exec` continuera de fonctionner, mais avec le nouveau code.
+Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En cas d'échec (visible en rouge), les logs indiquent l'étape fautive.
 
 ---
 
