@@ -49,9 +49,9 @@ EOF
   deploy_output=$(clasp deploy --description "auto: ${GITHUB_SHA} ($name)")
   echo "$deploy_output"
 
-  # clasp deploy prints a line like: "- AKfycbwwww @4."
+  # clasp deploy prints a line like: "Deployed AKfycbwwww @4"
   local new_deployment_id
-  new_deployment_id=$(echo "$deploy_output" | grep '^- ' | awk '{print $2}' | tail -n1 | sed 's/\.$//')
+  new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
 
   if [ -z "${new_deployment_id:-}" ]; then
     echo "ERROR: could not parse the new deployment ID from clasp deploy output for '$name'." >&2
