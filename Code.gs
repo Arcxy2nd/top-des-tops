@@ -668,7 +668,9 @@ const NotesService = {
     }
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
-    this._sheet().appendRow([targetDate, player, text.trim()]);
+    const sheet = this._sheet();
+    sheet.appendRow([targetDate, player, text.trim()]);
+    return { rowIndex: sheet.getLastRow(), timestamp: targetDate.toISOString(), player, text: text.trim() };
   },
 
   deleteNote(rowIndex) {
@@ -1425,6 +1427,24 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
   } catch(e) { return fail(e); }
 }
 
+/**
+ * Distinct action labels actually present in the audit log, for the Journal's
+ * filter dropdown. Replaces a hand-maintained static list in the frontend,
+ * which drifted out of sync with the actions really logged by AuditService.
+ */
+function apiGetAuditActionTypes() {
+  try {
+    const sheet = ConfigService.getSheets().auditLog;
+    if (!sheet) return { success: true, actions: [] };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, actions: [] };
+    const col = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+    const set = new Set();
+    col.forEach(r => { if (r[0]) set.add(r[0].toString()); });
+    return { success: true, actions: [...set].sort((a, b) => a.localeCompare(b, 'fr')) };
+  } catch(e) { return fail(e); }
+}
+
 function apiFixZeroPoints(author) {
   try {
     return withLock(() => {
@@ -1488,10 +1508,10 @@ function apiGetAllNotes() {
 function apiAddNote(player, text, dateStr, author) {
   try {
     return withLock(() => {
-      NotesService.addNote(player, text, dateStr);
+      const note = NotesService.addNote(player, text, dateStr);
       AuditService.log(author, 'Note ajoutée', 'Note: ' + (player || ''),
         '', (player || '') + ' : ' + (text || '').trim(), '');
-      return { success: true };
+      return { success: true, note };
     });
   } catch(e) { return fail(e); }
 }
@@ -1772,6 +1792,211 @@ function apiUngroupLot(groupId, author) {
       ConfigService.clearCache();
       return { success: true };
     });
+  } catch(e) { return fail(e); }
+}
+
+function apiDetectDuplicates() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached();
+    const pad = n => String(n).padStart(2, '0');
+    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    const groups = {};
+    rows.forEach(r => {
+      const key = r.player + '|' + r.category + '|' + dayKey(r.date) + '|' + r.points + '|' + r.description;
+      (groups[key] = groups[key] || []).push(r);
+    });
+
+    const duplicates = Object.keys(groups)
+      .map(k => groups[k])
+      .filter(g => g.length >= 2)
+      .map(g => {
+        const sorted = g.slice().sort((a, b) => a.rowIndex - b.rowIndex);
+        return {
+          player: sorted[0].player, category: sorted[0].category, points: sorted[0].points,
+          description: sorted[0].description, dateStr: dayKey(sorted[0].date),
+          count: sorted.length,
+          keepRowIndex: sorted[0].rowIndex,
+          extraRowIndexes: sorted.slice(1).map(r => r.rowIndex)
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return { success: true, duplicates };
+  } catch(e) { return fail(e); }
+}
+
+function apiDetectOutlierScores() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached().filter(r => !r.groupId);
+    const byCategory = {};
+    rows.forEach(r => (byCategory[r.category] = byCategory[r.category] || []).push(r));
+
+    const pad = n => String(n).padStart(2, '0');
+    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    // Médiane + MAD (écart absolu médian) plutôt que moyenne + écart-type : ces
+    // dernières se font fausser par l'aberration elle-même sur un petit échantillon
+    // (une seule entrée à 500 pts tire déjà la moyenne et l'écart-type vers le haut,
+    // masquant sa propre anomalie). La médiane/MAD reste stable face à ce cas.
+    function median(values) {
+      const sorted = values.slice().sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    const outliers = [];
+    Object.keys(byCategory).forEach(cat => {
+      const list = byCategory[cat];
+      if (list.length < 5) return;
+      const points = list.map(r => r.points);
+      const med = median(points);
+      const mad = median(points.map(p => Math.abs(p - med))) || 1; // évite un seuil nul si MAD = 0
+      const threshold = med + 5 * mad;
+      list.forEach(r => {
+        if (r.points > threshold) {
+          outliers.push({
+            rowIndex: r.rowIndex, player: r.player, category: r.category, points: r.points,
+            categoryAverage: Math.round(med), dateStr: dayKey(r.date)
+          });
+        }
+      });
+    });
+
+    outliers.sort((a, b) => b.points - a.points);
+    return { success: true, outliers };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetInactivePlayers() {
+  try {
+    const players = SettingsService.getEntities('Players');
+    const rows = StorageService.getFullHistoryRowsCached();
+    const lastByPlayer = {};
+    rows.forEach(r => {
+      if (!lastByPlayer[r.player] || r.date > lastByPlayer[r.player]) lastByPlayer[r.player] = r.date;
+    });
+
+    const now = new Date();
+    const inactive = [];
+    const neverActive = [];
+    players.forEach(p => {
+      const last = lastByPlayer[p.name];
+      if (!last) { neverActive.push(p.name); return; }
+      inactive.push({ player: p.name, daysSinceLastEntry: Math.floor((now - last) / 86400000) });
+    });
+    inactive.sort((a, b) => b.daysSinceLastEntry - a.daysSinceLastEntry);
+
+    return { success: true, inactive, neverActive };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetPlayerRecords() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached();
+    const byPlayer = {};
+    rows.forEach(r => (byPlayer[r.player] = byPlayer[r.player] || []).push(r));
+
+    const pad = n => String(n).padStart(2, '0');
+    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    let globalBest = null;
+    const records = Object.keys(byPlayer).map(player => {
+      const list = byPlayer[player];
+      const best = list.reduce((m, r) => r.points > m.points ? r : m, list[0]);
+      if (!globalBest || best.points > globalBest.points) {
+        globalBest = { player, points: best.points, dateStr: dayKey(best.date) };
+      }
+
+      const days = [...new Set(list.map(r => dayKey(r.date)))].sort();
+      let longestStreak = days.length ? 1 : 0;
+      let currentStreak = 1;
+      for (let i = 1; i < days.length; i++) {
+        const gap = (new Date(days[i]) - new Date(days[i - 1])) / 86400000;
+        currentStreak = gap === 1 ? currentStreak + 1 : 1;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      }
+
+      return { player, bestSingleEntry: best.points, bestEntryDate: dayKey(best.date), longestStreakDays: longestStreak };
+    });
+
+    return { success: true, records, globalBest };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetTrends() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached();
+    const now = new Date();
+    const cutoff1 = new Date(now.getTime() - 30 * 86400000);
+    const cutoff2 = new Date(now.getTime() - 60 * 86400000);
+
+    const recent   = rows.filter(r => r.date >= cutoff1 && r.date <= now);
+    const previous = rows.filter(r => r.date >= cutoff2 && r.date < cutoff1);
+
+    function countByCategory(list) {
+      const m = {};
+      list.forEach(r => { m[r.category] = (m[r.category] || 0) + 1; });
+      return m;
+    }
+    const recentByCat = countByCategory(recent);
+    const prevByCat   = countByCategory(previous);
+    const categories  = [...new Set([...Object.keys(recentByCat), ...Object.keys(prevByCat)])];
+    const categoryTrends = categories.map(cat => {
+      const before = prevByCat[cat] || 0;
+      const after  = recentByCat[cat] || 0;
+      const changePct = before === 0 ? (after > 0 ? 100 : 0) : Math.round(((after - before) / before) * 100);
+      return { category: cat, before, after, changePct };
+    }).sort((a, b) => b.changePct - a.changePct);
+
+    const byPlayerAll = {};
+    rows.forEach(r => (byPlayerAll[r.player] = byPlayerAll[r.player] || []).push(r));
+    const playerTrends = Object.keys(byPlayerAll).map(player => {
+      const all = byPlayerAll[player];
+      const recentEntries = all.filter(r => r.date >= cutoff1 && r.date <= now);
+      if (!recentEntries.length) return null;
+      const historicalAvg = all.reduce((s, r) => s + r.points, 0) / all.length;
+      const recentAvg = recentEntries.reduce((s, r) => s + r.points, 0) / recentEntries.length;
+      const changePct = historicalAvg === 0 ? 0 : Math.round(((recentAvg - historicalAvg) / historicalAvg) * 100);
+      return { player, historicalAvg: Math.round(historicalAvg), recentAvg: Math.round(recentAvg), changePct };
+    }).filter(Boolean).sort((a, b) => b.changePct - a.changePct);
+
+    return { success: true, categoryTrends, playerTrends };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetActiveWeekday() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached();
+    const counts = [0, 0, 0, 0, 0, 0, 0]; // index = Date.getDay(), 0 = dimanche
+    rows.forEach(r => { counts[r.date.getDay()]++; });
+
+    const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const byWeekday = labels.map((label, i) => ({ weekday: label, count: counts[i] }));
+    let topIndex = 0;
+    for (let i = 1; i < counts.length; i++) if (counts[i] > counts[topIndex]) topIndex = i;
+
+    return { success: true, byWeekday, topWeekday: rows.length ? labels[topIndex] : null };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetTopPlayerCategoryPairs() {
+  try {
+    const rows = StorageService.getFullHistoryRowsCached();
+    const counts = {};
+    rows.forEach(r => {
+      const key = r.player + '|' + r.category;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const pairs = Object.keys(counts)
+      .map(key => {
+        const sep = key.indexOf('|');
+        return { player: key.slice(0, sep), category: key.slice(sep + 1), count: counts[key] };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    return { success: true, pairs };
   } catch(e) { return fail(e); }
 }
 
