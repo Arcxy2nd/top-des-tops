@@ -855,10 +855,20 @@ const AnalyticsService = {
 // ─── API ENDPOINTS ─────────────────────────────────────────────────────────────
 
 /**
- * Device routing: ?view=mobile serves Mobile.html, ?view=desktop serves Index.html.
- * With no ?view param (first visit / bare /exec URL), serves a tiny inline
- * redirect page: it checks localStorage for a remembered choice, falls back to
- * a screen-width check, then reloads the same URL with ?view=<mobile|desktop>.
+ * Device routing: ?view=mobile serves Mobile.html, anything else (?view=desktop,
+ * no param at all, or an unrecognized value) serves Index.html.
+ *
+ * There used to be a third case here: a tiny auto-redirect page shown on a bare
+ * /exec visit, which read localStorage and screen width to pick a view, then
+ * navigated itself to ?view=<mobile|desktop>. The deployed sandbox iframe silently
+ * blocks any script-triggered navigation that isn't the result of a real user
+ * click (confirmed: typing ?view=desktop by hand always works; the automatic
+ * redirect never did, whether served as a raw string or as its own file) — so
+ * that page never got anywhere and the app stayed stuck on "Chargement…".
+ * Defaulting straight to desktop matches the project's stated primary usage
+ * (PC first); the existing 🖥️/📱 toggle button — a real click, so it isn't
+ * blocked — lets a visitor switch to mobile, and that choice is remembered via
+ * ?view= on every link/bookmark they use afterwards.
  */
 function doGet(e) {
   const view = e && e.parameter ? e.parameter.view : null;
@@ -868,46 +878,9 @@ function doGet(e) {
       .setTitle('Tops des Tops')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-  if (view === 'desktop') {
-    return HtmlService.createHtmlOutputFromFile('Index')
-      .setTitle('Tops des Tops')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-
-  return HtmlService.createHtmlOutput(_deviceRedirectBootstrapHtml())
+  return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Tops des Tops')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-/**
- * Inline redirect bootstrap — a handful of lines, not worth a separate HTML file.
- * Reads the same 'tdt_layout_mode' localStorage key the in-app toggle writes, so a
- * manual choice made from inside the app is honored on the very next cold load.
- */
-function _deviceRedirectBootstrapHtml() {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tops des Tops</title>
-</head>
-<body style="background:#0b0c10;color:#e0e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <div>Chargement…</div>
-  <script>
-    (function() {
-      var pref = null;
-      try { pref = localStorage.getItem('tdt_layout_mode'); } catch (e) {}
-      var view = (pref === 'mobile' || pref === 'desktop')
-        ? pref
-        : (window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop');
-      var url = new URL(window.location.href);
-      url.searchParams.set('view', view);
-      window.location.href = url.toString();
-    })();
-  </script>
-</body>
-</html>`;
 }
 
 function apiGetSettings() {

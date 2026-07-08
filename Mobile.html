@@ -450,11 +450,15 @@
   }
 
   // ── BASCULE VERS LA VERSION PC (même clé que Index.html — choix mémorisé) ──
+  // Navigation sur window.top (pas window.location) : se re-naviguer soi-même à
+  // l'intérieur de l'iframe sandbox de Google laisse un écran blanc tant qu'on n'a
+  // pas rafraîchi manuellement. window.top navigue le vrai onglet du navigateur,
+  // autorisé ici car déclenché par un clic — comme taper l'URL à la main.
   document.getElementById('mViewToggle').addEventListener('click', () => {
     localStorage.setItem('tdt_layout_mode', 'desktop');
-    const url = new URL(window.location.href);
+    const url = new URL(window.top.location.href);
     url.searchParams.set('view', 'desktop');
-    window.location.href = url.toString();
+    window.top.location.href = url.toString();
   });
 
   // ── IDENTITÉ DE L'APP (titre + logo, réutilise apiGetAppSettings) ──

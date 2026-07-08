@@ -2213,6 +2213,7 @@
   <div class="drawer-section drawer-settings">
     <button class="theme-toggle" id="drawerThemeToggle" aria-label="Basculer le thème">🌙</button>
     <button class="theme-toggle" id="baremeBtnMobile" aria-label="Barème des Tops">⚖️</button>
+    <button class="theme-toggle" id="drawerLayoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Forcer l'affichage mobile/desktop">🖥️</button>
   </div>
 </div>
 
@@ -9009,23 +9010,37 @@
 
   function applyLayoutMode(mode) {
     document.body.setAttribute('data-mode', mode);
-    const btn = document.getElementById('layoutModeToggle');
-    if (btn) btn.textContent = mode === 'mobile' ? '📱' : '🖥️';
+    const icon = mode === 'mobile' ? '📱' : '🖥️';
+    ['layoutModeToggle', 'drawerLayoutModeToggle'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.textContent = icon;
+    });
     if (mode !== 'mobile') closeDrawer();
   }
 
   function initLayoutMode() {
     const pref = localStorage.getItem('tdt_layout_mode') || 'auto';
     applyLayoutMode(resolveLayoutMode(pref));
-    document.getElementById('layoutModeToggle').addEventListener('click', () => {
-      const current = document.body.getAttribute('data-mode');
-      const next = current === 'mobile' ? 'desktop' : 'mobile';
-      localStorage.setItem('tdt_layout_mode', next);
-      // Le choix manuel bascule maintenant vers l'autre FICHIER (Mobile.html a sa
-      // propre mise en page — le CSS data-mode local ne suffit plus à basculer).
-      const url = new URL(window.location.href);
-      url.searchParams.set('view', next);
-      window.location.href = url.toString();
+    // Dupliqué navbar + tiroir (même pattern que initTheme()) : sur petit écran, la
+    // navbar défile horizontalement avec la barre de défilement masquée, donc ce
+    // bouton — dernier de la rangée — devient invisible/inatteignable sans le duplicata
+    // dans le tiroir hamburger, toujours visible.
+    ['layoutModeToggle', 'drawerLayoutModeToggle'].forEach(id => {
+      document.getElementById(id).addEventListener('click', () => {
+        const current = document.body.getAttribute('data-mode');
+        const next = current === 'mobile' ? 'desktop' : 'mobile';
+        localStorage.setItem('tdt_layout_mode', next);
+        // Le choix manuel bascule maintenant vers l'autre FICHIER (Mobile.html a sa
+        // propre mise en page — le CSS data-mode local ne suffit plus à basculer).
+        // Navigation sur window.top (pas window.location) : le contenu tourne dans
+        // l'iframe sandbox de Google, et se re-naviguer soi-même y laisse un écran
+        // blanc tant qu'on n'a pas manuellement rafraîchi. Naviguer le vrai onglet
+        // du navigateur (window.top), autorisé ici car déclenché par un clic, recharge
+        // proprement — comme le fait taper l'URL à la main.
+        const url = new URL(window.top.location.href);
+        url.searchParams.set('view', next);
+        window.top.location.href = url.toString();
+      });
     });
   }
 
