@@ -31,7 +31,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
-      margin: 0; padding: 0 0 calc(64px + env(safe-area-inset-bottom)) 0;
+      margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(56px + env(safe-area-inset-left));
       transition: background 0.2s, color 0.2s;
       -webkit-tap-highlight-color: transparent;
     }
@@ -75,46 +75,51 @@
     @keyframes mFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .m-empty { text-align: center; color: var(--text-muted); padding: 24px 8px; font-size: 0.9rem; }
 
-    /* ── HEADER ── */
-    .m-header {
-      position: sticky; top: 0; z-index: 50;
-      display: flex; align-items: center; gap: 8px;
-      background: var(--card); border-bottom: 1px solid var(--border);
-      padding: max(10px, env(safe-area-inset-top)) 12px 10px 12px;
+    /* ── RAIL LATÉRAL (remplace l'ancienne bande supérieure + barre du bas) ──
+       Repliée : bande étroite d'icônes, toujours visible, cote à cote avec le
+       contenu (qui lui laisse la place via le padding-left du body).
+       Dépliée : s'élargit et affiche les libellés, en survol par-dessus le
+       contenu (position fixed, z-index élevé, overlay derrière pour capter
+       les taps "en dehors" et se replier). */
+    .m-side-nav {
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+      width: 56px; background: var(--card); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+      padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
+      transition: width 0.2s ease;
     }
-    .m-header-title { font-weight: 800; font-size: 1.05rem; color: var(--accent); flex: 1; }
-    .m-header-btn {
-      background: var(--btn-alt); border: none; border-radius: 20px;
-      min-height: 40px; padding: 6px 10px; font-size: 1rem;
+    .m-side-nav.expanded { width: 76vw; max-width: 260px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
+    .m-side-toggle {
+      background: none; border: none; color: var(--text); font-size: 1.3rem;
+      width: 56px; flex-shrink: 0; padding: 10px 0; min-height: auto; border-radius: 0;
     }
-    .m-identity-btn {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--btn-alt); border: none; border-radius: 20px;
-      padding: 4px 10px 4px 4px; min-height: 40px; font-size: 0.8rem; font-weight: 600;
+    .m-side-brand { display: flex; align-items: center; gap: 8px; padding: 2px 16px 14px; flex-shrink: 0; }
+    .m-side-title {
+      font-weight: 800; font-size: 0.95rem; color: var(--accent);
+      white-space: nowrap; opacity: 0; transition: opacity 0.15s;
     }
-    .m-identity-name { max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* ── BOTTOM NAV ── */
-    .m-bottom-nav {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-      display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      background: var(--card); border-top: 1px solid var(--border);
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .m-nav-btn {
-      flex: 1 0 13.5%; min-width: 52px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 2px;
+    .m-side-nav.expanded .m-side-title { opacity: 1; }
+    .m-side-links { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+    .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 4px; }
+    .m-nav-btn, .m-side-item {
+      display: flex; align-items: center; gap: 14px; width: 100%;
       background: transparent; border: none; border-radius: 0;
-      color: var(--text-muted); font-size: 0.62rem; font-weight: 600;
-      padding: 8px 2px; min-height: 56px;
+      color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
+      padding: 13px 16px; min-height: 48px; white-space: nowrap; justify-content: flex-start;
     }
-    .m-nav-btn.active { color: var(--accent); }
-    .m-nav-icon { font-size: 1.25rem; position: relative; }
+    .m-nav-btn.active { color: var(--accent); background: rgba(255,71,87,0.08); }
+    .m-nav-icon { font-size: 1.25rem; position: relative; width: 24px; text-align: center; flex-shrink: 0; }
+    .m-side-label { opacity: 0; transition: opacity 0.15s; overflow: hidden; text-overflow: ellipsis; }
+    .m-side-nav.expanded .m-side-label { opacity: 1; }
     .m-nav-count {
-      position: absolute; top: -4px; right: -10px;
+      position: absolute; top: -4px; right: -8px;
       background: var(--accent); color: #fff; border-radius: 8px;
       font-size: 0.55rem; font-weight: 700; padding: 1px 4px; min-width: 14px;
     }
+    .m-side-overlay {
+      display: none; position: fixed; inset: 0; z-index: 99; background: rgba(0,0,0,0.4);
+    }
+    .m-side-nav.expanded ~ .m-side-overlay { display: block; }
 
     /* ── MODAL / TOAST (repris à l'identique, plomberie stable) ── */
     #mModalBackdrop {
@@ -164,16 +169,27 @@
 </head>
 <body>
 
-<div class="m-header">
-  <img class="m-avatar sm" id="mBrandLogo" src="" alt="" style="display:none;">
-  <span class="m-header-title" id="mHeaderTitle">Tops des Tops</span>
-  <button class="m-header-btn" id="mThemeToggle" aria-label="Basculer le thème">🌙</button>
-  <button class="m-header-btn" id="mViewToggle" title="Basculer vers la version PC">🖥️</button>
-  <div class="m-identity-btn" id="mIdentityBtn">
-    <img class="m-avatar sm" id="mIdentityAvatar" src="" alt="">
-    <span class="m-identity-name" id="mIdentityName">?</span>
+<nav class="m-side-nav" id="mSideNav">
+  <button class="m-side-toggle" id="mSideToggle" aria-label="Ouvrir le menu">☰</button>
+  <div class="m-side-brand">
+    <img class="m-avatar sm" id="mBrandLogo" src="" alt="" style="display:none;">
+    <span class="m-side-title" id="mHeaderTitle">Tops des Tops</span>
   </div>
-</div>
+  <div class="m-side-links" id="mSideNavList"></div>
+  <div class="m-side-bottom">
+    <button class="m-side-item" id="mIdentityBtn">
+      <span class="m-nav-icon"><img class="m-avatar sm" id="mIdentityAvatar" src="" alt=""></span>
+      <span class="m-side-label" id="mIdentityName">Qui suis-je ?</span>
+    </button>
+    <button class="m-side-item" id="mThemeToggle" aria-label="Basculer le thème">
+      <span class="m-nav-icon">🌙</span><span class="m-side-label">Thème</span>
+    </button>
+    <button class="m-side-item" id="mViewToggle" title="Basculer vers la version PC">
+      <span class="m-nav-icon">🖥️</span><span class="m-side-label">Version PC</span>
+    </button>
+  </div>
+</nav>
+<div class="m-side-overlay" id="mSideOverlay"></div>
 
 <div id="mIdentitySheet" class="m-tab" style="position:fixed; inset:0; z-index:150; background:rgba(0,0,0,0.55); display:none; align-items:flex-end; justify-content:center;">
   <div class="card" style="width:100%; max-width:640px; max-height:70vh; overflow-y:auto; border-radius:16px 16px 0 0; margin:0;">
@@ -211,7 +227,6 @@
 </div>
 <div id="mToastContainer"></div>
 
-<nav class="m-bottom-nav" id="mBottomNav"></nav>
 
 <script>
   // ══════════════════════════════════════════════════════════════════════
@@ -395,7 +410,7 @@
   function closeIdentitySheet() {
     document.getElementById('mIdentitySheet').style.display = 'none';
   }
-  document.getElementById('mIdentityBtn').addEventListener('click', openIdentitySheet);
+  document.getElementById('mIdentityBtn').addEventListener('click', () => { openIdentitySheet(); collapseSideNav(); });
   document.getElementById('mIdentityCancel').addEventListener('click', closeIdentitySheet);
 
   let _identityPwdTarget = null;
@@ -440,12 +455,13 @@
     const saved = localStorage.getItem('topsdestops_theme');
     if (saved === 'light') document.body.classList.add('light');
     const btn = document.getElementById('mThemeToggle');
-    btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    const icon = btn.querySelector('.m-nav-icon');
+    icon.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
     btn.addEventListener('click', () => {
       document.body.classList.toggle('light');
       const isLight = document.body.classList.contains('light');
       localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
-      btn.textContent = isLight ? '☀️' : '🌙';
+      icon.textContent = isLight ? '☀️' : '🌙';
     });
   }
 
@@ -456,9 +472,10 @@
   // autorisé ici car déclenché par un clic — comme taper l'URL à la main.
   document.getElementById('mViewToggle').addEventListener('click', () => {
     localStorage.setItem('tdt_layout_mode', 'desktop');
-    const url = new URL(window.top.location.href);
-    url.searchParams.set('view', 'desktop');
-    window.top.location.href = url.toString();
+    // On ne lit jamais window.top.location.href (cross-origin dans l'iframe sandbox
+    // GAS, lève une SecurityError silencieuse) — seulement une écriture avec une
+    // URL relative, résolue par le navigateur lui-même.
+    window.top.location.href = '?view=desktop';
   });
 
   // ── IDENTITÉ DE L'APP (titre + logo, réutilise apiGetAppSettings) ──
@@ -493,17 +510,20 @@
   // ── NAVIGATION (registre chargé depuis apiGetNavPages — source commune avec Index.html) ──
   let NAV_PAGES = [];
 
-  function renderBottomNav() {
-    const nav = document.getElementById('mBottomNav');
+  function renderSideNav() {
+    const nav = document.getElementById('mSideNavList');
     nav.innerHTML = NAV_PAGES.map((p, i) =>
       '<button class="m-nav-btn' + (i === 0 ? ' active' : '') + '" data-tab="' + p.id + '">' +
       '<span class="m-nav-icon">' + p.icon + (p.countId ? '<span class="m-nav-count" id="' + p.countId + '"></span>' : '') + '</span>' +
-      '<span>' + escapeHtml(p.label) + '</span></button>'
+      '<span class="m-side-label">' + escapeHtml(p.label) + '</span></button>'
     ).join('');
     nav.querySelectorAll('.m-nav-btn').forEach(btn => {
-      btn.addEventListener('click', () => goToTab(btn.dataset.tab));
+      btn.addEventListener('click', () => { goToTab(btn.dataset.tab); collapseSideNav(); });
     });
   }
+
+  function expandSideNav()   { document.getElementById('mSideNav').classList.add('expanded'); }
+  function collapseSideNav() { document.getElementById('mSideNav').classList.remove('expanded'); }
 
   function goToTab(tabId) {
     document.querySelectorAll('.m-tab[id^="tab-"]').forEach(el => el.classList.remove('active'));
@@ -1529,12 +1549,17 @@
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────
+  document.getElementById('mSideToggle').addEventListener('click', () => {
+    document.getElementById('mSideNav').classList.toggle('expanded');
+  });
+  document.getElementById('mSideOverlay').addEventListener('click', collapseSideNav);
+
   window.addEventListener('DOMContentLoaded', () => {
     initTheme();
     loadAppBranding();
     callServer('apiGetNavPages', [], res => {
       NAV_PAGES = res.pages;
-      renderBottomNav();
+      renderSideNav();
       loadEntities(() => {
         goToTab('tab-dashboard');
         loadNotesCountBadge();
