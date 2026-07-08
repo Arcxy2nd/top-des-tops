@@ -58,16 +58,22 @@ document.getElementById('layoutModeToggle').addEventListener('click', () => {
 ```
 (le `href` est posé une fois au chargement, avant tout clic — voir plan d'implémentation).
 
-### 3. La redirection automatique au premier chargement (détection d'écran étroit) suit la même logique
+### 3. Correction — la redirection automatique au premier chargement est retirée, pas juste corrigée
 
-`initLayoutMode()` dans `Index.html` redirige déjà automatiquement vers Mobile.html si un écran étroit est détecté (voir session précédente). Cette redirection utilise aussi `window.top.location.href` avec une URL relative — même bug, même correctif : utiliser `APP_URL + '?view=mobile'` (adresse absolue) au lieu d'une URL relative. Cette redirection automatique reste pilotée par script (elle n'attend pas de clic utilisateur, un `<a>` ne s'y prête pas) — mais utiliser une adresse **absolue** au lieu d'une adresse relative résout à elle seule le problème n°1 (mauvaise résolution d'URL) ; le problème n°2 (blocage du bac à sable sur la navigation par script) ne concernait, d'après la documentation Google, que l'absence du flag d'autorisation — une adresse absolue correctement résolue a de bien meilleures chances d'aboutir, et c'est la même technique que Google recommande pour toute navigation programmatique de secours. Si ce point s'avère encore bloqué en pratique après implémentation, il faudra remplacer cette redirection automatique par une bannière suggérant à l'utilisateur de cliquer un lien (vérification prévue à l'étape de test manuel du plan).
+**Ce point a été révisé pendant l'implémentation, suite à un incident en production.** L'hypothèse initiale ci-dessus (passer l'URL relative en URL absolue suffirait) s'est révélée fausse : le message d'erreur observé en réel (`Uncaught SecurityError: ... The current window does not have permission to navigate the target frame ... sandboxed with the 'allow-top-navigation-by-user-activation' flag, but has no user activation (aka gesture)`) confirme que le bac à sable bloque **toute** navigation du cadre du haut pilotée par script sans clic réel — peu importe que l'URL soit relative ou absolue. C'est cette redirection automatique (dans `initLayoutMode()`, exécutée sans clic utilisateur) qui plantait `window.onload` avant que les données ne se chargent (incident constaté : "le site est là mais rien ne charge").
+
+Décision finale : la redirection automatique est **retirée entièrement**, pas corrigée. `Index.html` reste toujours la version servie par défaut (cohérent avec un commentaire déjà présent dans `doGet` d'une session antérieure, qui avait tiré la même conclusion côté serveur). Seul un vrai clic sur le lien 📱/🖥️ change de version — et c'est justement ce cas (un vrai clic) que les points 1 et 2 ci-dessus corrigent.
 
 ## Vérification
 
-- Backend : test unitaire pour `doGet` confirmant que le template est évalué et que `appUrl` est bien injecté (adapter `tests/doget-routing.test.js`, qui devra stubber `HtmlService.createTemplateFromFile` et `ScriptApp.getService().getUrl()` dans `tests/harness.js`).
-- Frontend : validation manuelle après déploiement — cliquer le bouton bascule dans les deux sens (Index.html → Mobile.html → Index.html), confirmer que l'adresse affichée dans le navigateur est bien celle du site (lien court ou `/exec`), pas une adresse `googleusercontent.com`.
+- Backend : test unitaire pour `doGet` confirmant que le template est évalué et que `appUrl` est bien injecté (`tests/doget-routing.test.js`, avec `HtmlService.createTemplateFromFile` et `ScriptApp.getService().getUrl()` stubbés dans `tests/harness.js`). ✅ Fait.
+- Frontend : validation manuelle après déploiement — cliquer le bouton bascule dans les deux sens (Index.html → Mobile.html → Index.html), confirmer que l'adresse affichée dans le navigateur est bien celle du site (lien court ou `/exec`), pas une adresse `googleusercontent.com`. **Encore à vérifier en conditions réelles après déploiement.**
 
 ## Hors périmètre
 
 - Changement du mécanisme de lien court short.io lui-même.
-- Détection automatique de version au tout premier accès (avant tout choix mémorisé) — déjà couverte par une session précédente, non retouchée ici sauf pour le changement URL relative → absolue décrit au point 3.
+- Toute forme de détection/bascule automatique au chargement — définitivement écartée (point 3), pas seulement pour cette itération.
+
+## Statut
+
+Implémenté et déployé le 2026-07-09 (commit `20f1dbe`), en urgence suite à l'incident de production ci-dessus — sans passer par un plan d'implémentation séparé, vu la gravité (données ne se chargeant plus). Ce document reflète l'état final réellement livré.
