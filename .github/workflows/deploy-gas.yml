@@ -7,7 +7,7 @@ on:
       - '**.gs'
       - '**.html'
       - 'appsscript.json'
-      - '.clasp.json'
+      - 'deploy-targets.json'
       - '.github/workflows/deploy-gas.yml'
       - '.github/scripts/deploy-gas.sh'
   workflow_dispatch: {}
@@ -30,8 +30,7 @@ jobs:
       - name: Restore clasp credentials
         run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
 
-      - name: Push and redeploy
+      - name: Push and redeploy all targets
         env:
           SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
-          SHORTIO_LINK_ID: ${{ secrets.SHORTIO_LINK_ID }}
         run: bash .github/scripts/deploy-gas.sh

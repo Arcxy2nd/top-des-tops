@@ -64,9 +64,9 @@ Depuis la mise en place de la synchronisation automatique (voir `SETUP-AUTOSYNC.
 
 1. Modifie `Code.gs`, `AutoPoints.gs`, `Index.html`, `Mobile.html` ou `appsscript.json` localement
 2. `git push` vers `main`
-3. GitHub Actions pousse le code, archive l'ancien déploiement, en crée un nouveau, et met à jour le lien short.io — sans action manuelle
+3. GitHub Actions pousse le code, archive l'ancien déploiement, en crée un nouveau, et met à jour le lien short.io — sans action manuelle, pour **chaque copie** listée dans `deploy-targets.json`
 
-Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En cas d'échec (visible en rouge), les logs indiquent l'étape fautive.
+Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En cas d'échec sur une copie (visible en rouge), les logs indiquent laquelle et à quelle étape ; les autres copies sont quand même mises à jour.
 
 ---
 
