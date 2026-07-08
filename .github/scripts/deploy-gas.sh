@@ -5,6 +5,16 @@ TARGETS_FILE="deploy-targets.json"
 TARGET_COUNT=$(jq 'length' "$TARGETS_FILE")
 FAILED_TARGETS=()
 
+# COMMIT_MESSAGE comes from the workflow (github.event.head_commit.message),
+# which is empty on a manual workflow_dispatch run. Fall back to git log.
+SHORT_SHA="${GITHUB_SHA:0:7}"
+COMMIT_SUBJECT=$(echo "${COMMIT_MESSAGE:-}" | head -n1)
+if [ -z "$COMMIT_SUBJECT" ]; then
+  COMMIT_SUBJECT=$(git log -1 --format=%s 2>/dev/null || echo "manual deploy")
+fi
+# Apps Script deployment descriptions are short-lived UI labels; keep it tight.
+DEPLOY_DESCRIPTION=$(echo "${COMMIT_SUBJECT:0:60} ($SHORT_SHA)")
+
 deploy_one_target() {
   local name="$1"
   local script_id="$2"
@@ -46,7 +56,7 @@ EOF
 
   echo "== 3/4: Creating new deployment =="
   local deploy_output
-  deploy_output=$(clasp deploy --description "auto: ${GITHUB_SHA} ($name)")
+  deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION")
   echo "$deploy_output"
 
   # clasp deploy prints a line like: "Deployed AKfycbwwww @4"

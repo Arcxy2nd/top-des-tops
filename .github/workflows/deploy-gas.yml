@@ -33,4 +33,5 @@ jobs:
       - name: Push and redeploy all targets
         env:
           SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: bash .github/scripts/deploy-gas.sh
