@@ -193,7 +193,7 @@
 
     .dashboard-wide-row { display: block; }
     @media (min-width: 1400px) {
-      body[data-mode="desktop"] .dashboard-wide-row {
+      .dashboard-wide-row {
         display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start;
       }
     }
@@ -556,6 +556,7 @@
     .modal-box {
       background: var(--card); padding: 24px;
       border-radius: 16px; width: 100%; max-width: 380px;
+      max-height: 88vh; overflow-y: auto;
       border: 1px solid var(--border);
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
@@ -1185,7 +1186,7 @@
       position: absolute; top: calc(100% + 4px); left: 0; right: 0;
       background: var(--card-bg, var(--bg)); border: 1px solid var(--border);
       border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-      max-height: 220px; overflow-y: auto; z-index: 200;
+      max-height: 260px; overflow-y: auto; z-index: 9999;
     }
     .rs-option {
       display: flex; align-items: center; gap: 10px;
@@ -2046,6 +2047,10 @@
   .audit-before-after { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; flex-wrap: wrap; }
   .audit-before { color: var(--error); text-decoration: line-through; opacity: 0.85; }
   .audit-after  { color: var(--success); }
+  .audit-color-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 4px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.3);
+  }
   .audit-arrow  { color: var(--text-muted); flex-shrink: 0; }
   .audit-filters {
     display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center;
@@ -2137,45 +2142,8 @@
     padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
 
-  /* ── Mode d'affichage mobile (drawer + reflow) ─────────────────────── */
-  .drawer-hamburger { display: none; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text); padding: 4px 8px; }
+  /* ── Bascule vers la version mobile dédiée (Mobile.html) ────────────── */
   .layout-mode-toggle { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text); padding: 4px 8px; }
-  .mobile-drawer {
-    position: fixed; top: 0; left: 0; height: 100%; width: 260px;
-    background: var(--card-bg, #1a1a1a); transform: translateX(-100%);
-    transition: transform 0.25s ease; z-index: 200; padding: 16px; box-sizing: border-box;
-    display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
-  }
-  .mobile-drawer.open { transform: translateX(0); }
-  .mobile-drawer .nav-btn { width: 100%; text-align: left; }
-  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
-  .drawer-overlay.open { display: block; }
-  .drawer-settings { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
-
-  body[data-mode="mobile"] .nav-btn-group { display: none; }
-  body[data-mode="mobile"] .drawer-hamburger { display: inline-block; }
-  body[data-mode="mobile"] .container { padding-left: 8px; padding-right: 8px; }
-  body[data-mode="mobile"] .quick-stats-bar { flex-wrap: wrap; }
-  body[data-mode="mobile"] .history-filters,
-  body[data-mode="mobile"] .hist-filter-section { flex-direction: column; align-items: stretch; }
-
-  /* Historique en cartes plutôt qu'en tableau */
-  body[data-mode="mobile"] #stab-history-entries table,
-  body[data-mode="mobile"] #stab-history-entries thead,
-  body[data-mode="mobile"] #stab-history-entries tbody,
-  body[data-mode="mobile"] #stab-history-entries tr,
-  body[data-mode="mobile"] #stab-history-entries td { display: block; width: 100%; }
-  body[data-mode="mobile"] #stab-history-entries thead { display: none; }
-  body[data-mode="mobile"] #stab-history-entries tr {
-    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; padding: 8px;
-  }
-  body[data-mode="mobile"] #stab-history-entries td {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 4px 0; border: none;
-  }
-  body[data-mode="mobile"] #stab-history-entries td[data-label]::before {
-    content: attr(data-label); font-weight: 600; color: var(--text-muted); margin-right: 8px;
-  }
 
   </style>
 </head>
@@ -2184,7 +2152,6 @@
 <nav class="navbar">
   <div class="nav-container">
     <div class="app-brand" id="appBrand">
-      <button class="drawer-hamburger" id="drawerHamburger" aria-label="Ouvrir le menu">☰</button>
       <img class="app-brand-logo" id="appBrandLogo" src="" alt="" style="display:none;">
       <span class="app-brand-title" id="appBrandTitle">Tops des Tops</span>
     </div>
@@ -2203,19 +2170,9 @@
       <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
-    <button class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Forcer l'affichage mobile/desktop">🖥️</button>
+    <button class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Passer à la version mobile">🖥️</button>
   </div>
 </nav>
-
-<div class="drawer-overlay" id="drawerOverlay"></div>
-<div class="mobile-drawer" id="mobileDrawer">
-  <div class="drawer-section" id="drawerNavList"></div>
-  <div class="drawer-section drawer-settings">
-    <button class="theme-toggle" id="drawerThemeToggle" aria-label="Basculer le thème">🌙</button>
-    <button class="theme-toggle" id="baremeBtnMobile" aria-label="Barème des Tops">⚖️</button>
-    <button class="theme-toggle" id="drawerLayoutModeToggle" aria-label="Basculer l'affichage mobile/desktop" title="Forcer l'affichage mobile/desktop">🖥️</button>
-  </div>
-</div>
 
 <div id="quickStatsBar" class="quick-stats-bar">
   <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
@@ -2240,7 +2197,7 @@
   <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
     <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
     <div class="qs-pill-text">
-      <span class="qs-pill-label">🕐 Dernier event</span>
+      <span class="qs-pill-label">🕐 Dernier événement</span>
       <span class="qs-pill-value" id="qsLastValue">—</span>
     </div>
   </button>
@@ -2477,105 +2434,153 @@
 
     </div>
 
-    <!-- ─ Outils ─ -->
-    <div id="stab-tools" class="settings-tab-pane card">
-      <h2>🔧 Rapport de santé</h2>
-      <div class="health-grid" id="healthGrid">
-        <div class="health-stat skeleton" style="height:90px;"></div>
-        <div class="health-stat skeleton" style="height:90px;"></div>
-        <div class="health-stat skeleton" style="height:90px;"></div>
-      </div>
-      <div style="text-align:right;">
-        <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
-      </div>
+    <!-- ─ Outils ─ (une carte repliable par outil, pour ne pas tout dérouler d'un bloc) -->
+    <div id="stab-tools" class="settings-tab-pane">
 
-      <div class="settings-section-divider"></div>
-
-      <h2>🛠️ Actions de nettoyage</h2>
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Supprimer les entrées à 0 point</strong>
-          <span>Supprime toutes les lignes dont le score est ≤ 0.</span>
+      <div class="card card-collapsible" id="toolHealthCard">
+        <div class="card-collapse-header"><h2>🔧 Santé & nettoyage</h2></div>
+        <div class="health-grid" id="healthGrid">
+          <div class="health-stat skeleton" style="height:90px;"></div>
+          <div class="health-stat skeleton" style="height:90px;"></div>
+          <div class="health-stat skeleton" style="height:90px;"></div>
         </div>
-        <button class="danger small" id="fixZeroBtn">Nettoyer</button>
-      </div>
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Supprimer les entrées orphelines</strong>
-          <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
+        <div style="text-align:right;">
+          <button id="reloadHealthBtn" class="secondary small">🔄 Actualiser</button>
         </div>
-        <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
-      </div>
-
-      <div class="settings-section-divider"></div>
-
-      <h2>🔗 Regrouper les lots répartis</h2>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-        Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
-      </p>
-      <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
-      <div id="detectResults" class="detect-results"></div>
-
-      <div class="settings-section-divider"></div>
-
-      <h2>⚠️ Groupes hérités à vérifier</h2>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-        Avant une correction récente, deux lots saisis séparément depuis "Saisir un Lot" pouvaient recevoir le même identifiant court et apparaître fusionnés à tort dans l'Historique. Cet outil retrouve les groupes utilisant ce format d'ancien identifiant, pour vérification manuelle — rien n'est modifié tant que vous ne cliquez pas sur "Dissocier".
-      </p>
-      <button id="detectLegacyGroupsBtn" class="primary small">🔍 Scanner les groupes hérités</button>
-      <div id="detectLegacyResults" class="detect-results"></div>
-
-      <div class="settings-section-divider"></div>
-
-      <h2>🤖 Points automatiques</h2>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-        Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
-      </p>
-      <div class="auto-rules-card">
-      <div class="tool-action">
-        <div class="tool-action-info">
-          <strong>Exécution automatique</strong>
-          <span id="autoTriggerStatus">—</span>
+        <div class="settings-section-divider"></div>
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Supprimer les entrées à 0 point</strong>
+            <span>Supprime toutes les lignes dont le score est ≤ 0.</span>
+          </div>
+          <button class="danger small" id="fixZeroBtn">Nettoyer</button>
         </div>
-        <button id="autoTriggerToggleBtn" class="secondary small">…</button>
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Supprimer les entrées orphelines</strong>
+            <span>Supprime les entrées dont le joueur ou le Top n'existe plus.</span>
+          </div>
+          <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
+        </div>
       </div>
 
-      <div class="add-form" style="margin-top:14px;">
-        <p class="add-form-label">Joueur</p>
-        <select id="autoRulePlayer"></select>
-        <p class="add-form-label">Top (catégorie)</p>
-        <select id="autoRuleCategory"></select>
-        <p class="add-form-label">Points à ajouter</p>
-        <input type="number" id="autoRulePoints" min="1" step="1" value="1">
-        <p class="add-form-label">Description (optionnelle)</p>
-        <input type="text" id="autoRuleDescription" placeholder="Ex : Bonus de régularité">
-        <p class="add-form-label">Régularité</p>
-        <select id="autoRuleFrequency">
-          <option value="daily">Tous les jours</option>
-          <option value="weekly">Certains jours de la semaine</option>
-          <option value="monthly">Un jour précis du mois</option>
-        </select>
-        <div id="autoRuleWeekdays" class="auto-weekday-row" style="display:none;">
-          <label><input type="checkbox" value="1"> Lun</label>
-          <label><input type="checkbox" value="2"> Mar</label>
-          <label><input type="checkbox" value="3"> Mer</label>
-          <label><input type="checkbox" value="4"> Jeu</label>
-          <label><input type="checkbox" value="5"> Ven</label>
-          <label><input type="checkbox" value="6"> Sam</label>
-          <label><input type="checkbox" value="0"> Dim</label>
-        </div>
-        <div id="autoRuleDayOfMonth" style="display:none;">
-          <p class="add-form-label">Jour du mois</p>
-          <input type="number" id="autoRuleDayOfMonthInput" min="1" max="31" step="1" value="1">
-        </div>
-        <p class="add-form-label">Répéter tous les <span id="autoRuleIntervalUnit">jours</span></p>
-        <input type="number" id="autoRuleInterval" min="1" step="1" value="1">
-        <p class="add-form-label">Démarrer à partir du</p>
-        <input type="date" id="autoRuleStartDate">
-        <button id="addAutoRuleBtn" class="primary small">＋ Créer la règle</button>
+      <div class="card card-collapsible" id="toolLotsCard">
+        <div class="card-collapse-header"><h2>🔗 Regrouper les lots répartis</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
+        </p>
+        <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
+        <div id="detectResults" class="detect-results"></div>
       </div>
 
-      <div id="autoRulesList" class="auto-rules-list"></div>
+      <div class="card card-collapsible" id="toolLegacyCard">
+        <div class="card-collapse-header"><h2>⚠️ Groupes hérités à vérifier</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Avant une correction récente, deux lots saisis séparément depuis "Saisir un Lot" pouvaient recevoir le même identifiant court et apparaître fusionnés à tort dans l'Historique. Cet outil retrouve les groupes utilisant ce format d'ancien identifiant, pour vérification manuelle — rien n'est modifié tant que vous ne cliquez pas sur "Dissocier".
+        </p>
+        <button id="detectLegacyGroupsBtn" class="primary small">🔍 Scanner les groupes hérités</button>
+        <div id="detectLegacyResults" class="detect-results"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolDuplicatesCard">
+        <div class="card-collapse-header"><h2>🧬 Doublons probables</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Détecte les entrées identiques (même joueur, même Top, même date, mêmes points, même description) — souvent une double saisie accidentelle.
+        </p>
+        <button id="detectDuplicatesBtn" class="primary small">🔍 Scanner l'historique</button>
+        <div id="duplicatesResults" class="detect-results"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolOutliersCard">
+        <div class="card-collapse-header"><h2>📈 Scores aberrants</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Repère les entrées dont les points s'écartent fortement des valeurs habituelles d'un Top (souvent une faute de frappe).
+        </p>
+        <button id="detectOutliersBtn" class="primary small">🔍 Scanner l'historique</button>
+        <div id="outliersResults" class="detect-results"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolInactiveCard">
+        <div class="card-collapse-header"><h2>💤 Joueurs inactifs</h2></div>
+        <button id="scanInactiveBtn" class="secondary small">🔄 Actualiser</button>
+        <div id="inactiveResults" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolRecordsCard">
+        <div class="card-collapse-header"><h2>🏅 Records</h2></div>
+        <button id="scanRecordsBtn" class="secondary small">🔄 Actualiser</button>
+        <div id="recordsResults" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolTrendsCard">
+        <div class="card-collapse-header"><h2>📊 Tendances</h2></div>
+        <button id="scanTrendsBtn" class="secondary small">🔄 Actualiser</button>
+        <div id="trendsResults" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolWeekdayCard">
+        <div class="card-collapse-header"><h2>📅 Jour le plus actif</h2></div>
+        <button id="scanWeekdayBtn" class="secondary small">🔄 Actualiser</button>
+        <div id="weekdayResults" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolPairsCard">
+        <div class="card-collapse-header"><h2>🔁 Duo le plus fréquent</h2></div>
+        <button id="scanPairsBtn" class="secondary small">🔄 Actualiser</button>
+        <div id="pairsResults" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolAutoCard">
+        <div class="card-collapse-header"><h2>🤖 Points automatiques</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
+        </p>
+        <div class="auto-rules-card">
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Exécution automatique</strong>
+            <span id="autoTriggerStatus">—</span>
+          </div>
+          <button id="autoTriggerToggleBtn" class="secondary small">…</button>
+        </div>
+
+        <div class="add-form" style="margin-top:14px;">
+          <p class="add-form-label">Joueur</p>
+          <select id="autoRulePlayer"></select>
+          <p class="add-form-label">Top (catégorie)</p>
+          <select id="autoRuleCategory"></select>
+          <p class="add-form-label">Points à ajouter</p>
+          <input type="number" id="autoRulePoints" min="1" step="1" value="1">
+          <p class="add-form-label">Description (optionnelle)</p>
+          <input type="text" id="autoRuleDescription" placeholder="Ex : Bonus de régularité">
+          <p class="add-form-label">Régularité</p>
+          <select id="autoRuleFrequency">
+            <option value="daily">Tous les jours</option>
+            <option value="weekly">Certains jours de la semaine</option>
+            <option value="monthly">Un jour précis du mois</option>
+          </select>
+          <div id="autoRuleWeekdays" class="auto-weekday-row" style="display:none;">
+            <label><input type="checkbox" value="1"> Lun</label>
+            <label><input type="checkbox" value="2"> Mar</label>
+            <label><input type="checkbox" value="3"> Mer</label>
+            <label><input type="checkbox" value="4"> Jeu</label>
+            <label><input type="checkbox" value="5"> Ven</label>
+            <label><input type="checkbox" value="6"> Sam</label>
+            <label><input type="checkbox" value="0"> Dim</label>
+          </div>
+          <div id="autoRuleDayOfMonth" style="display:none;">
+            <p class="add-form-label">Jour du mois</p>
+            <input type="number" id="autoRuleDayOfMonthInput" min="1" max="31" step="1" value="1">
+          </div>
+          <p class="add-form-label">Répéter tous les <span id="autoRuleIntervalUnit">jours</span></p>
+          <input type="number" id="autoRuleInterval" min="1" step="1" value="1">
+          <p class="add-form-label">Démarrer à partir du</p>
+          <input type="date" id="autoRuleStartDate">
+          <button id="addAutoRuleBtn" class="primary small">＋ Créer la règle</button>
+        </div>
+
+        <div id="autoRulesList" class="auto-rules-list"></div>
+        </div>
       </div>
     </div>
 
@@ -2666,46 +2671,6 @@
           </select>
           <select id="auditFilterAction">
             <option value="">Toutes les actions</option>
-            <option>Saisie de points</option>
-            <option>Suppression entrée</option>
-            <option>Suppression bulk</option>
-            <option>Modification entrée</option>
-            <option>Description modifiée</option>
-            <option>Description bulk</option>
-            <option>Modification bulk</option>
-            <option>Groupement lot</option>
-            <option>Lots auto-groupés</option>
-            <option>Dégroupement lot</option>
-            <option>Suppression groupe</option>
-            <option>Création règle auto</option>
-            <option>Modification règle auto</option>
-            <option>Suppression règle auto</option>
-            <option>Points automatiques</option>
-            <option>Règle auto ignorée</option>
-            <option>Activation auto-trigger</option>
-            <option>Désactivation auto-trigger</option>
-            <option>Nettoyage zéros</option>
-            <option>Nettoyage orphelins</option>
-            <option>Joueur ajouté</option>
-            <option>Joueur supprimé</option>
-            <option>Joueur renommé</option>
-            <option>Couleur joueur</option>
-            <option>Top ajouté</option>
-            <option>Top supprimé</option>
-            <option>Top renommé</option>
-            <option>Couleur top</option>
-            <option>Note ajoutée</option>
-            <option>Note supprimée</option>
-            <option>Note modifiée</option>
-            <option>Règle ajoutée</option>
-            <option>Règle modifiée</option>
-            <option>Règle supprimée</option>
-            <option>Phrase ajoutée</option>
-            <option>Phrases batch</option>
-            <option>Phrase modifiée</option>
-            <option>Phrase supprimée</option>
-            <option>Preset supprimé</option>
-            <option>Preset renommé</option>
           </select>
           <input type="date" id="auditFilterFrom" title="Depuis">
           <input type="date" id="auditFilterTo"   title="Jusqu'au">
@@ -3138,7 +3103,7 @@
       } else {
         gapValue.textContent = s.gap + ' pts' + (s.chaser ? ' devant ' + s.chaser.player : '');
       }
-      monthValue.textContent = s.monthCount + ' event' + (s.monthCount > 1 ? 's' : '');
+      monthValue.textContent = s.monthCount + ' entrée' + (s.monthCount > 1 ? 's' : '');
 
       if (s.lastEvent) {
         const p = cachedPlayers.find(pl => pl.name === s.lastEvent.player);
@@ -3148,7 +3113,7 @@
         lastValue.textContent = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + timeAgo(new Date(s.lastEvent.date));
       } else {
         lastAvatar.style.display = 'none';
-        lastValue.textContent = 'Aucun event';
+        lastValue.textContent = 'Aucun événement';
       }
     }, 'Chargement résumé');
   }
@@ -3648,7 +3613,7 @@
           b.classList.toggle('active', b === btn));
         container.querySelectorAll('.history-tab-pane').forEach(p =>
           p.classList.toggle('active', p.id === target));
-        if (target === 'stab-history-audit') loadAuditLog(1);
+        if (target === 'stab-history-audit') { loadAuditActionTypes(); loadAuditLog(1); }
       });
     });
   }
@@ -4120,18 +4085,65 @@
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
 
-  // ── RICH SELECT ──────────────────────────────────────────────────────
-  function closeAllRichSelects() {
-    document.querySelectorAll('.rs-panel').forEach(function(panel) {
-      if (panel.style.display !== 'none') {
-        panel.style.display = 'none';
-        var trigger = panel.previousElementSibling;
-        if (trigger) {
-          trigger.classList.remove('rs-open');
-          trigger.setAttribute('aria-expanded', 'false');
-        }
+  // ── SÉLECTION MULTIPLE PAR GLISSER (souris seule et tactile) ─────────
+  // Équivalent à un shift+clic mais sans dépendre du clavier : on clique
+  // (ou touche) une case, puis on glisse dessus/à travers les autres pour
+  // les cocher/décocher toutes d'un coup, à la même valeur que la première.
+  function enableDragMultiSelect(container, checkboxSelector) {
+    if (!container) return;
+    let dragging = false;
+    let targetState = true;
+    let lastToggled = null;
+
+    function checkboxAt(el) {
+      return el && el.closest ? el.closest(checkboxSelector) : null;
+    }
+    function applyTo(cb) {
+      if (!cb || cb === lastToggled || cb.disabled) return;
+      if (cb.checked !== targetState) {
+        cb.checked = targetState;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      lastToggled = cb;
+    }
+
+    container.addEventListener('mousedown', e => {
+      const cb = checkboxAt(e.target);
+      if (!cb) return;
+      dragging = true;
+      targetState = !cb.checked; // le clic natif qui suit va basculer vers cet état
+      lastToggled = cb;
     });
+    container.addEventListener('mouseover', e => {
+      if (dragging) applyTo(checkboxAt(e.target));
+    });
+    window.addEventListener('mouseup', () => { dragging = false; lastToggled = null; });
+
+    container.addEventListener('touchstart', e => {
+      const cb = checkboxAt(e.target);
+      if (!cb) return;
+      dragging = true;
+      targetState = !cb.checked;
+      lastToggled = cb;
+    }, { passive: true });
+    container.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const touch = e.touches[0];
+      const cb = checkboxAt(document.elementFromPoint(touch.clientX, touch.clientY));
+      if (cb) { e.preventDefault(); applyTo(cb); }
+    }, { passive: false });
+    container.addEventListener('touchend', () => { dragging = false; lastToggled = null; });
+  }
+
+  // ── RICH SELECT ──────────────────────────────────────────────────────
+  // Registry of every open rich-select's own close function. A panel is
+  // reparented to <body> with position:fixed while open (see openPanel
+  // below) so it can never be clipped by a modal's overflow:auto — DOM
+  // adjacency (previousElementSibling) no longer links panel <-> trigger
+  // once that happens, hence the explicit registry.
+  var openRichSelectClosers = [];
+  function closeAllRichSelects() {
+    openRichSelectClosers.slice().forEach(function(close) { close(); });
   }
 
   /**
@@ -4274,14 +4286,45 @@
       closeAllRichSelects();
       buildPanel();
       panel.style.display = '';
+
+      // Reparent to <body> as position:fixed, positioned from the trigger's
+      // own viewport rect. This escapes any ancestor's overflow/scroll
+      // clipping (e.g. a tall modal box) and any local stacking context, so
+      // the panel always renders fully visible and never over a misplaced
+      // hit-area that could close the parent modal by mistake.
+      document.body.appendChild(panel);
+      panel.style.position = 'fixed';
+      var rect = trigger.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var margin = 6;
+      var spaceBelow = vh - rect.bottom - margin;
+      var spaceAbove = rect.top - margin;
+      panel.style.left  = rect.left + 'px';
+      panel.style.width = rect.width + 'px';
+      if (spaceBelow >= 140 || spaceBelow >= spaceAbove) {
+        panel.style.top = (rect.bottom + margin) + 'px';
+        panel.style.bottom = '';
+        panel.style.maxHeight = Math.max(120, Math.min(260, spaceBelow)) + 'px';
+      } else {
+        panel.style.top = '';
+        panel.style.bottom = (vh - rect.top + margin) + 'px';
+        panel.style.maxHeight = Math.max(120, Math.min(260, spaceAbove)) + 'px';
+      }
+
       trigger.classList.add('rs-open');
       trigger.setAttribute('aria-expanded', 'true');
+      if (openRichSelectClosers.indexOf(closePanel) === -1) openRichSelectClosers.push(closePanel);
     }
 
     function closePanel() {
       panel.style.display = 'none';
+      if (panel.parentNode === document.body) panel.remove();
+      panel.style.position = '';
+      panel.style.left = panel.style.top = panel.style.bottom = panel.style.width = panel.style.maxHeight = '';
       trigger.classList.remove('rs-open');
       trigger.setAttribute('aria-expanded', 'false');
+      var idx = openRichSelectClosers.indexOf(closePanel);
+      if (idx !== -1) openRichSelectClosers.splice(idx, 1);
     }
 
     trigger.addEventListener('click', function() {
@@ -4737,6 +4780,7 @@
   }
 
   function closeModal() {
+    closeAllRichSelects();
     document.getElementById('modalBackdrop').style.display = 'none';
     const box = document.getElementById('modalBox');
     box.innerHTML = '';
@@ -7397,6 +7441,25 @@
 
   // ── JOURNAL D'AUDIT ──────────────────────────────────────────────────────────
 
+  // Peuple dynamiquement le filtre "Action" à partir des actions réellement
+  // journalisées, au lieu d'une liste figée dans le HTML qui se désynchronise
+  // à chaque fois qu'une nouvelle action est ajoutée côté backend.
+  let _auditActionsLoaded = false;
+  function loadAuditActionTypes() {
+    if (_auditActionsLoaded) return;
+    _auditActionsLoaded = true;
+    callServer('apiGetAuditActionTypes', [], res => {
+      const sel = document.getElementById('auditFilterAction');
+      const current = sel.value;
+      (res.actions || []).forEach(action => {
+        const opt = document.createElement('option');
+        opt.value = action; opt.textContent = action;
+        sel.appendChild(opt);
+      });
+      sel.value = current;
+    }, 'Chargement des types d\'action');
+  }
+
   function loadAuditLog(page) {
     _auditCurrentPage = page || 1;
     const author = document.getElementById('auditFilterAuthor').value || null;
@@ -7424,6 +7487,21 @@
   function categorizeAuditAction(action) {
     const found = AUDIT_CATEGORIES.find(c => c.test.test(action || ''));
     return found || { icon: '•', cls: 'other' };
+  }
+
+  // Un swatch coloré accompagne les valeurs Avant/Après qui sont un code
+  // hexadécimal (changements de couleur), pour ne pas les lire comme du texte brut.
+  function auditDiffValue(text, cls) {
+    const s = document.createElement('span');
+    s.className = cls;
+    if (/^#[0-9a-f]{3,8}$/i.test(text)) {
+      const dot = document.createElement('span');
+      dot.className = 'audit-color-dot';
+      dot.style.background = text;
+      s.appendChild(dot);
+    }
+    s.appendChild(document.createTextNode(text));
+    return s;
   }
 
   function auditDayLabel(d) {
@@ -7549,22 +7627,20 @@
         tdEntity.textContent = '—';
       }
 
-      // Avant → Après
+      // Avant → Après — un swatch coloré accompagne les valeurs qui sont un
+      // code hexadécimal (changements de couleur), pour ne pas les lire comme
+      // du texte brut.
       const tdDiff = tr.insertCell();
       if (log.before && log.after) {
         const wrap = document.createElement('div');
         wrap.className = 'audit-before-after';
-        const bef = document.createElement('span'); bef.className = 'audit-before'; bef.textContent = log.before;
-        const arr = document.createElement('span'); arr.className = 'audit-arrow';  arr.textContent = '→';
-        const aft = document.createElement('span'); aft.className = 'audit-after';  aft.textContent = log.after;
-        wrap.append(bef, arr, aft);
+        const arr = document.createElement('span'); arr.className = 'audit-arrow'; arr.textContent = '→';
+        wrap.append(auditDiffValue(log.before, 'audit-before'), arr, auditDiffValue(log.after, 'audit-after'));
         tdDiff.appendChild(wrap);
       } else if (log.before) {
-        const s = document.createElement('span'); s.className = 'audit-before'; s.textContent = log.before;
-        tdDiff.appendChild(s);
+        tdDiff.appendChild(auditDiffValue(log.before, 'audit-before'));
       } else if (log.after) {
-        const s = document.createElement('span'); s.className = 'audit-after'; s.textContent = log.after;
-        tdDiff.appendChild(s);
+        tdDiff.appendChild(auditDiffValue(log.after, 'audit-after'));
       } else {
         tdDiff.textContent = '—';
       }
@@ -8222,8 +8298,6 @@
   function renderNotesUI(notes) {
     const container = document.getElementById('notesPlayersContainer');
     container.innerHTML = '';
-    const totalNotes = notes.length;
-    updateNavCount(document.getElementById('notesCount'), totalNotes || '');
 
     if (!cachedPlayers.length) {
       container.innerHTML = emptyIllustration('🙋', 'Ajoutez d\'abord des joueurs dans Paramètres.');
@@ -8307,12 +8381,13 @@
       const text = fInput.value.trim();
       if (!text) { showToast('La note est vide.', 'error'); fInput.focus(); return; }
       const restore = startBtnLoading(fBtn, '…');
-      callServer('apiAddNote', [flashPlayer, text, flashDate, _whoAmI || ''], () => {
+      callServer('apiAddNote', [flashPlayer, text, flashDate, _whoAmI || ''], res => {
         restore(); flashSaved(fBtn);
         fInput.value = ''; flashDate = ''; fDateField.value = '';
         fDateField.style.display = 'none'; dateToggle.classList.remove('active');
         showToast('Note ajoutée.', 'success');
-        loadNotes();
+        _allNotesRaw.unshift(res.note);
+        renderNotesBlocks();
       }, 'Ajout note', () => restore());
     };
     fBtn.addEventListener('click', submitFlash);
@@ -8349,6 +8424,8 @@
     const blocksContainer = document.getElementById('notesBlocksContainer');
     if (!blocksContainer) return;
     blocksContainer.innerHTML = '';
+
+    updateNavCount(document.getElementById('notesCount'), _allNotesRaw.length || '');
 
     const query = _notesSearchQuery.trim().toLowerCase();
     const filtered = query
@@ -8417,12 +8494,13 @@
       const text = ta.value.trim();
       if (!text) { showToast('La note est vide.', 'error'); ta.focus(); return; }
       const restore = startBtnLoading(btn, '…');
-      callServer('apiAddNote', [player.name, text, npbDate, _whoAmI || ''], () => {
+      callServer('apiAddNote', [player.name, text, npbDate, _whoAmI || ''], res => {
         restore(); flashSaved(btn);
         ta.value = ''; npbDate = ''; npbDateField.value = '';
         npbDateField.style.display = 'none'; npbDateToggle.classList.remove('active');
         showToast('Note ajoutée.', 'success');
-        loadNotes();
+        _allNotesRaw.unshift(res.note);
+        renderNotesBlocks();
       }, 'Ajout note', () => restore());
     };
     btn.addEventListener('click', submitNpb);
@@ -8491,7 +8569,13 @@
       openConfirmModal('Supprimer cette note ?', () => {
         buzz();
         callServer('apiDeleteNote', [note.rowIndex, _whoAmI || ''], () => {
-          loadNotes();
+          // La suppression d'une ligne dans le Sheet décale toutes les lignes
+          // suivantes d'un cran : on répercute ce décalage localement pour ne
+          // pas devoir tout recharger depuis le serveur.
+          _allNotesRaw = _allNotesRaw
+            .filter(n => n.rowIndex !== note.rowIndex)
+            .map(n => n.rowIndex > note.rowIndex ? Object.assign({}, n, { rowIndex: n.rowIndex - 1 }) : n);
+          renderNotesBlocks();
           showToast('Note supprimée.', 'success');
         }, 'Suppression note');
       });
@@ -8537,7 +8621,9 @@
       if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
       closeModal();
       callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], () => {
-        loadNotes();
+        const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
+        if (target) target.text = v;
+        renderNotesBlocks();
         showToast('Note modifiée.', 'success');
       }, 'Édition note');
     };
@@ -8969,25 +9055,11 @@
       page.icon + ' ' + page.label + countSpan + '</button>';
   }
 
-  function openDrawer() {
-    document.getElementById('mobileDrawer').classList.add('open');
-    document.getElementById('drawerOverlay').classList.add('open');
-  }
-  function closeDrawer() {
-    document.getElementById('mobileDrawer').classList.remove('open');
-    document.getElementById('drawerOverlay').classList.remove('open');
-  }
-
   function renderNav() {
     document.getElementById('desktopNavGroup').innerHTML =
       NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
-    document.getElementById('drawerNavList').innerHTML =
-      NAV_PAGES.map(p => navButtonHtml(p)).join('');
     document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => goToTab(btn.dataset.tab));
-    });
-    document.querySelectorAll('#drawerNavList .nav-btn').forEach(btn => {
-      btn.addEventListener('click', closeDrawer);
     });
   }
 
@@ -9013,48 +9085,38 @@
     NAV_PAGES = res.pages;
     renderNav();
   }, 'Chargement du menu');
-  document.getElementById('drawerHamburger').addEventListener('click', openDrawer);
-  document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
 
   // ── MODE D'AFFICHAGE (mobile / desktop) ────────────────────────────────
+  // Index.html ne sait plus rendre sa propre version mobile (reflow interne
+  // abandonné au profit de Mobile.html, qui a sa vraie mise en page tactile).
+  // Si le mode résolu est "mobile" (préférence explicite, ou écran étroit
+  // détecté en absence de préférence), on redirige immédiatement au lieu de
+  // rester sur Index.html : cette page n'est jamais rendue en mode mobile.
   function resolveLayoutMode(pref) {
     if (pref === 'mobile' || pref === 'desktop') return pref;
     return window.matchMedia('(max-width:640px)').matches ? 'mobile' : 'desktop';
   }
 
-  function applyLayoutMode(mode) {
-    document.body.setAttribute('data-mode', mode);
-    const icon = mode === 'mobile' ? '📱' : '🖥️';
-    ['layoutModeToggle', 'drawerLayoutModeToggle'].forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) btn.textContent = icon;
-    });
-    if (mode !== 'mobile') closeDrawer();
-  }
-
   function initLayoutMode() {
     const pref = localStorage.getItem('tdt_layout_mode') || 'auto';
-    applyLayoutMode(resolveLayoutMode(pref));
-    // Dupliqué navbar + tiroir (même pattern que initTheme()) : sur petit écran, la
-    // navbar défile horizontalement avec la barre de défilement masquée, donc ce
-    // bouton — dernier de la rangée — devient invisible/inatteignable sans le duplicata
-    // dans le tiroir hamburger, toujours visible.
-    ['layoutModeToggle', 'drawerLayoutModeToggle'].forEach(id => {
-      document.getElementById(id).addEventListener('click', () => {
-        const current = document.body.getAttribute('data-mode');
-        const next = current === 'mobile' ? 'desktop' : 'mobile';
-        localStorage.setItem('tdt_layout_mode', next);
-        // Le choix manuel bascule maintenant vers l'autre FICHIER (Mobile.html a sa
-        // propre mise en page — le CSS data-mode local ne suffit plus à basculer).
-        // Navigation sur window.top (pas window.location) : le contenu tourne dans
-        // l'iframe sandbox de Google, et se re-naviguer soi-même y laisse un écran
-        // blanc tant qu'on n'a pas manuellement rafraîchi. Naviguer le vrai onglet
-        // du navigateur (window.top), autorisé ici car déclenché par un clic, recharge
-        // proprement — comme le fait taper l'URL à la main.
-        const url = new URL(window.top.location.href);
-        url.searchParams.set('view', next);
-        window.top.location.href = url.toString();
-      });
+    if (resolveLayoutMode(pref) === 'mobile') {
+      window.top.location.href = '?view=mobile';
+      return;
+    }
+    // Le clic bascule vers l'autre FICHIER (Mobile.html a sa propre mise en
+    // page). Navigation sur window.top : le contenu tourne dans l'iframe
+    // sandbox de Google, et se re-naviguer soi-même y laisse un écran blanc
+    // tant qu'on n'a pas rafraîchi manuellement. On écrit sur
+    // window.top.location (autorisé cross-origin, déclenché par un clic) mais
+    // on ne LIT jamais window.top.location.href : cette lecture est
+    // cross-origin (l'iframe sandbox GAS est sur un domaine différent de
+    // script.google.com) et lève une SecurityError silencieuse — c'est ce qui
+    // rendait ce bouton inopérant. Une URL relative laisse le navigateur
+    // résoudre le chemin lui-même, sans que notre code ait besoin d'accéder
+    // à l'URL cible.
+    document.getElementById('layoutModeToggle').addEventListener('click', () => {
+      localStorage.setItem('tdt_layout_mode', 'mobile');
+      window.top.location.href = '?view=mobile';
     });
   }
 
@@ -9062,19 +9124,17 @@
   function initTheme() {
     const saved = localStorage.getItem('topsdestops_theme');
     if (saved === 'light') document.body.classList.add('light');
-    ['themeToggle', 'drawerThemeToggle'].forEach(id => {
-      const btn = document.getElementById(id);
-      btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
-      btn.addEventListener('click', () => {
-        document.body.classList.toggle('light');
-        const isLight = document.body.classList.contains('light');
-        localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
-        document.querySelectorAll('#themeToggle, #drawerThemeToggle').forEach(b => { b.textContent = isLight ? '☀️' : '🌙'; });
-        if (currentChart && currentChartData) {
-          if (currentChartType === 'trend') renderTrendChart(currentChartData);
-          else renderChart(currentChartData, currentChartType);
-        }
-      });
+    const btn = document.getElementById('themeToggle');
+    btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    btn.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      const isLight = document.body.classList.contains('light');
+      localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
+      btn.textContent = isLight ? '☀️' : '🌙';
+      if (currentChart && currentChartData) {
+        if (currentChartType === 'trend') renderTrendChart(currentChartData);
+        else renderChart(currentChartData, currentChartType);
+      }
     });
   }
 
@@ -9696,6 +9756,386 @@
     });
   }
 
+  // ── DOUBLONS PROBABLES ────────────────────────────────────────────────
+  const DISMISSED_DUPLICATES_KEY = 'tdt_dismissed_duplicates';
+  function getDismissedDuplicateKeys() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_DUPLICATES_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function dismissDuplicateKey(k) {
+    const set = getDismissedDuplicateKeys();
+    set.add(k);
+    try { localStorage.setItem(DISMISSED_DUPLICATES_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota dépassé : ignoré, best-effort */ }
+  }
+
+  function scanDuplicates() {
+    const btn = document.getElementById('detectDuplicatesBtn');
+    const container = document.getElementById('duplicatesResults');
+    showSkeleton(container, { rows: 3, height: 50 });
+    const restore = startBtnLoading(btn, 'Scan…');
+    callServer('apiDetectDuplicates', [], res => {
+      restore();
+      const dismissed = getDismissedDuplicateKeys();
+      const duplicates = res.duplicates.filter(d => !dismissed.has(String(d.keepRowIndex)));
+      if (!duplicates.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun doublon détecté. Tout est propre ✅</p>';
+        return;
+      }
+      container.innerHTML = '';
+      duplicates.forEach(dup => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const p = cachedPlayers.find(pl => pl.name === dup.player);
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(dup.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(dup.player + ' — ' + dup.category + ' — ' + dup.points + ' pts'));
+        const span = document.createElement('span');
+        span.textContent = dup.count + ' copies le ' + dup.dateStr + (dup.description ? ' — ' + dup.description : '');
+        info.appendChild(strong); info.appendChild(span);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;';
+        const btnFix = document.createElement('button');
+        btnFix.className = 'danger small';
+        btnFix.textContent = 'Supprimer les copies en trop';
+        btnFix.addEventListener('click', () => {
+          if (!requireIdentity()) return;
+          openConfirmModal('Supprimer ' + dup.extraRowIndexes.length + ' copie(s) en trop ? La première entrée est conservée.', () => {
+            buzz();
+            callServer('apiDeleteHistoryEntries', [dup.extraRowIndexes, _whoAmI || ''], () => {
+              showToast('Doublon(s) supprimé(s).', 'success');
+              scanDuplicates();
+              if (document.getElementById('tab-history').classList.contains('active')) loadHistoryPage(currentHistoryPage);
+            }, 'Suppression doublons');
+          });
+        });
+        const btnIgnore = document.createElement('button');
+        btnIgnore.className = 'small';
+        btnIgnore.textContent = 'Ignorer';
+        btnIgnore.title = 'Marquer ce doublon comme vérifié, sans modifier les données';
+        btnIgnore.addEventListener('click', () => {
+          dismissDuplicateKey(String(dup.keepRowIndex));
+          row.remove();
+          showToast('Doublon ignoré.', 'success');
+          if (!container.querySelector('.tool-action')) {
+            container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun doublon détecté. Tout est propre ✅</p>';
+          }
+        });
+        actions.appendChild(btnFix); actions.appendChild(btnIgnore);
+        row.appendChild(info); row.appendChild(actions);
+        container.appendChild(row);
+      });
+    }, 'Détection doublons', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  // ── SCORES ABERRANTS ─────────────────────────────────────────────────
+  const DISMISSED_OUTLIERS_KEY = 'tdt_dismissed_outliers';
+  function getDismissedOutlierRowIndexes() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_OUTLIERS_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function dismissOutlierRowIndex(rowIndex) {
+    const set = getDismissedOutlierRowIndexes();
+    set.add(String(rowIndex));
+    try { localStorage.setItem(DISMISSED_OUTLIERS_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota dépassé : ignoré, best-effort */ }
+  }
+
+  function scanOutliers() {
+    const btn = document.getElementById('detectOutliersBtn');
+    const container = document.getElementById('outliersResults');
+    showSkeleton(container, { rows: 3, height: 50 });
+    const restore = startBtnLoading(btn, 'Scan…');
+    callServer('apiDetectOutlierScores', [], res => {
+      restore();
+      const dismissed = getDismissedOutlierRowIndexes();
+      const outliers = res.outliers.filter(o => !dismissed.has(String(o.rowIndex)));
+      if (!outliers.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
+        return;
+      }
+      container.innerHTML = '';
+      outliers.forEach(o => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const p = cachedPlayers.find(pl => pl.name === o.player);
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(o.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(o.player + ' — ' + o.category + ' : ' + o.points + ' pts'));
+        const span = document.createElement('span');
+        span.textContent = 'Valeur habituelle du Top : ' + o.categoryAverage + ' pts — le ' + o.dateStr;
+        info.appendChild(strong); info.appendChild(span);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;';
+        const btnFix = document.createElement('button');
+        btnFix.className = 'secondary small';
+        btnFix.textContent = 'Corriger';
+        btnFix.addEventListener('click', () => {
+          if (!requireIdentity()) return;
+          const log = histPageLogs.find(l => l.rowIndex === o.rowIndex) ||
+            { rowIndex: o.rowIndex, player: o.player, category: o.category, points: o.points, description: '', saiseur: '', timestamp: null };
+          openFullEditHistoryModal(log);
+        });
+        const btnIgnore = document.createElement('button');
+        btnIgnore.className = 'small';
+        btnIgnore.textContent = 'Ignorer';
+        btnIgnore.title = 'Marquer cette entrée comme vérifiée, sans la modifier';
+        btnIgnore.addEventListener('click', () => {
+          dismissOutlierRowIndex(o.rowIndex);
+          row.remove();
+          showToast('Entrée ignorée.', 'success');
+          if (!container.querySelector('.tool-action')) {
+            container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
+          }
+        });
+        actions.appendChild(btnFix); actions.appendChild(btnIgnore);
+        row.appendChild(info); row.appendChild(actions);
+        container.appendChild(row);
+      });
+    }, 'Détection scores aberrants', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  // ── JOUEURS INACTIFS ─────────────────────────────────────────────────
+  function scanInactivePlayers() {
+    const container = document.getElementById('inactiveResults');
+    showSkeleton(container, { rows: 3, height: 40 });
+    callServer('apiGetInactivePlayers', [], res => {
+      container.innerHTML = '';
+      res.inactive.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const p = cachedPlayers.find(pl => pl.name === item.player);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(item.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(item.player));
+        const span = document.createElement('span');
+        span.textContent = 'Dernière activité il y a ' + item.daysSinceLastEntry + ' jour(s)';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      });
+      res.neverActive.forEach(name => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const p = cachedPlayers.find(pl => pl.name === name);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(name, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(name));
+        const span = document.createElement('span');
+        span.textContent = 'Jamais actif';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      });
+      if (!res.inactive.length && !res.neverActive.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun joueur enregistré.</p>';
+      }
+    }, 'Chargement joueurs inactifs');
+  }
+
+  // ── RECORDS ──────────────────────────────────────────────────────────
+  function scanRecords() {
+    const container = document.getElementById('recordsResults');
+    showSkeleton(container, { rows: 3, height: 40 });
+    callServer('apiGetPlayerRecords', [], res => {
+      container.innerHTML = '';
+      if (res.globalBest) {
+        const best = document.createElement('div');
+        best.className = 'tool-action';
+        best.style.cssText = 'background:rgba(255,71,87,0.08);border-radius:8px;';
+        const p = cachedPlayers.find(pl => pl.name === res.globalBest.player);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(res.globalBest.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode('🏆 Record absolu : ' + res.globalBest.player));
+        const span = document.createElement('span');
+        span.textContent = res.globalBest.points + ' pts en une entrée, le ' + res.globalBest.dateStr;
+        info.appendChild(strong); info.appendChild(span);
+        best.appendChild(info);
+        container.appendChild(best);
+      }
+      res.records.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const p = cachedPlayers.find(pl => pl.name === r.player);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(r.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(r.player));
+        const span = document.createElement('span');
+        span.textContent = 'Meilleur score : ' + r.bestSingleEntry + ' pts (' + r.bestEntryDate + ') · Série la plus longue : ' + r.longestStreakDays + ' jour(s)';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      });
+      if (!res.records.length) container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+    }, 'Chargement records');
+  }
+
+  // ── TENDANCES ────────────────────────────────────────────────────────
+  function scanTrends() {
+    const container = document.getElementById('trendsResults');
+    showSkeleton(container, { rows: 3, height: 40 });
+    callServer('apiGetTrends', [], res => {
+      container.innerHTML = '';
+      const catTitle = document.createElement('h3');
+      catTitle.textContent = 'Par Top (30 derniers jours vs 30 jours précédents)';
+      container.appendChild(catTitle);
+      res.categoryTrends.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const col = categoryColor(c.category);
+        const pill = document.createElement('span');
+        pill.className = 'hist-pill';
+        pill.style.setProperty('--pill-bg', tint(col, 0.16));
+        pill.style.setProperty('--pill-bd', tint(col, 0.55));
+        const ic = catIcon(c.category);
+        if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+        pill.appendChild(document.createTextNode(c.category));
+        const span = document.createElement('span');
+        span.style.color = c.changePct >= 0 ? 'var(--success)' : 'var(--error)';
+        span.textContent = (c.changePct >= 0 ? '+' : '') + c.changePct + '% (' + c.before + ' → ' + c.after + ' entrées)';
+        row.appendChild(pill); row.appendChild(span);
+        container.appendChild(row);
+      });
+      const playerTitle = document.createElement('h3');
+      playerTitle.style.marginTop = '14px';
+      playerTitle.textContent = 'Par joueur (moyenne récente vs moyenne historique)';
+      container.appendChild(playerTitle);
+      res.playerTrends.forEach(pt => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const p = cachedPlayers.find(pl => pl.name === pt.player);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(pt.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(pt.player));
+        const span = document.createElement('span');
+        span.style.color = pt.changePct >= 0 ? 'var(--success)' : 'var(--error)';
+        span.textContent = (pt.changePct >= 0 ? '+' : '') + pt.changePct + '% (moyenne récente ' + pt.recentAvg + ' pts vs historique ' + pt.historicalAvg + ' pts)';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      });
+      if (!res.categoryTrends.length && !res.playerTrends.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</p>';
+      }
+    }, 'Chargement tendances');
+  }
+
+  // ── JOUR LE PLUS ACTIF ───────────────────────────────────────────────
+  function scanActiveWeekday() {
+    const container = document.getElementById('weekdayResults');
+    showSkeleton(container, { rows: 3, height: 30 });
+    callServer('apiGetActiveWeekday', [], res => {
+      container.innerHTML = '';
+      if (!res.topWeekday) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+        return;
+      }
+      const top = document.createElement('p');
+      top.innerHTML = 'Jour le plus actif : <strong>' + escapeHtml(res.topWeekday) + '</strong>';
+      container.appendChild(top);
+      const max = Math.max(...res.byWeekday.map(x => x.count), 1);
+      res.byWeekday.forEach(w => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;font-size:0.82rem;';
+        const label = document.createElement('span');
+        label.style.cssText = 'width:90px;flex-shrink:0;';
+        label.textContent = w.weekday;
+        const bar = document.createElement('div');
+        bar.style.cssText = 'height:14px;border-radius:4px;background:var(--accent);width:' + Math.round((w.count / max) * 100) + '%;min-width:2px;';
+        const count = document.createElement('span');
+        count.style.cssText = 'color:var(--text-muted);flex-shrink:0;';
+        count.textContent = w.count;
+        row.appendChild(label); row.appendChild(bar); row.appendChild(count);
+        container.appendChild(row);
+      });
+    }, 'Chargement jour actif');
+  }
+
+  // ── DUO LE PLUS FRÉQUENT ─────────────────────────────────────────────
+  function scanTopPairs() {
+    const container = document.getElementById('pairsResults');
+    showSkeleton(container, { rows: 3, height: 30 });
+    callServer('apiGetTopPlayerCategoryPairs', [], res => {
+      container.innerHTML = '';
+      if (!res.pairs.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+        return;
+      }
+      res.pairs.forEach(pair => {
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const p = cachedPlayers.find(pl => pl.name === pair.player);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avatar = document.createElement('img');
+        avatar.className = 'qs-avatar';
+        avatar.src = getAvatarUrl(pair.player, p ? p.meta : '');
+        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+        strong.appendChild(avatar);
+        strong.appendChild(document.createTextNode(pair.player));
+        const col = categoryColor(pair.category);
+        const pill = document.createElement('span');
+        pill.className = 'hist-pill';
+        pill.style.setProperty('--pill-bg', tint(col, 0.16));
+        pill.style.setProperty('--pill-bd', tint(col, 0.55));
+        const ic = catIcon(pair.category);
+        if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+        pill.appendChild(document.createTextNode(pair.category));
+        strong.appendChild(pill);
+        const span = document.createElement('span');
+        span.textContent = pair.count + ' fois';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      });
+    }, 'Chargement duos fréquents');
+  }
+
   function initPhraseSettings() {
     const s = getPhraseSettings();
     const chk      = document.getElementById('phrasesEnabledChk');
@@ -9803,6 +10243,9 @@
     initSettingsTabs();
     initHistoryTabs();
     bindButtons();
+    enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk');
+    enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
+    enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.detect-lot-head input[type="checkbox"], .legacy-entry-cb');
     bindExportButtons();
     initPhraseSettings();
     showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
@@ -9853,6 +10296,24 @@
     makeCollapsible(document.getElementById('phrasesCard'),  'tdt_collapsed_podium');
     makeCollapsible(document.getElementById('filtersCard'),  'tdt_collapsed_filters');
     makeCollapsible(document.getElementById('chartCard'),    'tdt_collapsed_chart');
+    makeCollapsible(document.getElementById('toolHealthCard'), 'tdt_collapsed_tool_health');
+    makeCollapsible(document.getElementById('toolLotsCard'),   'tdt_collapsed_tool_lots');
+    makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
+    makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
+    makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');
+    makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
+    makeCollapsible(document.getElementById('toolRecordsCard'),    'tdt_collapsed_tool_records');
+    makeCollapsible(document.getElementById('toolTrendsCard'),     'tdt_collapsed_tool_trends');
+    makeCollapsible(document.getElementById('toolWeekdayCard'),    'tdt_collapsed_tool_weekday');
+    makeCollapsible(document.getElementById('toolPairsCard'),      'tdt_collapsed_tool_pairs');
+    makeCollapsible(document.getElementById('toolAutoCard'),       'tdt_collapsed_tool_auto');
+    document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
+    document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
+    document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
+    document.getElementById('scanRecordsBtn').addEventListener('click', scanRecords);
+    document.getElementById('scanTrendsBtn').addEventListener('click', scanTrends);
+    document.getElementById('scanWeekdayBtn').addEventListener('click', scanActiveWeekday);
+    document.getElementById('scanPairsBtn').addEventListener('click', scanTopPairs);
 
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
@@ -10115,7 +10576,6 @@
     document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
   };
   document.getElementById('baremeBtn').addEventListener('click', openCloseBareme);
-  document.getElementById('baremeBtnMobile').addEventListener('click', () => { closeDrawer(); openCloseBareme(); });
   document.getElementById('baremeBackdrop').addEventListener('click', closeBareme);
   document.getElementById('baremeCloseBtn').addEventListener('click', closeBareme);
   document.getElementById('baremeRefreshBtn').addEventListener('click', () => {
