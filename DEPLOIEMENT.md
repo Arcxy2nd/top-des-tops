@@ -79,8 +79,8 @@ L'app continue de fonctionner normalement pour tout le reste ; seule la case à 
 **Pour corriger, une seule fois par copie du script :**
 
 1. Ouvre le projet dans [script.google.com](https://script.google.com)
-2. Dans l'éditeur, sélectionne la fonction `runAutoPoints` dans le menu déroulant en haut
-3. Clique sur **"Exécuter"**
+2. Dans l'éditeur, sélectionne la fonction `apiSetAutoTrigger` dans le menu déroulant en haut *(pas `runAutoPoints` — cette fonction-là ne touche jamais aux triggers Google, elle ne déclenchera pas la demande d'autorisation)*
+3. Clique sur **"Exécuter"** *(l'exécution sans paramètre échouera ensuite avec une erreur "undefined" — normal, seul l'écran d'autorisation qui s'affiche avant compte)*
 4. Google affiche l'écran d'autorisation ("Google n'a pas validé cette application") — clique **"Paramètres avancés"** puis **"Accéder à [nom du projet] (non sécurisé)"** puis **"Autoriser"** (même écran qu'à l'Étape 4 du déploiement initial)
 5. Recharge l'app : le message disparaît, l'exécution automatique des règles de points redevient disponible
 
