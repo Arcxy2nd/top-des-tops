@@ -8881,10 +8881,24 @@
       main.className = 'auto-rule-main';
       main.innerHTML =
         (broken ? '<span class="auto-rule-warn" title="Cette règle ne s\'exécutera pas : joueur ou Top introuvable">⚠️</span> ' : '') +
-        '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ' +
-        escapeHtml(rule.category) + (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
+        '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ';
+
+      const col = categoryColor(rule.category);
+      const pill = document.createElement('span');
+      pill.className = 'hist-pill';
+      pill.style.setProperty('--pill-bg', tint(col, 0.16));
+      pill.style.setProperty('--pill-bd', tint(col, 0.55));
+      const ic = catIcon(rule.category);
+      if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+      pill.appendChild(document.createTextNode(rule.category));
+      main.appendChild(pill);
+
+      const tail = document.createElement('span');
+      tail.innerHTML =
+        (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
         '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
         (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
+      main.appendChild(tail);
       row.appendChild(main);
 
       const toggleBtn = document.createElement('button');
