@@ -8881,10 +8881,24 @@
       main.className = 'auto-rule-main';
       main.innerHTML =
         (broken ? '<span class="auto-rule-warn" title="Cette règle ne s\'exécutera pas : joueur ou Top introuvable">⚠️</span> ' : '') +
-        '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ' +
-        escapeHtml(rule.category) + (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
+        '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ';
+
+      const col = categoryColor(rule.category);
+      const pill = document.createElement('span');
+      pill.className = 'hist-pill';
+      pill.style.setProperty('--pill-bg', tint(col, 0.16));
+      pill.style.setProperty('--pill-bd', tint(col, 0.55));
+      const ic = catIcon(rule.category);
+      if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+      pill.appendChild(document.createTextNode(rule.category));
+      main.appendChild(pill);
+
+      const tail = document.createElement('span');
+      tail.innerHTML =
+        (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
         '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
         (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
+      main.appendChild(tail);
       row.appendChild(main);
 
       const toggleBtn = document.createElement('button');
@@ -9032,9 +9046,14 @@
         localStorage.setItem('tdt_layout_mode', next);
         // Le choix manuel bascule maintenant vers l'autre FICHIER (Mobile.html a sa
         // propre mise en page — le CSS data-mode local ne suffit plus à basculer).
-        const url = new URL(window.location.href);
+        // Navigation sur window.top (pas window.location) : le contenu tourne dans
+        // l'iframe sandbox de Google, et se re-naviguer soi-même y laisse un écran
+        // blanc tant qu'on n'a pas manuellement rafraîchi. Naviguer le vrai onglet
+        // du navigateur (window.top), autorisé ici car déclenché par un clic, recharge
+        // proprement — comme le fait taper l'URL à la main.
+        const url = new URL(window.top.location.href);
         url.searchParams.set('view', next);
-        window.location.href = url.toString();
+        window.top.location.href = url.toString();
       });
     });
   }
@@ -9437,6 +9456,20 @@
   }
 
   // ── DETECTION GROUPES HÉRITÉS ────────────────────────────────────────
+  const DISMISSED_LEGACY_GROUPS_KEY = 'tdt_dismissed_legacy_groups';
+
+  function getDismissedLegacyGroupIds() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_LEGACY_GROUPS_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function dismissLegacyGroupId(groupId) {
+    const set = getDismissedLegacyGroupIds();
+    set.add(groupId);
+    try { localStorage.setItem(DISMISSED_LEGACY_GROUPS_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota dépassé : ignoré, best-effort */ }
+  }
+
   function scanLegacyGroups() {
     const btn = document.getElementById('detectLegacyGroupsBtn');
     const container = document.getElementById('detectLegacyResults');
@@ -9445,17 +9478,24 @@
 
     callServer('apiDetectLegacyGroups', [], res => {
       restore();
-      if (!res.groups || !res.groups.length) {
+      const dismissed = getDismissedLegacyGroupIds();
+      const groups = (res.groups || []).filter(g => !dismissed.has(g.groupId));
+      if (!groups.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun groupe hérité suspect détecté. Tout est propre ✅</p>';
         return;
       }
-      renderLegacyGroups(res.groups, container);
+      renderLegacyGroups(groups, container);
     }, 'Détection groupes hérités', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
   function buildLegacyEntryRow(entry) {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'legacy-entry-cb';
+    row.appendChild(cb);
 
     const pl = cachedPlayers.find(p => p.name === entry.player);
     const img = document.createElement('img');
@@ -9485,6 +9525,7 @@
     rest.textContent = entry.points + ' pts — ' + entry.dateStr;
     row.appendChild(rest);
 
+    row.dataset.rowIndex = entry.rowIndex;
     return row;
   }
 
@@ -9517,6 +9558,7 @@
       cb.type = 'checkbox';
       cb.addEventListener('click', e => e.stopPropagation());
       cb.addEventListener('change', () => {
+        entryRows.forEach(r => { r.querySelector('.legacy-entry-cb').checked = cb.checked; });
         const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
         cbAll.checked = [...allCbs].every(c => c.checked);
       });
@@ -9526,18 +9568,34 @@
       summary.textContent = group.distinctPlayers + ' joueur(s) · ' + group.distinctCategories +
         ' Top(s) · étalé sur ' + group.spanDays + ' jour(s)';
 
+      const dismissBtn = document.createElement('button');
+      dismissBtn.className = 'small';
+      dismissBtn.textContent = 'Ignorer ce groupe';
+      dismissBtn.title = 'Marquer ce groupe comme vérifié, sans modifier les données';
+      dismissBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dismissLegacyGroupId(group.groupId);
+        div.remove();
+        showToast('Groupe ignoré.', 'success');
+        if (!container.querySelector('.detect-lot')) {
+          container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun groupe hérité suspect détecté. Tout est propre ✅</p>';
+        }
+      });
+
       const chevron = document.createElement('span');
       chevron.textContent = '▾';
       chevron.style.cssText = 'transition:transform 0.15s;';
 
       head.appendChild(cb);
       head.appendChild(summary);
+      head.appendChild(dismissBtn);
       head.appendChild(chevron);
       div.appendChild(head);
 
       const detail = document.createElement('div');
       detail.style.cssText = 'display:none;padding-left:24px;margin-top:6px;border-top:1px solid var(--border);padding-top:8px;';
-      group.entries.forEach(entry => detail.appendChild(buildLegacyEntryRow(entry)));
+      const entryRows = group.entries.map(entry => buildLegacyEntryRow(entry));
+      entryRows.forEach(r => detail.appendChild(r));
       div.appendChild(detail);
 
       head.addEventListener('click', () => {
@@ -9547,7 +9605,7 @@
       });
 
       container.appendChild(div);
-      groupEls.push({ cb, group });
+      groupEls.push({ cb, group, div, entryRows });
     });
 
     cbAll.addEventListener('change', () => {
@@ -9556,11 +9614,44 @@
 
     const actions = document.createElement('div');
     actions.className = 'detect-actions';
+
+    const partialBtn = document.createElement('button');
+    partialBtn.className = 'secondary small';
+    partialBtn.textContent = '➖ Dissocier les entrées cochées';
+    actions.appendChild(partialBtn);
+
     const ungroupBtn = document.createElement('button');
     ungroupBtn.className = 'danger small';
-    ungroupBtn.textContent = '🔓 Dissocier la sélection';
+    ungroupBtn.textContent = '🔓 Dissocier tout le groupe sélectionné';
     actions.appendChild(ungroupBtn);
     container.appendChild(actions);
+
+    partialBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const rowIndexes = [];
+      groupEls.forEach(g => {
+        g.entryRows.forEach(r => {
+          if (r.querySelector('.legacy-entry-cb').checked) rowIndexes.push(parseInt(r.dataset.rowIndex, 10));
+        });
+      });
+      if (!rowIndexes.length) { showToast('Aucune entrée cochée.', 'error'); return; }
+
+      openConfirmModal(
+        'Dissocier ' + rowIndexes.length + ' entrée(s) ? Elles redeviendront indépendantes, le reste de leur groupe ne bouge pas.',
+        () => {
+          buzz();
+          const restore = startBtnLoading(partialBtn, 'Dissociation…');
+          removeEntriesFromGroupSequentially(rowIndexes, 0, () => {
+            restore();
+            showToast(rowIndexes.length + ' entrée(s) dissociée(s).', 'success');
+            scanLegacyGroups();
+            if (document.getElementById('tab-history').classList.contains('active')) {
+              loadHistoryPage(currentHistoryPage);
+            }
+          });
+        }
+      );
+    });
 
     ungroupBtn.addEventListener('click', () => {
       if (!requireIdentity()) return;
@@ -9582,6 +9673,16 @@
           });
         }
       );
+    });
+  }
+
+  function removeEntriesFromGroupSequentially(rowIndexes, i, onDone) {
+    if (i >= rowIndexes.length) { onDone(); return; }
+    callServer('apiRemoveFromGroup', [rowIndexes[i], _whoAmI || ''], () => {
+      removeEntriesFromGroupSequentially(rowIndexes, i + 1, onDone);
+    }, 'Dissociation entrée héritée', () => {
+      showToast('Erreur lors de la dissociation d\'une entrée.', 'error');
+      removeEntriesFromGroupSequentially(rowIndexes, i + 1, onDone);
     });
   }
 
