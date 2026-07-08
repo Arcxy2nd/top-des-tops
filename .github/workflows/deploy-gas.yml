@@ -1,0 +1,37 @@
+name: Deploy to Google Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.gs'
+      - '**.html'
+      - 'appsscript.json'
+      - '.clasp.json'
+      - '.github/workflows/deploy-gas.yml'
+      - '.github/scripts/deploy-gas.sh'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Restore clasp credentials
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Push and redeploy
+        env:
+          SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          SHORTIO_LINK_ID: ${{ secrets.SHORTIO_LINK_ID }}
+        run: bash .github/scripts/deploy-gas.sh
