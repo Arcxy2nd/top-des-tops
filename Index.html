@@ -9476,6 +9476,11 @@
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;';
 
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'legacy-entry-cb';
+    row.appendChild(cb);
+
     const pl = cachedPlayers.find(p => p.name === entry.player);
     const img = document.createElement('img');
     img.className = 'history-avatar';
@@ -9504,6 +9509,7 @@
     rest.textContent = entry.points + ' pts — ' + entry.dateStr;
     row.appendChild(rest);
 
+    row.dataset.rowIndex = entry.rowIndex;
     return row;
   }
 
@@ -9536,6 +9542,7 @@
       cb.type = 'checkbox';
       cb.addEventListener('click', e => e.stopPropagation());
       cb.addEventListener('change', () => {
+        entryRows.forEach(r => { r.querySelector('.legacy-entry-cb').checked = cb.checked; });
         const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
         cbAll.checked = [...allCbs].every(c => c.checked);
       });
@@ -9556,7 +9563,8 @@
 
       const detail = document.createElement('div');
       detail.style.cssText = 'display:none;padding-left:24px;margin-top:6px;border-top:1px solid var(--border);padding-top:8px;';
-      group.entries.forEach(entry => detail.appendChild(buildLegacyEntryRow(entry)));
+      const entryRows = group.entries.map(entry => buildLegacyEntryRow(entry));
+      entryRows.forEach(r => detail.appendChild(r));
       div.appendChild(detail);
 
       head.addEventListener('click', () => {
@@ -9566,7 +9574,7 @@
       });
 
       container.appendChild(div);
-      groupEls.push({ cb, group });
+      groupEls.push({ cb, group, div, entryRows });
     });
 
     cbAll.addEventListener('change', () => {
@@ -9575,11 +9583,44 @@
 
     const actions = document.createElement('div');
     actions.className = 'detect-actions';
+
+    const partialBtn = document.createElement('button');
+    partialBtn.className = 'secondary small';
+    partialBtn.textContent = '➖ Dissocier les entrées cochées';
+    actions.appendChild(partialBtn);
+
     const ungroupBtn = document.createElement('button');
     ungroupBtn.className = 'danger small';
-    ungroupBtn.textContent = '🔓 Dissocier la sélection';
+    ungroupBtn.textContent = '🔓 Dissocier tout le groupe sélectionné';
     actions.appendChild(ungroupBtn);
     container.appendChild(actions);
+
+    partialBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const rowIndexes = [];
+      groupEls.forEach(g => {
+        g.entryRows.forEach(r => {
+          if (r.querySelector('.legacy-entry-cb').checked) rowIndexes.push(parseInt(r.dataset.rowIndex, 10));
+        });
+      });
+      if (!rowIndexes.length) { showToast('Aucune entrée cochée.', 'error'); return; }
+
+      openConfirmModal(
+        'Dissocier ' + rowIndexes.length + ' entrée(s) ? Elles redeviendront indépendantes, le reste de leur groupe ne bouge pas.',
+        () => {
+          buzz();
+          const restore = startBtnLoading(partialBtn, 'Dissociation…');
+          removeEntriesFromGroupSequentially(rowIndexes, 0, () => {
+            restore();
+            showToast(rowIndexes.length + ' entrée(s) dissociée(s).', 'success');
+            scanLegacyGroups();
+            if (document.getElementById('tab-history').classList.contains('active')) {
+              loadHistoryPage(currentHistoryPage);
+            }
+          });
+        }
+      );
+    });
 
     ungroupBtn.addEventListener('click', () => {
       if (!requireIdentity()) return;
@@ -9601,6 +9642,16 @@
           });
         }
       );
+    });
+  }
+
+  function removeEntriesFromGroupSequentially(rowIndexes, i, onDone) {
+    if (i >= rowIndexes.length) { onDone(); return; }
+    callServer('apiRemoveFromGroup', [rowIndexes[i], _whoAmI || ''], () => {
+      removeEntriesFromGroupSequentially(rowIndexes, i + 1, onDone);
+    }, 'Dissociation entrée héritée', () => {
+      showToast('Erreur lors de la dissociation d\'une entrée.', 'error');
+      removeEntriesFromGroupSequentially(rowIndexes, i + 1, onDone);
     });
   }
 
