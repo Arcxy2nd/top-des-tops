@@ -116,7 +116,71 @@ Joueurs (multi-select) · Catégories (multi-select) · Période (7j / mois / 3m
 
 ---
 
-## §6 — RÈGLES UX
+## §6 — STYLE VISUEL
+
+### Thème
+
+Dark par défaut, light en override via `body.light`. Toujours tester les deux. Transition douce (`0.2s`) sur background et color.
+
+### Palette — variables CSS
+
+| Variable | Dark | Light | Usage |
+|----------|------|-------|-------|
+| `--bg` | `#0b0c10` | `#f0f2f5` | fond de page |
+| `--card` | `#1f2833` | `#ffffff` | cartes, navbar, panneaux |
+| `--border` | `#2a313d` | `#d1d5db` | séparateurs, contours |
+| `--text` | `#e0e6ed` | `#1a202c` | texte principal |
+| `--text-muted` | `#9aa5be` | `#4a5568` | labels, métadonnées, hints |
+| `--accent` | `#ff4757` | `#e53e3e` | CTA, titres de marque, highlights |
+| `--accent-hover` | `#ff6b81` | `#c53030` | état hover de l'accent |
+| `--btn-alt` | `#353b48` | `#e2e8f0` | boutons secondaires, fonds alternatifs |
+
+**Tokens sémantiques** (inchangés entre les thèmes) :
+
+| Variable | Couleur | Usage |
+|----------|---------|-------|
+| `--success` | `#2ed573` | confirmation, données saines |
+| `--error` | `#ff4757` | erreurs, suppressions |
+| `--warn` | `#ffa502` / `#d97706` | avertissements |
+| `--info` | `#7c8cff` / `#4f5fd6` | informations neutres |
+| `--clean` | `#17a2b8` / `#0e7490` | données propres, statuts OK |
+
+Toujours utiliser les variables — jamais de couleur hexadécimale directe dans le CSS.
+
+### Typographie
+
+Stack système : `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`. Pas de font externe, pas de Google Fonts — priorité à la performance et au rendu natif.
+
+Hiérarchie typique :
+
+| Rôle | Taille | Poids |
+|------|--------|-------|
+| Titre de marque | `1rem` | `800` |
+| Titre de section (`h2`) | `1.2rem` | par défaut |
+| Label de section (`h3`) | `0.95rem` | par défaut |
+| Corps | `0.88rem` | `400` |
+| Label petit / badge | `0.72–0.78rem` | `600–700` |
+| Micro-label | `0.65–0.7rem` | `700`, `uppercase` |
+
+### Formes & espacement
+
+- **Border-radius :** `8px` pour les éléments (inputs, tableaux, blocs) · `12px` pour les cartes · `20px` pour les pills/badges
+- **Bordures :** `1px solid var(--border)` systématiquement · `1.5px` pour les éléments mis en avant
+- **Ombres :** `0 4px 12px rgba(0,0,0,0.4)` pour la navbar — utiliser avec parcimonie
+- **Cible tactile minimum :** `44px` (`--tap-min`) — toujours respecté sur les éléments interactifs
+
+### Couleurs joueurs et catégories
+
+Chaque joueur et chaque catégorie a une couleur hex définie dans le Sheet. Ces couleurs sont utilisées directement pour coloriser les graphiques, pills, avatars et badges. Ne jamais substituer une couleur arbitraire — toujours lire la couleur depuis les données.
+
+### Transitions & animations
+
+- Transitions standards : `0.15s` sur les états hover/active, `0.2s` sur les changements de thème
+- Pas d'animation décorative sans raison fonctionnelle
+
+---
+
+## §7 — RÈGLES UX
 
 ### Avatar obligatoire partout
 
@@ -133,7 +197,7 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 
 ---
 
-## §7 — HYGIÈNE DE CODE
+## §8 — HYGIÈNE DE CODE
 
 ### Règles fondamentales
 
@@ -185,7 +249,7 @@ Le projet n'a pas de suite de tests automatisés. Vérifier les changements via 
 
 ---
 
-## §8 — SKILLS — USAGE OBLIGATOIRE
+## §9 — SKILLS — USAGE OBLIGATOIRE
 
 Les skills installés doivent être **invoqués aux moments-clés**, pas ignorés. Invoquer via l'outil `Skill` (jamais lire le fichier SKILL.md à la main).
 
@@ -202,8 +266,12 @@ Les skills installés doivent être **invoqués aux moments-clés**, pas ignoré
 
 ---
 
-## §9 — DÉPLOIEMENT
+## §10 — DÉPLOIEMENT
 
-Web App GAS — exécutée en tant que le propriétaire, accessible à tout compte Google. L'URL `/exec` est stable entre les versions ; chaque mise à jour du code nécessite un nouveau déploiement depuis l'éditeur GAS. La procédure complète est dans `DEPLOIEMENT.md`.
+Web App GAS — exécutée en tant que le propriétaire, accessible à tout compte Google. Le code est déployé vers **deux copies** ("Site tops" et "Tops RDS", même code, Sheet différent), chacune derrière son propre lien court short.io stable.
+
+Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` déclenche un workflow GitHub Actions (`.github/workflows/deploy-gas.yml`) qui, pour chaque copie listée dans `deploy-targets.json` : pousse le code via `clasp`, archive l'ancien déploiement, en crée un nouveau (nouvelle URL `/exec`), puis repointe le lien short.io correspondant vers cette nouvelle URL. Plus de déploiement manuel dans l'éditeur GAS.
+
+Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
 
 ---
