@@ -9456,6 +9456,20 @@
   }
 
   // ── DETECTION GROUPES HÉRITÉS ────────────────────────────────────────
+  const DISMISSED_LEGACY_GROUPS_KEY = 'tdt_dismissed_legacy_groups';
+
+  function getDismissedLegacyGroupIds() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_LEGACY_GROUPS_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function dismissLegacyGroupId(groupId) {
+    const set = getDismissedLegacyGroupIds();
+    set.add(groupId);
+    try { localStorage.setItem(DISMISSED_LEGACY_GROUPS_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota dépassé : ignoré, best-effort */ }
+  }
+
   function scanLegacyGroups() {
     const btn = document.getElementById('detectLegacyGroupsBtn');
     const container = document.getElementById('detectLegacyResults');
@@ -9464,11 +9478,13 @@
 
     callServer('apiDetectLegacyGroups', [], res => {
       restore();
-      if (!res.groups || !res.groups.length) {
+      const dismissed = getDismissedLegacyGroupIds();
+      const groups = (res.groups || []).filter(g => !dismissed.has(g.groupId));
+      if (!groups.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun groupe hérité suspect détecté. Tout est propre ✅</p>';
         return;
       }
-      renderLegacyGroups(res.groups, container);
+      renderLegacyGroups(groups, container);
     }, 'Détection groupes hérités', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
@@ -9552,12 +9568,27 @@
       summary.textContent = group.distinctPlayers + ' joueur(s) · ' + group.distinctCategories +
         ' Top(s) · étalé sur ' + group.spanDays + ' jour(s)';
 
+      const dismissBtn = document.createElement('button');
+      dismissBtn.className = 'small';
+      dismissBtn.textContent = 'Ignorer ce groupe';
+      dismissBtn.title = 'Marquer ce groupe comme vérifié, sans modifier les données';
+      dismissBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dismissLegacyGroupId(group.groupId);
+        div.remove();
+        showToast('Groupe ignoré.', 'success');
+        if (!container.querySelector('.detect-lot')) {
+          container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun groupe hérité suspect détecté. Tout est propre ✅</p>';
+        }
+      });
+
       const chevron = document.createElement('span');
       chevron.textContent = '▾';
       chevron.style.cssText = 'transition:transform 0.15s;';
 
       head.appendChild(cb);
       head.appendChild(summary);
+      head.appendChild(dismissBtn);
       head.appendChild(chevron);
       div.appendChild(head);
 
