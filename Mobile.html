@@ -544,7 +544,7 @@
     if (tabId === 'tab-inject')    initInjectTab();
     if (tabId === 'tab-settings')  initSettingsTab();
     if (tabId === 'tab-notes')     loadNotesTab();
-    if (tabId === 'tab-history')   { mHistoryPage = 1; loadHistoryTab(); }
+    if (tabId === 'tab-history')   renderHistoryShell();
     if (tabId === 'tab-guide')     initGuideTab();
   }
 
@@ -594,11 +594,19 @@
           '<option value="donut">Donut</option><option value="ranking">Classement</option>' +
         '</select>' +
         '<canvas id="mMainChart" height="260"></canvas>' +
-      '</div>';
+      '</div>' +
+      mStatAccordionHtml('mRecordsAcc', '🏅 Records', 'mRecordsBody') +
+      mStatAccordionHtml('mTrendsAcc', '📈 Tendances', 'mTrendsBody') +
+      mStatAccordionHtml('mWeekdayAcc', '📅 Jour le plus actif', 'mWeekdayBody') +
+      mStatAccordionHtml('mPairsAcc', '🔁 Duo le plus fréquent', 'mPairsBody');
 
     document.getElementById('mFilterHead').addEventListener('click', () => {
       document.getElementById('mFilterAccordion').classList.toggle('open');
     });
+    bindStatAccordion('mRecordsAcc', loadRecordsStat);
+    bindStatAccordion('mTrendsAcc', loadTrendsStat);
+    bindStatAccordion('mWeekdayAcc', loadWeekdayStat);
+    bindStatAccordion('mPairsAcc', loadPairsStat);
     document.getElementById('mPeriodSelect').value = mFilterPeriod;
     document.getElementById('mPeriodSelect').addEventListener('change', e => {
       mFilterPeriod = e.target.value;
@@ -611,6 +619,84 @@
     });
 
     renderFilterChips();
+  }
+
+  // ── Cards statistiques repliables (Records/Tendances/Jour actif/Duo) ──
+  function mStatAccordionHtml(id, title, bodyId) {
+    return '<div class="card m-accordion" id="' + id + '">' +
+      '<div class="m-accordion-head"><span>' + title + '</span><span class="m-accordion-arrow">▾</span></div>' +
+      '<div class="m-accordion-body"><div id="' + bodyId + '" class="m-empty">Chargement…</div></div>' +
+    '</div>';
+  }
+
+  function bindStatAccordion(id, loader) {
+    const acc = document.getElementById(id);
+    let loaded = false;
+    acc.querySelector('.m-accordion-head').addEventListener('click', () => {
+      acc.classList.toggle('open');
+      if (acc.classList.contains('open') && !loaded) { loaded = true; loader(); }
+    });
+  }
+
+  function statRow(avatarHtml, title, subtitle) {
+    return '<div class="m-hist-card"><div class="m-hist-top">' + avatarHtml + '<strong>' + title + '</strong></div>' +
+      '<div class="m-hist-meta">' + subtitle + '</div></div>';
+  }
+
+  function loadRecordsStat() {
+    callServer('apiGetPlayerRecords', [], res => {
+      const body = document.getElementById('mRecordsBody');
+      let html = '';
+      if (res.globalBest) {
+        const p = cachedPlayers.find(pl => pl.name === res.globalBest.player);
+        html += statRow(avatarImgHtml(res.globalBest.player, p ? p.meta : '', 'm-avatar sm'),
+          '🏆 Record absolu : ' + escapeHtml(res.globalBest.player),
+          res.globalBest.points + ' pts en une entrée, le ' + res.globalBest.dateStr);
+      }
+      html += (res.records || []).map(r => {
+        const p = cachedPlayers.find(pl => pl.name === r.player);
+        return statRow(avatarImgHtml(r.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(r.player),
+          'Meilleur score : ' + r.bestSingleEntry + ' pts (' + r.bestEntryDate + ') · Série : ' + r.longestStreakDays + ' j');
+      }).join('');
+      body.outerHTML = '<div id="mRecordsBody">' + (html || '<p class="m-empty">Aucune donnée.</p>') + '</div>';
+    }, 'Chargement records');
+  }
+
+  function loadTrendsStat() {
+    callServer('apiGetTrends', [], res => {
+      const body = document.getElementById('mTrendsBody');
+      const rows = (res.categoryTrends || []).slice().sort((a, b) => b.changePct - a.changePct);
+      const html = rows.map(r => {
+        const color = r.changePct >= 0 ? 'var(--success)' : 'var(--error)';
+        return statRow('', escapeHtml(r.category),
+          '<span style="color:' + color + ';">' + (r.changePct >= 0 ? '+' : '') + r.changePct + '%</span> · ' + r.before + ' → ' + r.after + ' entrées');
+      }).join('');
+      body.outerHTML = '<div id="mTrendsBody">' + (html || '<p class="m-empty">Pas assez de données.</p>') + '</div>';
+    }, 'Chargement tendances');
+  }
+
+  function loadWeekdayStat() {
+    callServer('apiGetActiveWeekday', [], res => {
+      const body = document.getElementById('mWeekdayBody');
+      if (!res.topWeekday) { body.outerHTML = '<div id="mWeekdayBody"><p class="m-empty">Pas assez de données.</p></div>'; return; }
+      const html = '<p style="font-weight:700; margin:0 0 8px;">' + escapeHtml(res.topWeekday) + '</p>' +
+        (res.byWeekday || []).map(w =>
+          '<div class="m-hist-meta">' + escapeHtml(w.weekday) + ' — ' + w.count + ' entrée(s)</div>').join('');
+      body.outerHTML = '<div id="mWeekdayBody">' + html + '</div>';
+    }, 'Chargement jour actif');
+  }
+
+  function loadPairsStat() {
+    callServer('apiGetTopPlayerCategoryPairs', [], res => {
+      const body = document.getElementById('mPairsBody');
+      const html = (res.pairs || []).map(pair => {
+        const p = cachedPlayers.find(pl => pl.name === pair.player);
+        const cat = cachedCategories.find(c => c.name === pair.category);
+        return statRow(avatarImgHtml(pair.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(pair.player),
+          (cat ? cat.icon + ' ' : '') + escapeHtml(pair.category) + ' — ' + pair.count + ' fois');
+      }).join('');
+      body.outerHTML = '<div id="mPairsBody">' + (html || '<p class="m-empty">Aucune donnée.</p>') + '</div>';
+    }, 'Chargement duos fréquents');
   }
 
   function renderFilterChips() {
@@ -1022,11 +1108,36 @@
   const M_HIST_PAGE_SIZE = 15;
   let mHistoryLoaded = [];
 
+  let mHistorySubTab = 'entries';
+
   function renderHistoryShell() {
     const tab = document.getElementById('tab-history');
     tab.innerHTML =
+      '<div class="m-chip-row" id="mHistSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:12px;">' +
+        '<div class="m-chip active" data-sub="entries">📜 Entrées</div>' +
+        '<div class="m-chip" data-sub="audit">🔍 Journal d\'audit</div>' +
+      '</div>' +
+      '<div id="mHistoryBody"></div>';
+
+    tab.querySelectorAll('#mHistSubNav .m-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        mHistorySubTab = chip.dataset.sub;
+        tab.querySelectorAll('#mHistSubNav .m-chip').forEach(c => c.classList.toggle('active', c === chip));
+        renderHistoryBody();
+      });
+    });
+    renderHistoryBody();
+  }
+
+  function renderHistoryBody() {
+    if (mHistorySubTab === 'entries') renderHistoryEntriesShell();
+    if (mHistorySubTab === 'audit')   renderAuditShell();
+  }
+
+  function renderHistoryEntriesShell() {
+    const body = document.getElementById('mHistoryBody');
+    body.innerHTML =
       '<div class="card">' +
-        '<h2>📜 Historique</h2>' +
         '<input type="text" id="mHistSearch" placeholder="🔍 Rechercher…">' +
       '</div>' +
       '<div id="mHistCards"></div>' +
@@ -1041,6 +1152,81 @@
       mHistoryPage++;
       loadHistoryTab(true);
     });
+    mHistoryPage = 1; mHistoryLoaded = [];
+    loadHistoryTab();
+  }
+
+  // ── Journal d'audit — liste paginée en lecture seule ──
+  let mAuditPage = 1;
+  const M_AUDIT_PAGE_SIZE = 15;
+  let mAuditLoaded = [];
+
+  function renderAuditShell() {
+    const body = document.getElementById('mHistoryBody');
+    body.innerHTML =
+      '<div class="card"><input type="text" id="mAuditSearch" placeholder="🔍 Rechercher…"></div>' +
+      '<div id="mAuditCards"></div>' +
+      '<button id="mAuditLoadMore" class="secondary" style="width:100%;">Charger plus</button>';
+
+    let searchTimer = null;
+    document.getElementById('mAuditSearch').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { mAuditPage = 1; mAuditLoaded = []; loadAuditTab(); }, 300);
+    });
+    document.getElementById('mAuditLoadMore').addEventListener('click', () => {
+      mAuditPage++;
+      loadAuditTab(true);
+    });
+    mAuditPage = 1; mAuditLoaded = [];
+    loadAuditTab();
+  }
+
+  function auditIcon(action) {
+    if (/suppr/i.test(action || '')) return '🗑️';
+    if (/ajout|créé/i.test(action || '')) return '➕';
+    if (/auto/i.test(action || '')) return '🤖';
+    if (/nettoyage/i.test(action || '')) return '🧹';
+    if (/modif|renommé|couleur|description|groupement/i.test(action || '')) return '✏️';
+    return '•';
+  }
+
+  function auditCardHtml(log) {
+    const p = cachedPlayers.find(pl => pl.name === log.author);
+    const d = new Date(log.timestamp);
+    const ds = isNaN(d.getTime()) ? '' :
+      String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear() +
+      ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    return '<div class="m-hist-card">' +
+      '<div class="m-hist-top">' +
+      (log.author ? avatarImgHtml(log.author, p ? p.meta : '', 'm-avatar sm') + '<strong>' + escapeHtml(log.author) + '</strong>' : '<strong>Système</strong>') +
+      '<span>' + auditIcon(log.action) + ' ' + escapeHtml(log.action || '') + '</span>' +
+      '</div>' +
+      '<div class="m-hist-meta">' + ds + '</div>' +
+      ((log.before || log.after) ?
+        '<div class="m-hist-desc">' +
+        (log.before ? '<span style="color:var(--error); text-decoration:line-through;">' + escapeHtml(String(log.before)) + '</span> ' : '') +
+        ((log.before && log.after) ? '→ ' : '') +
+        (log.after ? '<span style="color:var(--success);">' + escapeHtml(String(log.after)) + '</span>' : '') +
+        '</div>' : '') +
+      '</div>';
+  }
+
+  function loadAuditTab(append) {
+    const text = (document.getElementById('mAuditSearch') || {}).value || '';
+    callServer('apiGetAuditLog', [mAuditPage, M_AUDIT_PAGE_SIZE, null, null, null, null, text || null], res => {
+      const logs = (res && res.logs) || [];
+      mAuditLoaded = append ? mAuditLoaded.concat(logs) : logs;
+      const container = document.getElementById('mAuditCards');
+      if (!mAuditLoaded.length) {
+        container.innerHTML = '<p class="m-empty">Aucune entrée dans le journal.</p>';
+      } else {
+        container.innerHTML = mAuditLoaded.map(auditCardHtml).join('');
+      }
+      const loadMoreBtn = document.getElementById('mAuditLoadMore');
+      const total = (res && res.totalEntries) || mAuditLoaded.length;
+      const loadedCount = mAuditPage * M_AUDIT_PAGE_SIZE;
+      loadMoreBtn.style.display = loadedCount >= total ? 'none' : '';
+    }, 'Chargement journal');
   }
 
   function historyCardHtml(log) {
@@ -1341,6 +1527,11 @@
     body.innerHTML = '<div class="card"><h2>🎭 Phrases</h2>' +
       '<label style="font-size:0.75rem; color:var(--text-muted);">Preset actif</label>' +
       '<select id="mPresetSelect"></select>' +
+      '<div class="m-row" style="gap:8px; margin-top:8px;">' +
+        '<button class="secondary small" id="mPresetNew" style="flex:1;">＋ Nouveau</button>' +
+        '<button class="secondary small" id="mPresetRename" style="flex:1;">✏️ Renommer</button>' +
+        '<button class="danger small" id="mPresetDelete" style="flex:1;">🗑️ Supprimer</button>' +
+      '</div>' +
       '<div id="mPhrasesList" style="margin-top:10px;" class="m-empty">Chargement…</div>' +
       '<button class="secondary" id="mPhraseAdd" style="width:100%; margin-top:10px;">＋ Ajouter une phrase</button>' +
       '</div>';
@@ -1367,6 +1558,63 @@
     document.getElementById('mPhraseAdd').addEventListener('click', () => {
       if (!requireIdentity()) return;
       openPhraseFormModal(null);
+    });
+
+    document.getElementById('mPresetNew').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      openPresetNameModal('Nouveau preset', '', name => {
+        if (name === '__default__' || name === 'Défaut') { showToast('Nom réservé.', 'error'); return; }
+        callServer('apiSetActivePhrasePreset', [name], () => {
+          mActivePreset = name;
+          showToast('Preset "' + name + '" créé ✓', 'success');
+          renderPhrasesSettings();
+        }, 'Création preset');
+      });
+    });
+
+    document.getElementById('mPresetRename').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      if (mActivePreset === '__default__') { showToast('Impossible de renommer le preset Défaut.', 'error'); return; }
+      openPresetNameModal('Renommer le preset', mActivePreset, newName => {
+        if (newName === mActivePreset) return;
+        if (newName === '__default__' || newName === 'Défaut') { showToast('Nom réservé.', 'error'); return; }
+        callServer('apiRenamePreset', [mActivePreset, newName, _whoAmI || ''], () => {
+          mActivePreset = newName;
+          showToast('Preset renommé ✓', 'success');
+          renderPhrasesSettings();
+        }, 'Renommage preset');
+      });
+    });
+
+    document.getElementById('mPresetDelete').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const label = mActivePreset === '__default__' ? 'Défaut' : mActivePreset;
+      const msg = mActivePreset === '__default__'
+        ? 'Vider le preset "Défaut" de toutes ses phrases personnalisées ?'
+        : 'Supprimer le preset "' + label + '" et toutes ses phrases ?';
+      openConfirmModal(msg, () => {
+        callServer('apiDeletePreset', [mActivePreset, _whoAmI || ''], () => {
+          mActivePreset = '__default__';
+          showToast('Preset supprimé.', 'success');
+          renderPhrasesSettings();
+        }, 'Suppression preset');
+      });
+    });
+  }
+
+  function openPresetNameModal(title, initialValue, onSave) {
+    openModal(
+      '<h2>' + title + '</h2>' +
+      '<label style="font-size:0.75rem; color:var(--text-muted);">Nom du preset</label>' +
+      '<input type="text" id="mPresetNameInput" value="' + escapeHtml(initialValue) + '">' +
+      '<button class="primary" style="width:100%; margin-top:12px;" id="mPresetNameSave">Enregistrer</button>'
+    );
+    setTimeout(() => document.getElementById('mPresetNameInput').focus(), 60);
+    document.getElementById('mPresetNameSave').addEventListener('click', () => {
+      const name = document.getElementById('mPresetNameInput').value.trim();
+      if (!name) { showToast('Nom vide.', 'error'); return; }
+      closeModal();
+      onSave(name);
     });
   }
 
