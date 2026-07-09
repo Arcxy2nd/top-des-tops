@@ -3,21 +3,19 @@ const { test } = require('node:test');
 const assert   = require('assert');
 const { loadGas } = require('./harness.js');
 
-test('NAV_PAGES has exactly the 7 documented tabs, in order', () => {
+test('NAV_PAGES has exactly the 6 documented tabs, in order', () => {
   const gas = loadGas();
   const ids = [...gas.NAV_PAGES.map(p => p.id)];
   assert.deepStrictEqual(ids, [
     'tab-dashboard', 'tab-inject', 'tab-settings',
-    'tab-notes', 'tab-history', 'tab-outils', 'tab-guide'
+    'tab-notes', 'tab-history', 'tab-guide'
   ]);
 });
 
-test('NAV_PAGES includes the previously-missing Outils entry', () => {
+test('NAV_PAGES has no top-level Outils entry — it lives under Paramètres → Outils', () => {
   const gas = loadGas();
   const outils = gas.NAV_PAGES.find(p => p.id === 'tab-outils');
-  assert.ok(outils, 'tab-outils entry must exist');
-  assert.strictEqual(outils.icon, '🔧');
-  assert.strictEqual(outils.label, 'Outils');
+  assert.strictEqual(outils, undefined, 'tab-outils must not be a top-level nav entry');
 });
 
 test('every NAV_PAGES entry has a non-empty id, icon and label', () => {
@@ -34,7 +32,7 @@ test('apiGetNavPages returns success:true and the full NAV_PAGES array', () => {
   const res = gas.apiGetNavPages();
   assert.strictEqual(res.success, true);
   assert.deepStrictEqual(res.pages, gas.NAV_PAGES);
-  assert.strictEqual(res.pages.length, 7);
+  assert.strictEqual(res.pages.length, 6);
 });
 
 test('apiGetNavPages: notes and history entries carry their countId', () => {

@@ -2297,6 +2297,37 @@
     </div>
     </div>
 
+    <!-- ══ RECORDS ══ -->
+    <div class="card card-collapsible" id="recordsCard">
+      <div class="card-collapse-header"><h2>🏅 Records</h2></div>
+      <div id="recordsResults"></div>
+    </div>
+
+    <!-- ══ TENDANCES ══ -->
+    <div class="card card-collapsible" id="trendsCard">
+      <div class="card-collapse-header"><h2>📊 Tendances</h2></div>
+      <div class="chart-type-bar" id="trendsScopeToggle" style="margin-bottom:12px;">
+        <button class="chart-type-btn active" data-scope="category">Par Top</button>
+        <button class="chart-type-btn" data-scope="player">Par joueur</button>
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">30 derniers jours vs 30 jours précédents.</p>
+      <div class="chart-wrapper" style="height:280px;"><canvas id="trendsChart"></canvas></div>
+      <div id="trendsEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</div>
+    </div>
+
+    <!-- ══ JOUR LE PLUS ACTIF ══ -->
+    <div class="card card-collapsible" id="weekdayCard">
+      <div class="card-collapse-header"><h2>📅 Jour le plus actif</h2></div>
+      <div class="chart-wrapper" style="height:240px;"><canvas id="weekdayChart"></canvas></div>
+      <div id="weekdayEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Aucune donnée.</div>
+    </div>
+
+    <!-- ══ DUO LE PLUS FRÉQUENT ══ -->
+    <div class="card card-collapsible" id="pairsCard">
+      <div class="card-collapse-header"><h2>🔁 Duo le plus fréquent</h2></div>
+      <div id="pairsResults"></div>
+    </div>
+
   </div>
 
   <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
@@ -2508,30 +2539,6 @@
         <div class="card-collapse-header"><h2>💤 Joueurs inactifs</h2></div>
         <button id="scanInactiveBtn" class="secondary small">🔄 Actualiser</button>
         <div id="inactiveResults" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="card card-collapsible" id="toolRecordsCard">
-        <div class="card-collapse-header"><h2>🏅 Records</h2></div>
-        <button id="scanRecordsBtn" class="secondary small">🔄 Actualiser</button>
-        <div id="recordsResults" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="card card-collapsible" id="toolTrendsCard">
-        <div class="card-collapse-header"><h2>📊 Tendances</h2></div>
-        <button id="scanTrendsBtn" class="secondary small">🔄 Actualiser</button>
-        <div id="trendsResults" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="card card-collapsible" id="toolWeekdayCard">
-        <div class="card-collapse-header"><h2>📅 Jour le plus actif</h2></div>
-        <button id="scanWeekdayBtn" class="secondary small">🔄 Actualiser</button>
-        <div id="weekdayResults" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="card card-collapsible" id="toolPairsCard">
-        <div class="card-collapse-header"><h2>🔁 Duo le plus fréquent</h2></div>
-        <button id="scanPairsBtn" class="secondary small">🔄 Actualiser</button>
-        <div id="pairsResults" style="margin-top:12px;"></div>
       </div>
 
       <div class="card card-collapsible" id="toolAutoCard">
@@ -4098,14 +4105,24 @@
   // Équivalent à un shift+clic mais sans dépendre du clavier : on clique
   // (ou touche) une case, puis on glisse dessus/à travers les autres pour
   // les cocher/décocher toutes d'un coup, à la même valeur que la première.
-  function enableDragMultiSelect(container, checkboxSelector) {
+  // rowSelector (optionnel) : si fourni, cliquer n'importe où sur la ligne
+  // (pas seulement la case, minuscule et difficile à viser) compte comme un
+  // clic de sélection — sauf sur un autre élément interactif de la ligne
+  // (bouton, lien…), qui garde son propre comportement.
+  function enableDragMultiSelect(container, checkboxSelector, rowSelector) {
     if (!container) return;
     let dragging = false;
     let targetState = true;
     let lastToggled = null;
 
     function checkboxAt(el) {
-      return el && el.closest ? el.closest(checkboxSelector) : null;
+      if (!el || !el.closest) return null;
+      const direct = el.closest(checkboxSelector);
+      if (direct) return direct;
+      if (!rowSelector) return null;
+      if (el.closest('button, a, input:not([type="checkbox"]), select, textarea, .hist-desc-toggle')) return null;
+      const row = el.closest(rowSelector);
+      return row ? row.querySelector(checkboxSelector) : null;
     }
     function applyTo(cb) {
       if (!cb || cb === lastToggled || cb.disabled) return;
@@ -4120,7 +4137,10 @@
       const cb = checkboxAt(e.target);
       if (!cb) return;
       dragging = true;
-      targetState = !cb.checked; // le clic natif qui suit va basculer vers cet état
+      const direct = e.target.closest(checkboxSelector);
+      targetState = !cb.checked;
+      if (!direct) { cb.checked = targetState; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+      // sinon (case cliquée directement) : le clic natif qui suit s'en charge
       lastToggled = cb;
     });
     container.addEventListener('mouseover', e => {
@@ -4132,7 +4152,9 @@
       const cb = checkboxAt(e.target);
       if (!cb) return;
       dragging = true;
+      const direct = e.target.closest(checkboxSelector);
       targetState = !cb.checked;
+      if (!direct) { cb.checked = targetState; cb.dispatchEvent(new Event('change', { bubbles: true })); }
       lastToggled = cb;
     }, { passive: true });
     container.addEventListener('touchmove', e => {
@@ -4911,9 +4933,8 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  document.getElementById('modalBackdrop').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
+  // Cliquer sur le fond n'annule plus la fenêtre : trop d'annulations
+  // accidentelles avec une progression perdue. Seuls Annuler/Échap ferment.
   document.getElementById('modalBackdrop').addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       const saveBtn = document.getElementById('mSave');
@@ -4947,12 +4968,23 @@
 
     renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
     renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
-    loadBaremeSettings();
+    // Le barème est groupé par catégorie mais son contenu (les règles) ne dépend
+    // pas des joueurs/catégories eux-mêmes : un rendu local avec les entrées déjà
+    // en cache suffit tant qu'elles ont été chargées une première fois — pas
+    // besoin de re-solliciter le serveur ni de re-clignoter la liste à chaque
+    // ajout/renommage de joueur ou de catégorie ailleurs dans l'app.
+    if (baremeEntries === null) loadBaremeSettings();
+    else renderBaremeSettings(baremeEntries);
 
     updateHistoryFilters();
     updateDonutPlayerSelect();
-    // Les notes dépendent de la liste des joueurs : on rafraîchit si l'onglet est ouvert.
-    if (document.getElementById('tab-notes').classList.contains('active')) loadNotes();
+    // Les notes dépendent de la liste des joueurs (chips, avatars) mais pas des
+    // notes elles-mêmes : un rendu local avec les notes déjà en cache suffit,
+    // pas besoin de retélécharger tout l'historique de notes.
+    if (document.getElementById('tab-notes').classList.contains('active')) {
+      if (_notesLoadedOnce) renderNotesUI(_allNotesRaw);
+      else loadNotes();
+    }
 
     if (document.querySelectorAll('.entry-row').length === 0) addEntryRow();
     renderWhoAmI();
@@ -8296,10 +8328,12 @@
   let _flashPlayer = ''; // persists across re-renders so selection survives note saves
   let _allNotesRaw = [];
   let _notesSearchQuery = '';
+  let _notesLoadedOnce = false;
 
   function loadNotes() {
     showSkeleton(document.getElementById('notesPlayersContainer'), { rows: 3, height: 70 });
     callServer('apiGetAllNotes', [], res => {
+      _notesLoadedOnce = true;
       renderNotesUI(res.notes || []);
     }, 'Chargement notes');
   }
@@ -9075,16 +9109,8 @@
   function goToTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    // tab-outils n'a pas de <div> propre côté desktop : son contenu vit dans le
-    // sous-onglet Outils de Paramètres. On affiche Paramètres puis on bascule
-    // sur ce sous-onglet, sans dupliquer le HTML existant.
-    const realTabId = tabId === 'tab-outils' ? 'tab-settings' : tabId;
-    document.getElementById(realTabId).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-btn[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
-    if (tabId === 'tab-outils') {
-      const toolsBtn = document.querySelector('.settings-nav-btn[data-stab="stab-tools"]');
-      if (toolsBtn) toolsBtn.click();
-    }
     if (tabId === 'tab-history') { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); }
     if (tabId === 'tab-notes')   { loadNotes(); }
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
@@ -9148,9 +9174,6 @@
 
     document.getElementById('bulkImportCancel').addEventListener('click', closeBulkImportModal);
     document.getElementById('bulkImportSave').addEventListener('click', saveBulkImport);
-    document.getElementById('bulkImportModal').addEventListener('click', e => {
-      if (e.target === document.getElementById('bulkImportModal')) closeBulkImportModal();
-    });
     document.getElementById('bulkImportTextarea').addEventListener('input', () => {
       const lines = parseBulkImportText(document.getElementById('bulkImportTextarea').value);
       document.getElementById('bulkImportCount').textContent = lines.length
@@ -9551,7 +9574,8 @@
 
   function buildLegacyEntryRow(entry) {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;';
+    row.className = 'legacy-entry-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;cursor:pointer;';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -10010,88 +10034,102 @@
   }
 
   // ── TENDANCES ────────────────────────────────────────────────────────
-  function scanTrends() {
-    const container = document.getElementById('trendsResults');
-    showSkeleton(container, { rows: 3, height: 40 });
-    callServer('apiGetTrends', [], res => {
-      container.innerHTML = '';
-      const catTitle = document.createElement('h3');
-      catTitle.textContent = 'Par Top (30 derniers jours vs 30 jours précédents)';
-      container.appendChild(catTitle);
-      res.categoryTrends.forEach(c => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const col = categoryColor(c.category);
-        const pill = document.createElement('span');
-        pill.className = 'hist-pill';
-        pill.style.setProperty('--pill-bg', tint(col, 0.16));
-        pill.style.setProperty('--pill-bd', tint(col, 0.55));
-        const ic = catIcon(c.category);
-        if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-        pill.appendChild(document.createTextNode(c.category));
-        const span = document.createElement('span');
-        span.style.color = c.changePct >= 0 ? 'var(--success)' : 'var(--error)';
-        span.textContent = (c.changePct >= 0 ? '+' : '') + c.changePct + '% (' + c.before + ' → ' + c.after + ' entrées)';
-        row.appendChild(pill); row.appendChild(span);
-        container.appendChild(row);
-      });
-      const playerTitle = document.createElement('h3');
-      playerTitle.style.marginTop = '14px';
-      playerTitle.textContent = 'Par joueur (moyenne récente vs moyenne historique)';
-      container.appendChild(playerTitle);
-      res.playerTrends.forEach(pt => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const p = cachedPlayers.find(pl => pl.name === pt.player);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(pt.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(pt.player));
-        const span = document.createElement('span');
-        span.style.color = pt.changePct >= 0 ? 'var(--success)' : 'var(--error)';
-        span.textContent = (pt.changePct >= 0 ? '+' : '') + pt.changePct + '% (moyenne récente ' + pt.recentAvg + ' pts vs historique ' + pt.historicalAvg + ' pts)';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
-      });
-      if (!res.categoryTrends.length && !res.playerTrends.length) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</p>';
+  // Barres divergentes (vert/rouge autour de 0%) : plus lisible qu'une liste
+  // de pourcentages pour comparer d'un coup d'œil qui progresse ou régresse.
+  let trendsScope = 'category';
+  let _trendsData = null;
+  let trendsChartInstance = null;
+
+  function loadTrends() {
+    callServer('apiGetTrends', [], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances');
+  }
+
+  function renderTrends() {
+    if (!_trendsData) return;
+    const rows = trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends;
+    const empty = document.getElementById('trendsEmpty');
+    const wrapper = document.getElementById('trendsChart').closest('.chart-wrapper');
+    if (!rows.length) {
+      empty.style.display = 'block'; wrapper.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none'; wrapper.style.display = '';
+
+    const sorted = rows.slice().sort((a, b) => b.changePct - a.changePct);
+    const labels = sorted.map(r => trendsScope === 'category' ? r.category : r.player);
+    const values = sorted.map(r => r.changePct);
+    const c = getChartColors();
+    const success = getComputedStyle(document.body).getPropertyValue('--success').trim();
+    const error   = getComputedStyle(document.body).getPropertyValue('--error').trim();
+    const colors  = values.map(v => v >= 0 ? success : error);
+
+    if (trendsChartInstance) trendsChartInstance.destroy();
+    trendsChartInstance = new Chart(document.getElementById('trendsChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4 }] },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = sorted[ctx.dataIndex];
+                const detail = trendsScope === 'category'
+                  ? r.before + ' → ' + r.after + ' entrées'
+                  : 'moyenne ' + r.historicalAvg + ' → ' + r.recentAvg + ' pts';
+                return (r.changePct >= 0 ? '+' : '') + r.changePct + '% (' + detail + ')';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: c.muted, callback: v => v + '%' }, grid: { color: c.grid } },
+          y: { ticks: { color: c.text }, grid: { display: false } }
+        }
       }
-    }, 'Chargement tendances');
+    });
   }
 
   // ── JOUR LE PLUS ACTIF ───────────────────────────────────────────────
-  function scanActiveWeekday() {
-    const container = document.getElementById('weekdayResults');
-    showSkeleton(container, { rows: 3, height: 30 });
+  let weekdayChartInstance = null;
+
+  function loadActiveWeekday() {
     callServer('apiGetActiveWeekday', [], res => {
-      container.innerHTML = '';
+      const empty = document.getElementById('weekdayEmpty');
+      const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
       if (!res.topWeekday) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+        empty.style.display = 'block'; wrapper.style.display = 'none';
         return;
       }
-      const top = document.createElement('p');
-      top.innerHTML = 'Jour le plus actif : <strong>' + escapeHtml(res.topWeekday) + '</strong>';
-      container.appendChild(top);
-      const max = Math.max(...res.byWeekday.map(x => x.count), 1);
-      res.byWeekday.forEach(w => {
-        const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;font-size:0.82rem;';
-        const label = document.createElement('span');
-        label.style.cssText = 'width:90px;flex-shrink:0;';
-        label.textContent = w.weekday;
-        const bar = document.createElement('div');
-        bar.style.cssText = 'height:14px;border-radius:4px;background:var(--accent);width:' + Math.round((w.count / max) * 100) + '%;min-width:2px;';
-        const count = document.createElement('span');
-        count.style.cssText = 'color:var(--text-muted);flex-shrink:0;';
-        count.textContent = w.count;
-        row.appendChild(label); row.appendChild(bar); row.appendChild(count);
-        container.appendChild(row);
+      empty.style.display = 'none'; wrapper.style.display = '';
+      const c = getChartColors();
+      const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim();
+
+      if (weekdayChartInstance) weekdayChartInstance.destroy();
+      weekdayChartInstance = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: res.byWeekday.map(w => w.weekday),
+          datasets: [{
+            data: res.byWeekday.map(w => w.count),
+            backgroundColor: res.byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Jour le plus actif : ' + res.topWeekday, color: c.text, font: { weight: '700' }, padding: { bottom: 10 } },
+            tooltip: { callbacks: { label: ctx => ctx.raw + ' entrée(s)' } }
+          },
+          scales: {
+            x: { ticks: { color: c.muted }, grid: { display: false } },
+            y: { ticks: { color: c.muted, precision: 0 }, grid: { color: c.grid } }
+          }
+        }
       });
     }, 'Chargement jour actif');
   }
@@ -10244,9 +10282,13 @@
     initSettingsTabs();
     initHistoryTabs();
     bindButtons();
-    enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk');
+    enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
-    enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.detect-lot-head input[type="checkbox"], .legacy-entry-cb');
+    // Le groupe (.detect-lot-head) garde la case comme seule cible : toute la
+    // ligne y sert déjà à ouvrir/fermer le détail. Les entrées individuelles
+    // à l'intérieur, elles, n'ont pas d'autre action — toute leur ligne compte.
+    enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.detect-lot-head input[type="checkbox"]');
+    enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.legacy-entry-cb', '.legacy-entry-row');
     bindExportButtons();
     initPhraseSettings();
     showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
@@ -10303,18 +10345,20 @@
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
     makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
-    makeCollapsible(document.getElementById('toolRecordsCard'),    'tdt_collapsed_tool_records');
-    makeCollapsible(document.getElementById('toolTrendsCard'),     'tdt_collapsed_tool_trends');
-    makeCollapsible(document.getElementById('toolWeekdayCard'),    'tdt_collapsed_tool_weekday');
-    makeCollapsible(document.getElementById('toolPairsCard'),      'tdt_collapsed_tool_pairs');
     makeCollapsible(document.getElementById('toolAutoCard'),       'tdt_collapsed_tool_auto');
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
     document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
-    document.getElementById('scanRecordsBtn').addEventListener('click', scanRecords);
-    document.getElementById('scanTrendsBtn').addEventListener('click', scanTrends);
-    document.getElementById('scanWeekdayBtn').addEventListener('click', scanActiveWeekday);
-    document.getElementById('scanPairsBtn').addEventListener('click', scanTopPairs);
+    makeCollapsible(document.getElementById('recordsCard'), 'tdt_collapsed_records');
+    makeCollapsible(document.getElementById('trendsCard'),  'tdt_collapsed_trends');
+    makeCollapsible(document.getElementById('weekdayCard'), 'tdt_collapsed_weekday');
+    makeCollapsible(document.getElementById('pairsCard'),   'tdt_collapsed_pairs');
+    document.getElementById('trendsScopeToggle').addEventListener('click', e => {
+      if (!e.target.dataset.scope) return;
+      trendsScope = e.target.dataset.scope;
+      document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
+      renderTrends();
+    });
 
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
@@ -10341,9 +10385,6 @@
       if (e.key === 'Enter') submitIdentityPwd();
       if (e.key === 'Escape') closeIdentityPwdModal();
     });
-    document.getElementById('identityPwdModal').addEventListener('click', e => {
-      if (e.target.id === 'identityPwdModal') closeIdentityPwdModal();
-    });
 
     // Close any open RichSelect when clicking outside
     document.addEventListener('mousedown', function(e) {
@@ -10352,6 +10393,14 @@
 
     loadEntities();
     loadAppBranding();
+    // Stats globales du Dashboard (Records/Tendances/Jour actif/Duo fréquent) :
+    // un seul chargement au démarrage, pas à chaque repaint de _paintEntitiesUI
+    // (qui tourne à chaque ajout/renommage de joueur ou catégorie) — ces
+    // statistiques ne dépendent pas de ça.
+    scanRecords();
+    loadTrends();
+    loadActiveWeekday();
+    scanTopPairs();
   };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────

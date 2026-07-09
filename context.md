@@ -73,13 +73,14 @@ Fichier HTML/CSS/JS monofichier.
 
 | Onglet | Contenu |
 |--------|---------|
-| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires |
+| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires, puis en bas : Records, Tendances, Jour le plus actif, Duo le plus fréquent |
 | ✍️ Saisir un Lot | Constructeur de lignes de score (joueur + Top + points + date), saisie batch |
-| ⚙️ Paramètres | Gestion joueurs, catégories, barème, presets de phrases |
+| ⚙️ Paramètres | Gestion joueurs, catégories, barème, presets de phrases, sous-onglet 🔧 Outils |
 | 📝 Notes | Notes libres par joueur |
-| 📜 Historique | Tableau paginé des entrées, filtres, édition description, suppression |
-| 🔧 Outils | Rapport de santé, nettoyage orphelins, détection/regroupement lots répartis |
+| 📜 Historique | Tableau paginé des entrées, filtres, édition description, suppression, sous-onglet 🔍 Journal d'audit |
 | ❓ Guide | Documentation inline |
+
+`🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé, nettoyage (zéros/orphelins/doublons/scores aberrants), détection/regroupement de lots répartis, groupes hérités, joueurs inactifs, points automatiques.
 
 ### Types de graphique (Dashboard)
 
@@ -185,6 +186,10 @@ Chaque joueur et chaque catégorie a une couleur hex définie dans le Sheet. Ces
 ### Avatar obligatoire partout
 
 Dès qu'un nom de joueur apparaît dans l'UI (liste, tableau, graphique, filtre, commentaire, note, classement, saisie…), son avatar doit être affiché à côté. Aucune exception.
+
+### Parité mobile
+
+Toute mise à jour de `Index.html` (nouvel écran, nouveau composant, style modifié) doit être répercutée dans `Mobile.html`. Si l'outil concerné n'existe pas côté mobile (cas des outils avancés de l'onglet Outils, volontairement réduit), ne pas assumer — demander avant de l'ajouter.
 
 ### Quatre critères de qualité interface
 

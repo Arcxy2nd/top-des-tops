@@ -13,7 +13,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Possibilité de cocher plusieurs cases rapidement en cliquant-glissant dessus (souris ou tactile), sans avoir besoin du clavier — disponible dans l'Historique et les outils de détection.
 **Technique** : `enableDragMultiSelect(container, selector)`, délégation d'événements `mousedown`/`mouseover`/`touchmove`, appliqué à `#historyTableBody`, `#detectResults`, `#detectLegacyResults`.
 
-### Modifié
+**Humanisé** : Cocher plusieurs cases en cliquant-glissant marchait, mais fallait viser précisément la petite case. Toute la ligne compte maintenant comme zone de clic (sauf sur un bouton, un lien, ou le texte dépliable d'une description, qui gardent leur propre action).
+**Technique** : `enableDragMultiSelect` prend un `rowSelector` optionnel ; `checkboxAt()` retombe sur la ligne si le clic direct sur la case échoue, en excluant `button, a, input:not([type=checkbox]), select, textarea, .hist-desc-toggle`. Appliqué à `#historyTableBody` (`tr`) et aux entrées individuelles des groupes hérités (nouvelle classe `.legacy-entry-row`) — pas aux en-têtes `.detect-lot-head`, qui utilisent déjà tout leur clic pour déplier/replier.
+
+**Humanisé** : Quatre outils d'analyse (Records, Tendances, Jour le plus actif, Duo le plus fréquent) quittent l'onglet Outils pour devenir des cartes du Dashboard, en bas — ils se chargent directement à l'ouverture au lieu d'un clic "Actualiser" caché dans un sous-menu. Tendances et Jour le plus actif sont maintenant des vrais graphiques (barres divergentes vert/rouge, barres par jour de la semaine) plutôt que des listes de texte.
+**Technique** : Nouvelles cartes `#recordsCard`/`#trendsCard`/`#weekdayCard`/`#pairsCard` dans `tab-dashboard`. `renderTrends()`/`loadActiveWeekday()` utilisent Chart.js (`getChartColors()` pour le thème dark/light) au lieu de barres en `<div>`. Chargement unique au démarrage (`window.onload`), pas à chaque repaint de `_paintEntitiesUI` (ces stats ne dépendent pas des joueurs/catégories qui changent).
+
+**Humanisé** : Le bouton "Outils" dans la barre de navigation et le menu mobile faisait doublon avec Paramètres → Outils, où il existait déjà — retiré.
+**Technique** : `tab-outils` retiré de `NAV_PAGES` (`Code.gs`, source unique partagée par les deux frontends). `Mobile.html` : Outils devient un 5ᵉ sous-onglet de Paramètres (`mSettingsSubTab === 'outils'`), `renderOutilsShell()` cible `#mSettingsBody` au lieu d'un `#tab-outils` retiré du DOM. Tests `nav-pages.test.js` mis à jour (6 onglets).
+
 **Humanisé** : L'onglet Outils affichait tout empilé sans fin. Chaque outil a maintenant sa propre carte qu'on peut replier, comme sur le Dashboard.
 **Technique** : Chaque section de `#stab-tools` devient un `.card.card-collapsible` avec `makeCollapsible(...)`.
 
@@ -39,6 +47,12 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : L'outil "Points automatiques" avait perdu la pastille de couleur du Top dans sa liste de règles (elle apparaissait en texte brut).
 **Technique** : `renderAutoRules` construit désormais la pastille en DOM (`categoryColor`/`catIcon`/`tint`), comme partout ailleurs dans l'app, au lieu d'un `innerHTML` en texte simple.
 
+**Humanisé** : Cliquer en dehors d'une fenêtre d'édition (modale) la refermait par erreur, avec perte de tout ce qui avait été saisi. Seuls les boutons Annuler/Échap ferment désormais une fenêtre.
+**Technique** : Retrait des gestionnaires `click` sur `#modalBackdrop`, `#bulkImportModal`, `#identityPwdModal` (`Index.html`) et `#mModalBackdrop` (`Mobile.html`) qui fermaient sur `e.target === backdrop`.
+
+**Humanisé** : Ajouter un joueur ou une catégorie faisait clignoter et recharger inutilement le Barème et les Notes ailleurs dans l'app, même sans rapport avec ce qui venait de changer.
+**Technique** : `_paintEntitiesUI()` appelait `loadBaremeSettings()` (squelette + fetch complet) et `loadNotes()` (idem) à chaque passage. Remplacés par un rendu local à partir des données déjà en cache (`renderBaremeSettings(baremeEntries)`, `renderNotesUI(_allNotesRaw)`) tant qu'un premier chargement a déjà eu lieu.
+
 **Humanisé** : L'outil "Groupes hérités à vérifier" ne permettait de dissocier qu'un groupe entier d'un coup.
 **Technique** : Ajout de cases à cocher par entrée + action "Dissocier les entrées cochées" (`apiRemoveFromGroup`), et d'une action "Ignorer ce groupe" persistée en `localStorage`.
 
@@ -57,3 +71,291 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 **Humanisé** : Le site restait bloqué sur "Chargement…" puis devenait tout blanc à l'ouverture, aussi bien sur PC que sur mobile. Maintenant le lien de base ouvre directement la version PC ; le bouton 📱/🖥️ en haut de l'écran permet de passer sur mobile, et ce choix est ensuite mémorisé.
 **Technique** : `doGet()` sans `?view=` servait une mini-page de redirection auto-détectant l'appareil puis se rechargeant elle-même via `window.location.href`. Dans l'iframe sandbox du déploiement réel, Google bloque silencieusement toute navigation déclenchée par du script sans geste utilisateur réel — confirmé en testant qu'une navigation tapée à la main vers `?view=desktop` fonctionne, contrairement à la redirection automatique, que ce soit servie comme chaîne brute (`createHtmlOutput`) ou comme fichier (`createHtmlOutputFromFile`, tenté en premier et insuffisant). Suppression de cette page intermédiaire : `doGet()` sert directement `Index.html` par défaut (et sur toute valeur `?view=` non reconnue), `Mobile.html` uniquement sur `?view=mobile` explicite. Le bouton de bascule existant reste fonctionnel car un clic constitue un geste utilisateur valide pour le sandbox.
+
+## Historique des versions antérieures
+_Résumés courts reconstitués a posteriori à partir des diffs de code, du plus récent au plus ancien. Non détaillés en catégories Ajouté/Modifié/Corrigé faute d'information plus fine sur chaque changement._
+
+### Claude v59.5
+- Rebascule de l'accès du webapp vers l'anonyme (ANYONE_ANONYMOUS).
+
+### Claude v52.5
+- Ajout d'un bouton de bascule mobile/desktop dupliqué dans le tiroir de navigation pour rester accessible sur petit écran.
+
+### Claude v52.3
+- Suppression du fichier Bootstrap.html : l'application sert directement Index.html, la redirection automatique ne fonctionnant pas en sandbox.
+
+### Claude v59.2
+- Ajout d'un fichier Bootstrap.html dédié pour la redirection mobile/desktop, remplaçant le HTML généré en ligne.
+
+### Claude v59.1
+- Changement de l'accès du webapp d'anonyme à connecté (ANYONE_ANONYMOUS vers ANYONE).
+
+### Claude v59
+- Ajout d'un registre de navigation centralisé et redirection automatique mobile/desktop via une page de démarrage.
+
+### Claude v58
+- Ajout de la possibilité de retirer une entrée d'un groupe et détection des anciens identifiants de groupe.
+
+### Claude v57
+- Ajout d'un mode d'affichage mobile avec menu tiroir et affichage de l'historique sous forme de cartes.
+
+### Claude v56.1
+- Ajout des scopes OAuth nécessaires (feuilles de calcul, script) dans la configuration du script.
+
+### Claude v56
+- Correction du calcul des semaines actives pour les règles hebdomadaires à intervalle supérieur à un, exclusion des entités supprimées.
+
+### Claude v55
+- Ajout d'un système de règles de points automatiques programmées (quotidien/hebdo/mensuel) via un nouveau module dédié.
+
+### Claude v53
+- Ajout d'un troisième état de tri permettant de revenir à l'ordre d'insertion initial des lignes.
+
+### Claude v52
+- Ajout du tri et de la réorganisation par glisser-déposer des lignes de saisie en lot, refonte du rafraîchissement global.
+
+### Claude v51
+- Ajout d'une identité protégée par mot de passe optionnel par joueur, vérifiée côté serveur.
+
+### Claude v50
+- Mise en cache multi-requêtes de l'historique complet et des statistiques de santé pour réduire les lectures de la feuille.
+
+### Claude v49
+- Ajout de paramètres d'application personnalisables (titre, logo) stockés dans une feuille Settings dédiée.
+
+### Claude v48
+- Modification de la priorité d'affichage des phrases pour montrer le podium complet (1er, 2e, 3e) avant les autres.
+
+### Claude v47
+- Suppression du plugin d'overlay emoji sur les graphiques pour simplifier le rendu.
+
+### Claude v46
+- Correction de la construction des dates pour préserver l'heure locale, ajout d'avatars en fond sur les notes.
+
+### Claude v45
+- Ajout d'un journal d'audit traçant les modifications de barème, de couleurs et d'entités.
+
+### Claude v43
+- Ajout d'une animation de pulsation sur le sélecteur « Qui suis-je ? » et amélioration visuelle du champ description.
+
+### Claude v42
+- Intégration du sélecteur enrichi dans les champs joueur et catégorie des lignes de saisie.
+
+### Claude v41
+- Ajout d'un composant de liste déroulante enrichie (avatars/icônes) et de la modification groupée d'entrées d'historique.
+
+### Claude v40
+- Réorganisation du graphique en conteneur unique et restauration de l'ordre des clés du fichier de configuration.
+
+### Claude v39
+- Ajout d'avatars dans l'infographie exportée pour le graphique en Donut.
+
+### Claude v38
+- Amélioration visuelle des boutons de barème rapide et réorganisation de l'en-tête du graphique.
+
+### Claude v37
+- Ajout de boutons de barème rapide par Top affichant les actions et points prédéfinis directement dans la saisie.
+
+### Claude v36
+- Ajout d'un champ « saisisseur » enregistrant l'auteur de chaque entrée d'historique.
+
+### Claude v35
+- Amélioration visuelle des menus déroulants et des cartes repliables génériques, avatars empilés dans l'historique groupé.
+
+### Claude v34
+- Ajout d'un sélecteur « Qui suis-je ? » et d'un fond avatar discret sur les lignes de saisie.
+
+### Claude v33.3
+- Ajout d'un verrou de concurrence et d'un versionnement de cache pour sécuriser les écritures simultanées.
+
+### Claude v33
+- Refonte du podium des commentaires (cartes classées, feed compact, accordéon par Top) avec preset actif persistant côté serveur.
+
+### Claude v32.2
+- Les phrases par Top s'affichent désormais pour tous les tops filtrés au lieu d'un seul, et la description d'historique reste toujours cliquable.
+
+### Claude v32.1
+- Correction du filtrage des presets personnalisés pour exclure le preset par défaut de la liste.
+
+### Clauve v32
+- Extension des pools de phrases par catégorie et refonte visuelle des paramètres (onglets internes, formulaires).
+
+### Claude v31
+- Ajout du renommage de preset de phrases et de phrases de secours visibles dans l'éditeur.
+
+### Claude v30
+- Ajout d'un service de phrases personnalisables, organisées par preset et par catégorie (pool).
+
+### Claude v29
+- Amélioration du style du champ description par ligne et déplacement de la carte Commentaires dans le Dashboard.
+
+### Claude v28
+- Ajout d'une carte dédiée aux commentaires (phrases d'accroche) avec podium et réglages associés.
+
+### Claude v27
+- Réorganisation de la saisie de lot en disposition verticale à deux rangées par ligne.
+
+### Claude v26
+- Refonte visuelle des modales, ajout de phrases d'accroche animées et d'une infobulle personnalisée pour les graphiques.
+
+### Claude v25
+- Correction du calcul de date locale pour éviter les décalages liés au fuseau horaire UTC.
+
+### Claude v24.1
+- Réintégration du CSS en ligne dans Index.html, annulant l'externalisation précédente.
+
+### Claude v24
+- Externalisation du CSS de l'interface vers un fichier styles.css séparé.
+
+### Claude v23
+- Remplacement du sélecteur de joueur du graphique Donut par des puces cliquables avec avatars.
+
+### Claude v22
+- Ajout d'un cache des logs, regroupement visuel des entrées par groupe dans l'historique, et recherche textuelle.
+
+### Claude v21
+- Réécriture de la détection des lots répartis pour exclure les doublons manuels et fiabiliser le chaînage par date.
+
+### Claude v20
+- Ajout d'un identifiant de groupe transmis lors de la saisie en lot sur plusieurs dates.
+
+### Claude v19
+- Correction d'un bug de déclaration en double d'une variable JavaScript lors du regroupement des lots.
+
+### Claude v18
+- Passage d'une fusion destructive à un simple marquage groupé (groupId), réversible, des lots répartis.
+
+### Claude v17
+- Les lots détectés sont désormais fusionnés en une seule entrée totalisée au lieu d'être simplement supprimés.
+
+### Claude v16
+- Ajout de la détection des lots répartis (entrées identiques étalées sur plusieurs jours).
+
+### Claude v15
+- Ajout d'un champ description par entrée d'historique, modifiable individuellement ou en masse.
+
+### Claude v14
+- Ajout de la suppression multiple d'entrées d'historique et refonte visuelle du barème présenté par section.
+
+### Claude v13
+- Le barème est désormais organisé par Top (catégorie), avec une interface de gestion dédiée dans les paramètres.
+
+### Claude v12
+- Ajout d'un système de barème définissant des points par action, configurable par l'utilisateur.
+
+### Claude v11
+- Les couleurs personnalisées sont désormais stockées côté serveur dans des colonnes dédiées plutôt qu'en localStorage.
+
+### Claude v10
+- Ajout de couleurs personnalisables par joueur et par catégorie, stockées localement et appliquées aux graphiques.
+
+### Claude v9
+- Ajout d'un sélecteur de jours de la semaine pour cibler les dates générées lors de la saisie en lot.
+
+### Claude Opus v10
+- Ajout du total global par joueur tous tops confondus et d'un sélecteur de jours de la semaine pour les lots répartis.
+
+### Claude Opus v9
+- Remplacement des champs date par un bouton ouvrant un éditeur, avec plages de dates prédéfinies réutilisables.
+
+### Claude Opus v8
+- Ajout d'un mode Répéter/Répartir propre à chaque ligne de saisie individuelle.
+
+### Claude Opus v7
+- Simplification du service Notes (création automatique de la feuille) et ajout de dates individuelles par ligne de saisie.
+
+### Claude Opus v6
+- Refonte du calcul des tendances temporelles avec granularité adaptative (jour/semaine/mois) et période par défaut de 30 jours.
+
+### Claude Opus v5
+- Ajustement du panneau de filtres pour uniformiser la hauteur des colonnes et aligner le bouton Appliquer.
+
+### Claude Opus v4
+- Suppression de la détection de doublons au profit d'une gestion complète des notes, simplification du diagnostic de santé des données.
+
+### Claude Opus v3
+- Ajout d'icônes emoji pour les catégories, renommées « Tops » dans toute l'interface.
+
+### Claude Opus v2
+- Ajout d'un mode « Répartir/Répéter » pour étaler les entrées d'un lot sur une plage de dates.
+
+### Claude Opus v1
+- Ajout d'une feuille Notes optionnelle et remplacement de la suppression automatique des doublons par une simple détection/liste.
+
+### Gemini Pro v1
+- Ajout d'optimisations mobiles et PWA (zones de sécurité, meta tags, touch-action) pour une meilleure ergonomie tactile.
+
+### Claude v8
+- Correction de la gestion du fuseau horaire pour les dates saisies (construction explicite à midi).
+
+### Claude v7
+- Ajout de validations strictes des points et du multiplicateur côté client et serveur.
+
+### Claude v6
+- Réécriture de la pagination de l'historique pour utiliser directement les index réels des lignes de la feuille.
+
+### Claude v5
+- Réécriture de ConfigService en module avec cache interne et syntaxe ES6 raccourcie.
+
+### Claude v4
+- Compactage massif du code CSS de l'interface sans changement fonctionnel majeur.
+
+### Claude V3
+- Séparation des fonctions de lecture complète et filtrée des logs, correction du calcul par défaut des points.
+
+### Deepseek v3
+- Simplification et nettoyage du code de filtrage et d'export des données.
+
+### Deepseek v2
+- Ajout du filtrage avancé des données historiques et de l'export CSV/XLSX via des bibliothèques externes.
+
+### Deepseek v1
+- Ajout d'un cache interne à l'exécution pour ConfigService et renforcement de la validation des types/actions.
+
+### Claude v2
+- Refonte du CSS en mobile-first : tailles tactiles, prévention du zoom iOS, navbar défilante horizontalement.
+
+### Claude v1
+- Nettoyage du backend et correction d'un bug de mutation du tableau source dans la lecture des logs.
+
+### v21
+- Corrections responsives et sécurisation de la fonction de changement d'onglet contre un bug sur Safari.
+
+### v19
+- Ajout d'un sélecteur de joueur enrichi avec avatar dynamique dans le formulaire de saisie en lot.
+
+### v18
+- Ajout d'avatars générés automatiquement pour les joueurs sans image et correction d'un bug lors de l'édition des métadonnées.
+
+### v17
+- Ajout d'un système de citations de secours utilisé si l'appel à l'API Gemini échoue ou est indisponible.
+
+### v16
+- Mise à jour du modèle Gemini utilisé pour générer les citations (passage de 1.5-flash à 2.0-flash).
+
+### Plein de fonctions trop biens
+- Ajout de métadonnées (avatar pour les joueurs, description pour les catégories) et intégration d'un appel à l'API Gemini pour générer des citations.
+
+### v12
+- Refonte complète du CSS de l'interface (navbar, cartes, grille de saisie en lot, listes, toasts).
+
+### Naaan ergonomie naaan
+- Nettoyage du code et calcul dynamique des catégories/joueurs lors de l'agrégation des statistiques.
+
+### v10
+- Écriture groupée des scores en une seule opération (au lieu d'une boucle appendRow) et nettoyage du rapport HTML généré.
+
+### v9
+- Passage à la saisie en lot avec points et multiplicateur, le score enregistré étant désormais le produit des deux.
+
+### v8
+- Traduction en français de tous les messages d'erreur du backend.
+
+### Ajout Trois
+- Ajout de SettingsService pour gérer joueurs et catégories (ajout/suppression/renommage) avec mise à jour en cascade de l'historique.
+
+### Plus de bug ID sheet
+- L'identifiant du classeur est désormais lu via la propriété SPREADSHEET_ID au lieu d'être codé en dur ; ajout accidentel d'un fichier desktop.ini.
+
+### Trois plein de fonctions tri phrases graphs etc
+- Refonte du Code.gs monolithique en services ConfigService/StorageService/AnalyticsService et changement du titre de l'application.

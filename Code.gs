@@ -13,13 +13,15 @@
 // Single source of truth for "which tabs exist, in what order, with which icon".
 // Consumed by both Index.html (desktop) and Mobile.html via apiGetNavPages() —
 // adding/removing/reordering a tab only ever requires editing this array.
+// Pas d'entrée "Outils" ici : ce sous-ensemble vit déjà dans Paramètres →
+// Outils (stab-tools). Le dupliquer en onglet principal n'ajoutait qu'un
+// raccourci redondant qui gonflait la barre de navigation.
 const NAV_PAGES = [
   { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
   { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
   { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
   { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
   { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
-  { id: 'tab-outils',    icon: '🔧', label: 'Outils' },
   { id: 'tab-guide',     icon: '❓', label: 'Guide' },
 ];
 

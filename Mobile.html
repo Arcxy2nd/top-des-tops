@@ -219,7 +219,6 @@
   <div id="tab-settings"  class="m-tab"></div>
   <div id="tab-notes"     class="m-tab"></div>
   <div id="tab-history"   class="m-tab"></div>
-  <div id="tab-outils"    class="m-tab"></div>
   <div id="tab-guide"     class="m-tab"></div>
 </div>
 
@@ -337,9 +336,7 @@
     document.getElementById('mModalBackdrop').style.display = 'none';
     document.getElementById('mModalBox').innerHTML = '';
   }
-  document.getElementById('mModalBackdrop').addEventListener('click', e => {
-    if (e.target.id === 'mModalBackdrop') closeModal();
-  });
+  // Cliquer sur le fond n'annule plus la fenêtre — seuls les boutons dédiés ferment.
 
   function openConfirmModal(message, onConfirm) {
     openModal(
@@ -548,7 +545,6 @@
     if (tabId === 'tab-settings')  initSettingsTab();
     if (tabId === 'tab-notes')     loadNotesTab();
     if (tabId === 'tab-history')   { mHistoryPage = 1; loadHistoryTab(); }
-    if (tabId === 'tab-outils')    loadOutilsTab();
     if (tabId === 'tab-guide')     initGuideTab();
   }
 
@@ -1162,6 +1158,7 @@
         '<div class="m-chip" data-sub="categories">🎯 Tops</div>' +
         '<div class="m-chip" data-sub="bareme">⚖️ Barème</div>' +
         '<div class="m-chip" data-sub="phrases">🎭 Phrases</div>' +
+        '<div class="m-chip" data-sub="outils">🔧 Outils</div>' +
       '</div>' +
       '<div id="mSettingsBody"></div>';
 
@@ -1180,6 +1177,7 @@
     if (mSettingsSubTab === 'categories') renderEntitySettings('Categories');
     if (mSettingsSubTab === 'bareme')     renderBaremeSettings();
     if (mSettingsSubTab === 'phrases')    renderPhrasesSettings();
+    if (mSettingsSubTab === 'outils')     renderOutilsShell();
   }
 
   // ── Joueurs / Catégories : liste plate + édition inline ──
@@ -1443,7 +1441,9 @@
   let mDetectedLots = [];
 
   function renderOutilsShell() {
-    const tab = document.getElementById('tab-outils');
+    // Vit désormais sous Paramètres → Outils (sous-onglet), plus en onglet
+    // principal séparé — évite un raccourci redondant dans la nav.
+    const tab = document.getElementById('mSettingsBody');
     tab.innerHTML =
       '<div class="card">' +
         '<h2>🩺 Rapport de santé</h2>' +
@@ -1525,10 +1525,6 @@
         }, 'Regroupement lot');
       });
     });
-  }
-
-  function loadOutilsTab() {
-    renderOutilsShell();
   }
 
   // ══════════════════════════════════════════════════════════════════════
