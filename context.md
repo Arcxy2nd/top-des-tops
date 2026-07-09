@@ -267,6 +267,10 @@ Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé`. Les deu
 
 Le projet n'a pas de suite de tests automatisés. Vérifier les changements via le harness Node VM local ou l'app déployée. Invoquer `/verify` après tout changement fonctionnel.
 
+### Commit & push
+
+Toute modification livrée doit être commit **et poussée** (`git push`) — pas seulement commit en local. Le push déclenche le déploiement automatique (§10), donc un commit non poussé ne se retrouve jamais dans l'app en ligne.
+
 ---
 
 ## §9 — SKILLS — USAGE OBLIGATOIRE
