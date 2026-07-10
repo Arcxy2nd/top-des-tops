@@ -474,6 +474,70 @@ test('apiUpdateBaremeEntry / undo restores the previous action/points', () => {
   assert.strictEqual(bareme._grid[1][2], 10);
 });
 
+// ─── undo — Notes / Phrases ────────────────────────────────────────────────────
+
+test('apiDeleteNote / undo restores the deleted note', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note'], [new Date('2026-01-01'), 'Bob', 'hello']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiDeleteNote(2, 'Alice');
+  assert.strictEqual(notes._grid.length, 1);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(notes._grid.length, 2);
+  assert.strictEqual(notes._grid[1][1], 'Bob');
+});
+
+test('apiEditNote / undo restores the previous text', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note'], [new Date('2026-01-01'), 'Bob', 'old']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiEditNote(2, 'new', 'Alice');
+  assert.strictEqual(notes._grid[1][2], 'new');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(notes._grid[1][2], 'old');
+});
+
+test('apiDeletePhrase / undo restores the deleted phrase', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const phrases = makeSheet([['Preset','Pool','Phrase'], ['Défaut', 'first', 'Bravo !']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases, auditLog: audit
+  });
+  gas.apiDeletePhrase(2, 'Alice');
+  assert.strictEqual(phrases._grid.length, 1);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(phrases._grid.length, 2);
+  assert.strictEqual(phrases._grid[1][2], 'Bravo !');
+});
+
+test('apiRenamePreset / undo restores the old preset name', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const phrases = makeSheet([['Preset','Pool','Phrase'], ['Ancien', 'first', 'Bravo !']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases, auditLog: audit
+  });
+  gas.apiRenamePreset('Ancien', 'Nouveau', 'Alice');
+  assert.strictEqual(phrases._grid[1][0], 'Nouveau');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(phrases._grid[1][0], 'Ancien');
+});
+
 test('apiUpdateBulkEntries snapshot lets undo restore the previous row values', () => {
   const gas   = loadGas();
   const audit = makeAuditSheetV9();

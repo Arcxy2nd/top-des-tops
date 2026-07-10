@@ -1716,8 +1716,11 @@ function apiAddNote(player, text, dateStr, author) {
   try {
     return withLock(() => {
       const note = NotesService.addNote(player, text, dateStr);
+      const sheet = ConfigService.getSheets().notes;
       AuditService.log(author, 'Note ajoutée', 'Note: ' + (player || ''),
-        '', (player || '') + ' : ' + (text || '').trim(), '');
+        '', (player || '') + ' : ' + (text || '').trim(), '',
+        { sheet: 'notes', op: 'insert', rowIndex: note.rowIndex,
+          after: sheet.getRange(note.rowIndex, 1, 1, 3).getValues()[0] });
       return { success: true, note };
     });
   } catch(e) { return fail(e); }
@@ -1726,9 +1729,12 @@ function apiAddNote(player, text, dateStr, author) {
 function apiDeleteNote(rowIndex, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       NotesService.deleteNote(rowIndex);
-      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'ligne #' + rowIndex);
+      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'ligne #' + rowIndex,
+        { sheet: 'notes', op: 'delete', before: beforeRow });
       return { success: true };
     });
   } catch(e) { return fail(e); }
@@ -1737,10 +1743,14 @@ function apiDeleteNote(rowIndex, author) {
 function apiEditNote(rowIndex, newText, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       NotesService.editNote(rowIndex, newText);
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
-        'ligne #' + rowIndex);
+        'ligne #' + rowIndex,
+        { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       return { success: true };
     });
   } catch(e) { return fail(e); }
@@ -2258,8 +2268,11 @@ function apiAddPhrase(preset, pool, text, author) {
   try {
     return withLock(() => {
       PhrasesService.addPhrase(preset, pool, text);
+      const sheet = ConfigService.getSheets().phrases;
       const after = '[' + (pool || '') + '] ' + (text || '').trim() + ' (preset: ' + (preset || '') + ')';
-      AuditService.log(author, 'Phrase ajoutée', 'Phrases: ' + (preset || ''), '', after, '');
+      AuditService.log(author, 'Phrase ajoutée', 'Phrases: ' + (preset || ''), '', after, '',
+        { sheet: 'phrases', op: 'insert', rowIndex: sheet.getLastRow(),
+          after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -2269,10 +2282,16 @@ function apiAddPhrase(preset, pool, text, author) {
 function apiSavePhrasesBatch(entries, author) {
   try {
     return withLock(() => {
+      const existingSheet = ConfigService.getSheets().phrases;
+      const startRow = existingSheet ? existingSheet.getLastRow() + 1 : null;
       PhrasesService.saveBatch(entries);
       const preset = entries && entries.length ? entries[0].preset : '';
+      const finalSheet = ConfigService.getSheets().phrases;
+      const addedRows = (startRow && entries && entries.length)
+        ? finalSheet.getRange(startRow, 1, entries.length, 3).getValues() : [];
       AuditService.log(author, 'Phrases batch', 'Phrases: ' + (preset || ''), '', '',
-        (entries || []).length + ' phrase(s)');
+        (entries || []).length + ' phrase(s)',
+        addedRows.length ? { sheet: 'phrases', op: 'insertMany', rows: addedRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -2282,10 +2301,14 @@ function apiSavePhrasesBatch(entries, author) {
 function apiUpdatePhrase(rowIndex, text, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().phrases;
       const before = _phraseRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       PhrasesService.updatePhrase(rowIndex, text);
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       AuditService.log(author, 'Phrase modifiée', 'Phrases', before, (text || '').trim(),
-        'ligne #' + rowIndex);
+        'ligne #' + rowIndex,
+        { sheet: 'phrases', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -2295,9 +2318,12 @@ function apiUpdatePhrase(rowIndex, text, author) {
 function apiDeletePhrase(rowIndex, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().phrases;
       const before = _phraseRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       PhrasesService.deletePhrase(rowIndex);
-      AuditService.log(author, 'Phrase supprimée', 'Phrases', before, '', 'ligne #' + rowIndex);
+      AuditService.log(author, 'Phrase supprimée', 'Phrases', before, '', 'ligne #' + rowIndex,
+        { sheet: 'phrases', op: 'delete', before: beforeRow });
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -2307,8 +2333,18 @@ function apiDeletePhrase(rowIndex, author) {
 function apiDeletePreset(presetName, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().phrases;
+      const removedRows = [];
+      if (sheet) {
+        const lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+          data.forEach(r => { if (r[0].toString() === presetName) removedRows.push(r); });
+        }
+      }
       PhrasesService.deletePreset(presetName);
-      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '', '');
+      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '', '',
+        removedRows.length ? { sheet: 'phrases', op: 'deleteMany', rows: removedRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -2325,12 +2361,18 @@ function apiRenamePreset(oldName, newName, author) {
       const lastRow = sheet.getLastRow();
       if (lastRow <= 1) return { success: true, phrases: [] };
       const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      const undoRows = [];
       let modified = false;
       for (let i = 0; i < data.length; i++) {
-        if (data[i][0].toString() === oldName) { data[i][0] = newName.trim(); modified = true; }
+        if (data[i][0].toString() === oldName) {
+          undoRows.push({ rowIndex: i + 2, before: [oldName], after: [newName.trim()] });
+          data[i][0] = newName.trim();
+          modified = true;
+        }
       }
       if (modified) sheet.getRange(2, 1, lastRow - 1, 1).setValues(data);
-      AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(), '');
+      AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(), '',
+        undoRows.length ? { sheet: 'phrases', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
