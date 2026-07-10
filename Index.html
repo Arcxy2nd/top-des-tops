@@ -376,6 +376,12 @@
     .lot-recap-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .lot-recap-name { flex: 1; font-weight: 600; }
     .lot-recap-pts { font-weight: 700; color: var(--accent); }
+    .drilldown-list { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+    .drilldown-row { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+    .drilldown-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .drilldown-main { flex: 1; min-width: 0; }
+    .drilldown-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; }
+    .drilldown-desc { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); font-size: 0.85rem; }
     .auto-weekday-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
     .auto-weekday-row label { display: flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--text-muted); }
     .auto-rules-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
@@ -4858,6 +4864,60 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
+  function drilldownRowHtml(log) {
+    const p = cachedPlayers.find(pl => pl.name === log.player);
+    const avatar = getAvatarUrl(log.player, p ? p.meta : '');
+    const d = new Date(log.timestamp);
+    const ds = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    return '<div class="drilldown-row" data-row="' + log.rowIndex + '">' +
+      '<img class="drilldown-avatar" src="' + escapeHtml(avatar) + '" alt="">' +
+      '<div class="drilldown-main">' +
+        '<div class="drilldown-meta">' + escapeHtml(log.player) + ' · ' + escapeHtml(catDisplay(log.category)) + ' · ' + ds + ' · <strong>' + log.points + ' pts</strong></div>' +
+        '<input type="text" class="drilldown-desc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…" data-row="' + log.rowIndex + '">' +
+      '</div>' +
+      '<button class="danger small drilldown-del" data-row="' + log.rowIndex + '" title="Supprimer">🗑️</button>' +
+    '</div>';
+  }
+
+  function openChartDrilldown(context) {
+    const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+    box.innerHTML = '<h3>' + escapeHtml(context.title) + '</h3><div id="drilldownList" class="drilldown-list"><p class="text-muted">Chargement…</p></div>' +
+      '<div class="modal-actions"><button id="drilldownClose" class="secondary">Fermer</button></div>';
+    document.getElementById('drilldownClose').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+
+    callServer('apiGetFilteredLogs', [context.players, context.categories, context.startDate, context.endDate], res => {
+      const list = document.getElementById('drilldownList');
+      if (!list) return; // modal fermé avant la réponse
+      const logs = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      if (!logs.length) {
+        list.innerHTML = '<p class="text-muted">Aucune entrée trouvée.</p>';
+        return;
+      }
+      list.innerHTML = logs.map(drilldownRowHtml).join('');
+
+      list.querySelectorAll('.drilldown-desc').forEach(input => {
+        input.addEventListener('change', () => {
+          callServer('apiUpdateHistoryDescription', [input.dataset.row, input.value], () => {
+            showToast('Description mise à jour.', 'success');
+          }, 'Mise à jour');
+        });
+      });
+
+      list.querySelectorAll('.drilldown-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          openConfirmModal('Supprimer cette entrée ?', () => {
+            callServer('apiDeleteHistoryEntries', [[btn.dataset.row], _whoAmI || ''], () => {
+              showToast('Entrée supprimée.', 'success');
+              openChartDrilldown(context);
+            }, 'Suppression');
+          });
+        });
+      });
+    }, 'Chargement du détail');
+  }
+
   function openConfirmModal(msg, onConfirm) {
     const box = document.getElementById('modalBox');
     box.innerHTML = '<p>' + escapeHtml(msg) + '</p>' +
@@ -5763,7 +5823,20 @@
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
         data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors, _catNames: segLabels }] },
-        options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } } },
+        options: {
+          ...baseOpts,
+          plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const category = segLabels[elements[0].index];
+            openChartDrilldown({
+              players: [player], categories: [category],
+              startDate: document.getElementById('startDate').value || null,
+              endDate: document.getElementById('endDate').value || null,
+              title: player + ' · ' + catDisplay(category)
+            });
+          }
+        },
         plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
       });
       return;
@@ -5789,6 +5862,18 @@
               pointLabels: { color: c.muted },
               ticks: { color: c.muted, backdropColor: 'transparent' }
             }
+          },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const el = elements[0];
+            const player = radarDatasets[el.datasetIndex].label;
+            const category = data.datasets[el.index].label;
+            openChartDrilldown({
+              players: [player], categories: [category],
+              startDate: document.getElementById('startDate').value || null,
+              endDate: document.getElementById('endDate').value || null,
+              title: player + ' · ' + catDisplay(category)
+            });
           }
         },
         plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
@@ -5840,6 +5925,18 @@
           scales: {
             x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
             y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
+          },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const el = elements[0];
+            const row = totals[el.index];
+            const ctxCategories = chartOptions.detailed ? [datasets[el.datasetIndex]._catName] : null;
+            openChartDrilldown({
+              players: [row.player], categories: ctxCategories,
+              startDate: document.getElementById('startDate').value || null,
+              endDate: document.getElementById('endDate').value || null,
+              title: row.player + (ctxCategories ? ' · ' + catDisplay(ctxCategories[0]) : '')
+            });
           }
         },
         plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin({
@@ -5906,6 +6003,18 @@
         scales: {
           x: { stacked, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
           y: yScale
+        },
+        onClick: (evt, elements) => {
+          if (!elements.length) return;
+          const el = elements[0];
+          const player = displayData.labels[el.index];
+          const category = sorted.datasets[el.datasetIndex].label;
+          openChartDrilldown({
+            players: [player], categories: [category],
+            startDate: document.getElementById('startDate').value || null,
+            endDate: document.getElementById('endDate').value || null,
+            title: player + ' · ' + catDisplay(category)
+          });
         }
       },
       plugins: [totalsPlugin, buildCustomTooltipPlugin({
@@ -6030,6 +6139,27 @@
         plugins: {
           legend: { labels: { color: c.text, font: { size: 12 } }, onClick: isolatableLegendOnClick },
           tooltip: { mode: 'index', intersect: false }
+        },
+        onClick: (evt, elements) => {
+          if (!elements.length) return;
+          const el = elements[0];
+          const player = players[el.datasetIndex];
+          const label = trendData.labels[el.index];
+          const gran = trendData.granularity;
+          let startDate = label, endDate = label;
+          if (gran === 'week') {
+            const d = new Date(label + 'T00:00:00'); d.setDate(d.getDate() + 6);
+            endDate = d.toISOString().slice(0, 10);
+          } else if (gran === 'month') {
+            startDate = label + '-01';
+            const d = new Date(label + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0);
+            endDate = d.toISOString().slice(0, 10);
+          }
+          openChartDrilldown({
+            players: [player], categories: selectedCategoryChips.size ? Array.from(selectedCategoryChips) : null,
+            startDate, endDate,
+            title: player + ' · ' + label
+          });
         }
       },
       plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
