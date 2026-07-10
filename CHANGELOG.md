@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-10
+
+### Ajouté
+**Humanisé** : Le Journal d'audit permet maintenant d'annuler directement une action passée (ajout/suppression/modification de points, joueurs, catégories, barème, notes, phrases) grâce à un bouton "↩️ Annuler" sur chaque ligne concernée, sur PC comme sur mobile. Le groupement/dégroupement de lots reste pour l'instant en lecture seule — pas encore assez sûr à annuler automatiquement.
+**Technique** : Nouvelle colonne cachée `Snapshot` (JSON) + `AnnuléLe` dans la feuille `AuditLog`. `AuditService.log()` accepte un 7ᵉ paramètre optionnel `snapshot` ; `AuditService.undo()`/`apiUndoAuditEntry()` implémentent un moteur générique de restauration (insert/delete/update/insertMany/deleteMany/updateMany) par recherche de ligne exacte, réutilisé par une vingtaine de sites d'appel. `apiGetAuditLog` expose `id`/`undoable` par entrée.
+
+### Modifié
+**Humanisé** : La colonne "Avant → Après" du Journal d'audit n'affiche plus de fragments sans signification (ex. `"" → "3 entrée(s)"`) pour les actions qui n'ont pas de vrai avant/après — cette information reste visible dans la colonne Détail. Le bouton copier la ligne et le clic pour filtrer sur l'auteur/l'action/l'entité ont été retirés (jugés inutiles).
+**Technique** : `AUDIT_NO_DIFF_ACTIONS` filtre le rendu de la colonne diff dans `renderAuditTable` (`Index.html`) et `auditCardHtml` (`Mobile.html`). Cellules Qui/Action/Entité redeviennent non interactives dans `Index.html` ; classe CSS `.audit-clickable-cell` retirée.
+
 ## [Non publié] - 2026-07-09
 
 ### Ajouté

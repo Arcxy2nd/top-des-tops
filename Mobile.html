@@ -1190,25 +1190,50 @@
     return '•';
   }
 
+  // Actions où "avant/après" ne reflète pas un vrai changement de valeur — le
+  // contenu utile est déjà dans Détail, donc on n'affiche rien ici plutôt qu'un
+  // fragment sans signification ("" → "3 entrée(s)"). Même liste que Index.html.
+  const M_AUDIT_NO_DIFF_ACTIONS = new Set([
+    'Saisie de points', 'Suppression bulk', 'Nettoyage zéros', 'Nettoyage orphelins',
+    'Modification bulk', 'Phrases batch', 'Lots auto-groupés', 'Groupement lot',
+    'Dégroupement lot', 'Retrait du groupe', 'Suppression groupe', 'Action annulée'
+  ]);
+
   function auditCardHtml(log) {
     const p = cachedPlayers.find(pl => pl.name === log.author);
     const d = new Date(log.timestamp);
     const ds = isNaN(d.getTime()) ? '' :
       String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear() +
       ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    const showDiff = !M_AUDIT_NO_DIFF_ACTIONS.has(log.action) && (log.before || log.after);
     return '<div class="m-hist-card">' +
       '<div class="m-hist-top">' +
       (log.author ? avatarImgHtml(log.author, p ? p.meta : '', 'm-avatar sm') + '<strong>' + escapeHtml(log.author) + '</strong>' : '<strong>Système</strong>') +
       '<span>' + auditIcon(log.action) + ' ' + escapeHtml(log.action || '') + '</span>' +
       '</div>' +
       '<div class="m-hist-meta">' + ds + '</div>' +
-      ((log.before || log.after) ?
+      (showDiff ?
         '<div class="m-hist-desc">' +
         (log.before ? '<span style="color:var(--error); text-decoration:line-through;">' + escapeHtml(String(log.before)) + '</span> ' : '') +
         ((log.before && log.after) ? '→ ' : '') +
         (log.after ? '<span style="color:var(--success);">' + escapeHtml(String(log.after)) + '</span>' : '') +
         '</div>' : '') +
+      (log.detail ? '<div class="m-hist-meta">' + escapeHtml(log.detail) + '</div>' : '') +
+      (log.undoable ? '<button class="secondary small m-audit-undo-btn" data-audit-id="' + log.id + '" data-audit-action="' + escapeHtml(log.action || '') + '">↩️ Annuler</button>' : '') +
       '</div>';
+  }
+
+  function undoAuditEntry(auditId, actionLabel) {
+    if (!confirm('Annuler cette action ("' + actionLabel + '") ?')) return;
+    callServer('apiUndoAuditEntry', [auditId, _whoAmI || ''], res => {
+      if (res && res.success === false) {
+        showToast('Erreur : ' + (res.error || 'Annulation impossible.'), 'error');
+      } else {
+        showToast('Action annulée.', 'success');
+        mAuditPage = 1; mAuditLoaded = [];
+        loadAuditTab();
+      }
+    }, 'Annuler action journal');
   }
 
   function loadAuditTab(append) {
@@ -1221,6 +1246,9 @@
         container.innerHTML = '<p class="m-empty">Aucune entrée dans le journal.</p>';
       } else {
         container.innerHTML = mAuditLoaded.map(auditCardHtml).join('');
+        container.querySelectorAll('.m-audit-undo-btn').forEach(btn => {
+          btn.addEventListener('click', () => undoAuditEntry(btn.dataset.auditId, btn.dataset.auditAction));
+        });
       }
       const loadMoreBtn = document.getElementById('mAuditLoadMore');
       const total = (res && res.totalEntries) || mAuditLoaded.length;
