@@ -132,7 +132,7 @@ function loadGas(extraMocks) {
   const epilogue = '\n;this.__exports = { ConfigService, AuditService, SettingsService, StorageService, ' +
     'NotesService, AnalyticsService, BaremeService, PhrasesService, SettingsSheetService, withLock, ' +
     'apiDetectDistributedLots, apiDetectLegacyGroups, apiAddBulkPlan, apiUpdateHistoryEntry, ' +
-    'apiGetAuditLog, apiFixZeroPoints, apiDeleteOrphans, apiUpdateBulkEntries, ' +
+    'apiGetAuditLog, apiUndoAuditEntry, apiFixZeroPoints, apiDeleteOrphans, apiUpdateBulkEntries, ' +
     'apiGetAppSettings, apiSaveAppSettings, apiVerifyIdentity, apiRemoveFromGroup, ' +
     'AutoPointsService, apiGetAutoRules, NAV_PAGES, apiGetNavPages, doGet, ' +
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +

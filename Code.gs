@@ -126,8 +126,8 @@ const AuditService = (() => {
     const cache = ConfigService.getSheets();
     if (cache.auditLog) return cache.auditLog;
     const sheet = cache.spreadsheet.insertSheet('AuditLog');
-    sheet.appendRow(['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']);
-    sheet.getRange(1, 1, 1, 7).setFontWeight('bold');
+    sheet.appendRow(['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
     ConfigService.clearCache();
     return ConfigService.getSheets().auditLog;
   }
@@ -135,8 +135,11 @@ const AuditService = (() => {
   /**
    * Appends one audit row. Never throws — audit failure must not break the caller.
    * Must be called inside a withLock() block (lock is already held by the caller).
+   * `snapshot`, when provided, is a plain object describing how to reverse this
+   * action (see AuditService.undo) — serialized to JSON in column 8. Omit it for
+   * actions that cannot be safely reversed.
    */
-  function log(author, action, entity, before, after, detail) {
+  function log(author, action, entity, before, after, detail, snapshot) {
     try {
       const sheet = _getOrCreateSheet();
       sheet.appendRow([
@@ -146,12 +149,123 @@ const AuditService = (() => {
         entity  || '',
         before  || '',
         after   || '',
-        detail  || ''
+        detail  || '',
+        snapshot ? JSON.stringify(snapshot) : '',
+        ''
       ]);
     } catch (_) {}
   }
 
-  return { log };
+  /** Normalizes one sheet cell for comparison: Date → epoch ms, else trimmed string. */
+  function _cellKey(v) {
+    if (v instanceof Date) return String(v.getTime());
+    return v === null || v === undefined ? '' : v.toString();
+  }
+
+  function _rowsEqual(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (_cellKey(a[i]) !== _cellKey(b[i])) return false;
+    return true;
+  }
+
+  /** Finds the 1-based row index of the first row (from row 2) matching `values` exactly. */
+  function _findRowIndex(sheet, values) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2 || !values || !values.length) return -1;
+    const data = sheet.getRange(2, 1, lastRow - 1, values.length).getValues();
+    for (let i = 0; i < data.length; i++) if (_rowsEqual(data[i], values)) return i + 2;
+    return -1;
+  }
+
+  /** Resolves the sheet object for a snapshot's `sheet` key ('history'|'players'|...). */
+  function _sheetFor(key) {
+    const sheet = ConfigService.getSheets()[key];
+    if (!sheet) throw new Error("Feuille introuvable pour l'annulation : " + key);
+    return sheet;
+  }
+
+  /** Locates the row to act on: trust `rowIndex` if its current content still matches
+   *  `expected`, else fall back to a full-sheet content search. Throws if neither works. */
+  function _locate(sheet, rowIndex, expected) {
+    if (rowIndex) {
+      const current = sheet.getRange(rowIndex, 1, 1, expected.length).getValues()[0];
+      if (_rowsEqual(current, expected)) return rowIndex;
+    }
+    const found = _findRowIndex(sheet, expected);
+    if (found === -1) throw new Error("Impossible d'annuler : les données ont changé depuis cette action.");
+    return found;
+  }
+
+  /**
+   * Reverses one snapshot. Pure data restoration via direct sheet writes (setValues/
+   * appendRow/deleteRow) — the same primitives every service already uses — under the
+   * caller's withLock. No re-validation: we are restoring a state that was valid before.
+   */
+  function _applySnapshot(snapshot) {
+    const sheet = _sheetFor(snapshot.sheet);
+    switch (snapshot.op) {
+      case 'insert': {
+        const row = _locate(sheet, snapshot.rowIndex, snapshot.after);
+        sheet.deleteRow(row);
+        return;
+      }
+      case 'delete': {
+        sheet.getRange(sheet.getLastRow() + 1, 1, 1, snapshot.before.length).setValues([snapshot.before]);
+        return;
+      }
+      case 'update': {
+        const row = _locate(sheet, snapshot.rowIndex, snapshot.after);
+        sheet.getRange(row, 1, 1, snapshot.before.length).setValues([snapshot.before]);
+        return;
+      }
+      case 'insertMany': {
+        snapshot.rows.forEach(r => {
+          const row = _findRowIndex(sheet, r);
+          if (row !== -1) sheet.deleteRow(row);
+        });
+        return;
+      }
+      case 'deleteMany': {
+        const startRow = sheet.getLastRow() + 1;
+        const numCols  = snapshot.rows[0].length;
+        sheet.getRange(startRow, 1, snapshot.rows.length, numCols).setValues(snapshot.rows);
+        return;
+      }
+      case 'updateMany': {
+        snapshot.rows.forEach(r => {
+          const row = _locate(sheet, r.rowIndex, r.after);
+          sheet.getRange(row, 1, 1, r.before.length).setValues([r.before]);
+        });
+        return;
+      }
+      default:
+        throw new Error("Type d'annulation inconnu : " + snapshot.op);
+    }
+  }
+
+  /** Undoes the audit entry at 1-based sheet row `auditRowId`. Marks it as undone and
+   *  appends a new "Action annulée" audit row (itself not undoable). */
+  function undo(auditRowId, author) {
+    const sheet = _getOrCreateSheet();
+    const rowIndex = parseInt(auditRowId, 10);
+    if (isNaN(rowIndex) || rowIndex < 2) throw new Error("Ligne de journal invalide.");
+    const row = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
+    const action = row[2], entity = row[3], snapshotRaw = row[7], undoneAt = row[8];
+    if (undoneAt) throw new Error("Cette action a déjà été annulée.");
+    if (!snapshotRaw) throw new Error("Cette entrée du journal ne peut pas être annulée (créée avant l'ajout de cette fonctionnalité, ou action non réversible).");
+
+    let snapshot;
+    try { snapshot = JSON.parse(snapshotRaw); }
+    catch (e) { throw new Error("Instantané d'annulation corrompu."); }
+
+    _applySnapshot(snapshot);
+    sheet.getRange(rowIndex, 9).setValue(new Date());
+    log(author, 'Action annulée', entity, '', '', 'Annulation de : ' + action);
+    ConfigService.clearCache();
+    return { success: true, summary: action };
+  }
+
+  return { log, undo };
 })();
 
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
@@ -1399,7 +1513,7 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, logs: [], total: 0 };
 
-    const data  = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const data  = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
     // Date bounds parsed in server local time (GAS runs UTC). Frontend sends YYYY-MM-DD.
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
@@ -1419,13 +1533,15 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
         if (haystack.indexOf(needle) === -1) continue;
       }
       filtered.push({
+        id:        i + 2,
         timestamp: ts.toISOString(),
         author:    row[1] ? row[1].toString() : '',
         action:    row[2] ? row[2].toString() : '',
         entity:    row[3] ? row[3].toString() : '',
         before:    row[4] ? row[4].toString() : '',
         after:     row[5] ? row[5].toString() : '',
-        detail:    row[6] ? row[6].toString() : ''
+        detail:    row[6] ? row[6].toString() : '',
+        undoable:  !!row[7] && !row[8]
       });
     }
 
@@ -1452,6 +1568,12 @@ function apiGetAuditActionTypes() {
     col.forEach(r => { if (r[0]) set.add(r[0].toString()); });
     return { success: true, actions: [...set].sort((a, b) => a.localeCompare(b, 'fr')) };
   } catch(e) { return fail(e); }
+}
+
+function apiUndoAuditEntry(auditRowId, author) {
+  try {
+    return withLock(() => AuditService.undo(auditRowId, author));
+  } catch (e) { return fail(e); }
 }
 
 function apiFixZeroPoints(author) {

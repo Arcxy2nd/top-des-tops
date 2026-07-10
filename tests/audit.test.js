@@ -177,3 +177,128 @@ test('apiGetAuditLog filters by date range', () => {
   assert.strictEqual(res.total, 1);
   assert.ok(res.logs[0].timestamp.startsWith('2026-01-15'), 'seule la ligne du 15 janvier passe');
 });
+
+// ─── AuditService.undo — generic engine ──────────────────────────────────────────
+
+function makeAuditSheetV9() {
+  return makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+}
+
+test('AuditService.log stores a JSON snapshot in column 8 when provided', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  withAuditSheets(gas, audit);
+  gas.AuditService.log('Alice', 'Note ajoutée', 'Note: Bob', '', 'Bob : hello', '',
+    { sheet: 'notes', op: 'insert', rowIndex: 2, after: ['2026-01-01', 'Bob', 'hello'] });
+  const row = audit._grid[1];
+  assert.strictEqual(JSON.parse(row[7]).op, 'insert');
+  assert.strictEqual(row[8], '');
+});
+
+test('undo reverses an insert by deleting the matching row', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note'], ['2026-01-01', 'Bob', 'hello']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.AuditService.log('Alice', 'Note ajoutée', 'Note: Bob', '', 'Bob : hello', '',
+    { sheet: 'notes', op: 'insert', rowIndex: 2, after: ['2026-01-01', 'Bob', 'hello'] });
+  const res = gas.AuditService.undo(2, 'Alice');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(notes._grid.length, 1, 'the inserted row was removed');
+});
+
+test('undo reverses a delete by re-appending the row', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.AuditService.log('Alice', 'Note supprimée', 'Note', 'Bob : hello', '', '',
+    { sheet: 'notes', op: 'delete', before: ['2026-01-01', 'Bob', 'hello'] });
+  gas.AuditService.undo(2, 'Alice');
+  assert.strictEqual(notes._grid.length, 2, 'the deleted row is back');
+  assert.strictEqual(notes._grid[1][1], 'Bob');
+});
+
+test('undo reverses an update by restoring the before row', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note'], ['2026-01-01', 'Bob', 'edited']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.AuditService.log('Alice', 'Note modifiée', 'Note', 'hello', 'edited', '',
+    { sheet: 'notes', op: 'update', rowIndex: 2,
+      before: ['2026-01-01', 'Bob', 'hello'], after: ['2026-01-01', 'Bob', 'edited'] });
+  gas.AuditService.undo(2, 'Alice');
+  assert.strictEqual(notes._grid[1][2], 'hello');
+});
+
+test('undo throws when the entry has no snapshot', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  withAuditSheets(gas, audit);
+  gas.AuditService.log('Alice', 'Saisie de points', 'History', '', '3 entrée(s)', '');
+  assert.throws(() => gas.AuditService.undo(2, 'Alice'), /ne peut pas être annulée/);
+});
+
+test('undo throws when the entry was already undone', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.AuditService.log('Alice', 'Note supprimée', 'Note', 'Bob : hello', '', '',
+    { sheet: 'notes', op: 'delete', before: ['2026-01-01', 'Bob', 'hello'] });
+  gas.AuditService.undo(2, 'Alice');
+  assert.throws(() => gas.AuditService.undo(2, 'Alice'), /déjà été annulée/);
+});
+
+test('undo throws when the current row no longer matches (data changed since)', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const notes = makeSheet([['Date','Joueur','Note'], ['2026-01-01', 'Bob', 'a totally different text']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.AuditService.log('Alice', 'Note ajoutée', 'Note: Bob', '', 'Bob : hello', '',
+    { sheet: 'notes', op: 'insert', rowIndex: 2, after: ['2026-01-01', 'Bob', 'hello'] });
+  assert.throws(() => gas.AuditService.undo(2, 'Alice'), /ont changé depuis/);
+});
+
+test('apiGetAuditLog exposes id and undoable', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  withAuditSheets(gas, audit);
+  gas.AuditService.log('Alice', 'Note ajoutée', 'Note: Bob', '', 'Bob : hello', '',
+    { sheet: 'notes', op: 'insert', rowIndex: 2, after: ['2026-01-01', 'Bob', 'hello'] });
+  gas.AuditService.log('Bob', 'Saisie de points', 'History', '', '3 entrée(s)', '');
+  const res = gas.apiGetAuditLog(1, 20, null, null, null, null);
+  assert.strictEqual(res.logs[0].undoable, false, 'no snapshot on the points entry');
+  assert.strictEqual(res.logs[1].undoable, true);
+  assert.strictEqual(res.logs[1].id, 2);
+});
+
+test('apiUndoAuditEntry returns a failure envelope on error instead of throwing', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  withAuditSheets(gas, audit);
+  gas.AuditService.log('Alice', 'Saisie de points', 'History', '', '3 entrée(s)', '');
+  const res = gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(res.success, false);
+  assert.ok(res.error);
+});
