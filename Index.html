@@ -395,12 +395,6 @@
     .auto-rule-main { flex: 1; min-width: 200px; font-size: 0.85rem; }
     .auto-rule-main strong { color: var(--accent); }
     .auto-rule-schedule { font-size: 0.75rem; color: var(--text-muted); }
-    .audit-clickable-cell {
-      display: flex; align-items: center; gap: 6px; background: none; border: none;
-      color: inherit; font: inherit; cursor: pointer; padding: 2px 4px; border-radius: 6px;
-      text-align: left;
-    }
-    .audit-clickable-cell:hover { background: rgba(0,0,0,0.15); }
     .lot-sort-btn {
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
       padding: 6px 12px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;
@@ -2081,6 +2075,7 @@
   .audit-cat-auto   { color: var(--info);    background: color-mix(in srgb, var(--info) 14%, transparent);    border-color: color-mix(in srgb, var(--info) 35%, transparent); }
   .audit-cat-clean  { color: var(--clean);   background: color-mix(in srgb, var(--clean) 14%, transparent);   border-color: color-mix(in srgb, var(--clean) 35%, transparent); }
   .audit-cat-other  { color: var(--text-muted); background: rgba(255,255,255,0.04); }
+  .audit-row td:last-child { min-width: var(--tap-min); }
   @media (max-width: 640px) {
     .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; }
   }
@@ -7554,6 +7549,15 @@
     return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
+  // Actions où "avant/après" ne reflète pas un vrai changement de valeur — le
+  // contenu utile est déjà dans Détail, donc on n'affiche rien ici plutôt qu'un
+  // fragment sans signification ("" → "3 entrée(s)").
+  const AUDIT_NO_DIFF_ACTIONS = new Set([
+    'Saisie de points', 'Suppression bulk', 'Nettoyage zéros', 'Nettoyage orphelins',
+    'Modification bulk', 'Phrases batch', 'Lots auto-groupés', 'Groupement lot',
+    'Dégroupement lot', 'Retrait du groupe', 'Suppression groupe', 'Action annulée'
+  ]);
+
   function renderAuditTable(res) {
     const tbody = document.getElementById('auditTableBody');
     const pag   = document.getElementById('auditPagination');
@@ -7605,14 +7609,11 @@
       tdWhen.appendChild(timeMain);
       tdWhen.appendChild(timeRel);
 
-      // Qui (avatar + nom — règle UX universelle) — cliquable pour filtrer par cet auteur
+      // Qui (avatar + nom — règle UX universelle)
       const tdWho = tr.insertCell();
       tdWho.className = 'hist-player-cell';
       if (log.author) {
         const p    = cachedPlayers.find(pl => pl.name === log.author);
-        const btn  = document.createElement('button');
-        btn.className = 'audit-clickable-cell';
-        btn.title  = 'Filtrer le journal sur ' + log.author;
         const img  = document.createElement('img');
         img.src    = getAvatarUrl(log.author, p ? p.meta : '');
         img.onerror = () => { img.src = getAvatarUrl(log.author, ''); };
@@ -7620,59 +7621,37 @@
         const span = document.createElement('span');
         span.className = 'hist-player-name';
         span.textContent = log.author;
-        btn.appendChild(img);
-        btn.appendChild(span);
-        btn.addEventListener('click', () => {
-          document.getElementById('auditFilterAuthor').value = log.author;
-          loadAuditLog(1);
-        });
-        tdWho.appendChild(btn);
+        tdWho.append(img, span);
       } else {
         tdWho.textContent = '—';
       }
 
-      // Action — pastille colorée par catégorie, cliquable pour filtrer
+      // Action — pastille colorée par catégorie
       const tdAction = tr.insertCell();
       if (log.action) {
         const cat = categorizeAuditAction(log.action);
-        const actionBtn = document.createElement('button');
-        actionBtn.className = 'audit-clickable-cell audit-action-pill audit-cat-' + cat.cls;
-        actionBtn.title = 'Filtrer le journal sur "' + log.action + '"';
-        actionBtn.innerHTML = '<span class="audit-action-icon">' + cat.icon + '</span><span>' + escapeHtml(log.action) + '</span>';
-        actionBtn.addEventListener('click', () => {
-          const sel = document.getElementById('auditFilterAction');
-          if (Array.from(sel.options).some(o => o.value === log.action)) {
-            sel.value = log.action;
-            loadAuditLog(1);
-          }
-        });
-        tdAction.appendChild(actionBtn);
+        const pill = document.createElement('span');
+        pill.className = 'audit-action-pill audit-cat-' + cat.cls;
+        pill.innerHTML = '<span class="audit-action-icon">' + cat.icon + '</span><span>' + escapeHtml(log.action) + '</span>';
+        tdAction.appendChild(pill);
       } else {
         tdAction.textContent = '—';
       }
 
-      // Entité — cliquable pour rechercher cette entité
+      // Entité
       const tdEntity = tr.insertCell();
-      if (log.entity) {
-        const entityBtn = document.createElement('button');
-        entityBtn.className = 'audit-clickable-cell';
-        entityBtn.style.cssText = 'font-size:0.82rem;color:var(--text-muted);';
-        entityBtn.textContent = log.entity;
-        entityBtn.title = 'Rechercher "' + log.entity + '" dans le journal';
-        entityBtn.addEventListener('click', () => {
-          document.getElementById('auditFilterSearch').value = log.entity;
-          loadAuditLog(1);
-        });
-        tdEntity.appendChild(entityBtn);
-      } else {
-        tdEntity.textContent = '—';
-      }
+      tdEntity.style.cssText = 'font-size:0.82rem;color:var(--text-muted);';
+      tdEntity.textContent = log.entity || '—';
 
-      // Avant → Après — un swatch coloré accompagne les valeurs qui sont un
-      // code hexadécimal (changements de couleur), pour ne pas les lire comme
-      // du texte brut.
+      // Avant → Après — masqué pour les actions où il ne reflète pas un vrai
+      // changement de valeur (voir AUDIT_NO_DIFF_ACTIONS) ; un swatch coloré
+      // accompagne les valeurs qui sont un code hexadécimal (changements de
+      // couleur), pour ne pas les lire comme du texte brut.
       const tdDiff = tr.insertCell();
-      if (log.before && log.after) {
+      if (AUDIT_NO_DIFF_ACTIONS.has(log.action)) {
+        tdDiff.textContent = '—';
+        tdDiff.style.color = 'var(--text-muted)';
+      } else if (log.before && log.after) {
         const wrap = document.createElement('div');
         wrap.className = 'audit-before-after';
         const arr = document.createElement('span'); arr.className = 'audit-arrow'; arr.textContent = '→';
@@ -7706,23 +7685,31 @@
         tdDetail.textContent = log.detail || '';
       }
 
-      // Actions — copier la ligne
+      // Actions — annuler cette action, si un snapshot est disponible et
+      // qu'elle n'a pas déjà été annulée.
       const tdActions = tr.insertCell();
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'small'; copyBtn.textContent = '📋';
-      copyBtn.title = 'Copier cette ligne du journal';
-      copyBtn.addEventListener('click', () => {
-        const fullDateStr = isNaN(ts.getTime()) ? '—'
-          : ts.getDate() + '/' + pad2(ts.getMonth() + 1) + '/' + ts.getFullYear() + ' ' + dateStr;
-        const line = [fullDateStr, log.author || '—', log.action || '—', log.entity || '—',
-          (log.before || log.after) ? (log.before || '') + ' → ' + (log.after || '') : '',
-          log.detail || ''].filter(Boolean).join(' · ');
-        navigator.clipboard.writeText(line).then(
-          () => showToast('Ligne copiée.', 'success'),
-          () => showToast('Copie impossible.', 'error')
-        );
-      });
-      tdActions.appendChild(copyBtn);
+      if (log.undoable) {
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'small secondary';
+        undoBtn.textContent = '↩️ Annuler';
+        undoBtn.title = 'Annuler : ' + log.action;
+        undoBtn.addEventListener('click', () => {
+          if (!confirm('Annuler cette action ("' + log.action + '") ?')) return;
+          undoBtn.disabled = true;
+          callServer('apiUndoAuditEntry', [log.id, _whoAmI || ''], res => {
+            if (res && res.success === false) {
+              showToast('Erreur : ' + (res.error || 'Annulation impossible.'), 'error');
+              undoBtn.disabled = false;
+            } else {
+              showToast('Action annulée.', 'success');
+              loadAuditLog(_auditCurrentPage);
+              loadHistoryPage(currentHistoryPage);
+              applyFilters();
+            }
+          }, 'Annuler action journal');
+        });
+        tdActions.appendChild(undoBtn);
+      }
     });
 
     // Pagination
