@@ -568,6 +568,20 @@ const StorageService = {
     });
   },
 
+  getFilteredFullLogs(players, categories, startDate, endDate) {
+    const rows  = this.getFullHistoryRowsCached();
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
+
+    return rows.filter(rec => {
+      if (players    && players.length    && !players.includes(rec.player))     return false;
+      if (categories && categories.length && !categories.includes(rec.category)) return false;
+      if (start && rec.date < start) return false;
+      if (end   && rec.date > end)   return false;
+      return true;
+    });
+  },
+
   getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
     const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
@@ -990,7 +1004,7 @@ const AnalyticsService = {
       });
     });
 
-    return { labels, series };
+    return { labels, series, granularity: gran };
   }
 };
 
@@ -1377,6 +1391,23 @@ function apiGetFilteredData(players, categories, startDate, endDate) {
     const chartData = AnalyticsService.getFilteredChartData(players, categories, startDate, endDate);
     return { success: true, chartData };
   } catch(e) { return fail(e); }
+}
+
+function apiGetFilteredLogs(players, categories, startDate, endDate) {
+  try {
+    const logs = StorageService.getFilteredFullLogs(players, categories, startDate, endDate);
+    return {
+      success: true,
+      logs: logs.map(rec => ({
+        timestamp:   rec.date.toISOString(),
+        player:      rec.player,
+        category:    rec.category,
+        points:      rec.points,
+        description: rec.description,
+        rowIndex:    rec.rowIndex
+      }))
+    };
+  } catch (e) { return fail(e); }
 }
 
 function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
