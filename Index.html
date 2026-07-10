@@ -1800,6 +1800,18 @@
     #chartCustomTooltip .ctt-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     }
+    #chartCustomTooltip .ctt-avatar {
+      width: 18px; height: 18px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    #chartCustomTooltip .ctt-title-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 7px;
+    }
+    #chartCustomTooltip .ctt-title-row .ctt-title { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+    #chartCustomTooltip .ctt-compare {
+      margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border);
+      font-size: 0.72rem; color: var(--text-muted);
+    }
     #chartCustomTooltip .ctt-emoji-badge {
       display: inline-flex; align-items: center; justify-content: center;
       width: 20px; height: 20px; border-radius: 4px; font-size: 13px; flex-shrink: 0;
@@ -5553,7 +5565,24 @@
     return { labels: newLabels, datasets: newDatasets };
   }
 
-  function buildCustomTooltipPlugin() {
+  // Écart avec le rang immédiatement supérieur/inférieur, pour le tooltip riche.
+  function comparisonText(rankedTotals, player) {
+    if (!rankedTotals || rankedTotals.length < 2) return null;
+    const i = rankedTotals.findIndex(r => r.player === player);
+    if (i < 0) return null;
+    if (i > 0) {
+      const gap = rankedTotals[i - 1].total - rankedTotals[i].total;
+      if (gap > 0) return '+' + gap + ' pts derrière ' + rankedTotals[i - 1].player;
+    }
+    if (i < rankedTotals.length - 1) {
+      const gap = rankedTotals[i].total - rankedTotals[i + 1].total;
+      if (gap > 0) return '+' + gap + ' pts devant ' + rankedTotals[i + 1].player;
+    }
+    return null;
+  }
+
+  function buildCustomTooltipPlugin(opts) {
+    opts = opts || {};
     const el = document.getElementById('chartCustomTooltip');
     if (!el) return {};
 
@@ -5568,10 +5597,23 @@
           el.innerHTML = '';
 
           if (tooltip.title && tooltip.title.length) {
-            const titleEl = document.createElement('div');
+            const titleText = tooltip.title[0];
+            const titleWrap = document.createElement('div');
+            titleWrap.className = 'ctt-title-row';
+            if (opts.titleIsPlayer) {
+              const p = cachedPlayers.find(pl => pl.name === titleText);
+              const img = document.createElement('img');
+              img.className = 'ctt-avatar';
+              img.src = getAvatarUrl(titleText, p ? p.meta : '');
+              img.onerror = () => img.remove();
+              titleWrap.appendChild(img);
+            }
+            const titleEl = document.createElement('span');
             titleEl.className = 'ctt-title';
-            titleEl.textContent = tooltip.title[0];
-            el.appendChild(titleEl);
+            titleEl.textContent = titleText;
+            if (opts.titleIsPlayer) titleEl.style.color = playerColor(titleText);
+            titleWrap.appendChild(titleEl);
+            el.appendChild(titleWrap);
           }
 
           tooltip.dataPoints.forEach(dp => {
@@ -5583,19 +5625,28 @@
             const row = document.createElement('div');
             row.className = 'ctt-row';
 
-            const icon = dp.dataset._catName  ? catIcon(dp.dataset._catName)
-                       : dp.dataset._catNames ? catIcon(dp.dataset._catNames[dp.dataIndex])
-                       : '';
+            const isPlayerRow = opts.rowsArePlayers && cachedPlayers.some(pl => pl.name === dsLabel);
             let indicator;
-            if (icon) {
-              indicator = document.createElement('span');
-              indicator.className = 'ctt-emoji-badge';
-              indicator.style.background = color;
-              indicator.textContent = icon;
+            if (isPlayerRow) {
+              const p = cachedPlayers.find(pl => pl.name === dsLabel);
+              indicator = document.createElement('img');
+              indicator.className = 'ctt-avatar';
+              indicator.src = getAvatarUrl(dsLabel, p ? p.meta : '');
+              indicator.onerror = () => indicator.remove();
             } else {
-              indicator = document.createElement('span');
-              indicator.className = 'ctt-dot';
-              indicator.style.background = color;
+              const icon = dp.dataset._catName  ? catIcon(dp.dataset._catName)
+                         : dp.dataset._catNames ? catIcon(dp.dataset._catNames[dp.dataIndex])
+                         : '';
+              if (icon) {
+                indicator = document.createElement('span');
+                indicator.className = 'ctt-emoji-badge';
+                indicator.style.background = color;
+                indicator.textContent = icon;
+              } else {
+                indicator = document.createElement('span');
+                indicator.className = 'ctt-dot';
+                indicator.style.background = color;
+              }
             }
 
             const label = document.createElement('span');
@@ -5609,6 +5660,16 @@
             row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
             el.appendChild(row);
           });
+
+          if (opts.titleIsPlayer && opts.rankedTotals) {
+            const cmp = comparisonText(opts.rankedTotals, tooltip.title[0]);
+            if (cmp) {
+              const cmpEl = document.createElement('div');
+              cmpEl.className = 'ctt-compare';
+              cmpEl.textContent = cmp;
+              el.appendChild(cmpEl);
+            }
+          }
 
           const wrapper = document.getElementById('chartWrapper');
           const wRect   = wrapper ? wrapper.getBoundingClientRect() : ch.canvas.getBoundingClientRect();
@@ -5716,7 +5777,7 @@
             }
           }
         },
-        plugins: [buildCustomTooltipPlugin()]
+        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
       });
       return;
     }
@@ -5767,7 +5828,10 @@
             y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
           }
         },
-        plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
+        plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin({
+          titleIsPlayer: true,
+          rankedTotals: totals.map(t => ({ player: t.player, total: t.total }))
+        })]
       });
 
       // Phrases d'accroche — card dédiée, indépendante du mode détaillé
@@ -5830,7 +5894,12 @@
           y: yScale
         }
       },
-      plugins: [totalsPlugin, buildCustomTooltipPlugin()]
+      plugins: [totalsPlugin, buildCustomTooltipPlugin({
+        titleIsPlayer: true,
+        rankedTotals: sorted.labels
+          .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
+          .sort((a, b) => b.total - a.total)
+      })]
     });
   }
 
@@ -5949,7 +6018,7 @@
           tooltip: { mode: 'index', intersect: false }
         }
       },
-      plugins: [buildCustomTooltipPlugin()]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
     });
   }
 
