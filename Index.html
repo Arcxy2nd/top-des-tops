@@ -5692,6 +5692,20 @@
     };
   }
 
+  // Légende isolable : clic isole la série cliquée (masque les autres), reclic restaure tout.
+  function isolatableLegendOnClick(e, legendItem, legend) {
+    const chart = legend.chart;
+    const metas = chart.data.datasets.map((_, i) => chart.getDatasetMeta(i));
+    const onlyThisVisible = metas.every((m, i) => i === legendItem.datasetIndex ? !m.hidden : !!m.hidden);
+
+    if (onlyThisVisible) {
+      metas.forEach(m => { m.hidden = false; });
+    } else {
+      metas.forEach((m, i) => { m.hidden = i !== legendItem.datasetIndex; });
+    }
+    chart.update();
+  }
+
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
 
@@ -5709,7 +5723,7 @@
     const baseOpts = {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: c.text, font: { size: 12 } } },
+        legend: { labels: { color: c.text, font: { size: 12 } }, onClick: isolatableLegendOnClick },
         tooltip: { mode: 'index', intersect: false }
       }
     };
@@ -6014,7 +6028,7 @@
           y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
         plugins: {
-          legend: { labels: { color: c.text, font: { size: 12 } } },
+          legend: { labels: { color: c.text, font: { size: 12 } }, onClick: isolatableLegendOnClick },
           tooltip: { mode: 'index', intersect: false }
         }
       },
