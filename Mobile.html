@@ -166,6 +166,22 @@
     .m-hist-meta { font-size: 0.75rem; color: var(--text-muted); }
     .m-hist-desc { font-size: 0.82rem; margin-top: 4px; }
     .m-hist-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+    /* ── DASHBOARD CHART TOOLTIP / DRILLDOWN ── */
+    #mChartCustomTooltip {
+      position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.1s;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; font-size: 0.78rem; z-index: 20; min-width: 140px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    #mChartCustomTooltip.visible { opacity: 1; }
+    #mChartCustomTooltip .ctt-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 700; }
+    #mChartCustomTooltip .ctt-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+    #mChartCustomTooltip .ctt-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+    #mChartCustomTooltip .ctt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
+    #mChartCustomTooltip .ctt-val { font-weight: 700; }
+    #mChartCustomTooltip .ctt-compare { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -337,6 +353,64 @@
     document.getElementById('mModalBox').innerHTML = '';
   }
   // Cliquer sur le fond n'annule plus la fenêtre — seuls les boutons dédiés ferment.
+
+  function drilldownCardHtmlMobile(log) {
+    const p = cachedPlayers.find(pl => pl.name === log.player);
+    const cat = cachedCategories.find(c => c.name === log.category);
+    const d = new Date(log.timestamp);
+    const ds = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    return '<div class="m-hist-card" data-row="' + log.rowIndex + '">' +
+      '<div class="m-hist-top">' + avatarImgHtml(log.player, p ? p.meta : '', 'm-avatar sm') +
+      '<strong>' + escapeHtml(log.player) + '</strong>' +
+      '<span style="color:' + categoryColor(log.category) + ';">' + (cat ? cat.icon : '') + ' ' + escapeHtml(log.category) + '</span>' +
+      '<span class="m-hist-pts">' + log.points + ' pts</span></div>' +
+      '<div class="m-hist-meta">' + ds + '</div>' +
+      '<input type="text" class="m-drilldown-desc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…" data-row="' + log.rowIndex + '" style="width:100%; margin-top:6px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text); font-size:0.82rem;">' +
+      '<div class="m-hist-actions">' +
+      '<button class="danger small" data-drilldel="' + log.rowIndex + '">🗑️</button>' +
+      '</div></div>';
+  }
+
+  let mDrilldownLoaded = [];
+
+  function openChartDrilldownMobile(context) {
+    openModal(
+      '<h2>' + escapeHtml(context.title) + '</h2>' +
+      '<div id="mDrilldownList"><p class="m-empty">Chargement…</p></div>' +
+      '<div class="m-row" style="justify-content:flex-end; margin-top:12px;"><button class="small" id="mDrilldownClose">Fermer</button></div>'
+    );
+    document.getElementById('mDrilldownClose').addEventListener('click', closeModal);
+
+    callServer('apiGetFilteredLogs', [context.players, context.categories, context.startDate, context.endDate], res => {
+      const list = document.getElementById('mDrilldownList');
+      if (!list) return;
+      mDrilldownLoaded = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      list.innerHTML = mDrilldownLoaded.length
+        ? mDrilldownLoaded.map(drilldownCardHtmlMobile).join('')
+        : '<p class="m-empty">Aucune entrée trouvée.</p>';
+
+      list.querySelectorAll('.m-drilldown-desc').forEach(input => {
+        input.addEventListener('change', () => {
+          callServer('apiUpdateHistoryDescription', [input.dataset.row, input.value], () => {
+            showToast('Description mise à jour.', 'success');
+          }, 'Mise à jour');
+        });
+      });
+
+      list.querySelectorAll('[data-drilldel]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!requireIdentity()) return;
+          openConfirmModal('Supprimer cette entrée ?', () => {
+            buzz();
+            callServer('apiDeleteHistoryEntries', [[btn.dataset.drilldel], _whoAmI || ''], () => {
+              showToast('Entrée supprimée.', 'success');
+              openChartDrilldownMobile(context);
+            }, 'Suppression entrée');
+          });
+        });
+      });
+    }, 'Chargement du détail');
+  }
 
   function openConfirmModal(message, onConfirm) {
     openModal(
@@ -593,7 +667,10 @@
           '<option value="line">Courbes</option><option value="radar">Radar</option>' +
           '<option value="donut">Donut</option><option value="ranking">Classement</option>' +
         '</select>' +
-        '<canvas id="mMainChart" height="260"></canvas>' +
+        '<div class="m-chart-wrapper" id="mChartWrapper" style="position:relative;">' +
+          '<canvas id="mMainChart" height="260"></canvas>' +
+          '<div id="mChartCustomTooltip" role="tooltip"></div>' +
+        '</div>' +
       '</div>' +
       mStatAccordionHtml('mRecordsAcc', '🏅 Records', 'mRecordsBody') +
       mStatAccordionHtml('mTrendsAcc', '📈 Tendances', 'mTrendsBody') +
@@ -764,27 +841,177 @@
     return getComputedStyle(document.body).getPropertyValue('--text').trim();
   }
 
+  // Écart avec le rang immédiatement supérieur/inférieur, pour le tooltip riche.
+  function mComparisonText(rankedTotals, player) {
+    if (!rankedTotals || rankedTotals.length < 2) return null;
+    const i = rankedTotals.findIndex(r => r.player === player);
+    if (i < 0) return null;
+    if (i > 0) {
+      const gap = rankedTotals[i - 1].total - rankedTotals[i].total;
+      if (gap > 0) return '+' + gap + ' pts derrière ' + rankedTotals[i - 1].player;
+    }
+    if (i < rankedTotals.length - 1) {
+      const gap = rankedTotals[i].total - rankedTotals[i + 1].total;
+      if (gap > 0) return '+' + gap + ' pts devant ' + rankedTotals[i + 1].player;
+    }
+    return null;
+  }
+
+  // Légende isolable : clic isole la série cliquée (masque les autres), reclic restaure tout.
+  function isolatableLegendOnClick(e, legendItem, legend) {
+    const chart = legend.chart;
+    const metas = chart.data.datasets.map((_, i) => chart.getDatasetMeta(i));
+    const onlyThisVisible = metas.every((m, i) => i === legendItem.datasetIndex ? !m.hidden : !!m.hidden);
+    if (onlyThisVisible) { metas.forEach(m => { m.hidden = false; }); }
+    else { metas.forEach((m, i) => { m.hidden = i !== legendItem.datasetIndex; }); }
+    chart.update();
+  }
+
+  function buildMobileTooltipPlugin(opts) {
+    opts = opts || {};
+    const el = document.getElementById('mChartCustomTooltip');
+    if (!el) return {};
+    return {
+      id: 'mCustomTooltip',
+      afterInit(chart) {
+        chart.options.plugins.tooltip.enabled = false;
+        chart.options.plugins.tooltip.external = (ctx) => {
+          const { chart: ch, tooltip } = ctx;
+          if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
+          el.innerHTML = '';
+
+          if (tooltip.title && tooltip.title.length) {
+            const titleText = tooltip.title[0];
+            const wrap = document.createElement('div');
+            wrap.className = 'ctt-title-row';
+            if (opts.titleIsPlayer) {
+              const p = cachedPlayers.find(pl => pl.name === titleText);
+              const img = document.createElement('img');
+              img.className = 'ctt-avatar';
+              img.src = getAvatarUrl(titleText, p ? p.meta : '');
+              img.onerror = () => img.remove();
+              wrap.appendChild(img);
+            }
+            const t = document.createElement('span');
+            t.textContent = titleText;
+            if (opts.titleIsPlayer) t.style.color = playerColor(titleText);
+            wrap.appendChild(t);
+            el.appendChild(wrap);
+          }
+
+          tooltip.dataPoints.forEach(dp => {
+            const dsLabel = opts.sliceLabelIsPlayer ? (dp.label || '') : (dp.dataset.label || '');
+            const color = Array.isArray(dp.dataset.backgroundColor)
+              ? dp.dataset.backgroundColor[dp.dataIndex]
+              : (dp.dataset.borderColor || dp.dataset.backgroundColor || 'var(--accent)');
+            const row = document.createElement('div');
+            row.className = 'ctt-row';
+            const isPlayerRow = (opts.rowsArePlayers || opts.sliceLabelIsPlayer) && cachedPlayers.some(pl => pl.name === dsLabel);
+            let indicator;
+            if (isPlayerRow) {
+              const p = cachedPlayers.find(pl => pl.name === dsLabel);
+              indicator = document.createElement('img');
+              indicator.className = 'ctt-avatar';
+              indicator.src = getAvatarUrl(dsLabel, p ? p.meta : '');
+              indicator.onerror = () => indicator.remove();
+            } else {
+              indicator = document.createElement('span');
+              indicator.className = 'ctt-dot';
+              indicator.style.background = color;
+            }
+            const label = document.createElement('span');
+            label.className = 'ctt-label';
+            label.textContent = dsLabel;
+            const val = document.createElement('span');
+            val.className = 'ctt-val';
+            val.textContent = dp.formattedValue + ' pts';
+            row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
+            el.appendChild(row);
+          });
+
+          if (opts.titleIsPlayer && opts.rankedTotals) {
+            const cmp = mComparisonText(opts.rankedTotals, tooltip.title[0]);
+            if (cmp) {
+              const cmpEl = document.createElement('div');
+              cmpEl.className = 'ctt-compare';
+              cmpEl.textContent = cmp;
+              el.appendChild(cmpEl);
+            }
+          }
+
+          const wrapper = document.getElementById('mChartWrapper');
+          const wRect = wrapper.getBoundingClientRect();
+          const cRect = ch.canvas.getBoundingClientRect();
+          let x = cRect.left - wRect.left + tooltip.caretX + 10;
+          let y = cRect.top - wRect.top + tooltip.caretY - 10;
+          const elW = el.offsetWidth || 160;
+          const elH = el.offsetHeight || 70;
+          if (x + elW > wRect.width - 6) x = wRect.width - elW - 6;
+          if (x < 0) x = 4;
+          if (y + elH > wRect.height - 6) y = wRect.height - elH - 6;
+          if (y < 0) y = 4;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          el.classList.add('visible');
+        };
+      }
+    };
+  }
+
+  // 1er tap = tooltip natif (déjà géré par Chart.js), 2e tap sur le même élément
+  // dans les 600ms suivant le 1er = ouvre le drill-down.
+  function registerChartTapDrilldown(chart, contextBuilder) {
+    let lastTapKey = null, lastTapTime = 0;
+    chart.options.onClick = (evt, elements) => {
+      if (!elements.length) return;
+      const el = elements[0];
+      const key = el.datasetIndex + '-' + el.index;
+      const now = Date.now();
+      if (lastTapKey === key && (now - lastTapTime) < 600) {
+        lastTapKey = null;
+        const context = contextBuilder(el);
+        if (context) openChartDrilldownMobile(context);
+      } else {
+        lastTapKey = key;
+        lastTapTime = now;
+      }
+    };
+  }
+
   function renderBarChart(chartData, type, stacked) {
     destroyChart();
     const ctx = document.getElementById('mMainChart').getContext('2d');
+    const rankedTotals = chartData.labels
+      .map((p, i) => ({ player: p, total: chartData.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
+      .sort((a, b) => b.total - a.total);
     mDashboardChart = new Chart(ctx, {
       type: 'bar',
       data: chartData,
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() } } },
+        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
         scales: {
           x: { stacked: !!stacked, ticks: { color: chartTextColor() } },
           y: { stacked: !!stacked, ticks: { color: chartTextColor() } }
         }
-      }
+      },
+      plugins: [buildMobileTooltipPlugin({ titleIsPlayer: true, rankedTotals })]
+    });
+    registerChartTapDrilldown(mDashboardChart, el => {
+      const player = chartData.labels[el.index];
+      const category = stacked === undefined ? null : chartData.datasets[el.datasetIndex].label;
+      const { start, end } = periodBounds(mFilterPeriod);
+      return { players: [player], categories: category ? [category] : null,
+        startDate: start, endDate: end,
+        title: player + (category ? ' · ' + category : '') };
     });
   }
 
   function renderTrendChart(trendData) {
     destroyChart();
     const ctx = document.getElementById('mMainChart').getContext('2d');
-    const datasets = Object.keys(trendData.series).map(player => ({
+    const players = Object.keys(trendData.series);
+    const datasets = players.map(player => ({
       label: player, data: trendData.series[player],
       borderColor: playerColor(player), backgroundColor: playerColor(player),
       fill: false, tension: 0.25
@@ -794,9 +1021,19 @@
       data: { labels: trendData.labels, datasets },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() } } },
+        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
         scales: { x: { ticks: { color: chartTextColor() } }, y: { ticks: { color: chartTextColor() } } }
-      }
+      },
+      plugins: [buildMobileTooltipPlugin({ rowsArePlayers: true })]
+    });
+    registerChartTapDrilldown(mDashboardChart, el => {
+      const player = players[el.datasetIndex];
+      const label = trendData.labels[el.index];
+      const gran = trendData.granularity;
+      let startDate = label, endDate = label;
+      if (gran === 'week') { const d = new Date(label + 'T00:00:00'); d.setDate(d.getDate() + 6); endDate = d.toISOString().slice(0, 10); }
+      else if (gran === 'month') { startDate = label + '-01'; const d = new Date(label + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0); endDate = d.toISOString().slice(0, 10); }
+      return { players: [player], categories: null, startDate, endDate, title: player + ' · ' + label };
     });
   }
 
@@ -808,9 +1045,16 @@
       data: chartData,
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() } } },
+        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
         scales: { r: { ticks: { color: chartTextColor(), backdropColor: 'transparent' }, pointLabels: { color: chartTextColor() } } }
-      }
+      },
+      plugins: [buildMobileTooltipPlugin({ rowsArePlayers: true })]
+    });
+    registerChartTapDrilldown(mDashboardChart, el => {
+      const player = chartData.datasets[el.datasetIndex].label;
+      const category = chartData.labels[el.index];
+      const { start, end } = periodBounds(mFilterPeriod);
+      return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + category };
     });
   }
 
@@ -827,8 +1071,14 @@
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { color: chartTextColor() } } }
-      }
+        plugins: { legend: { position: 'bottom', labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } }
+      },
+      plugins: [buildMobileTooltipPlugin({ sliceLabelIsPlayer: true })]
+    });
+    registerChartTapDrilldown(mDashboardChart, el => {
+      const player = chartData.labels[el.index];
+      const { start, end } = periodBounds(mFilterPeriod);
+      return { players: [player], categories: null, startDate: start, endDate: end, title: player };
     });
   }
 
