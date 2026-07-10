@@ -1241,7 +1241,10 @@ function apiAddBaremeEntry(top, action, pts, author) {
     return withLock(() => {
       BaremeService.addEntry(top, action, pts);
       const after = [top || '', action || '', String(Number(pts) || 0) + ' pts'].join(' | ');
-      AuditService.log(author, 'Règle ajoutée', 'Barème', '', after, '');
+      const sheet = ConfigService.getSheets().bareme;
+      AuditService.log(author, 'Règle ajoutée', 'Barème', '', after, '',
+        { sheet: 'bareme', op: 'insert', rowIndex: sheet.getLastRow(),
+          after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
@@ -1251,10 +1254,14 @@ function apiAddBaremeEntry(top, action, pts, author) {
 function apiUpdateBaremeEntry(rowIndex, action, pts, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       BaremeService.updateEntry(rowIndex, action, pts);
       const after = (action || '') + ' | ' + String(Number(pts) || 0) + ' pts';
-      AuditService.log(author, 'Règle modifiée', 'Barème', before, after, 'ligne #' + rowIndex);
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+      AuditService.log(author, 'Règle modifiée', 'Barème', before, after, 'ligne #' + rowIndex,
+        { sheet: 'bareme', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
@@ -1264,9 +1271,12 @@ function apiUpdateBaremeEntry(rowIndex, action, pts, author) {
 function apiDeleteBaremeEntry(rowIndex, author) {
   try {
     return withLock(() => {
+      const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       BaremeService.deleteEntry(rowIndex);
-      AuditService.log(author, 'Règle supprimée', 'Barème', before, '', 'ligne #' + rowIndex);
+      AuditService.log(author, 'Règle supprimée', 'Barème', before, '', 'ligne #' + rowIndex,
+        { sheet: 'bareme', op: 'delete', before: beforeRow });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
@@ -1277,11 +1287,20 @@ function apiSetColor(type, name, color, author) {
   try {
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
     return withLock(() => {
+      const sheetKey = type === 'Players' ? 'players' : 'categories';
+      const numCols  = type === 'Players' ? 3 : 4;
+      const sheet    = ConfigService.getSheets()[sheetKey];
+      const data     = sheet.getDataRange().getValues();
+      const rowIdx0  = data.findIndex(r => r[0] === name);
+      const rowIdx1  = rowIdx0 + 1;
+      const beforeRow = rowIdx0 >= 0 ? data[rowIdx0].slice(0, numCols) : null;
       const before = _entityColorSummary(type, name);
       SettingsService.setEntityColor(type, name, color);
       const label = type === 'Players' ? 'Joueur' : 'Top';
+      const afterRow = beforeRow ? sheet.getRange(rowIdx1, 1, 1, numCols).getValues()[0] : null;
       AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + name,
-        before, color || '', '');
+        before, color || '', '',
+        beforeRow ? { sheet: sheetKey, op: 'update', rowIndex: rowIdx1, before: beforeRow, after: afterRow } : null);
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1294,23 +1313,39 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
     return withLock(() => {
       const label = type === 'Players' ? 'Joueur' : 'Top';
+      const sheetKey = type === 'Players' ? 'players' : 'categories';
+      const numCols  = type === 'Players' ? 3 : 4;
+      const sheet    = ConfigService.getSheets()[sheetKey];
 
       if (action === 'ADD') {
         SettingsService.addEntity(type, newName, newMeta, newIcon);
         const after = type === 'Players'
           ? (newName || '') + ' (avatar: ' + (newMeta || '') + ')'
           : (newName || '') + ' (' + (newMeta || '') + ', ' + (newIcon || '') + ')';
-        AuditService.log(author, label + ' ajouté', label + ': ' + (newName || ''), '', after, '');
+        const afterRow = sheet.getRange(sheet.getLastRow(), 1, 1, numCols).getValues()[0];
+        AuditService.log(author, label + ' ajouté', label + ': ' + (newName || ''), '', after, '',
+          { sheet: sheetKey, op: 'insert', rowIndex: sheet.getLastRow(), after: afterRow });
       }
       if (action === 'DELETE') {
         const before = _entitySummary(type, oldName);
+        const data = sheet.getDataRange().getValues();
+        const beforeRow = data.find(r => r[0] === oldName);
         SettingsService.deleteEntity(type, oldName);
-        AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, '', '');
+        AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, '', '',
+          beforeRow ? { sheet: sheetKey, op: 'delete', before: beforeRow.slice(0, numCols) } : null);
       }
       if (action === 'RENAME') {
+        const data = sheet.getDataRange().getValues();
+        const beforeRow = data.find(r => r[0] === oldName);
         SettingsService.renameEntity(type, oldName, newName, newMeta, newIcon);
+        const afterData = sheet.getDataRange().getValues();
+        const afterIdx  = afterData.findIndex(r => r[0] === newName);
+        const afterRow  = afterIdx >= 0 ? afterData[afterIdx] : null;
         AuditService.log(author, label + ' renommé', label + ': ' + (oldName || ''),
-          oldName || '', newName || '', '');
+          oldName || '', newName || '', '',
+          (beforeRow && afterRow) ? { sheet: sheetKey, op: 'update',
+            rowIndex: afterIdx + 1,
+            before: beforeRow.slice(0, numCols), after: afterRow.slice(0, numCols) } : null);
       }
 
       ConfigService.clearCache();

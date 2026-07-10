@@ -377,6 +377,103 @@ test('apiFixZeroPoints snapshot lets undo restore the removed zero-point row', (
   assert.strictEqual(history._grid[1][1], 'Bob');
 });
 
+// ─── undo — Joueurs / Catégories / Barème ─────────────────────────────────────────
+
+test('apiManageEntity ADD/undo removes the added player', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const players = makeSheet([['Name','Avatar','Color']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([['Date','Player','Category','Points','Description','GroupId','Saiseur']]),
+    players, categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiManageEntity('ADD', 'Players', 'Zoé', '', null, null, 'Alice');
+  assert.strictEqual(players._grid.length, 2);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(players._grid.length, 1);
+});
+
+test('apiManageEntity DELETE/undo restores the deleted category', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const categories = makeSheet([['Name','Description','Icon','Color'], ['Sport', 'desc', '⚽', '#ff0000']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories,
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiManageEntity('DELETE', 'Categories', null, null, 'Sport', null, 'Alice');
+  assert.strictEqual(categories._grid.length, 1);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(categories._grid.length, 2);
+  assert.strictEqual(categories._grid[1][0], 'Sport');
+});
+
+test('apiManageEntity RENAME/undo restores the old player name', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const players = makeSheet([['Name','Avatar','Color'], ['Ancien', '', '#00ff00']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([['Date','Player','Category','Points','Description','GroupId','Saiseur']]),
+    players, categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiManageEntity('RENAME', 'Players', 'Nouveau', '', 'Ancien', null, 'Alice');
+  assert.strictEqual(players._grid[1][0], 'Nouveau');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(players._grid[1][0], 'Ancien');
+});
+
+test('apiSetColor / undo restores the old color', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const players = makeSheet([['Name','Avatar','Color'], ['Bob', '', '#000000']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players, categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiSetColor('Players', 'Bob', '#ffffff', 'Alice');
+  assert.strictEqual(players._grid[1][2], '#ffffff');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(players._grid[1][2], '#000000');
+});
+
+test('apiDeleteBaremeEntry / undo restores the deleted rule', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const bareme = makeSheet([['Top','Action','Points'], ['Sport', 'Victoire', 10]]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme, phrases: null, auditLog: audit
+  });
+  gas.apiDeleteBaremeEntry(2, 'Alice');
+  assert.strictEqual(bareme._grid.length, 1);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(bareme._grid.length, 2);
+  assert.strictEqual(bareme._grid[1][0], 'Sport');
+});
+
+test('apiUpdateBaremeEntry / undo restores the previous action/points', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const bareme = makeSheet([['Top','Action','Points'], ['Sport', 'Victoire', 10]]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme, phrases: null, auditLog: audit
+  });
+  gas.apiUpdateBaremeEntry(2, 'Défaite', 5, 'Alice');
+  assert.strictEqual(bareme._grid[1][1], 'Défaite');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(bareme._grid[1][1], 'Victoire');
+  assert.strictEqual(bareme._grid[1][2], 10);
+});
+
 test('apiUpdateBulkEntries snapshot lets undo restore the previous row values', () => {
   const gas   = loadGas();
   const audit = makeAuditSheetV9();
