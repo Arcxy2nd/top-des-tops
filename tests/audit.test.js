@@ -302,3 +302,95 @@ test('apiUndoAuditEntry returns a failure envelope on error instead of throwing'
   assert.strictEqual(res.success, false);
   assert.ok(res.error);
 });
+
+// ─── undo — Historique (points) ──────────────────────────────────────────────────
+
+test('apiDeleteHistoryEntries snapshot lets undo restore the deleted row', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, '', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiDeleteHistoryEntries([2], 'Alice');
+  assert.strictEqual(history._grid.length, 1);
+  const res = gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(history._grid.length, 2, 'the deleted History row is restored');
+  assert.strictEqual(history._grid[1][1], 'Bob');
+});
+
+test('apiUpdateHistoryDescription snapshot lets undo restore the old description', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, 'old', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiUpdateHistoryDescription(2, 'new', 'Alice');
+  assert.strictEqual(history._grid[1][4], 'new');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(history._grid[1][4], 'old');
+});
+
+test('apiAddBulkPlan snapshot lets undo remove the added entries', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([['Date','Player','Category','Points','Description','GroupId','Saiseur']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiAddBulkPlan([{ date: '2026-01-01', entries: [{ player: 'Bob', category: 'Sport', points: 10, times: 1 }] }], 'Alice');
+  assert.strictEqual(history._grid.length, 2);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(history._grid.length, 1);
+});
+
+test('apiFixZeroPoints snapshot lets undo restore the removed zero-point row', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 0, '', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiFixZeroPoints('Alice');
+  assert.strictEqual(history._grid.length, 1);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(history._grid.length, 2);
+  assert.strictEqual(history._grid[1][1], 'Bob');
+});
+
+test('apiUpdateBulkEntries snapshot lets undo restore the previous row values', () => {
+  const gas   = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, 'old', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: makeSheet([]), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiUpdateBulkEntries([2], { description: 'new' }, 'Alice');
+  assert.strictEqual(history._grid[1][4], 'new');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(history._grid[1][4], 'old');
+});

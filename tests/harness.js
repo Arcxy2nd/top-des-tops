@@ -133,6 +133,10 @@ function loadGas(extraMocks) {
     'NotesService, AnalyticsService, BaremeService, PhrasesService, SettingsSheetService, withLock, ' +
     'apiDetectDistributedLots, apiDetectLegacyGroups, apiAddBulkPlan, apiUpdateHistoryEntry, ' +
     'apiGetAuditLog, apiUndoAuditEntry, apiFixZeroPoints, apiDeleteOrphans, apiUpdateBulkEntries, ' +
+    'apiDeleteHistoryEntries, apiUpdateHistoryDescription, apiManageEntity, apiSetColor, ' +
+    'apiAddBaremeEntry, apiUpdateBaremeEntry, apiDeleteBaremeEntry, ' +
+    'apiAddNote, apiDeleteNote, apiEditNote, ' +
+    'apiAddPhrase, apiSavePhrasesBatch, apiUpdatePhrase, apiDeletePhrase, apiDeletePreset, apiRenamePreset, ' +
     'apiGetAppSettings, apiSaveAppSettings, apiVerifyIdentity, apiRemoveFromGroup, ' +
     'AutoPointsService, apiGetAutoRules, NAV_PAGES, apiGetNavPages, doGet, ' +
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +

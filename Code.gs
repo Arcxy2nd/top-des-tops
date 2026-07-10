@@ -156,10 +156,28 @@ const AuditService = (() => {
     } catch (_) {}
   }
 
-  /** Normalizes one sheet cell for comparison: Date → epoch ms, else trimmed string. */
+  // Snapshots go through JSON.stringify/parse (stored as text in the sheet), which
+  // turns Date objects into ISO strings — so a cell must compare equal whether it's
+  // still a real Date (read straight from the sheet) or that same instant round-tripped
+  // through JSON. Detected by the full-timestamp shape JSON gives Dates (has a "T").
+  const _ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
+  /** Normalizes one sheet cell for comparison: Date (or its JSON-roundtripped ISO
+   *  string) → epoch ms, else trimmed string. Duck-types Date (`getTime` function)
+   *  instead of `instanceof Date` — in a VM sandbox, Date is a different constructor. */
   function _cellKey(v) {
-    if (v instanceof Date) return String(v.getTime());
+    if (v && typeof v.getTime === 'function') return String(v.getTime());
+    if (typeof v === 'string' && _ISO_TIMESTAMP.test(v)) {
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) return String(d.getTime());
+    }
     return v === null || v === undefined ? '' : v.toString();
+  }
+
+  /** Restores real Date objects in a row read back from a JSON snapshot, so undo
+   *  writes the same type of value to the sheet as every other write path. */
+  function _reviveRow(row) {
+    return row.map(v => (typeof v === 'string' && _ISO_TIMESTAMP.test(v)) ? new Date(v) : v);
   }
 
   function _rowsEqual(a, b) {
@@ -210,12 +228,14 @@ const AuditService = (() => {
         return;
       }
       case 'delete': {
-        sheet.getRange(sheet.getLastRow() + 1, 1, 1, snapshot.before.length).setValues([snapshot.before]);
+        const before = _reviveRow(snapshot.before);
+        sheet.getRange(sheet.getLastRow() + 1, 1, 1, before.length).setValues([before]);
         return;
       }
       case 'update': {
         const row = _locate(sheet, snapshot.rowIndex, snapshot.after);
-        sheet.getRange(row, 1, 1, snapshot.before.length).setValues([snapshot.before]);
+        const before = _reviveRow(snapshot.before);
+        sheet.getRange(row, 1, 1, before.length).setValues([before]);
         return;
       }
       case 'insertMany': {
@@ -227,14 +247,16 @@ const AuditService = (() => {
       }
       case 'deleteMany': {
         const startRow = sheet.getLastRow() + 1;
-        const numCols  = snapshot.rows[0].length;
-        sheet.getRange(startRow, 1, snapshot.rows.length, numCols).setValues(snapshot.rows);
+        const rows = snapshot.rows.map(_reviveRow);
+        const numCols  = rows[0].length;
+        sheet.getRange(startRow, 1, rows.length, numCols).setValues(rows);
         return;
       }
       case 'updateMany': {
         snapshot.rows.forEach(r => {
           const row = _locate(sheet, r.rowIndex, r.after);
-          sheet.getRange(row, 1, 1, r.before.length).setValues([r.before]);
+          const before = _reviveRow(r.before);
+          sheet.getRange(row, 1, 1, before.length).setValues([before]);
         });
         return;
       }
@@ -689,43 +711,45 @@ const StorageService = {
     history.copyTo(spreadsheet).setName(BACKUP_NAME);
   },
 
-  /** Supprime les lignes avec points <= 0 */
+  /** Supprime les lignes avec points <= 0. Renvoie aussi les lignes complètes
+   *  supprimées, pour permettre une annulation depuis le Journal d'audit. */
   fixZeroPoints() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { deleted: 0 };
+    if (lastRow <= 1) return { deleted: 0, rows: [] };
     this._backupHistory();
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    let deleted = 0;
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const rows = [];
     for (let i = data.length - 1; i >= 0; i--) {
       const pts = parseInt(data[i][3], 10);
       if (isNaN(pts) || pts <= 0) {
+        rows.push(data[i]);
         sheet.deleteRow(i + 2);
-        deleted++;
       }
     }
-    return { deleted };
+    return { deleted: rows.length, rows };
   },
 
-  /** Supprime les entrées dont le joueur ou la catégorie n'existe plus */
+  /** Supprime les entrées dont le joueur ou la catégorie n'existe plus. Renvoie
+   *  aussi les lignes complètes supprimées, pour permettre une annulation. */
   deleteOrphans() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { deleted: 0 };
+    if (lastRow <= 1) return { deleted: 0, rows: [] };
     this._backupHistory();
     const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
     const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    let deleted = 0;
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const rows = [];
     for (let i = data.length - 1; i >= 0; i--) {
       const player = data[i][1] ? data[i][1].toString() : '';
       const cat    = data[i][2] ? data[i][2].toString() : '';
       if (!players.has(player) || !categories.has(cat)) {
+        rows.push(data[i]);
         sheet.deleteRow(i + 2);
-        deleted++;
       }
     }
-    return { deleted };
+    return { deleted: rows.length, rows };
   }
 };
 
@@ -1298,11 +1322,16 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
 function apiAddBulkPlan(plan, author) {
   try {
     return withLock(() => {
+      const { history } = ConfigService.getSheets();
+      const startRow = history.getLastRow() + 1;
       StorageService.appendBulkPlan(plan);
+      const endRow = history.getLastRow();
+      const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 7).getValues() : [];
       const totalEntries = plan.reduce(function(s, d) { return s + (d.entries || []).length; }, 0);
       const firstDate    = plan[0] && plan[0].date ? plan[0].date : '';
       AuditService.log(author, 'Saisie de points', 'History', '', totalEntries + ' entrée(s)',
-        firstDate ? 'à partir du ' + firstDate : '');
+        firstDate ? 'à partir du ' + firstDate : '',
+        addedRows.length ? { sheet: 'history', op: 'insertMany', rows: addedRows } : null);
       return { success: true };
     });
   } catch(e) { return fail(e); }
@@ -1404,8 +1433,10 @@ function apiDeleteHistoryEntries(rowIndexes, author) {
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const sorted = [...rowIndexes].sort((a, b) => b - a);
+      const removedRows = sorted.map(ri => history.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => history.deleteRow(ri));
-      AuditService.log(author, 'Suppression bulk', 'History', '', '', rowIndexes.length + ' entrée(s)');
+      AuditService.log(author, 'Suppression bulk', 'History', '', '', rowIndexes.length + ' entrée(s)',
+        { sheet: 'history', op: 'deleteMany', rows: removedRows });
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1581,7 +1612,8 @@ function apiFixZeroPoints(author) {
     return withLock(() => {
       const result = StorageService.fixZeroPoints();
       AuditService.log(author, 'Nettoyage zéros', 'History', '', '',
-        result.deleted + ' entrée(s) supprimée(s)');
+        result.deleted + ' entrée(s) supprimée(s)',
+        result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
     });
@@ -1593,7 +1625,8 @@ function apiDeleteOrphans(author) {
     return withLock(() => {
       const result = StorageService.deleteOrphans();
       AuditService.log(author, 'Nettoyage orphelins', 'History', '', '',
-        result.deleted + ' entrée(s) supprimée(s)');
+        result.deleted + ' entrée(s) supprimée(s)',
+        result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
     });
@@ -1603,9 +1636,13 @@ function apiDeleteOrphans(author) {
 function apiUpdateHistoryDescription(rowIndex, description, author) {
   try {
     return withLock(() => {
+      const { history } = ConfigService.getSheets();
       const before = _historyDescSummary(rowIndex);
+      const beforeRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
       StorageService.updateHistoryDescription(rowIndex, description);
-      AuditService.log(author, 'Description modifiée', 'History', before, description || '', 'ligne #' + rowIndex);
+      const afterRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      AuditService.log(author, 'Description modifiée', 'History', before, description || '', 'ligne #' + rowIndex,
+        { sheet: 'history', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1615,12 +1652,16 @@ function apiUpdateHistoryDescription(rowIndex, description, author) {
 function apiUpdateHistoryEntry(rowIndex, fields, author) {
   try {
     return withLock(() => {
+      const { history } = ConfigService.getSheets();
       const before = _historyRowSummary(rowIndex);
+      const beforeRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
       StorageService.updateHistoryEntry(rowIndex, fields);
+      const afterRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
       const after = [fields.player || '?', fields.category || '?',
         (parseInt(fields.points, 10) || '?') + ' pts', fields.date || '',
         fields.description || ''].join(' | ');
-      AuditService.log(author, 'Modification entrée', 'History', before, after, 'ligne #' + rowIndex);
+      AuditService.log(author, 'Modification entrée', 'History', before, after, 'ligne #' + rowIndex,
+        { sheet: 'history', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true };
     });
@@ -1690,10 +1731,12 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
       var hasDesc   = 'description' in partialFields;
       var hasSais   = 'saiseur'     in partialFields;
 
+      var undoRows = [];
       indexSet.forEach(function(idx) {
         var rowI = idx - 2;
         if (rowI < 0 || rowI >= allData.length) { skipped.push(idx); return; }
         var row      = allData[rowI];
+        var beforeRow = row.slice();
         var player   = hasPlayer ? partialFields.player   : (row[1] ? row[1].toString() : '');
         var category = hasCat    ? partialFields.category : (row[2] ? row[2].toString() : '');
         var pts      = hasPts    ? parseInt(partialFields.points, 10) : parseInt(row[3], 10);
@@ -1714,11 +1757,13 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
 
         history.getRange(idx, 1, 1, 5).setValues([[targetDate, player, category, pts, desc]]);
         if (hasSais) history.getRange(idx, 7).setValue(saiseur);
+        undoRows.push({ rowIndex: idx, before: beforeRow, after: history.getRange(idx, 1, 1, 7).getValues()[0] });
       });
 
       var changedFields = Object.keys(partialFields).join(', ');
       AuditService.log(author, 'Modification bulk', 'History', '', changedFields,
-        (rowIndexes.length - skipped.length) + ' entrée(s) modifiée(s)');
+        (rowIndexes.length - skipped.length) + ' entrée(s) modifiée(s)',
+        undoRows.length ? { sheet: 'history', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
       return { success: true, skipped: skipped };
     });
