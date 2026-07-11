@@ -252,6 +252,8 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 
 ### Changelog
 
+**TOUJOURS mettre à jour `CHANGELOG.md`** à chaque changement livré (feature, fix, suppression) — aucune exception, même pour un changement jugé mineur. Une livraison sans entrée de changelog est incomplète.
+
 Maintenir un `CHANGELOG.md` au format [Keep a Changelog](https://keepachangelog.com) avec **deux voix par entrée** :
 
 - **Humanisé** — ce que ça change concrètement pour l'utilisateur, zéro jargon, une phrase par item.
