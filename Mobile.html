@@ -181,7 +181,7 @@
     #mChartCustomTooltip .ctt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #mChartCustomTooltip .ctt-val { font-weight: 700; }
-    #mChartCustomTooltip .ctt-compare { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
+    #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 5px; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -371,6 +371,8 @@
 
   // Le Dashboard reste consultatif : le drill-down liste les entrées, sans édition
   // ni suppression (ces actions restent réservées à l'onglet Historique).
+  let _drilldownRequestId = 0;
+
   function openChartDrilldownMobile(context) {
     openModal(
       '<h2>' + escapeHtml(context.title) + '</h2>' +
@@ -379,7 +381,12 @@
     );
     document.getElementById('mDrilldownClose').addEventListener('click', closeModal);
 
+    // Jeton anti-course : si un tap plus récent a relancé le drill-down avant que
+    // cette réponse n'arrive, on l'ignore pour ne pas écraser la liste affichée.
+    const myRequestId = ++_drilldownRequestId;
+
     callServer('apiGetFilteredLogs', [context.players, context.categories, context.startDate, context.endDate], res => {
+      if (myRequestId !== _drilldownRequestId) return;
       const list = document.getElementById('mDrilldownList');
       if (!list) return;
       const logs = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -819,24 +826,41 @@
   }
 
   // Écart avec le rang immédiatement supérieur/inférieur, pour le tooltip riche.
+  // Retourne { text, neighbor } (neighbor = nom du joueur cité, pour son avatar) ou null.
   function mComparisonText(rankedTotals, player) {
     if (!rankedTotals || rankedTotals.length < 2) return null;
     const i = rankedTotals.findIndex(r => r.player === player);
     if (i < 0) return null;
     if (i > 0) {
       const gap = rankedTotals[i - 1].total - rankedTotals[i].total;
-      if (gap > 0) return '+' + gap + ' pts derrière ' + rankedTotals[i - 1].player;
+      if (gap > 0) return { text: '+' + gap + ' pts derrière ', neighbor: rankedTotals[i - 1].player };
     }
     if (i < rankedTotals.length - 1) {
       const gap = rankedTotals[i].total - rankedTotals[i + 1].total;
-      if (gap > 0) return '+' + gap + ' pts devant ' + rankedTotals[i + 1].player;
+      if (gap > 0) return { text: '+' + gap + ' pts devant ', neighbor: rankedTotals[i + 1].player };
     }
     return null;
   }
 
   // Légende isolable : clic isole la série cliquée (masque les autres), reclic restaure tout.
+  // Cas particulier donut/pie : un seul dataset, une entrée de légende par part (pas de
+  // datasetIndex exploitable) — on bascule alors la visibilité par index de donnée.
   function isolatableLegendOnClick(e, legendItem, legend) {
     const chart = legend.chart;
+
+    if (chart.data.datasets.length === 1 && legendItem.index !== undefined) {
+      const n = chart.data.labels.length;
+      const visible = [];
+      for (let i = 0; i < n; i++) if (chart.getDataVisibility(i)) visible.push(i);
+      const onlyThisVisible = visible.length === 1 && visible[0] === legendItem.index;
+      for (let i = 0; i < n; i++) {
+        const shouldBeVisible = onlyThisVisible ? true : (i === legendItem.index);
+        if (chart.getDataVisibility(i) !== shouldBeVisible) chart.toggleDataVisibility(i);
+      }
+      chart.update();
+      return;
+    }
+
     const metas = chart.data.datasets.map((_, i) => chart.getDatasetMeta(i));
     const onlyThisVisible = metas.every((m, i) => i === legendItem.datasetIndex ? !m.hidden : !!m.hidden);
     if (onlyThisVisible) { metas.forEach(m => { m.hidden = false; }); }
@@ -911,7 +935,18 @@
             if (cmp) {
               const cmpEl = document.createElement('div');
               cmpEl.className = 'ctt-compare';
-              cmpEl.textContent = cmp;
+              const cmpText = document.createElement('span');
+              cmpText.textContent = cmp.text;
+              cmpEl.appendChild(cmpText);
+              const np = cachedPlayers.find(pl => pl.name === cmp.neighbor);
+              const cmpAvatar = document.createElement('img');
+              cmpAvatar.className = 'ctt-avatar';
+              cmpAvatar.src = getAvatarUrl(cmp.neighbor, np ? np.meta : '');
+              cmpAvatar.onerror = () => cmpAvatar.remove();
+              cmpEl.appendChild(cmpAvatar);
+              const cmpName = document.createElement('span');
+              cmpName.textContent = cmp.neighbor;
+              cmpEl.appendChild(cmpName);
               el.appendChild(cmpEl);
             }
           }
@@ -966,7 +1001,9 @@
       data: chartData,
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
+        // Légende volontairement non isolable en mode Classement (stacked === undefined,
+        // une seule barre "Total global" par joueur) — cohérent avec Index.html.
+        plugins: { legend: { labels: { color: chartTextColor() }, onClick: stacked === undefined ? undefined : isolatableLegendOnClick } },
         scales: {
           x: { stacked: !!stacked, ticks: { color: chartTextColor() } },
           y: { stacked: !!stacked, ticks: { color: chartTextColor() } }
@@ -1008,18 +1045,29 @@
       const label = trendData.labels[el.index];
       const gran = trendData.granularity;
       let startDate = label, endDate = label;
-      if (gran === 'week') { const d = new Date(label + 'T00:00:00'); d.setDate(d.getDate() + 6); endDate = d.toISOString().slice(0, 10); }
-      else if (gran === 'month') { startDate = label + '-01'; const d = new Date(label + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0); endDate = d.toISOString().slice(0, 10); }
-      return { players: [player], categories: null, startDate, endDate, title: player + ' · ' + label };
+      if (gran === 'week') { const d = new Date(label + 'T00:00:00'); d.setDate(d.getDate() + 6); endDate = toDateStr(d); }
+      else if (gran === 'month') { startDate = label + '-01'; const d = new Date(label + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0); endDate = toDateStr(d); }
+      return { players: [player], categories: mFilterCategories.size ? Array.from(mFilterCategories) : null, startDate, endDate, title: player + ' · ' + label };
     });
   }
 
   function renderRadarChart(chartData) {
     destroyChart();
     const ctx = document.getElementById('mMainChart').getContext('2d');
+    // chartData arrive avec labels=joueurs, datasets=un par catégorie (format commun
+    // aux barres/donut) — le radar a besoin de l'inverse (axes=catégories, séries=joueurs).
+    const radarDatasets = chartData.labels.map((player, i) => ({
+      label: player,
+      data: chartData.datasets.map(ds => ds.data[i] || 0),
+      backgroundColor: playerColor(player) + '33',
+      borderColor: playerColor(player),
+      pointBackgroundColor: playerColor(player),
+      borderWidth: 2
+    }));
+    const radarLabels = chartData.datasets.map(d => d.label);
     mDashboardChart = new Chart(ctx, {
       type: 'radar',
-      data: chartData,
+      data: { labels: radarLabels, datasets: radarDatasets },
       options: {
         responsive: true,
         plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
@@ -1028,8 +1076,8 @@
       plugins: [buildMobileTooltipPlugin({ rowsArePlayers: true })]
     });
     registerChartTapDrilldown(mDashboardChart, el => {
-      const player = chartData.datasets[el.datasetIndex].label;
-      const category = chartData.labels[el.index];
+      const player = radarDatasets[el.datasetIndex].label;
+      const category = radarLabels[el.index];
       const { start, end } = periodBounds(mFilterPeriod);
       return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + category };
     });
