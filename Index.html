@@ -380,8 +380,8 @@
     .drilldown-row { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
     .drilldown-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .drilldown-main { flex: 1; min-width: 0; }
-    .drilldown-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; }
-    .drilldown-desc { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); font-size: 0.85rem; }
+    .drilldown-meta { font-size: 0.78rem; color: var(--text-muted); }
+    .drilldown-desc-text { font-size: 0.85rem; color: var(--text); margin-top: 2px; }
     .auto-weekday-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
     .auto-weekday-row label { display: flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--text-muted); }
     .auto-rules-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
@@ -4873,12 +4873,13 @@
       '<img class="drilldown-avatar" src="' + escapeHtml(avatar) + '" alt="">' +
       '<div class="drilldown-main">' +
         '<div class="drilldown-meta">' + escapeHtml(log.player) + ' · ' + escapeHtml(catDisplay(log.category)) + ' · ' + ds + ' · <strong>' + log.points + ' pts</strong></div>' +
-        '<input type="text" class="drilldown-desc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…" data-row="' + log.rowIndex + '">' +
+        (log.description ? '<div class="drilldown-desc-text">' + escapeHtml(log.description) + '</div>' : '') +
       '</div>' +
-      '<button class="danger small drilldown-del" data-row="' + log.rowIndex + '" title="Supprimer">🗑️</button>' +
     '</div>';
   }
 
+  // Le Dashboard reste consultatif : le drill-down liste les entrées, sans édition
+  // ni suppression (ces actions restent réservées à l'onglet Historique).
   function openChartDrilldown(context) {
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
@@ -4891,30 +4892,9 @@
       const list = document.getElementById('drilldownList');
       if (!list) return; // modal fermé avant la réponse
       const logs = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      if (!logs.length) {
-        list.innerHTML = '<p class="text-muted">Aucune entrée trouvée.</p>';
-        return;
-      }
-      list.innerHTML = logs.map(drilldownRowHtml).join('');
-
-      list.querySelectorAll('.drilldown-desc').forEach(input => {
-        input.addEventListener('change', () => {
-          callServer('apiUpdateHistoryDescription', [input.dataset.row, input.value], () => {
-            showToast('Description mise à jour.', 'success');
-          }, 'Mise à jour');
-        });
-      });
-
-      list.querySelectorAll('.drilldown-del').forEach(btn => {
-        btn.addEventListener('click', () => {
-          openConfirmModal('Supprimer cette entrée ?', () => {
-            callServer('apiDeleteHistoryEntries', [[btn.dataset.row], _whoAmI || ''], () => {
-              showToast('Entrée supprimée.', 'success');
-              openChartDrilldown(context);
-            }, 'Suppression');
-          });
-        });
-      });
+      list.innerHTML = logs.length
+        ? logs.map(drilldownRowHtml).join('')
+        : '<p class="text-muted">Aucune entrée trouvée.</p>';
     }, 'Chargement du détail');
   }
 

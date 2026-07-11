@@ -365,14 +365,12 @@
       '<span style="color:' + categoryColor(log.category) + ';">' + (cat ? cat.icon : '') + ' ' + escapeHtml(log.category) + '</span>' +
       '<span class="m-hist-pts">' + log.points + ' pts</span></div>' +
       '<div class="m-hist-meta">' + ds + '</div>' +
-      '<input type="text" class="m-drilldown-desc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…" data-row="' + log.rowIndex + '" style="width:100%; margin-top:6px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text); font-size:0.82rem;">' +
-      '<div class="m-hist-actions">' +
-      '<button class="danger small" data-drilldel="' + log.rowIndex + '">🗑️</button>' +
-      '</div></div>';
+      (log.description ? '<div class="m-hist-desc">' + escapeHtml(log.description) + '</div>' : '') +
+      '</div>';
   }
 
-  let mDrilldownLoaded = [];
-
+  // Le Dashboard reste consultatif : le drill-down liste les entrées, sans édition
+  // ni suppression (ces actions restent réservées à l'onglet Historique).
   function openChartDrilldownMobile(context) {
     openModal(
       '<h2>' + escapeHtml(context.title) + '</h2>' +
@@ -384,31 +382,10 @@
     callServer('apiGetFilteredLogs', [context.players, context.categories, context.startDate, context.endDate], res => {
       const list = document.getElementById('mDrilldownList');
       if (!list) return;
-      mDrilldownLoaded = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      list.innerHTML = mDrilldownLoaded.length
-        ? mDrilldownLoaded.map(drilldownCardHtmlMobile).join('')
+      const logs = (res.logs || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      list.innerHTML = logs.length
+        ? logs.map(drilldownCardHtmlMobile).join('')
         : '<p class="m-empty">Aucune entrée trouvée.</p>';
-
-      list.querySelectorAll('.m-drilldown-desc').forEach(input => {
-        input.addEventListener('change', () => {
-          callServer('apiUpdateHistoryDescription', [input.dataset.row, input.value], () => {
-            showToast('Description mise à jour.', 'success');
-          }, 'Mise à jour');
-        });
-      });
-
-      list.querySelectorAll('[data-drilldel]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (!requireIdentity()) return;
-          openConfirmModal('Supprimer cette entrée ?', () => {
-            buzz();
-            callServer('apiDeleteHistoryEntries', [[btn.dataset.drilldel], _whoAmI || ''], () => {
-              showToast('Entrée supprimée.', 'success');
-              openChartDrilldownMobile(context);
-            }, 'Suppression entrée');
-          });
-        });
-      });
     }, 'Chargement du détail');
   }
 
