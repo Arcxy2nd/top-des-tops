@@ -206,6 +206,14 @@ Dès qu'un nom de joueur apparaît dans l'UI (liste, tableau, graphique, filtre,
 
 Toute mise à jour de `Index.html` (nouvel écran, nouveau composant, style modifié) doit être répercutée dans `Mobile.html`. Si l'outil concerné n'existe pas côté mobile (cas des outils avancés de l'onglet Outils, volontairement réduit), ne pas assumer — demander avant de l'ajouter.
 
+### Identité obligatoire pour toute édition
+
+Toute action qui modifie des données (créer, éditer, supprimer, dissocier, activer/désactiver…) doit passer par la vérification d'identité (`requireIdentity()`) avant exécution. Aucune exception, même pour un outil d'administration ou une action en un clic.
+
+### Journalisation obligatoire
+
+Toute action qui modifie des données doit être consignée dans le journal d'audit (`AuditService.log()`), avec l'auteur, l'action, la cible et un résumé du changement. Une action qui écrit dans le Sheet sans laisser de trace dans le journal est incomplète.
+
 ### Quatre critères de qualité interface
 
 Chaque écran, formulaire ou composant ajouté ou modifié doit être :
