@@ -1159,6 +1159,50 @@
     }
     .top-stat-pill.tsp-hidden:hover { opacity: 0.75; }
 
+    /* ── ÉDITEUR MARKDOWN (descriptions, notes, règles auto) ── */
+    .md-editor { position: relative; width: 100%; }
+    .md-toolbar { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .md-tool-btn {
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 0.78rem; font-weight: 600; padding: 4px 9px;
+      cursor: pointer; min-height: 28px; transition: border-color 0.15s;
+    }
+    .md-tool-btn:hover { border-color: var(--accent); }
+    .md-tool-btn.md-tool-active { border-color: var(--accent); color: var(--accent); }
+    .md-textarea {
+      width: 100%; resize: vertical; font-family: inherit; font-size: 0.88rem;
+      padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); line-height: 1.5;
+    }
+    .md-preview {
+      margin-top: 8px; padding: 10px 12px; background: var(--bg);
+      border: 1px dashed var(--border); border-radius: 6px; font-size: 0.86rem; line-height: 1.5;
+    }
+    .md-preview h1, .md-preview h2, .md-preview h3 { margin: 6px 0; }
+    .md-preview ul, .md-preview ol { margin: 6px 0; padding-left: 22px; }
+    .md-preview .md-code-block {
+      background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 6px;
+      overflow-x: auto; font-size: 0.8rem;
+    }
+    .md-preview code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; }
+    .mention {
+      display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px;
+      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
+      color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
+    }
+    .mention img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+    .md-mention-popup {
+      position: absolute; z-index: 9999; background: var(--card-bg, var(--bg));
+      border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+      max-height: 220px; overflow-y: auto; min-width: 180px; margin-top: 2px;
+    }
+    .md-mention-item {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 0.85rem;
+    }
+    .md-mention-item img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .md-mention-item.md-mention-active { background: rgba(255,255,255,0.06); }
+
     /* ── RICH SELECT ── */
     .rich-select {
       position: relative; display: flex; width: 100%;
@@ -2577,7 +2621,7 @@
           <p class="add-form-label">Points à ajouter</p>
           <input type="number" id="autoRulePoints" min="1" step="1" value="1">
           <p class="add-form-label">Description (optionnelle)</p>
-          <input type="text" id="autoRuleDescription" placeholder="Ex : Bonus de régularité">
+          <div id="autoRuleDescriptionEditor"></div>
           <p class="add-form-label">Régularité</p>
           <select id="autoRuleFrequency">
             <option value="daily">Tous les jours</option>
@@ -3049,6 +3093,252 @@
     if (meta && meta.trim()) return meta.trim();
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
            '&background=2a313d&color=e0e6ed&bold=true&size=64';
+  }
+
+  // ── MARKDOWN + MENTIONS (descriptions, notes, règles auto) ─────────────
+  // Rendu volontairement minimal et sûr : on échappe tout le texte d'abord,
+  // puis on insère uniquement les balises que CE parseur génère lui-même
+  // (jamais de HTML venant du texte utilisateur). Pas de dépendance externe.
+  function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function renderMentions(escapedHtml) {
+    if (!cachedPlayers.length) return escapedHtml;
+    // Les plus longs noms d'abord pour éviter qu'un nom court n'avale le début d'un plus long.
+    const names = cachedPlayers.map(p => p.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)@(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedPlayers.find(p => escapeHtml(p.name) === name);
+      const realName = original ? original.name : name;
+      const col = playerColor(realName);
+      const avatarUrl = getAvatarUrl(realName, original ? original.meta : '');
+      return pre + '<span class="mention" data-player="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        '<img src="' + avatarUrl + '" alt="" onerror="this.remove()">' + name + '</span>';
+    });
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    let src = String(text).replace(/\r\n/g, '\n');
+
+    // 1) Extraire les blocs de code pour les protéger des autres transformations.
+    const codeBlocks = [];
+    src = src.replace(/```([\s\S]*?)```/g, (m, code) => {
+      codeBlocks.push('<pre class="md-code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
+      return ' CODEBLOCK' + (codeBlocks.length - 1) + ' ';
+    });
+
+    // 2) Échapper le reste, puis extraire le code inline.
+    const lines = src.split('\n').map(line => {
+      if (/^ CODEBLOCK\d+ $/.test(line)) return line;
+      let escaped = escapeHtml(line);
+      escaped = escaped.replace(/`([^`]+)`/g, (m, code) => '<code>' + code + '</code>');
+      return escaped;
+    });
+    src = lines.join('\n');
+
+    // 3) Titres.
+    src = src.replace(/^### (.*)$/gm, '<h3>$1</h3>')
+             .replace(/^## (.*)$/gm,  '<h2>$1</h2>')
+             .replace(/^# (.*)$/gm,   '<h1>$1</h1>');
+
+    // 4) Gras / italique (gras avant italique pour ne pas casser ***x***).
+    src = src.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+             .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // 5) Liens [texte](url) — seulement http(s), sinon on laisse le texte échappé tel quel.
+    src = src.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // 6) Listes : regroupe les lignes consécutives "- x" / "1. x" en <ul>/<ol>.
+    const outLines = src.split('\n');
+    const grouped = [];
+    let i = 0;
+    while (i < outLines.length) {
+      const line = outLines[i];
+      const ulMatch = /^[-*] (.*)$/.exec(line);
+      const olMatch = /^\d+\. (.*)$/.exec(line);
+      if (ulMatch) {
+        const items = [];
+        while (i < outLines.length && /^[-*] (.*)$/.test(outLines[i])) {
+          items.push('<li>' + /^[-*] (.*)$/.exec(outLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ul>' + items.join('') + '</ul>');
+      } else if (olMatch) {
+        const items = [];
+        while (i < outLines.length && /^\d+\. (.*)$/.test(outLines[i])) {
+          items.push('<li>' + /^\d+\. (.*)$/.exec(outLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ol>' + items.join('') + '</ol>');
+      } else {
+        grouped.push(line);
+        i++;
+      }
+    }
+    src = grouped.join('\n');
+
+    // 7) Sauts de ligne restants (hors blocs déjà générés).
+    src = src.replace(/\n/g, '<br>');
+
+    // 8) Mentions @Joueur.
+    src = renderMentions(src);
+
+    // 9) Réinjecter les blocs de code protégés à l'étape 1.
+    src = src.replace(/ CODEBLOCK(\d+) /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
+
+    return src;
+  }
+
+  // ── ÉDITEUR DE TEXTE RÉUTILISABLE (markdown + mentions) ─────────────────
+  // Retourne un div.md-editor avec ._getValue()/._setValue(). Utilisé partout
+  // où l'utilisateur saisit une description/un texte libre (entrées, notes,
+  // règles automatiques) pour remplacer les <input>/<textarea> nus.
+  function buildTextEditor(config) {
+    config = config || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'md-editor';
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'md-toolbar';
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'md-textarea';
+    textarea.rows = config.rows || 3;
+    textarea.value = config.value || '';
+    textarea.placeholder = config.placeholder || '';
+
+    function triggerChange() {
+      if (config.onChange) config.onChange(textarea.value);
+      if (previewPane.style.display !== 'none') previewPane.innerHTML = renderMarkdown(textarea.value);
+    }
+
+    function wrapSelection(pre, post) {
+      const start = textarea.selectionStart, end = textarea.selectionEnd;
+      const val = textarea.value;
+      const selected = val.slice(start, end);
+      textarea.value = val.slice(0, start) + pre + selected + post + val.slice(end);
+      textarea.focus();
+      textarea.selectionStart = start + pre.length;
+      textarea.selectionEnd = start + pre.length + selected.length;
+      triggerChange();
+    }
+
+    function insertLinePrefix(prefix) {
+      const start = textarea.selectionStart;
+      const val = textarea.value;
+      const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+      textarea.value = val.slice(0, lineStart) + prefix + val.slice(lineStart);
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+      triggerChange();
+    }
+
+    function makeToolBtn(label, title, onClick) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'md-tool-btn';
+      b.textContent = label;
+      b.title = title;
+      b.addEventListener('click', onClick);
+      return b;
+    }
+
+    toolbar.appendChild(makeToolBtn('B', 'Gras', () => wrapSelection('**', '**')));
+    toolbar.appendChild(makeToolBtn('I', 'Italique', () => wrapSelection('*', '*')));
+    toolbar.appendChild(makeToolBtn('</>', 'Code', () => wrapSelection('`', '`')));
+    toolbar.appendChild(makeToolBtn('H', 'Titre', () => insertLinePrefix('## ')));
+    toolbar.appendChild(makeToolBtn('•', 'Liste', () => insertLinePrefix('- ')));
+    toolbar.appendChild(makeToolBtn('🔗', 'Lien', () => wrapSelection('[', '](https://)')));
+    toolbar.appendChild(makeToolBtn('@', 'Mentionner un joueur', () => wrapSelection('@', '')));
+
+    const previewBtn = makeToolBtn('👁 Aperçu', 'Afficher/masquer l\'aperçu', () => {
+      const showing = previewPane.style.display !== 'none';
+      previewPane.style.display = showing ? 'none' : '';
+      previewBtn.classList.toggle('md-tool-active', !showing);
+      if (!showing) previewPane.innerHTML = renderMarkdown(textarea.value);
+    });
+    toolbar.appendChild(previewBtn);
+
+    const previewPane = document.createElement('div');
+    previewPane.className = 'md-preview';
+    previewPane.style.display = 'none';
+
+    // ── Autocomplétion de mention (@Nom) ──────────────────────────────────
+    const mentionPopup = document.createElement('div');
+    mentionPopup.className = 'md-mention-popup';
+    mentionPopup.style.display = 'none';
+    let mentionMatches = [];
+    let mentionActiveIdx = 0;
+    let mentionRange = null; // { start, end } dans textarea.value du "@partiel" à remplacer
+
+    function hideMentionPopup() {
+      mentionPopup.style.display = 'none';
+      mentionRange = null;
+    }
+
+    function applyMention(name) {
+      if (!mentionRange) return;
+      const val = textarea.value;
+      const replacement = '@' + name + ' ';
+      textarea.value = val.slice(0, mentionRange.start) + replacement + val.slice(mentionRange.end);
+      const caret = mentionRange.start + replacement.length;
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = caret;
+      hideMentionPopup();
+      triggerChange();
+    }
+
+    function renderMentionPopup() {
+      mentionPopup.innerHTML = '';
+      mentionMatches.forEach((p, idx) => {
+        const item = document.createElement('div');
+        item.className = 'md-mention-item' + (idx === mentionActiveIdx ? ' md-mention-active' : '');
+        const img = document.createElement('img');
+        img.src = getAvatarUrl(p.name, p.meta);
+        img.alt = '';
+        img.onerror = () => img.remove();
+        item.appendChild(img);
+        item.appendChild(document.createTextNode(p.name));
+        item.addEventListener('mousedown', e => { e.preventDefault(); applyMention(p.name); });
+        mentionPopup.appendChild(item);
+      });
+      mentionPopup.style.display = mentionMatches.length ? '' : 'none';
+    }
+
+    function checkMentionTrigger() {
+      const pos = textarea.selectionStart;
+      const upToCursor = textarea.value.slice(0, pos);
+      const m = /@([^\s@]{0,24})$/.exec(upToCursor);
+      if (!m || !cachedPlayers.length) { hideMentionPopup(); return; }
+      const query = m[1].toLowerCase();
+      mentionMatches = cachedPlayers.filter(p => p.name.toLowerCase().startsWith(query)).slice(0, 6);
+      mentionActiveIdx = 0;
+      mentionRange = { start: pos - m[0].length, end: pos };
+      renderMentionPopup();
+    }
+
+    textarea.addEventListener('input', () => { checkMentionTrigger(); triggerChange(); });
+    textarea.addEventListener('blur', () => setTimeout(hideMentionPopup, 120));
+    textarea.addEventListener('keydown', e => {
+      if (mentionPopup.style.display === 'none') return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); mentionActiveIdx = Math.min(mentionActiveIdx + 1, mentionMatches.length - 1); renderMentionPopup(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); mentionActiveIdx = Math.max(mentionActiveIdx - 1, 0); renderMentionPopup(); }
+      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applyMention(mentionMatches[mentionActiveIdx].name); }
+      else if (e.key === 'Escape') { hideMentionPopup(); }
+    });
+
+    wrap.appendChild(toolbar);
+    wrap.appendChild(textarea);
+    wrap.appendChild(mentionPopup);
+    wrap.appendChild(previewPane);
+
+    wrap._getValue = () => textarea.value;
+    wrap._setValue = v => { textarea.value = v || ''; triggerChange(); };
+    wrap._textarea = textarea;
+
+    return wrap;
   }
 
   // ── IDENTITÉ DE L'APP (titre + logo) ──────────────────────────────────
@@ -4878,7 +5168,7 @@
       '<img class="drilldown-avatar" src="' + escapeHtml(avatar) + '" alt="">' +
       '<div class="drilldown-main">' +
         '<div class="drilldown-meta">' + escapeHtml(log.player) + ' · ' + escapeHtml(catDisplay(log.category)) + ' · ' + ds + ' · <strong>' + log.points + ' pts</strong></div>' +
-        (log.description ? '<div class="drilldown-desc-text">' + escapeHtml(log.description) + '</div>' : '') +
+        (log.description ? '<div class="drilldown-desc-text">' + renderMarkdown(log.description) + '</div>' : '') +
       '</div>' +
     '</div>';
   }
@@ -8240,7 +8530,7 @@
             descEl.title = 'Cliquer pour replier';
             const full = document.createElement('div');
             full.className = 'hist-desc-full';
-            full.textContent = first.description;
+            full.innerHTML = renderMarkdown(first.description);
             catCell.appendChild(full);
           });
           catCell.appendChild(descEl);
@@ -8450,7 +8740,7 @@
         descEl.title = 'Cliquer pour replier';
         const full = document.createElement('div');
         full.className = 'hist-desc-full';
-        full.textContent = log.description;
+        full.innerHTML = renderMarkdown(log.description);
         descEl.style.whiteSpace = 'normal';
         catCell.appendChild(full);
       });
@@ -8823,7 +9113,7 @@
     headc.appendChild(dt);
 
     const txt = document.createElement('div');
-    txt.className = 'note-text'; txt.textContent = note.text;
+    txt.className = 'note-text'; txt.innerHTML = renderMarkdown(note.text);
 
     const actions = document.createElement('div');
     actions.className = 'note-actions';
@@ -8866,9 +9156,7 @@
       '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">' + escapeHtml(dateStr) + '</p>' +
       '<div class="modal-field" style="margin-bottom:12px;">' +
         '<label>Contenu de la note</label>' +
-        '<textarea id="mNoteText" rows="5" style="width:100%;padding:10px;border-radius:6px;' +
-        'border:1px solid var(--border);background:var(--bg);color:var(--text);' +
-        'font-size:16px;resize:vertical;font-family:inherit;">' + escapeHtml(note.text) + '</textarea>' +
+        '<div id="mNoteTextEditor"></div>' +
         '<span id="mNoteCount" style="font-size:0.7rem;color:var(--text-muted);text-align:right;display:block;"></span>' +
       '</div>' +
       '<div class="modal-actions">' +
@@ -8876,16 +9164,16 @@
         '<button id="mCancel" class="secondary">Annuler</button>' +
       '</div>';
 
-    const ta = document.getElementById('mNoteText');
     const counter = document.getElementById('mNoteCount');
-    const updateCount = () => { counter.textContent = ta.value.length + ' caractères'; };
-    ta.addEventListener('input', updateCount);
-    updateCount();
-    setTimeout(() => ta.focus(), 50);
+    const updateCount = v => { counter.textContent = v.length + ' caractères'; };
+    const noteEditor = buildTextEditor({ value: note.text, rows: 5, onChange: updateCount });
+    document.getElementById('mNoteTextEditor').appendChild(noteEditor);
+    updateCount(note.text || '');
+    setTimeout(() => noteEditor._textarea.focus(), 50);
 
     document.getElementById('mSave').onclick = () => {
       if (!requireIdentity()) return;
-      const v = ta.value.trim();
+      const v = noteEditor._getValue().trim();
       if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
       closeModal();
       callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], () => {
@@ -9071,7 +9359,7 @@
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Description (optionnelle)</label>' +
-          '<input type="text" id="mEditDesc" value="' + escapeHtml(log.description || '') + '" placeholder="Description…"></div>' +
+          '<div id="mEditDescEditor"></div></div>' +
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Saiseur</label>' +
@@ -9085,10 +9373,12 @@
     const playerRS   = buildRichSelect({ type: 'player',   value: log.player,        onChange: function() {} });
     const categoryRS = buildRichSelect({ type: 'category', value: log.category,       onChange: function() {} });
     const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: log.saiseur || null, onChange: function() {}, nullable: true });
+    const descEditor = buildTextEditor({ value: log.description || '', rows: 3, placeholder: 'Description…' });
 
     document.getElementById('mEditPlayerRS').appendChild(playerRS);
     document.getElementById('mEditCategoryRS').appendChild(categoryRS);
     document.getElementById('mEditSaiseurRS').appendChild(saiseurRS);
+    document.getElementById('mEditDescEditor').appendChild(descEditor);
 
     document.getElementById('mSave').onclick = function() {
       if (!requireIdentity()) return;
@@ -9096,7 +9386,7 @@
       const pts      = parseInt(document.getElementById('mEditPts').value, 10);
       const player   = playerRS._getValue();
       const category = categoryRS._getValue();
-      const desc     = document.getElementById('mEditDesc').value.trim();
+      const desc     = descEditor._getValue().trim();
       const saiseur  = saiseurRS._getValue() || '';
 
       if (!date)                 { showToast('Date requise.', 'error'); return; }
@@ -9150,6 +9440,7 @@
 
   let autoRulePlayerRS = null;
   let autoRuleCategoryRS = null;
+  let autoRuleDescriptionEditor = null;
 
   function initAutoPointsPanel() {
     const freqSel = document.getElementById('autoRuleFrequency');
@@ -9198,6 +9489,11 @@
     catHost.innerHTML = '';
     autoRuleCategoryRS = buildRichSelect({ type: 'category', value: cachedCategories[0] ? cachedCategories[0].name : null, onChange: function() {} });
     catHost.appendChild(autoRuleCategoryRS);
+
+    const descHost = document.getElementById('autoRuleDescriptionEditor');
+    descHost.innerHTML = '';
+    autoRuleDescriptionEditor = buildTextEditor({ value: '', rows: 2, placeholder: 'Ex : Bonus de régularité' });
+    descHost.appendChild(autoRuleDescriptionEditor);
 
     callServer('apiGetAutoRules', [], res => {
       renderAutoTriggerStatus(res.triggerInstalled);
@@ -9257,7 +9553,7 @@
 
       const tail = document.createElement('span');
       tail.innerHTML =
-        (rule.description ? ' — ' + escapeHtml(rule.description) : '') +
+        (rule.description ? ' — ' + renderMarkdown(rule.description) : '') +
         '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
         (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
       main.appendChild(tail);
@@ -9302,7 +9598,7 @@
       player:      autoRulePlayerRS ? autoRulePlayerRS._getValue() : '',
       category:    autoRuleCategoryRS ? autoRuleCategoryRS._getValue() : '',
       points:      parseInt(document.getElementById('autoRulePoints').value, 10),
-      description: document.getElementById('autoRuleDescription').value.trim(),
+      description: autoRuleDescriptionEditor ? autoRuleDescriptionEditor._getValue().trim() : '',
       frequency:   frequency,
       interval:    parseInt(document.getElementById('autoRuleInterval').value, 10) || 1,
       daysOfWeek:  daysOfWeek,
@@ -9316,7 +9612,6 @@
     callServer('apiAddAutoRule', [rule, _whoAmI || ''], () => {
       restore();
       showToast('Règle automatique créée.', 'success');
-      document.getElementById('autoRuleDescription').value = '';
       loadAutoRules();
     }, 'Création règle auto', () => restore());
   }
@@ -10525,6 +10820,25 @@
   }
 
   // ── INIT ─────────────────────────────────────────────────────────────
+  // Clic sur une mention @Joueur (dans une description/note/règle rendue) :
+  // bascule sur Historique filtré par ce joueur, où qu'on soit dans l'app.
+  document.addEventListener('click', e => {
+    const mention = e.target.closest('.mention');
+    if (!mention) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const name = mention.dataset.player;
+    if (!name || !cachedPlayers.some(p => p.name === name)) return;
+    selectedHistPlayers.clear();
+    selectedHistPlayers.add(name);
+    currentHistoryPage = 1;
+    clearHistPrefetchCache();
+    closeModal();
+    goToTab('tab-history');
+    renderHistoryFilterChips();
+    loadHistoryPage(1);
+  });
+
   window.onload = () => {
     initTheme();
     initLayoutMode();

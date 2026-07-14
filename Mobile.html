@@ -165,6 +165,20 @@
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); }
     .m-hist-meta { font-size: 0.75rem; color: var(--text-muted); }
     .m-hist-desc { font-size: 0.82rem; margin-top: 4px; }
+    .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 4px 0; font-size: 1em; }
+    .m-hist-desc ul, .m-hist-desc ol { margin: 4px 0; padding-left: 20px; }
+    .m-hist-desc .md-code-block {
+      background: rgba(0,0,0,0.25); padding: 6px 8px; border-radius: 6px;
+      overflow-x: auto; font-size: 0.8rem;
+    }
+    .m-hist-desc code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; }
+    .mention {
+      display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px;
+      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
+      color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
+    }
+    .mention img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
     .m-hist-actions { display: flex; gap: 6px; margin-top: 8px; }
 
     /* ── DASHBOARD CHART TOOLTIP / DRILLDOWN ── */
@@ -284,6 +298,82 @@
     const p = cachedPlayers.find(p => p.name === name);
     return (p && p.color) || hashColor('P|' + name);
   }
+
+  // ── MARKDOWN + MENTIONS (rendu lecture seule — la saisie côté mobile reste
+  // du texte brut, mais s'affiche formaté partout). Même logique que Index.html :
+  // on échappe tout d'abord, seules nos propres balises générées sont insérées.
+  function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function renderMentions(escapedHtml) {
+    if (!cachedPlayers.length) return escapedHtml;
+    const names = cachedPlayers.map(p => p.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)@(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedPlayers.find(p => escapeHtml(p.name) === name);
+      const realName = original ? original.name : name;
+      const col = playerColor(realName);
+      const avatarUrl = getAvatarUrl(realName, original ? original.meta : '');
+      return pre + '<span class="mention" data-player="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        '<img src="' + avatarUrl + '" alt="" onerror="this.remove()">' + name + '</span>';
+    });
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    let src = String(text).replace(/\r\n/g, '\n');
+    const codeBlocks = [];
+    src = src.replace(/```([\s\S]*?)```/g, (m, code) => {
+      codeBlocks.push('<pre class="md-code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
+      return ' CODEBLOCK' + (codeBlocks.length - 1) + ' ';
+    });
+    const lines = src.split('\n').map(line => {
+      if (/^ CODEBLOCK\d+ $/.test(line)) return line;
+      let escaped = escapeHtml(line);
+      escaped = escaped.replace(/`([^`]+)`/g, (m, code) => '<code>' + code + '</code>');
+      return escaped;
+    });
+    src = lines.join('\n');
+    src = src.replace(/^### (.*)$/gm, '<h3>$1</h3>')
+             .replace(/^## (.*)$/gm,  '<h2>$1</h2>')
+             .replace(/^# (.*)$/gm,   '<h1>$1</h1>');
+    src = src.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+             .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    src = src.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    const outLines = src.split('\n');
+    const grouped = [];
+    let i = 0;
+    while (i < outLines.length) {
+      const line = outLines[i];
+      const ulMatch = /^[-*] (.*)$/.exec(line);
+      const olMatch = /^\d+\. (.*)$/.exec(line);
+      if (ulMatch) {
+        const items = [];
+        while (i < outLines.length && /^[-*] (.*)$/.test(outLines[i])) {
+          items.push('<li>' + /^[-*] (.*)$/.exec(outLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ul>' + items.join('') + '</ul>');
+      } else if (olMatch) {
+        const items = [];
+        while (i < outLines.length && /^\d+\. (.*)$/.test(outLines[i])) {
+          items.push('<li>' + /^\d+\. (.*)$/.exec(outLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ol>' + items.join('') + '</ol>');
+      } else {
+        grouped.push(line);
+        i++;
+      }
+    }
+    src = grouped.join('\n');
+    src = src.replace(/\n/g, '<br>');
+    src = renderMentions(src);
+    src = src.replace(/ CODEBLOCK(\d+) /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
+    return src;
+  }
+
   function categoryColor(name) {
     const c = cachedCategories.find(c => c.name === name);
     if (c && c.color) return c.color;
@@ -365,7 +455,7 @@
       '<span style="color:' + categoryColor(log.category) + ';">' + (cat ? cat.icon : '') + ' ' + escapeHtml(log.category) + '</span>' +
       '<span class="m-hist-pts">' + log.points + ' pts</span></div>' +
       '<div class="m-hist-meta">' + ds + '</div>' +
-      (log.description ? '<div class="m-hist-desc">' + escapeHtml(log.description) + '</div>' : '') +
+      (log.description ? '<div class="m-hist-desc">' + renderMarkdown(log.description) + '</div>' : '') +
       '</div>';
   }
 
@@ -1322,7 +1412,7 @@
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +
-          '<div class="m-hist-desc">' + escapeHtml(n.text) + '</div>' +
+          '<div class="m-hist-desc">' + renderMarkdown(n.text) + '</div>' +
           '<div class="m-hist-actions">' +
           '<button class="small" data-edit="' + n.rowIndex + '">✏️</button>' +
           '<button class="danger small" data-del="' + n.rowIndex + '">🗑️</button>' +
@@ -1560,7 +1650,7 @@
       '<span style="color:' + categoryColor(log.category) + ';">' + (cat ? cat.icon : '') + ' ' + escapeHtml(log.category) + '</span>' +
       '<span class="m-hist-pts">' + log.points + ' pts</span></div>' +
       '<div class="m-hist-meta">' + ds + (log.saiseur ? ' · saisi par ' + escapeHtml(log.saiseur) : '') + '</div>' +
-      (log.description ? '<div class="m-hist-desc">' + escapeHtml(log.description) + '</div>' : '') +
+      (log.description ? '<div class="m-hist-desc">' + renderMarkdown(log.description) + '</div>' : '') +
       '<div class="m-hist-actions">' +
       '<button class="small" data-edit="' + log.rowIndex + '">✏️</button>' +
       '<button class="danger small" data-del="' + log.rowIndex + '">🗑️</button>' +
@@ -2078,7 +2168,7 @@
         '<div class="m-hist-top">' + avatarImgHtml(lot.player, p ? p.meta : '', 'm-avatar sm') +
         '<strong>' + escapeHtml(lot.player) + '</strong><span class="m-hist-pts">' + lot.totalPts + ' pts</span></div>' +
         '<div class="m-hist-meta">' + escapeHtml(lot.category) + ' · ' + lot.count + ' entrées · ' + lot.dateFrom + ' → ' + lot.dateTo + '</div>' +
-        (lot.description ? '<div class="m-hist-desc">' + escapeHtml(lot.description) + '</div>' : '') +
+        (lot.description ? '<div class="m-hist-desc">' + renderMarkdown(lot.description) + '</div>' : '') +
         '<div class="m-hist-actions"><button class="primary small" data-group>🔗 Regrouper ce lot</button></div>' +
         '</div>';
     }).join('');
