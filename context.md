@@ -2,6 +2,12 @@
 
 ---
 
+## RÈGLE IMPÉRATIVE — CONCISION EN DÉBUT DE SESSION
+
+Au début de chaque session (rituel d'initialisation, prise de connaissance du contexte, premiers échanges), parler **peu, très peu, de manière extrêmement concise**. Pas de récapitulatif, pas de reformulation de la demande, pas de plan annoncé en prose — lire, comprendre, agir. Le détail et l'explication ne viennent qu'une fois le travail engagé, si nécessaire.
+
+---
+
 ## §0 — RITUEL D'INITIALISATION
 
 Au tout début de chaque session, avant toute action, lire dans cet ordre :
