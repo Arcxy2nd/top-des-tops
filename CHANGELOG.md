@@ -10,6 +10,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Dans Historique → Journal d'audit, les lignes « Dégroupement lot » et « Retrait du groupe » n'affichaient plus aucune information (régression de la refonte du 10 juillet) — elles montrent de nouveau quel lot/quelle ligne était concerné.
 **Technique** : `apiUngroupLot` et `apiRemoveFromGroup` (Code.gs) plaçaient l'identifiant utile (`groupId`/`rowIndex`) dans le paramètre `before` d'`AuditService.log`, colonne masquée côté frontend pour ces actions via `AUDIT_NO_DIFF_ACTIONS`. Déplacé vers le paramètre `detail`, seule colonne affichée pour ces actions.
 
+**Humanisé** : Les onglets Historique et Notes se rechargeaient inutilement à chaque fois qu'on cliquait dessus, même sans rien avoir changé — ça provoquait un flash visible et une petite attente à chaque fois. Ils ne se rechargent maintenant que la première fois, comme attendu.
+**Technique** : `goToTab()` (Index.html/Mobile.html) forçait un reset + rechargement complet de l'historique/des notes à chaque navigation vers ces onglets, en doublon des rechargements déjà déclenchés au bon endroit par les mutations. Ajout des indicateurs `_histLoadedOnce`/`_mHistoryLoadedOnce` (le second existait déjà côté notes mais n'était pas utilisé) pour ne charger qu'une fois par session.
+
+### Ajouté
+**Humanisé** : Dans Historique → Entrées, on peut maintenant filtrer par plage de dates (« Depuis » / « Jusqu'au »), comme c'était déjà possible dans le Journal d'audit. Disponible aussi sur mobile.
+**Technique** : `apiGetHistoryPage`/`StorageService.getHistoryPage` (Code.gs) acceptent deux nouveaux paramètres `startDate`/`endDate` (bornes inclusives, même logique que `apiGetAuditLog`). Frontend : deux `<input type="date">` + bouton d'effacement dans `.history-filters` (Index.html) et dans le shell Historique (Mobile.html), pris en compte dans la clé de cache de préchargement côté desktop.
+
+### Modifié
+**Humanisé** : Dans l'outil Points automatiques (Paramètres → Outils), les listes déroulantes Joueur et Top étaient de simples menus texte, sans avatar ni couleur — contrairement à tous les autres formulaires du site (saisie en lot, édition d'entrée).
+**Technique** : Remplacement des `<select id="autoRulePlayer">`/`<select id="autoRuleCategory">` par le composant `buildRichSelect()` déjà utilisé ailleurs (avatar/couleur + panneau stylé), reconstruit à chaque ouverture de l'onglet Outils via `loadAutoRules()`.
+
 ## [Non publié] - 2026-07-11
 
 ### Ajouté

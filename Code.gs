@@ -582,16 +582,21 @@ const StorageService = {
     });
   },
 
-  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
+  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate) {
     const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
+    // Bornes parsées en heure locale serveur (GAS tourne en UTC) ; le frontend envoie YYYY-MM-DD.
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
 
     let allWithIndex = [];
     for (let i = 0; i < rows.length; i++) {
       const rec = rows[i];
       if (hasPlayerFilter   && !filterPlayers.includes(rec.player))     continue;
       if (hasCategoryFilter && !filterCategories.includes(rec.category)) continue;
+      if (start && rec.date < start) continue;
+      if (end   && rec.date > end)   continue;
       if (filterText) {
         const ft = filterText.toLowerCase();
         if (!rec.player.toLowerCase().includes(ft) &&
@@ -1410,11 +1415,11 @@ function apiGetFilteredLogs(players, categories, startDate, endDate) {
   } catch (e) { return fail(e); }
 }
 
-function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText) {
+function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate) {
   try {
     const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
     const categories = (filterCategories && filterCategories.length) ? filterCategories : null;
-    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null);
+    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null);
     return { success: true, logs: result.logs, total: result.total, totalEntries: result.totalEntries };
   } catch(e) { return fail(e); }
 }

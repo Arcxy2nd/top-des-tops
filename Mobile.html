@@ -601,8 +601,8 @@
     if (tabId === 'tab-dashboard') loadDashboard();
     if (tabId === 'tab-inject')    initInjectTab();
     if (tabId === 'tab-settings')  initSettingsTab();
-    if (tabId === 'tab-notes')     loadNotesTab();
-    if (tabId === 'tab-history')   renderHistoryShell();
+    if (tabId === 'tab-notes'   && !_mNotesLoadedOnce)   loadNotesTab();
+    if (tabId === 'tab-history' && !_mHistoryLoadedOnce)  renderHistoryShell();
     if (tabId === 'tab-guide')     initGuideTab();
   }
 
@@ -1372,7 +1372,9 @@
     }, 'Chargement compteur notes');
   }
 
+  let _mNotesLoadedOnce = false;
   function loadNotesTab() {
+    _mNotesLoadedOnce = true;
     renderNotesShell();
   }
 
@@ -1385,7 +1387,9 @@
 
   let mHistorySubTab = 'entries';
 
+  let _mHistoryLoadedOnce = false;
   function renderHistoryShell() {
+    _mHistoryLoadedOnce = true;
     const tab = document.getElementById('tab-history');
     tab.innerHTML =
       '<div class="m-chip-row" id="mHistSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:12px;">' +
@@ -1414,6 +1418,11 @@
     body.innerHTML =
       '<div class="card">' +
         '<input type="text" id="mHistSearch" placeholder="🔍 Rechercher…">' +
+        '<div class="m-row" style="margin-top:10px;">' +
+          '<input type="date" id="mHistDateFrom" title="Depuis" style="flex:1;">' +
+          '<input type="date" id="mHistDateTo"   title="Jusqu\'au" style="flex:1;">' +
+          '<button id="mHistDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>' +
+        '</div>' +
       '</div>' +
       '<div id="mHistCards"></div>' +
       '<button id="mHistLoadMore" class="secondary" style="width:100%;">Charger plus</button>';
@@ -1422,6 +1431,14 @@
     document.getElementById('mHistSearch').addEventListener('input', () => {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => { mHistoryPage = 1; mHistoryLoaded = []; loadHistoryTab(); }, 300);
+    });
+    const reloadFromDateChange = () => { mHistoryPage = 1; mHistoryLoaded = []; loadHistoryTab(); };
+    document.getElementById('mHistDateFrom').addEventListener('change', reloadFromDateChange);
+    document.getElementById('mHistDateTo').addEventListener('change',   reloadFromDateChange);
+    document.getElementById('mHistDateClearBtn').addEventListener('click', () => {
+      document.getElementById('mHistDateFrom').value = '';
+      document.getElementById('mHistDateTo').value   = '';
+      reloadFromDateChange();
     });
     document.getElementById('mHistLoadMore').addEventListener('click', () => {
       mHistoryPage++;
@@ -1614,7 +1631,9 @@
   function loadHistoryTab(append) {
     if (!document.getElementById('mHistCards')) renderHistoryShell();
     const text = (document.getElementById('mHistSearch') || {}).value || '';
-    callServer('apiGetHistoryPage', [mHistoryPage, M_HIST_PAGE_SIZE, [], [], text], res => {
+    const dateFrom = (document.getElementById('mHistDateFrom') || {}).value || null;
+    const dateTo   = (document.getElementById('mHistDateTo')   || {}).value || null;
+    callServer('apiGetHistoryPage', [mHistoryPage, M_HIST_PAGE_SIZE, [], [], text, dateFrom, dateTo], res => {
       mHistoryLoaded = append ? mHistoryLoaded.concat(res.logs) : res.logs;
       const container = document.getElementById('mHistCards');
       if (!mHistoryLoaded.length) {
