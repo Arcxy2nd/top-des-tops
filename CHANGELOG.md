@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-14
+
+### Corrigé
+**Humanisé** : Dans Historique → Journal d'audit, les lignes « Dégroupement lot » et « Retrait du groupe » n'affichaient plus aucune information (régression de la refonte du 10 juillet) — elles montrent de nouveau quel lot/quelle ligne était concerné.
+**Technique** : `apiUngroupLot` et `apiRemoveFromGroup` (Code.gs) plaçaient l'identifiant utile (`groupId`/`rowIndex`) dans le paramètre `before` d'`AuditService.log`, colonne masquée côté frontend pour ces actions via `AUDIT_NO_DIFF_ACTIONS`. Déplacé vers le paramètre `detail`, seule colonne affichée pour ces actions.
+
 ## [Non publié] - 2026-07-11
 
 ### Ajouté

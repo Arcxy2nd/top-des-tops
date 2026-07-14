@@ -2040,7 +2040,7 @@ function apiUngroupLot(groupId, author) {
           sheet.getRange(i + 2, 6).setValue('');
         }
       }
-      AuditService.log(author, 'Dégroupement lot', 'History', groupId, '', '');
+      AuditService.log(author, 'Dégroupement lot', 'History', '', '', 'gid: ' + groupId);
       ConfigService.clearCache();
       return { success: true };
     });
@@ -2258,7 +2258,7 @@ function apiRemoveFromGroup(rowIndex, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
       sheet.getRange(rowIndex, 6).setValue('');
-      AuditService.log(author, 'Retrait du groupe', 'History', String(rowIndex), '', '');
+      AuditService.log(author, 'Retrait du groupe', 'History', '', '', 'ligne #' + rowIndex);
       ConfigService.clearCache();
       return { success: true };
     });
