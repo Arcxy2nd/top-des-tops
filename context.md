@@ -15,7 +15,7 @@ Au tout début de chaque session, avant toute action, lire dans cet ordre :
 | # | Fichier | Ce qu'on y cherche |
 |---|---------|-------------------|
 | 1 | `context.md` (ce fichier) | Remettre en tête les règles, la stack, les conventions |
-| 2 | `CHANGELOG.md` | Comprendre l'état récent du projet — ce qui vient d'être ajouté, corrigé ou supprimé |
+| 2 | `CHANGELOG.md` — seulement les entrées les plus récentes (dernière version, et les précédentes si le sujet de la session y touche) | Comprendre l'état récent du projet — ce qui vient d'être ajouté, corrigé ou supprimé. Pas besoin de lire tout l'historique. |
 | 3 | `DEPLOIEMENT.md` | Rappel du workflow de déploiement si la session touche au déploiement ou aux scripts GAS |
 | 4 | Dernier plan actif dans `docs/superpowers/plans/` (date la plus récente) | S'il y a un plan en cours, s'y référer avant de proposer une approche |
 
