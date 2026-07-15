@@ -12,13 +12,24 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    /* ── ÉCHELLE GLOBALE ×~2.2 ──────────────────────────────────────────────
+       Le wrapper GAS servi à /exec n'a aucune balise viewport (comportement
+       de plateforme non corrigeable depuis ce fichier) : tout téléphone
+       traite la page comme large de ~980px CSS puis la réduit visuellement
+       à l'échelle (~0.4 sur un iPhone 14 Pro). Toutes les tailles ci-dessous
+       sont donc volontairement ~2 à 2.5× les valeurs "mobile normales" pour
+       que le rendu final, une fois réduit par le téléphone, retombe à une
+       taille confortable. Les media queries ≤430/380/340px ne se déclenchent
+       donc jamais en pratique (gardées telles quelles, inoffensives) ; celle
+       à min-width:600px, elle, se déclenche TOUJOURS (~980px réel) et est
+       ajustée en conséquence plus bas. */
     :root {
       --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
       --accent: #ff4757; --accent-hover: #ff6b81;
       --text: #e0e6ed; --text-muted: #9aa5be;
       --success: #2ed573; --error: #ff4757;
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
-      --btn-alt: #353b48; --tap-min: 48px; --rail-w: 56px;
+      --btn-alt: #353b48; --tap-min: 100px; --rail-w: 120px;
       --on-accent: #fff;
     }
     body.light {
@@ -32,49 +43,52 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
+      font-size: 1.9rem;
       margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(var(--rail-w) + env(safe-area-inset-left));
       transition: background 0.2s, color 0.2s;
       -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
     }
     button { touch-action: manipulation; }
     .card {
-      background: var(--card); padding: 16px;
-      border-radius: 14px; border: 1px solid var(--border);
+      background: var(--card); padding: 34px;
+      border-radius: 26px; border: 1px solid var(--border);
       box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-      margin-bottom: 14px;
+      margin-bottom: 30px;
+      max-width: 100%; overflow-x: hidden;
     }
-    h2 { margin: 0 0 12px 0; font-size: clamp(1rem, 0.94rem + 0.3vw, 1.1rem); color: var(--text); }
-    h3 { font-size: clamp(0.82rem, 0.78rem + 0.2vw, 0.9rem); color: var(--text-muted); margin: 0 0 10px 0; }
+    h2 { margin: 0 0 26px 0; font-size: clamp(2.2rem, 2.05rem + 0.3vw, 2.4rem); color: var(--text); }
+    h3 { font-size: clamp(1.8rem, 1.7rem + 0.2vw, 2rem); color: var(--text-muted); margin: 0 0 22px 0; }
     select, input[type="text"], input[type="url"], input[type="date"],
     input[type="number"], input[type="password"], textarea {
-      padding: 12px 14px; border-radius: 10px;
+      padding: 26px 30px; border-radius: 20px;
       border: 1px solid var(--border);
       background: var(--bg); color: var(--text);
-      font-size: 16px; /* empêche le zoom auto iOS */
+      font-size: 1.8rem;
       outline: none; width: 100%; min-height: var(--tap-min);
       touch-action: manipulation; font-family: inherit;
     }
     select:focus, input:focus, textarea:focus { border-color: var(--accent); }
     button {
-      padding: 12px 18px; border-radius: 10px;
+      padding: 26px 40px; border-radius: 20px;
       border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text);
-      font-size: 0.95rem; font-weight: 600;
+      font-size: 1.9rem; font-weight: 600;
       cursor: pointer; min-height: var(--tap-min);
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 14px;
     }
     button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); }
-    button.small   { padding: 8px 12px; font-size: 0.82rem; min-height: 36px; }
+    button.small   { padding: 18px 26px; font-size: 1.7rem; min-height: 76px; }
     button:disabled { opacity: 0.55; cursor: default; }
-    .m-container { max-width: 640px; margin: 0 auto; padding: 12px max(12px, env(safe-area-inset-left)) 12px max(12px, env(safe-area-inset-right)); }
-    .m-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
-    .m-avatar.sm { width: 24px; height: 24px; }
-    .m-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 6px; }
+    .m-container { max-width: 900px; margin: 0 auto; padding: 26px max(26px, env(safe-area-inset-left)) 26px max(26px, env(safe-area-inset-right)); overflow-x: hidden; }
+    .m-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .m-avatar.sm { width: 52px; height: 52px; }
+    .m-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; row-gap: 14px; }
     .m-tab { display: none; }
     .m-tab.active { display: block; animation: mFadeIn 0.2s ease; }
     @keyframes mFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    .m-empty { text-align: center; color: var(--text-muted); padding: 24px 8px; font-size: 0.9rem; }
+    .m-empty { text-align: center; color: var(--text-muted); padding: 50px 18px; font-size: 1.9rem; }
 
     /* ── RAIL LATÉRAL (remplace l'ancienne bande supérieure + barre du bas) ──
        Repliée : bande étroite d'icônes, toujours visible, cote à cote avec le
@@ -89,34 +103,34 @@
       padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
       transition: width 0.2s ease;
     }
-    .m-side-nav.expanded { width: 76vw; max-width: 260px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
+    .m-side-nav.expanded { width: 76vw; max-width: 560px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
     .m-side-toggle {
-      background: none; border: none; color: var(--text); font-size: 1.3rem;
-      width: var(--rail-w); flex-shrink: 0; padding: 10px 0; min-height: auto; border-radius: 0;
+      background: none; border: none; color: var(--text); font-size: 2.8rem;
+      width: var(--rail-w); flex-shrink: 0; padding: 22px 0; min-height: auto; border-radius: 0;
     }
-    .m-side-brand { display: flex; align-items: center; gap: 8px; padding: 2px 16px 14px; flex-shrink: 0; }
+    .m-side-brand { display: flex; align-items: center; gap: 18px; padding: 4px 34px 30px; flex-shrink: 0; }
     .m-side-title {
-      font-weight: 800; font-size: 0.95rem; color: var(--accent);
+      font-weight: 800; font-size: 2.1rem; color: var(--accent);
       white-space: nowrap; opacity: 0; transition: opacity 0.15s;
     }
     .m-side-nav.expanded .m-side-title { opacity: 1; }
     .m-side-links { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
-    .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 4px; }
+    .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 8px; }
     .m-nav-btn, .m-side-item {
-      display: flex; align-items: center; gap: 14px; width: 100%;
+      display: flex; align-items: center; gap: 30px; width: 100%;
       background: transparent; border: none; border-radius: 0; text-decoration: none;
-      color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
-      padding: 13px 16px; min-height: 48px; white-space: nowrap; justify-content: flex-start;
+      color: var(--text-muted); font-size: 1.9rem; font-weight: 600;
+      padding: 28px 34px; min-height: 100px; white-space: nowrap; justify-content: flex-start;
       box-sizing: border-box;
     }
     .m-nav-btn.active { color: var(--accent); background: rgba(255,71,87,0.08); }
-    .m-nav-icon { font-size: 1.25rem; position: relative; width: 24px; text-align: center; flex-shrink: 0; }
+    .m-nav-icon { font-size: 2.75rem; position: relative; width: 52px; text-align: center; flex-shrink: 0; }
     .m-side-label { opacity: 0; transition: opacity 0.15s; overflow: hidden; text-overflow: ellipsis; }
     .m-side-nav.expanded .m-side-label { opacity: 1; }
     .m-nav-count {
-      position: absolute; top: -4px; right: -8px;
-      background: var(--accent); color: var(--on-accent); border-radius: 8px;
-      font-size: 0.55rem; font-weight: 700; padding: 1px 4px; min-width: 14px;
+      position: absolute; top: -8px; right: -16px;
+      background: var(--accent); color: var(--on-accent); border-radius: 16px;
+      font-size: 1.2rem; font-weight: 700; padding: 2px 9px; min-width: 30px;
     }
     .m-side-overlay {
       display: none; position: fixed; inset: 0; z-index: 99; background: rgba(0,0,0,0.4);
@@ -129,17 +143,18 @@
       z-index: 200; align-items: flex-end; justify-content: center;
     }
     #mModalBox {
-      background: var(--card); border-radius: 16px 16px 0 0; padding: 18px;
-      width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto;
+      background: var(--card); border-radius: 34px 34px 0 0; padding: 38px;
+      width: 100%; max-width: 900px; max-height: 88vh; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     /* bottom: la barre du bas a été remplacée par le rail latéral (voir plus bas) —
        plus besoin de réserver de la place au-dessus d'une barre qui n'existe plus,
        précieux surtout en paysage où la hauteur est déjà comptée. */
-    #mToastContainer { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 12px; right: 12px; z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    #mToastContainer { position: fixed; bottom: calc(34px + env(safe-area-inset-bottom)); left: 26px; right: 26px; z-index: 300; display: flex; flex-direction: column; gap: 18px; align-items: center; }
     .m-toast {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 16px; font-size: 0.85rem; box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-      animation: mFadeIn 0.2s ease;
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 22px 34px; font-size: 1.9rem; box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      animation: mFadeIn 0.2s ease; max-width: 100%;
     }
     .m-toast.success { border-color: var(--success); color: var(--success); }
     .m-toast.error   { border-color: var(--error);   color: var(--error); }
@@ -147,66 +162,73 @@
     /* ── ACCORDION (Dashboard filtres / Guide) ── */
     .m-accordion-head {
       display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; font-weight: 700; font-size: 2rem;
     }
-    .m-accordion-body { display: none; padding-top: 10px; }
+    .m-accordion-body { display: none; padding-top: 22px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .m-accordion.open .m-accordion-body { display: block; }
     .m-accordion.open .m-accordion-arrow { transform: rotate(180deg); }
     .m-accordion-arrow { transition: transform 0.2s; }
 
     /* ── CHIPS (filtres joueurs/catégories) ── */
-    .m-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .m-chip-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
     .m-chip {
-      display: flex; align-items: center; gap: 5px;
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 16px;
-      padding: 5px 10px 5px 5px; font-size: 0.78rem; cursor: pointer;
+      display: flex; align-items: center; gap: 11px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 34px;
+      padding: 11px 22px 11px 11px; font-size: 1.7rem; cursor: pointer;
+      min-height: 60px;
     }
     .m-chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
     /* ── HISTORY CARDS ── */
-    .m-hist-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 8px; background: var(--bg); overflow: hidden; }
+    .m-hist-card { border: 1px solid var(--border); border-radius: 26px; padding: 26px; margin-bottom: 18px; background: var(--bg); overflow: hidden; max-width: 100%; }
     /* flex-wrap : sur un écran étroit, joueur + top + points ne tiennent pas toujours
        sur une ligne (long nom de joueur ou de top) — sans ça la ligne dépassait la
        carte et forçait un scroll horizontal de toute la page. */
-    .m-hist-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; row-gap: 4px; }
+    .m-hist-top { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; flex-wrap: wrap; row-gap: 10px; }
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
-    .m-hist-meta { font-size: 0.75rem; color: var(--text-muted); }
-    .m-hist-desc { font-size: 0.82rem; margin-top: 4px; }
-    .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 4px 0; font-size: 1em; }
-    .m-hist-desc ul, .m-hist-desc ol { margin: 4px 0; padding-left: 20px; }
+    .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
+    .m-hist-desc { font-size: 1.8rem; margin-top: 10px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 10px 0; font-size: 1em; }
+    .m-hist-desc ul, .m-hist-desc ol { margin: 10px 0; padding-left: 44px; }
     .m-hist-desc .md-code-block {
-      background: rgba(0,0,0,0.25); padding: 6px 8px; border-radius: 6px;
-      overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 0.8rem;
+      background: rgba(0,0,0,0.25); padding: 14px 18px; border-radius: 14px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 1.75rem;
     }
     /* Sous-onglets en scroll horizontal (Historique/Paramètres) — générés en JS avec
        overflow-x:auto inline ; on complète ici l'inertie tactile iOS sans toucher au JS. */
     #mHistSubNav, #mSettingsSubNav { -webkit-overflow-scrolling: touch; }
-    .m-hist-desc code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; }
+    .m-hist-desc code { background: rgba(0,0,0,0.25); padding: 3px 11px; border-radius: 9px; }
     .mention {
-      display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px;
-      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      display: inline-flex; align-items: center; gap: 9px; padding: 3px 18px 3px 9px;
+      border-radius: 44px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
       color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
     }
-    .mention img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
-    .m-hist-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .mention img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+    .m-hist-actions { display: flex; gap: 14px; margin-top: 18px; }
 
     /* ── DASHBOARD CHART TOOLTIP / DRILLDOWN ── */
     #mChartCustomTooltip {
       position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.1s;
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 10px; font-size: 0.78rem; z-index: 20; min-width: 140px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+      padding: 18px 22px; font-size: 1.7rem; z-index: 20; min-width: 310px;
+      max-width: min(90vw, 460px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
     #mChartCustomTooltip.visible { opacity: 1; }
-    #mChartCustomTooltip .ctt-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 700; }
-    #mChartCustomTooltip .ctt-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
-    #mChartCustomTooltip .ctt-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
-    #mChartCustomTooltip .ctt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    #mChartCustomTooltip .ctt-title-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; font-weight: 700; }
+    #mChartCustomTooltip .ctt-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    #mChartCustomTooltip .ctt-row { display: flex; align-items: center; gap: 14px; padding: 5px 0; }
+    #mChartCustomTooltip .ctt-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
     #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #mChartCustomTooltip .ctt-val { font-weight: 700; }
-    #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 5px; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
+    #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 11px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 1.55rem; color: var(--text-muted); }
+
+    /* ── Filet de sécurité générique : toute rangée/liste horizontale scrollable ── */
+    .m-chart-wrapper { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .m-chart-wrapper canvas { max-width: 100%; }
+    table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
     /* ── COUVERTURE ÉCRANS MOBILES ──────────────────────────────────────────
        L'app est fluide par défaut (flex/%, pas de largeur figée), donc les
@@ -249,20 +271,24 @@
        scroll sur un écran déjà court. La largeur ne pose pas de problème ici
        (le rail latéral + le conteneur centré s'adaptent déjà). */
     @media (orientation: landscape) and (max-height: 500px) {
-      .card { padding: 10px 16px; margin-bottom: 8px; }
-      h2 { margin-bottom: 8px; }
-      h3 { margin-bottom: 6px; }
-      .m-accordion-body { padding-top: 6px; }
+      .card { padding: 22px 34px; margin-bottom: 18px; }
+      h2 { margin-bottom: 18px; }
+      h3 { margin-bottom: 14px; }
+      .m-accordion-body { padding-top: 14px; }
       #mModalBox { max-height: 94vh; }
     }
 
-    /* Tablette en portrait (~481-768px) — la largeur laissée par le rail est
-       confortable ; on desserre les marges du conteneur au lieu de laisser le
-       contenu coller aux bords, sans changer la structure en une colonne
-       (cohérente avec l'usage tactile ciblé). */
+    /* NOTE IMPORTANTE : le wrapper GAS servi à /exec n'ayant pas de balise
+       <meta name="viewport">, la largeur CSS réelle vue par cette page est
+       TOUJOURS ~980px, quel que soit le téléphone — cette media query
+       (min-width:600px) se déclenche donc systématiquement en production,
+       contrairement à celles ci-dessus (≤430/380/340px) qui, elles, ne se
+       déclenchent jamais. Les valeurs ci-dessous sont donc alignées sur
+       l'échelle agrandie (jamais plus petites que les règles de base), pour
+       ne pas écraser l'agrandissement fait plus haut. */
     @media (min-width: 600px) {
-      .m-container { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
-      .card { padding: 20px; }
+      .m-container { padding-left: max(40px, env(safe-area-inset-left)); padding-right: max(40px, env(safe-area-inset-right)); }
+      .card { padding: 40px; }
     }
   </style>
 </head>
@@ -291,20 +317,20 @@
 <div class="m-side-overlay" id="mSideOverlay"></div>
 
 <div id="mIdentitySheet" class="m-tab" style="position:fixed; inset:0; z-index:150; background:rgba(0,0,0,0.55); display:none; align-items:flex-end; justify-content:center;">
-  <div class="card" style="width:100%; max-width:640px; max-height:70vh; overflow-y:auto; border-radius:16px 16px 0 0; margin:0;">
+  <div class="card" style="width:100%; max-width:900px; max-height:70vh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:34px 34px 0 0; margin:0;">
     <h2>Qui suis-je ?</h2>
     <div id="mIdentityList"></div>
-    <button class="small" id="mIdentityCancel" style="margin-top:10px; width:100%;">Fermer</button>
+    <button class="small" id="mIdentityCancel" style="margin-top:22px; width:100%;">Fermer</button>
   </div>
 </div>
 
 <div id="mIdentityPwdModal" style="display:none; position:fixed; inset:0; z-index:160; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
-  <div class="card" style="width:88%; max-width:360px; margin:0; text-align:center;">
-    <img class="m-avatar" id="mIdentityPwdAvatar" src="" alt="" style="width:56px; height:56px; margin:0 auto 10px;">
+  <div class="card" style="width:92%; max-width:640px; margin:0; text-align:center; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <img class="m-avatar" id="mIdentityPwdAvatar" src="" alt="" style="width:120px; height:120px; margin:0 auto 22px;">
     <h2 id="mIdentityPwdName">—</h2>
-    <input type="password" id="mIdentityPwdInput" placeholder="Mot de passe" style="margin-bottom:8px;">
-    <div id="mIdentityPwdError" style="display:none; color:var(--error); font-size:0.8rem; margin-bottom:8px;">Mot de passe incorrect.</div>
-    <div class="m-row" style="justify-content:center; gap:10px;">
+    <input type="password" id="mIdentityPwdInput" placeholder="Mot de passe" style="margin-bottom:18px;">
+    <div id="mIdentityPwdError" style="display:none; color:var(--error); font-size:1.75rem; margin-bottom:18px;">Mot de passe incorrect.</div>
+    <div class="m-row" style="justify-content:center; gap:22px;">
       <button class="small" id="mIdentityPwdCancel">Annuler</button>
       <button class="primary small" id="mIdentityPwdSubmit">Valider</button>
     </div>
@@ -535,7 +561,7 @@
     openModal(
       '<h2>' + escapeHtml(context.title) + '</h2>' +
       '<div id="mDrilldownList"><p class="m-empty">Chargement…</p></div>' +
-      '<div class="m-row" style="justify-content:flex-end; margin-top:12px;"><button class="small" id="mDrilldownClose">Fermer</button></div>'
+      '<div class="m-row" style="justify-content:flex-end; margin-top:26px;"><button class="small" id="mDrilldownClose">Fermer</button></div>'
     );
     document.getElementById('mDrilldownClose').addEventListener('click', closeModal);
 
@@ -557,7 +583,7 @@
   function openConfirmModal(message, onConfirm) {
     openModal(
       '<h2>Confirmer</h2><p>' + escapeHtml(message) + '</p>' +
-      '<div class="m-row" style="justify-content:flex-end; gap:10px; margin-top:12px;">' +
+      '<div class="m-row" style="justify-content:flex-end; gap:22px; margin-top:26px;">' +
       '<button class="small" id="mConfirmCancel">Annuler</button>' +
       '<button class="danger small" id="mConfirmOk">Confirmer</button></div>'
     );
@@ -606,7 +632,7 @@
     list.innerHTML = cachedPlayers.map(p => {
       const badge = p.name === _whoAmI ? '✓' : (p.hasPassword ? '🔒' : '');
       return '<button class="m-row" data-player="' + escapeHtml(p.name) + '" ' +
-        'style="width:100%; margin-bottom:6px; justify-content:flex-start; background:' +
+        'style="width:100%; margin-bottom:14px; justify-content:flex-start; background:' +
         (p.name === _whoAmI ? 'var(--accent)' : 'var(--btn-alt)') + ';">' +
         avatarImgHtml(p.name, p.meta, 'm-avatar sm') +
         '<span style="flex:1; text-align:left;">' + escapeHtml(p.name) + '</span>' +
@@ -799,18 +825,18 @@
             '<option value="3m">3 mois</option><option value="6m">6 mois</option>' +
             '<option value="1y">1 an</option><option value="all" selected>Tout</option>' +
           '</select>' +
-          '<h3 style="margin-top:12px;">Joueurs</h3><div class="m-chip-row" id="mPlayerChips"></div>' +
-          '<h3 style="margin-top:12px;">Tops</h3><div class="m-chip-row" id="mCategoryChips"></div>' +
+          '<h3 style="margin-top:26px;">Joueurs</h3><div class="m-chip-row" id="mPlayerChips"></div>' +
+          '<h3 style="margin-top:26px;">Tops</h3><div class="m-chip-row" id="mCategoryChips"></div>' +
         '</div>' +
       '</div>' +
       '<div class="card">' +
-        '<select id="mChartTypeSelect" style="margin-bottom:12px;">' +
+        '<select id="mChartTypeSelect" style="margin-bottom:26px;">' +
           '<option value="stacked">Empilé</option><option value="grouped">Groupé</option>' +
           '<option value="line">Courbes</option><option value="radar">Radar</option>' +
           '<option value="donut">Donut</option><option value="ranking">Classement</option>' +
         '</select>' +
         '<div class="m-chart-wrapper" id="mChartWrapper" style="position:relative;">' +
-          '<canvas id="mMainChart" height="260"></canvas>' +
+          '<canvas id="mMainChart" height="570"></canvas>' +
           '<div id="mChartCustomTooltip" role="tooltip"></div>' +
         '</div>' +
       '</div>' +
@@ -1360,7 +1386,7 @@
           const pool = phrases.filter(p => p.preset === preset && p.pool === entry.pool);
           const source = pool.length ? pool.map(p => p.text) : FACTORY_PHRASES[entry.pool];
           const text = source[Math.floor(Math.random() * source.length)];
-          return '<div class="m-row" style="margin-bottom:8px;">' +
+          return '<div class="m-row" style="margin-bottom:18px;">' +
             avatarImgHtml(entry.player, (cachedPlayers.find(p => p.name === entry.player) || {}).meta, 'm-avatar sm') +
             '<span>' + escapeHtml(substituteCommentVars(text, entry, ranked)) + '</span></div>';
         });
@@ -1384,16 +1410,16 @@
       '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('');
     const catOptions = cachedCategories.map(c =>
       '<option value="' + escapeHtml(c.name) + '">' + (c.icon || '') + ' ' + escapeHtml(c.name) + '</option>').join('');
-    return '<div class="card" id="row_' + id + '" style="margin-bottom:10px;">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted);">Joueur</label>' +
+    return '<div class="card" id="row_' + id + '" style="margin-bottom:22px;">' +
+      '<label style="font-size:1.65rem; color:var(--text-muted);">Joueur</label>' +
       '<select class="m-row-player">' + playerOptions + '</select>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Top</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Top</label>' +
       '<select class="m-row-cat">' + catOptions + '</select>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Points</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
       '<input type="number" class="m-row-pts" value="1" min="1">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Description (optionnel)</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Description (optionnel)</label>' +
       '<input type="text" class="m-row-desc" placeholder="Description">' +
-      '<button class="danger small m-row-remove" style="margin-top:10px; width:100%;">🗑️ Retirer cette ligne</button>' +
+      '<button class="danger small m-row-remove" style="margin-top:22px; width:100%;">🗑️ Retirer cette ligne</button>' +
       '</div>';
   }
 
@@ -1410,11 +1436,11 @@
     tab.innerHTML =
       '<div class="card">' +
         '<h2>✍️ Saisir un Lot</h2>' +
-        '<label style="font-size:0.8rem; color:var(--text-muted);">Date</label>' +
+        '<label style="font-size:1.75rem; color:var(--text-muted);">Date</label>' +
         '<input type="date" id="mInjectDate" value="' + toDateStr(new Date()) + '">' +
       '</div>' +
       '<div id="mInjectRows"></div>' +
-      '<button id="mInjectAddRow" class="secondary" style="width:100%; margin-bottom:10px;">＋ Ajouter une ligne</button>' +
+      '<button id="mInjectAddRow" class="secondary" style="width:100%; margin-bottom:22px;">＋ Ajouter une ligne</button>' +
       '<button id="mInjectSubmit" class="primary" style="width:100%;">✅ Enregistrer le lot</button>';
 
     document.getElementById('mInjectAddRow').addEventListener('click', addInjectRow);
@@ -1463,15 +1489,15 @@
   function renderNotesShell() {
     const tab = document.getElementById('tab-notes');
     const playerButtons = cachedPlayers.map(p =>
-      '<button class="m-note-player-btn" data-name="' + escapeHtml(p.name) + '" style="flex-direction:column; height:auto; padding:10px 6px;">' +
-      avatarImgHtml(p.name, p.meta, 'm-avatar') + '<span style="font-size:0.72rem; margin-top:4px;">' + escapeHtml(p.name) + '</span></button>'
+      '<button class="m-note-player-btn" data-name="' + escapeHtml(p.name) + '" style="flex-direction:column; height:auto; padding:22px 14px;">' +
+      avatarImgHtml(p.name, p.meta, 'm-avatar') + '<span style="font-size:1.6rem; margin-top:22px;">' + escapeHtml(p.name) + '</span></button>'
     ).join('');
     tab.innerHTML =
       '<div class="card">' +
         '<h2>📝 Note rapide</h2>' +
-        '<div class="m-row" style="flex-wrap:wrap; gap:8px;" id="mNotePlayerRow">' + playerButtons + '</div>' +
-        '<textarea id="mNoteText" rows="3" placeholder="Écris ta note…" style="margin-top:10px;"></textarea>' +
-        '<button id="mNoteSubmit" class="primary" style="width:100%; margin-top:10px;">📩 Envoyer</button>' +
+        '<div class="m-row" style="flex-wrap:wrap; gap:18px;" id="mNotePlayerRow">' + playerButtons + '</div>' +
+        '<textarea id="mNoteText" rows="3" placeholder="Écris ta note…" style="margin-top:22px;"></textarea>' +
+        '<button id="mNoteSubmit" class="primary" style="width:100%; margin-top:22px;">📩 Envoyer</button>' +
       '</div>' +
       '<div class="card"><h2>Historique des notes</h2><div id="mNotesList"></div></div>';
 
@@ -1541,7 +1567,7 @@
           openModal(
             '<h2>Modifier la note</h2>' +
             '<textarea id="mEditNoteText" rows="4">' + escapeHtml(note.text) + '</textarea>' +
-            '<button class="primary" style="width:100%; margin-top:10px;" id="mEditNoteSave">Enregistrer</button>'
+            '<button class="primary" style="width:100%; margin-top:22px;" id="mEditNoteSave">Enregistrer</button>'
           );
           document.getElementById('mEditNoteSave').addEventListener('click', () => {
             const v = document.getElementById('mEditNoteText').value;
@@ -1584,7 +1610,7 @@
     _mHistoryLoadedOnce = true;
     const tab = document.getElementById('tab-history');
     tab.innerHTML =
-      '<div class="m-chip-row" id="mHistSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:12px;">' +
+      '<div class="m-chip-row" id="mHistSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:26px;">' +
         '<div class="m-chip active" data-sub="entries">📜 Entrées</div>' +
         '<div class="m-chip" data-sub="audit">🔍 Journal d\'audit</div>' +
       '</div>' +
@@ -1610,7 +1636,7 @@
     body.innerHTML =
       '<div class="card">' +
         '<input type="text" id="mHistSearch" placeholder="🔍 Rechercher…">' +
-        '<div class="m-row" style="margin-top:10px;">' +
+        '<div class="m-row" style="margin-top:22px;">' +
           '<input type="date" id="mHistDateFrom" title="Depuis" style="flex:1;">' +
           '<input type="date" id="mHistDateTo"   title="Jusqu\'au" style="flex:1;">' +
           '<button id="mHistDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>' +
@@ -1792,17 +1818,17 @@
       '<option value="' + escapeHtml(c.name) + '"' + (c.name === log.category ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>').join('');
     openModal(
       '<h2>Modifier l\'entrée</h2>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted);">Date</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted);">Date</label>' +
       '<input type="date" id="mEditDate" value="' + toDateStr(new Date(log.timestamp)) + '">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Joueur</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Joueur</label>' +
       '<select id="mEditPlayer">' + playerOptions + '</select>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Top</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Top</label>' +
       '<select id="mEditCat">' + catOptions + '</select>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Points</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
       '<input type="number" id="mEditPts" value="' + log.points + '" min="1">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Description</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Description</label>' +
       '<input type="text" id="mEditDesc" value="' + escapeHtml(log.description || '') + '">' +
-      '<button class="primary" style="width:100%; margin-top:12px;" id="mEditSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:26px;" id="mEditSave">Enregistrer</button>'
     );
     document.getElementById('mEditSave').addEventListener('click', () => {
       const fields = {
@@ -1855,7 +1881,7 @@
   function renderSettingsShell() {
     const tab = document.getElementById('tab-settings');
     tab.innerHTML =
-      '<div class="m-chip-row" id="mSettingsSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:12px;">' +
+      '<div class="m-chip-row" id="mSettingsSubNav" style="flex-wrap:nowrap; overflow-x:auto; margin-bottom:26px;">' +
         '<div class="m-chip active" data-sub="players">👤 Joueurs</div>' +
         '<div class="m-chip" data-sub="categories">🎯 Tops</div>' +
         '<div class="m-chip" data-sub="bareme">⚖️ Barème</div>' +
@@ -1890,23 +1916,23 @@
       '<div class="card">' +
         '<h2>' + (type === 'Players' ? '👤 Joueurs' : '🎯 Tops') + '</h2>' +
         '<div id="mEntityList"></div>' +
-        '<button class="secondary" id="mEntityAdd" style="width:100%; margin-top:10px;">＋ Ajouter</button>' +
+        '<button class="secondary" id="mEntityAdd" style="width:100%; margin-top:22px;">＋ Ajouter</button>' +
       '</div>';
 
     const list = document.getElementById('mEntityList');
     list.innerHTML = items.map(item =>
-      '<div style="border-bottom:1px solid var(--border); padding:10px 0;" data-name="' + escapeHtml(item.name) + '">' +
+      '<div style="border-bottom:1px solid var(--border); padding:22px 0;" data-name="' + escapeHtml(item.name) + '">' +
       '<div class="m-row">' +
       (type === 'Players' ? avatarImgHtml(item.name, item.meta, 'm-avatar sm')
-                           : '<span style="font-size:1.2rem;">' + (item.icon || '🏷️') + '</span>') +
+                           : '<span style="font-size:2.6rem;">' + (item.icon || '🏷️') + '</span>') +
       '<span style="flex:1;">' + escapeHtml(item.name) + '</span>' +
-      '<span style="width:16px; height:16px; border-radius:50%; background:' +
+      '<span style="width:35px; height:35px; border-radius:50%; flex-shrink:0; background:' +
         (type === 'Players' ? playerColor(item.name) : categoryColor(item.name)) + ';"></span>' +
       '<button class="small" data-edit>✏️</button>' +
       '<button class="danger small" data-del>🗑️</button>' +
       '</div>' +
       (type === 'Categories' && item.meta
-        ? '<div class="m-hist-desc" style="margin-top:6px;">' + renderMarkdown(item.meta) + '</div>'
+        ? '<div class="m-hist-desc" style="margin-top:14px;">' + renderMarkdown(item.meta) + '</div>'
         : '') +
       '</div>'
     ).join('') || '<p class="m-empty">Aucun élément.</p>';
@@ -1942,15 +1968,15 @@
     const isPlayer = type === 'Players';
     openModal(
       '<h2>' + (item ? 'Modifier' : 'Ajouter') + ' — ' + (isPlayer ? 'Joueur' : 'Top') + '</h2>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted);">Nom</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted);">Nom</label>' +
       '<input type="text" id="mEntityName" value="' + (item ? escapeHtml(item.name) : '') + '">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">' +
         (isPlayer ? 'URL avatar (optionnel)' : 'Description (optionnel)') + '</label>' +
       '<input type="text" id="mEntityMeta" value="' + (item ? escapeHtml(item.meta || '') : '') + '">' +
       (isPlayer ? '' :
-        '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Emoji</label>' +
+        '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Emoji</label>' +
         '<input type="text" id="mEntityIcon" value="' + (item ? escapeHtml(item.icon || '') : '') + '" maxlength="4">') +
-      '<button class="primary" style="width:100%; margin-top:12px;" id="mEntitySave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:26px;" id="mEntitySave">Enregistrer</button>'
     );
     document.getElementById('mEntitySave').addEventListener('click', () => {
       const name = document.getElementById('mEntityName').value.trim();
@@ -1970,13 +1996,13 @@
   function renderBaremeSettings() {
     const body = document.getElementById('mSettingsBody');
     body.innerHTML = '<div class="card"><h2>⚖️ Barème</h2><div id="mBaremeList" class="m-empty">Chargement…</div>' +
-      '<button class="secondary" id="mBaremeAdd" style="width:100%; margin-top:10px;">＋ Ajouter une règle</button></div>';
+      '<button class="secondary" id="mBaremeAdd" style="width:100%; margin-top:22px;">＋ Ajouter une règle</button></div>';
 
     callServer('apiGetBareme', [], res => {
       mBaremeEntries = res.entries;
       const list = document.getElementById('mBaremeList');
       list.innerHTML = mBaremeEntries.map(entry =>
-        '<div class="m-row" style="border-bottom:1px solid var(--border); padding:10px 0;" data-row="' + entry.rowIndex + '">' +
+        '<div class="m-row" style="border-bottom:1px solid var(--border); padding:22px 0;" data-row="' + entry.rowIndex + '">' +
         '<span style="flex:1;">' + escapeHtml(entry.top) + ' — ' + escapeHtml(entry.action) + '</span>' +
         '<strong>' + entry.pts + ' pts</strong>' +
         '<button class="small" data-edit>✏️</button>' +
@@ -2018,12 +2044,12 @@
     openModal(
       '<h2>' + (entry ? 'Modifier' : 'Ajouter') + ' une règle</h2>' +
       (entry ? '<p>' + escapeHtml(entry.top) + '</p>' :
-        '<label style="font-size:0.75rem; color:var(--text-muted);">Top</label><select id="mBaremeTop">' + catOptions + '</select>') +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Action</label>' +
+        '<label style="font-size:1.65rem; color:var(--text-muted);">Top</label><select id="mBaremeTop">' + catOptions + '</select>') +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Action</label>' +
       '<input type="text" id="mBaremeAction" value="' + (entry ? escapeHtml(entry.action) : '') + '">' +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Points</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
       '<input type="number" id="mBaremePts" value="' + (entry ? entry.pts : 1) + '">' +
-      '<button class="primary" style="width:100%; margin-top:12px;" id="mBaremeSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:26px;" id="mBaremeSave">Enregistrer</button>'
     );
     document.getElementById('mBaremeSave').addEventListener('click', () => {
       const action = document.getElementById('mBaremeAction').value.trim();
@@ -2046,15 +2072,15 @@
   function renderPhrasesSettings() {
     const body = document.getElementById('mSettingsBody');
     body.innerHTML = '<div class="card"><h2>🎭 Phrases</h2>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted);">Preset actif</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted);">Preset actif</label>' +
       '<select id="mPresetSelect"></select>' +
-      '<div class="m-row" style="gap:8px; margin-top:8px;">' +
+      '<div class="m-row" style="gap:18px; margin-top:18px;">' +
         '<button class="secondary small" id="mPresetNew" style="flex:1;">＋ Nouveau</button>' +
         '<button class="secondary small" id="mPresetRename" style="flex:1;">✏️ Renommer</button>' +
         '<button class="danger small" id="mPresetDelete" style="flex:1;">🗑️ Supprimer</button>' +
       '</div>' +
-      '<div id="mPhrasesList" style="margin-top:10px;" class="m-empty">Chargement…</div>' +
-      '<button class="secondary" id="mPhraseAdd" style="width:100%; margin-top:10px;">＋ Ajouter une phrase</button>' +
+      '<div id="mPhrasesList" style="margin-top:22px;" class="m-empty">Chargement…</div>' +
+      '<button class="secondary" id="mPhraseAdd" style="width:100%; margin-top:22px;">＋ Ajouter une phrase</button>' +
       '</div>';
 
     callServer('apiGetActivePhrasePreset', [], activeRes => {
@@ -2127,9 +2153,9 @@
   function openPresetNameModal(title, initialValue, onSave) {
     openModal(
       '<h2>' + title + '</h2>' +
-      '<label style="font-size:0.75rem; color:var(--text-muted);">Nom du preset</label>' +
+      '<label style="font-size:1.65rem; color:var(--text-muted);">Nom du preset</label>' +
       '<input type="text" id="mPresetNameInput" value="' + escapeHtml(initialValue) + '">' +
-      '<button class="primary" style="width:100%; margin-top:12px;" id="mPresetNameSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:26px;" id="mPresetNameSave">Enregistrer</button>'
     );
     setTimeout(() => document.getElementById('mPresetNameInput').focus(), 60);
     document.getElementById('mPresetNameSave').addEventListener('click', () => {
@@ -2144,8 +2170,8 @@
     const list = document.getElementById('mPhrasesList');
     const entries = mPhrasesAll.filter(p => p.preset === mActivePreset);
     list.innerHTML = entries.map(p =>
-      '<div class="m-row" style="border-bottom:1px solid var(--border); padding:10px 0;" data-row="' + p.rowIndex + '">' +
-      '<span style="font-size:0.7rem; color:var(--text-muted); min-width:44px;">[' + escapeHtml(p.pool) + ']</span>' +
+      '<div class="m-row" style="border-bottom:1px solid var(--border); padding:22px 0;" data-row="' + p.rowIndex + '">' +
+      '<span style="font-size:1.55rem; color:var(--text-muted); min-width:96px;">[' + escapeHtml(p.pool) + ']</span>' +
       '<span style="flex:1;">' + escapeHtml(p.text) + '</span>' +
       '<button class="small" data-edit>✏️</button>' +
       '<button class="danger small" data-del>🗑️</button>' +
@@ -2180,10 +2206,10 @@
       '<option value="' + p + '"' + (entry && entry.pool === p ? ' selected' : '') + '>' + p + '</option>').join('');
     openModal(
       '<h2>' + (entry ? 'Modifier' : 'Ajouter') + ' une phrase</h2>' +
-      (entry ? '' : '<label style="font-size:0.75rem; color:var(--text-muted);">Pool</label><select id="mPhrasePool">' + poolOptions + '</select>') +
-      '<label style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:block;">Texte (variables : {player} {pts} {gap} {behind} {rank})</label>' +
+      (entry ? '' : '<label style="font-size:1.65rem; color:var(--text-muted);">Pool</label><select id="mPhrasePool">' + poolOptions + '</select>') +
+      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Texte (variables : {player} {pts} {gap} {behind} {rank})</label>' +
       '<textarea id="mPhraseText" rows="3">' + (entry ? escapeHtml(entry.text) : '') + '</textarea>' +
-      '<button class="primary" style="width:100%; margin-top:12px;" id="mPhraseSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:26px;" id="mPhraseSave">Enregistrer</button>'
     );
     document.getElementById('mPhraseSave').addEventListener('click', () => {
       const text = document.getElementById('mPhraseText').value.trim();
@@ -2221,14 +2247,14 @@
       '</div>' +
       '<div class="card">' +
         '<h2>🧹 Nettoyage</h2>' +
-        '<p style="font-size:0.85rem; color:var(--text-muted);">Supprime les entrées dont le joueur ou le top n\'existe plus.</p>' +
+        '<p style="font-size:1.85rem; color:var(--text-muted);">Supprime les entrées dont le joueur ou le top n\'existe plus.</p>' +
         '<button class="danger" id="mCleanOrphans" style="width:100%;">🗑️ Nettoyer les orphelins</button>' +
       '</div>' +
       '<div class="card">' +
         '<h2>🔗 Lots répartis</h2>' +
-        '<p style="font-size:0.85rem; color:var(--text-muted);">Détecte les entrées identiques saisies sur plusieurs jours (probable lot réparti manuellement).</p>' +
+        '<p style="font-size:1.85rem; color:var(--text-muted);">Détecte les entrées identiques saisies sur plusieurs jours (probable lot réparti manuellement).</p>' +
         '<button class="secondary" id="mDetectLots" style="width:100%;">🔍 Détecter les lots répartis</button>' +
-        '<div id="mLotsList" style="margin-top:10px;"></div>' +
+        '<div id="mLotsList" style="margin-top:22px;"></div>' +
       '</div>';
 
     document.getElementById('mCleanOrphans').addEventListener('click', () => {
@@ -2263,8 +2289,8 @@
       const el = document.getElementById('mHealthReport');
       if (!el) return;
       el.innerHTML =
-        '<div class="m-row" style="margin-bottom:6px;"><span>Entrées totales</span><strong style="margin-left:auto;">' + res.health.total + '</strong></div>' +
-        '<div class="m-row" style="margin-bottom:6px;"><span>Points à 0/négatifs</span><strong style="margin-left:auto; color:var(--warn);">' + res.health.zeros + '</strong></div>' +
+        '<div class="m-row" style="margin-bottom:14px;"><span>Entrées totales</span><strong style="margin-left:auto;">' + res.health.total + '</strong></div>' +
+        '<div class="m-row" style="margin-bottom:14px;"><span>Points à 0/négatifs</span><strong style="margin-left:auto; color:var(--warn);">' + res.health.zeros + '</strong></div>' +
         '<div class="m-row"><span>Entrées orphelines</span><strong style="margin-left:auto; color:var(--error);">' + res.health.orphans + '</strong></div>';
     }, 'Chargement rapport de santé');
   }
@@ -2315,7 +2341,7 @@
     tab.innerHTML = GUIDE_SECTIONS.map((s, i) =>
       '<div class="card m-accordion" data-guide="' + i + '">' +
         '<div class="m-accordion-head"><span>' + escapeHtml(s.title) + '</span><span class="m-accordion-arrow">▾</span></div>' +
-        '<div class="m-accordion-body"><p style="margin:0; font-size:0.85rem; color:var(--text-muted);">' + escapeHtml(s.body) + '</p></div>' +
+        '<div class="m-accordion-body"><p style="margin:0; font-size:1.85rem; color:var(--text-muted);">' + escapeHtml(s.body) + '</p></div>' +
       '</div>'
     ).join('');
     tab.querySelectorAll('.m-accordion-head').forEach(head => {
