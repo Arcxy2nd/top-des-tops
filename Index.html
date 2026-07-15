@@ -2390,6 +2390,12 @@
       <div id="pairsResults"></div>
     </div>
 
+    <!-- ══ MENTIONS ══ -->
+    <div class="card card-collapsible" id="mentionsCard">
+      <div class="card-collapse-header"><h2>💬 Mentions</h2></div>
+      <div id="mentionsResults"></div>
+    </div>
+
   </div>
 
   <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
@@ -10900,6 +10906,80 @@
     }, 'Chargement duos fréquents');
   }
 
+  // ── MENTIONS ─────────────────────────────────────────────────────────
+  function mentionAvatarRow(name, count, suffix) {
+    const row = document.createElement('div');
+    row.className = 'tool-action';
+    const p = cachedPlayers.find(pl => pl.name === name);
+    const info = document.createElement('div');
+    info.className = 'tool-action-info';
+    const strong = document.createElement('strong');
+    const avatar = document.createElement('img');
+    avatar.className = 'qs-avatar';
+    avatar.src = getAvatarUrl(name, p ? p.meta : '');
+    avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
+    strong.appendChild(avatar);
+    strong.appendChild(document.createTextNode(name));
+    const span = document.createElement('span');
+    span.textContent = count + ' ' + suffix;
+    info.appendChild(strong); info.appendChild(span);
+    row.appendChild(info);
+    return row;
+  }
+
+  function mentionSectionTitle(text, marginTop) {
+    const h = document.createElement('h3');
+    h.textContent = text;
+    h.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin:' + marginTop + 'px 0 6px;';
+    return h;
+  }
+
+  function loadMentionStats() {
+    const container = document.getElementById('mentionsResults');
+    showSkeleton(container, { rows: 3, height: 30 });
+    callServer('apiGetMentionStats', [], res => {
+      container.innerHTML = '';
+      if (res.mostMentioned.length) {
+        container.appendChild(mentionSectionTitle('📣 Les plus mentionnés', 0));
+        res.mostMentioned.forEach(m => container.appendChild(mentionAvatarRow(m.player, m.count, 'mention(s)')));
+      }
+      if (res.mostMentioning.length) {
+        container.appendChild(mentionSectionTitle('✍️ Ceux qui mentionnent le plus', 14));
+        res.mostMentioning.forEach(m => container.appendChild(mentionAvatarRow(m.player, m.count, 'mention(s) écrite(s)')));
+      }
+      if (res.topDuo) {
+        container.appendChild(mentionSectionTitle('🔗 Duo le plus complice', 14));
+        const row = document.createElement('div');
+        row.className = 'tool-action';
+        const pa = cachedPlayers.find(pl => pl.name === res.topDuo.playerA);
+        const pb = cachedPlayers.find(pl => pl.name === res.topDuo.playerB);
+        const info = document.createElement('div');
+        info.className = 'tool-action-info';
+        const strong = document.createElement('strong');
+        const avA = document.createElement('img');
+        avA.className = 'qs-avatar';
+        avA.src = getAvatarUrl(res.topDuo.playerA, pa ? pa.meta : '');
+        avA.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:4px;';
+        const avB = document.createElement('img');
+        avB.className = 'qs-avatar';
+        avB.src = getAvatarUrl(res.topDuo.playerB, pb ? pb.meta : '');
+        avB.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin:0 6px 0 2px;';
+        strong.appendChild(avA);
+        strong.appendChild(document.createTextNode(res.topDuo.playerA + ' & '));
+        strong.appendChild(avB);
+        strong.appendChild(document.createTextNode(res.topDuo.playerB));
+        const span = document.createElement('span');
+        span.textContent = res.topDuo.count + ' mention(s) croisée(s)';
+        info.appendChild(strong); info.appendChild(span);
+        row.appendChild(info);
+        container.appendChild(row);
+      }
+      if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
+      }
+    }, 'Chargement mentions');
+  }
+
   function initPhraseSettings() {
     const s = getPhraseSettings();
     const chk      = document.getElementById('phrasesEnabledChk');
@@ -11147,6 +11227,7 @@
     loadTrends();
     loadActiveWeekday();
     scanTopPairs();
+    loadMentionStats();
   };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────
