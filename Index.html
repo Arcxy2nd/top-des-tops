@@ -2479,7 +2479,7 @@
       <div class="add-form">
         <p class="add-form-label">Ajouter un Top</p>
         <input type="text" id="newCategoryName" placeholder="Nom du Top">
-        <input type="text" id="newCategoryMeta" placeholder="Description (optionnel)">
+        <div id="newCategoryMetaEditor"></div>
         <input type="text" id="newCategoryIcon" placeholder="Icône emoji (ex : 🍺) — optionnel" maxlength="8">
         <button id="addCategoryBtn" class="primary small">+ Ajouter</button>
       </div>
@@ -5267,7 +5267,9 @@
       '<div class="modal-grid single">' +
         '<div class="modal-field">' +
           '<label>' + metaLabel + '</label>' +
-          '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + metaLabel + '">' +
+          (isCat
+            ? '<div id="mNewMetaEditor"></div>'
+            : '<input type="text" id="mNewMeta" value="' + escapeHtml(oldMeta || '') + '" placeholder="' + metaLabel + '">') +
         '</div>' +
       '</div>' +
       '<div class="modal-field" style="margin-bottom:12px;">' +
@@ -5291,10 +5293,13 @@
       hexEl.textContent = picker.value;
     });
 
+    const metaEditor = isCat ? buildTextEditor({ value: oldMeta || '', rows: 2, placeholder: metaLabel }) : null;
+    if (metaEditor) document.getElementById('mNewMetaEditor').appendChild(metaEditor);
+
     document.getElementById('mSave').onclick = () => {
       if (!requireIdentity()) return;
       const n  = document.getElementById('mNewName').value.trim();
-      const m  = document.getElementById('mNewMeta').value.trim();
+      const m  = metaEditor ? metaEditor._getValue().trim() : document.getElementById('mNewMeta').value.trim();
       const ic = isCat ? ((document.getElementById('mNewIcon') || {}).value || '').trim() : '';
       const col = picker.value;
       if (!n) return;
@@ -5632,7 +5637,7 @@
       if (item.meta && type === 'Categories') {
         const meta = document.createElement('span');
         meta.className = 'entity-meta';
-        meta.textContent = item.meta;
+        meta.innerHTML = renderMarkdown(item.meta);
         info.appendChild(meta);
       }
       left.appendChild(info);
@@ -9265,7 +9270,7 @@
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Description (optionnelle)</label>' +
-          '<input type="text" id="mbDesc"' + (aDesc.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aDesc.value || '') + '"') + '></div>' +
+          '<div id="mbDescEditor"></div></div>' +
       '</div>' +
       '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Saiseur</label><div id="mbSaiseurRS"></div></div>' +
@@ -9280,18 +9285,25 @@
       var s = document.createElement('style');
       s.id = '_mbMixedStyle';
       s.textContent =
-        'input.rs-mixed-input { border-style: dashed; background: rgba(var(--accent-rgb, 99,102,241), 0.08); color: var(--text-muted); }' +
-        'input.rs-mixed-input:focus { background: var(--bg); color: var(--text); border-style: solid; }';
+        'input.rs-mixed-input, .md-textarea.rs-mixed-input { border-style: dashed; background: rgba(var(--accent-rgb, 99,102,241), 0.08); color: var(--text-muted); }' +
+        'input.rs-mixed-input:focus, .md-textarea.rs-mixed-input:focus { background: var(--bg); color: var(--text); border-style: solid; }';
       document.head.appendChild(s);
     }
 
     const playerRS   = buildRichSelect({ type: 'player',   value: aPlay.value, onChange: function() {}, mixedState: aPlay.mixed });
     const categoryRS = buildRichSelect({ type: 'category', value: aCat.value,  onChange: function() {}, mixedState: aCat.mixed });
     const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: aSais.value, onChange: function() {}, nullable: true, mixedState: aSais.mixed });
+    const descEditor = buildTextEditor({
+      value: aDesc.mixed ? '' : (aDesc.value || ''),
+      rows: 3,
+      placeholder: aDesc.mixed ? '— Valeurs mixtes —' : 'Description…'
+    });
+    if (aDesc.mixed) descEditor._textarea.classList.add('rs-mixed-input');
 
     document.getElementById('mbPlayerRS').appendChild(playerRS);
     document.getElementById('mbCategoryRS').appendChild(categoryRS);
     document.getElementById('mbSaiseurRS').appendChild(saiseurRS);
+    document.getElementById('mbDescEditor').appendChild(descEditor);
 
     document.getElementById('mbSave').onclick = function() {
       if (!requireIdentity()) return;
@@ -9331,9 +9343,8 @@
       }
 
       // Description (toujours envoyée si pas mixte ou modifiée)
-      const descEl = document.getElementById('mbDesc');
-      const descVal = descEl.value;
-      if (!descEl.classList.contains('rs-mixed-input') || descVal !== '') {
+      const descVal = descEditor._getValue();
+      if (!aDesc.mixed || descVal.trim() !== '') {
         fields.description = descVal.trim();
       }
 
@@ -9756,15 +9767,18 @@
       }, 'Ajout joueur');
     });
 
+    const newCategoryMetaEditor = buildTextEditor({ value: '', rows: 2, placeholder: 'Description (optionnel)' });
+    document.getElementById('newCategoryMetaEditor').appendChild(newCategoryMetaEditor);
+
     document.getElementById('addCategoryBtn').addEventListener('click', () => {
       if (!requireIdentity()) return;
       const name = document.getElementById('newCategoryName').value.trim();
-      const meta = document.getElementById('newCategoryMeta').value.trim();
+      const meta = newCategoryMetaEditor._getValue().trim();
       const icon = document.getElementById('newCategoryIcon').value.trim();
       if (!name) { showToast('Nom requis.', 'error'); return; }
       callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null, icon, _whoAmI || ''], () => {
         document.getElementById('newCategoryName').value = '';
-        document.getElementById('newCategoryMeta').value = '';
+        newCategoryMetaEditor._setValue('');
         document.getElementById('newCategoryIcon').value = '';
         loadEntities(); showToast('Top ajouté.', 'success');
       }, 'Ajout Top');
