@@ -220,6 +220,12 @@ Toute action qui modifie des données (créer, éditer, supprimer, dissocier, ac
 
 Toute action qui modifie des données doit être consignée dans le journal d'audit (`AuditService.log()`), avec l'auteur, l'action, la cible et un résumé du changement. Une action qui écrit dans le Sheet sans laisser de trace dans le journal est incomplète.
 
+### Exhaustivité obligatoire — pas de fonctionnalité à moitié posée
+
+Quand une fonctionnalité s'applique à un type de champ (markdown/mentions sur les descriptions, avatar sur un nom de joueur…), elle doit être posée sur **toutes** les instances de ce champ dans l'app, pas seulement celles rencontrées en premier. Avant de considérer une fonctionnalité terminée, lister explicitement tous les endroits où ce champ existe (grep sur son nom, son placeholder, son pattern d'input) et vérifier chacun un par un — ne pas se fier à la mémoire ou aux premiers exemples trouvés.
+
+Exception à traiter au cas par cas, jamais par oubli : un champ qui partage un nom technique mais pas la même nature (ex. `meta` sert d'URL d'avatar pour un joueur mais de description pour un Top) n'hérite pas aveuglément du traitement — mais l'exception doit être identifiée et justifiée, jamais silencieuse.
+
 ### Quatre critères de qualité interface
 
 Chaque écran, formulaire ou composant ajouté ou modifié doit être :
