@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-15
 
 ### Corrigé
+**Humanisé** : Dans l'onglet Saisir un Lot, taper `@` dans le champ Description ne proposait aucun joueur à mentionner, alors que ça fonctionne partout ailleurs (notes, descriptions d'édition, règles automatiques).
+**Technique** : Le champ `descInput` (`Index.html`, `addEntryRow`) n'avait jamais reçu l'appel `attachMentionAutocomplete()`, contrairement aux autres champs texte de l'app.
+
 **Humanisé** : L'onglet Historique pouvait planter complètement selon les cas (page blanche au lieu de la liste des scores) — un bug de code faisait que la pagination était mal calculée en interne.
 **Technique** : `StorageService.getHistoryPage` (Code.gs) déclarait deux fois la constante `start` dans la même fonction (bornes de dates puis offset de pagination), ce qui est une erreur de syntaxe JavaScript empêchant le fichier de s'exécuter. La seconde a été renommée `pageStart`.
 

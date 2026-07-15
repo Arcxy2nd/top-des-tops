@@ -7387,6 +7387,7 @@
     descInput.placeholder = 'Description (optionnelle — recommandée !)…';
     descInput.value = (preset && preset.description) || '';
     descDiv.appendChild(descInput);
+    attachMentionAutocomplete(descInput);
     descRowWrapper.appendChild(descIcon);
     descRowWrapper.appendChild(descDiv);
 
