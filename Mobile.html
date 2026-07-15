@@ -18,7 +18,7 @@
       --text: #e0e6ed; --text-muted: #9aa5be;
       --success: #2ed573; --error: #ff4757;
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
-      --btn-alt: #353b48; --tap-min: 48px;
+      --btn-alt: #353b48; --tap-min: 48px; --rail-w: 56px;
       --on-accent: #fff;
     }
     body.light {
@@ -32,7 +32,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
-      margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(56px + env(safe-area-inset-left));
+      margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(var(--rail-w) + env(safe-area-inset-left));
       transition: background 0.2s, color 0.2s;
       -webkit-tap-highlight-color: transparent;
     }
@@ -84,7 +84,7 @@
        les taps "en dehors" et se replier). */
     .m-side-nav {
       position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
-      width: 56px; background: var(--card); border-right: 1px solid var(--border);
+      width: var(--rail-w); background: var(--card); border-right: 1px solid var(--border);
       display: flex; flex-direction: column; overflow: hidden;
       padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
       transition: width 0.2s ease;
@@ -92,7 +92,7 @@
     .m-side-nav.expanded { width: 76vw; max-width: 260px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
     .m-side-toggle {
       background: none; border: none; color: var(--text); font-size: 1.3rem;
-      width: 56px; flex-shrink: 0; padding: 10px 0; min-height: auto; border-radius: 0;
+      width: var(--rail-w); flex-shrink: 0; padding: 10px 0; min-height: auto; border-radius: 0;
     }
     .m-side-brand { display: flex; align-items: center; gap: 8px; padding: 2px 16px 14px; flex-shrink: 0; }
     .m-side-title {
@@ -197,6 +197,17 @@
     #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #mChartCustomTooltip .ctt-val { font-weight: 700; }
     #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 5px; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
+
+    /* ── PETITS ÉCRANS (≤380px) ── rail plus étroit, marges resserrées : sur les
+       téléphones les plus étroits, la bande latérale fixe (var(--rail-w)) grignotait
+       une part disproportionnée de la largeur disponible. */
+    @media (max-width: 380px) {
+      :root { --rail-w: 46px; --tap-min: 44px; }
+      .m-side-toggle { font-size: 1.15rem; }
+      .m-container { padding-left: 8px; padding-right: 8px; }
+      .card { padding: 12px; }
+      h2 { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>

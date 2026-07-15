@@ -32,6 +32,12 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Plusieurs couleurs (blanc du texte sur bouton coloré, jaune d'avertissement) étaient écrites en dur dans le style au lieu d'utiliser les variables du thème, ce qui contrevient à la règle du projet et complique une future refonte de palette.
 **Technique** : Nouvelle variable `--on-accent` (dark + light) dans `Index.html`/`Mobile.html`, remplace ~25 occurrences de `color: #fff`/`#fff !important`. `#ffaa00`/`#ffd166` (CSS uniquement, hors tableaux de couleurs JS pour Chart.js) remplacés par `var(--warn)`. `body.light option { background/color }` remplacé par `var(--card)`/`var(--text)`.
 
+**Humanisé** : Le bouton pour passer à la version mobile (en haut à droite, PC) était minuscule et difficile à toucher précisément sur téléphone.
+**Technique** : `.layout-mode-toggle` (Index.html) n'avait ni `min-width` ni `min-height`, contrairement aux autres boutons de la navbar qui héritent tous de `var(--tap-min)`. Ajout de `min-width`/`min-height: var(--tap-min)`.
+
+**Humanisé** : Une fois sur la version mobile, l'interface s'adaptait mal aux téléphones à petit écran (bande de navigation latérale trop large par rapport à l'espace disponible, marges non resserrées).
+**Technique** : `Mobile.html` n'avait aucun breakpoint `@media`. Largeur de la bande latérale extraite dans une variable `--rail-w` (56px), avec un breakpoint `≤380px` qui la réduit à 46px et resserre le padding de `.m-container`/`.card` ainsi que la taille des titres.
+
 ## [Non publié] - 2026-07-14
 
 ### Corrigé
