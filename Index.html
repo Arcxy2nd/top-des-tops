@@ -1086,6 +1086,8 @@
     .detect-summary {
       font-size: 0.82rem; color: var(--text-muted); padding: 10px 0;
     }
+    .diff-del { color: var(--error); text-decoration: line-through; opacity: 0.75; }
+    .diff-ins { color: var(--success); font-weight: 600; text-decoration: none; }
 
     /* ── GUIDE TAB ── */
     .guide-section { margin-bottom: 24px; }
@@ -2592,6 +2594,15 @@
         </p>
         <button id="detectOutliersBtn" class="primary small">🔍 Scanner l'historique</button>
         <div id="outliersResults" class="detect-results"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolMentionsCard">
+        <div class="card-collapse-header"><h2>🏷️ Mentions manquantes</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Détecte les noms de joueurs tapés en texte brut (sans @) dans les descriptions d'Historique et les notes, et propose de les convertir en mention cliquable.
+        </p>
+        <button id="detectMentionsBtn" class="primary small">🔍 Scanner</button>
+        <div id="mentionFixResults" class="detect-results"></div>
       </div>
 
       <div class="card card-collapsible" id="toolInactiveCard">
@@ -10528,6 +10539,125 @@
     }, 'Détection scores aberrants', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
+  // ── MENTIONS MANQUANTES ───────────────────────────────────────────────
+  /** Diff mot-à-mot (LCS) entre deux textes, rendu en HTML échappé avec
+   *  <del> (supprimé, avant) / <ins> (ajouté, après). Réutilisable partout
+   *  où un avant/après texte doit être comparé visuellement. */
+  function wordDiffHtml(before, after) {
+    const tokA = (before || '').split(/(\s+)/);
+    const tokB = (after  || '').split(/(\s+)/);
+    const n = tokA.length, m = tokB.length;
+    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i][j] = tokA[i] === tokB[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    let i = 0, j = 0;
+    const out = [];
+    while (i < n && j < m) {
+      if (tokA[i] === tokB[j]) { out.push(escapeHtml(tokA[i])); i++; j++; }
+      else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push('<del class="diff-del">' + escapeHtml(tokA[i]) + '</del>'); i++; }
+      else { out.push('<ins class="diff-ins">' + escapeHtml(tokB[j]) + '</ins>'); j++; }
+    }
+    while (i < n) { out.push('<del class="diff-del">' + escapeHtml(tokA[i]) + '</del>'); i++; }
+    while (j < m) { out.push('<ins class="diff-ins">' + escapeHtml(tokB[j]) + '</ins>'); j++; }
+    return out.join('');
+  }
+
+  function scanMentionFixes() {
+    const btn = document.getElementById('detectMentionsBtn');
+    const container = document.getElementById('mentionFixResults');
+    showSkeleton(container, { rows: 3, height: 60 });
+    const restore = startBtnLoading(btn, 'Scan…');
+    callServer('apiScanUnmentionedNames', [], res => {
+      restore();
+      const results = res.results || [];
+      if (!results.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun nom non mentionné détecté. Tout est propre ✅</p>';
+        return;
+      }
+      renderMentionFixResults(results, container);
+    }, 'Détection mentions', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
+  }
+
+  function renderMentionFixResults(results, container) {
+    container.innerHTML = '';
+
+    const info = document.createElement('p');
+    info.style.cssText = 'font-size:0.82rem;color:var(--text-muted);margin:0 0 10px;';
+    info.textContent = results.length + ' description(s)/note(s) contiennent un nom non mentionné. Cochez celles à corriger, puis validez.';
+    container.appendChild(info);
+
+    const checkAll = document.createElement('label');
+    checkAll.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:0.85rem;cursor:pointer;';
+    const cbAll = document.createElement('input');
+    cbAll.type = 'checkbox';
+    checkAll.appendChild(cbAll);
+    checkAll.appendChild(document.createTextNode('Tout sélectionner'));
+    container.appendChild(checkAll);
+
+    const rowEls = [];
+    results.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'detect-lot';
+
+      const head = document.createElement('div');
+      head.className = 'detect-lot-head';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.addEventListener('change', () => {
+        const allCbs = container.querySelectorAll('.detect-lot-head input[type="checkbox"]');
+        cbAll.checked = [...allCbs].every(c => c.checked);
+      });
+      head.appendChild(cb);
+
+      const label = document.createElement('span');
+      label.style.cssText = 'font-size:0.85rem;color:var(--text-muted);';
+      label.textContent = (r.source === 'history' ? '📜 ' : '📝 ') + r.context;
+      head.appendChild(label);
+      div.appendChild(head);
+
+      const diff = document.createElement('div');
+      diff.style.cssText = 'padding-left:24px;font-size:0.85rem;line-height:1.6;margin-top:4px;';
+      diff.innerHTML = wordDiffHtml(r.before, r.after);
+      div.appendChild(diff);
+
+      container.appendChild(div);
+      rowEls.push({ cb, fix: r });
+    });
+
+    cbAll.addEventListener('change', () => rowEls.forEach(r => r.cb.checked = cbAll.checked));
+
+    const actions = document.createElement('div');
+    actions.className = 'detect-actions';
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'primary small';
+    applyBtn.textContent = '✅ Appliquer la sélection';
+    actions.appendChild(applyBtn);
+    container.appendChild(actions);
+
+    applyBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const selected = rowEls.filter(r => r.cb.checked);
+      if (!selected.length) { showToast('Aucune correction cochée.', 'error'); return; }
+
+      openConfirmModal('Appliquer ' + selected.length + ' correction(s) de description ?', () => {
+        const fixes = selected.map(r => ({ source: r.fix.source, rowIndex: r.fix.rowIndex, after: r.fix.after }));
+        const restore = startBtnLoading(applyBtn, 'Application…');
+        callServer('apiApplyMentionFixes', [fixes, _whoAmI || ''], res => {
+          restore();
+          if (res.success) {
+            showToast(res.applied + ' correction(s) appliquée(s).', 'success');
+            scanMentionFixes();
+          } else {
+            showToast(res.error || 'Erreur.', 'error');
+          }
+        }, 'Application mentions', () => { restore(); showToast('Erreur lors de l\'application.', 'error'); });
+      });
+    });
+  }
+
   // ── JOUEURS INACTIFS ─────────────────────────────────────────────────
   function scanInactivePlayers() {
     const container = document.getElementById('inactiveResults');
@@ -10957,10 +11087,12 @@
     makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
     makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');
+    makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
     makeCollapsible(document.getElementById('toolAutoCard'),       'tdt_collapsed_tool_auto');
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
     document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
+    document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
     document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
     makeCollapsible(document.getElementById('recordsCard'), 'tdt_collapsed_records');
     makeCollapsible(document.getElementById('trendsCard'),  'tdt_collapsed_trends');

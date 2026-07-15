@@ -2292,6 +2292,142 @@ function apiDeleteGroup(groupId, author) {
   } catch(e) { return fail(e); }
 }
 
+// ── Détection de mentions manquantes ────────────────────────────────────────────
+// Repère les noms de joueurs tapés en texte brut (sans @) dans les descriptions
+// d'History et les notes, et propose de les convertir en @Mention cliquable.
+
+function _escapeRegExpMention(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+/**
+ * Construit la liste des motifs à rechercher : le nom complet de chaque joueur
+ * (toujours), plus un token individuel (prénom/nom si le nom est composé) —
+ * mais seulement si ce token n'appartient qu'à un seul joueur, pour ne jamais
+ * attribuer une mention au mauvais joueur en cas d'homonymie partielle.
+ * Triée par longueur décroissante : les noms complets (plus longs) sont
+ * remplacés avant les tokens individuels qu'ils contiennent.
+ */
+function _buildMentionCandidates(players) {
+  const tokenCount = {};
+  players.forEach(name => {
+    name.trim().split(/\s+/).forEach(tok => {
+      const key = tok.toLowerCase();
+      tokenCount[key] = (tokenCount[key] || 0) + 1;
+    });
+  });
+
+  const candidates = [];
+  players.forEach(name => {
+    const trimmed = name.trim();
+    if (trimmed.length < 2) return;
+    candidates.push({ pattern: trimmed, player: name });
+    const parts = trimmed.split(/\s+/);
+    if (parts.length > 1) {
+      parts.forEach(tok => {
+        if (tok.length >= 2 && tokenCount[tok.toLowerCase()] === 1) {
+          candidates.push({ pattern: tok, player: name });
+        }
+      });
+    }
+  });
+  return candidates.sort((a, b) => b.pattern.length - a.pattern.length);
+}
+
+/** Remplace, dans `text`, chaque occurrence non déjà mentionnée d'un candidat par
+ *  `@NomComplet` (mot entier uniquement, Unicode-aware pour les accents). Renvoie
+ *  le texte transformé, ou null si rien n'a été trouvé. */
+function _scanTextForUnmentioned(text, candidates) {
+  if (!text) return null;
+  let result = text;
+  candidates.forEach(c => {
+    const re = new RegExp('(?<![\\p{L}\\p{N}_@])(' + _escapeRegExpMention(c.pattern) + ')(?![\\p{L}\\p{N}_])', 'giu');
+    result = result.replace(re, '@' + c.player);
+  });
+  return result !== text ? result : null;
+}
+
+function apiScanUnmentionedNames() {
+  try {
+    const players = SettingsService.getEntities('Players').map(p => p.name).filter(Boolean);
+    if (!players.length) return { success: true, results: [] };
+    const candidates = _buildMentionCandidates(players);
+    if (!candidates.length) return { success: true, results: [] };
+
+    const results = [];
+
+    StorageService.getFullHistoryRowsCached().forEach(r => {
+      const after = _scanTextForUnmentioned(r.description, candidates);
+      if (after) {
+        results.push({
+          source: 'history', rowIndex: r.rowIndex,
+          before: r.description, after,
+          context: r.player + ' · ' + r.category
+        });
+      }
+    });
+
+    NotesService.getAllNotes().notes.forEach(n => {
+      const after = _scanTextForUnmentioned(n.text, candidates);
+      if (after) {
+        results.push({
+          source: 'notes', rowIndex: n.rowIndex,
+          before: n.text, after,
+          context: n.player
+        });
+      }
+    });
+
+    return { success: true, results };
+  } catch(e) { return fail(e); }
+}
+
+function apiApplyMentionFixes(fixes, author) {
+  try {
+    if (!fixes || !fixes.length) throw new Error("Aucune correction sélectionnée.");
+    return withLock(() => {
+      const { history, notes } = ConfigService.getSheets();
+      let applied = 0;
+
+      const histFixes = fixes.filter(f => f.source === 'history');
+      if (histFixes.length) {
+        const undoRows = [];
+        histFixes.forEach(f => {
+          const idx = parseInt(f.rowIndex, 10);
+          if (isNaN(idx) || idx < 2) return;
+          const beforeRow = history.getRange(idx, 1, 1, 7).getValues()[0];
+          StorageService.updateHistoryDescription(idx, f.after);
+          const afterRow = history.getRange(idx, 1, 1, 7).getValues()[0];
+          undoRows.push({ rowIndex: idx, before: beforeRow, after: afterRow });
+          applied++;
+        });
+        AuditService.log(author, 'Mentions corrigées', 'History', '', '',
+          undoRows.length + ' description(s) d\'entrée',
+          undoRows.length ? { sheet: 'history', op: 'updateMany', rows: undoRows } : null);
+      }
+
+      const noteFixes = fixes.filter(f => f.source === 'notes');
+      if (noteFixes.length) {
+        if (!notes) throw new Error("Feuille Notes introuvable.");
+        const undoRows = [];
+        noteFixes.forEach(f => {
+          const idx = parseInt(f.rowIndex, 10);
+          if (isNaN(idx) || idx < 2) return;
+          const beforeRow = notes.getRange(idx, 1, 1, 3).getValues()[0];
+          NotesService.editNote(idx, f.after);
+          const afterRow = notes.getRange(idx, 1, 1, 3).getValues()[0];
+          undoRows.push({ rowIndex: idx, before: beforeRow, after: afterRow });
+          applied++;
+        });
+        AuditService.log(author, 'Mentions corrigées', 'Notes', '', '',
+          undoRows.length + ' note(s)',
+          undoRows.length ? { sheet: 'notes', op: 'updateMany', rows: undoRows } : null);
+      }
+
+      ConfigService.clearCache();
+      return { success: true, applied };
+    });
+  } catch(e) { return fail(e); }
+}
+
 // ── Phrases ────────────────────────────────────────────────────────────────────
 
 function apiGetPhrases() {
