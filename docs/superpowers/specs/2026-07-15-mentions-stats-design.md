@@ -19,7 +19,7 @@ Ne modifie ni History ni Notes : lecture seule des textes déjà stockés.
 Trois listes, dans cet ordre :
 
 1. **📣 Les plus mentionnés** — top 5 joueurs cités en `@Nom` dans les descriptions/notes, tous auteurs confondus.
-2. **✍️ Ceux qui mentionnent le plus** — top 5 joueurs dont les entrées (History) ou notes (Notes) contiennent le plus de mentions. L'« auteur » d'un texte est le joueur associé à la ligne (`History.Player` / `Notes.Player`) — l'app ne trace pas de saisisseur distinct du joueur concerné par l'entrée elle-même, donc c'est l'attribution la plus fidèle aux données disponibles.
+2. **✍️ Ceux qui mentionnent le plus** — top 5 joueurs dont les entrées (History) ou notes (Notes) contiennent le plus de mentions. L'« auteur » d'un texte est : pour History, le saisisseur réel (`row.saiseur`, colonne G — déjà tracé par l'app pour distinguer qui a saisi l'entrée du joueur concerné par le score), avec repli sur `row.player` si `saiseur` est vide (lignes historiques anciennes, saisies avant l'ajout de ce champ) ; pour Notes, `row.player` (aucun champ saisisseur distinct n'existe sur cette feuille).
 3. **🔗 Duo le plus complice** — la paire de joueurs (A, B) qui se mentionnent mutuellement le plus (mentions de A→B et B→A cumulées), affichée en une seule ligne avec les deux avatars.
 
 Si aucune mention n'existe dans les données : message "Aucune mention trouvée." (cohérent avec le pattern `Aucune donnée.` des cards sœurs).
@@ -32,7 +32,7 @@ Nouvelle fonction interne `_countMentionsInText(text, playersSortedByLengthDesc)
 
 `apiGetMentionStats()` :
 - Charge la liste des joueurs (`SettingsService.getEntities('Players')`), triée par longueur de nom décroissante.
-- Parcourt `StorageService.getFullHistoryRowsCached()` (texte = `description`, auteur = `player`) et `NotesService.getAllNotes().notes` (texte = `text`, auteur = `player`) — même source de données que `apiScanUnmentionedNames()`.
+- Parcourt `StorageService.getFullHistoryRowsCached()` (texte = `r.description`, auteur = `r.saiseur || r.player`) et `NotesService.getAllNotes().notes` (texte = `n.text`, auteur = `n.player`) — même source de données que `apiScanUnmentionedNames()`.
 - Pour chaque texte, calcule les mentions via `_countMentionsInText`, puis cumule :
   - `mentionedTotals[cible] += n` (indépendant de l'auteur)
   - `mentioningTotals[auteur] += n`
