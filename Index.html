@@ -20,6 +20,7 @@
       --success: #2ed573; --error: #ff4757;
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
       --btn-alt: #353b48; --tap-min: 44px;
+      --on-accent: #fff;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
@@ -117,7 +118,7 @@
       transition: background 0.2s;
       touch-action: manipulation;
     }
-    .nav-refresh-btn:hover { background: var(--accent); color: #fff; }
+    .nav-refresh-btn:hover { background: var(--accent); color: var(--on-accent); }
     .refresh-badge {
       font-size: 0.7rem; color: var(--text-muted);
       white-space: nowrap;
@@ -230,13 +231,13 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    button.primary { background: var(--accent); color: #fff; border: none; }
+    button.primary { background: var(--accent); color: var(--on-accent); border: none; }
     button.primary:hover { background: var(--accent-hover); }
     button.secondary { background: transparent; border: 1px solid var(--border); }
     button.secondary:hover { background: var(--btn-alt); }
     button.small { padding: 7px 11px; font-size: 0.8rem; min-height: 34px; }
     button.danger { background: rgba(255,71,87,0.12); color: var(--error); border-color: var(--error); }
-    button.danger:hover { background: var(--error); color: #fff; }
+    button.danger:hover { background: var(--error); color: var(--on-accent); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* ── FILTER PANEL ── */
@@ -267,9 +268,9 @@
     .fchip.active {
       background: var(--fchip-col, var(--accent));
       border-color: var(--fchip-col, var(--accent));
-      color: #fff;
+      color: var(--on-accent);
     }
-    .fchip-all.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .fchip-all.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .fchip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
     /* Date row */
     .fp-date-row { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
@@ -289,7 +290,7 @@
       min-height: 28px; font-weight: 500;
       transition: background 0.15s;
     }
-    .date-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .date-shortcut:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
     /* ── CHART TYPE SELECTOR ── */
     .chart-type-bar {
@@ -302,7 +303,7 @@
       min-height: 34px; font-weight: 500;
       transition: 0.15s;
     }
-    .chart-type-btn:hover, .chart-type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .chart-type-btn:hover, .chart-type-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
     /* ── CHART ── */
     .chart-header {
@@ -317,7 +318,7 @@
       font-size: 0.75rem; cursor: pointer; color: var(--text);
       min-height: 32px;
     }
-    .export-btn:hover { background: var(--accent); color: #fff; }
+    .export-btn:hover { background: var(--accent); color: var(--on-accent); }
     .chart-wrapper { position: relative; height: 420px; width: 100%; }
 
     /* ── SKELETON ── */
@@ -362,7 +363,7 @@
       border-radius: 6px; padding: 5px 12px; font-size: 0.78rem;
       cursor: pointer; color: var(--text); min-height: 32px; font-weight: 500;
     }
-    .seg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .seg-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .entry-row:hover { border-color: var(--accent); }
 
     /* ── TRI / RÉORGANISATION DES LIGNES ── */
@@ -465,7 +466,7 @@
       transition: 0.15s; flex: 1; min-width: 30px;
       display: flex; align-items: center; justify-content: center;
     }
-    .pts-btn:hover, .pts-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pts-btn:hover, .pts-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
     /* ── SETTINGS ── */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -492,7 +493,7 @@
     .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); -webkit-overflow-scrolling: touch; }
     .pagination { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
     .pagination button { min-width: 36px; padding: 6px; }
-    .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pagination button.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .history-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; background: var(--btn-alt); box-shadow: 0 0 0 2px var(--player-color, transparent); }
 
     /* Repères visuels de l'historique */
@@ -529,7 +530,7 @@
     .health-stat .stat-value { font-size: 2rem; font-weight: 700; }
     .health-stat .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
     .health-stat.bad  .stat-value { color: var(--error); }
-    .health-stat.warn .stat-value { color: #ffd166; }
+    .health-stat.warn .stat-value { color: var(--warn); }
     .health-stat.ok   .stat-value { color: var(--success); }
     .settings-section-divider { border-top: 1px solid var(--border); margin: 20px 0 16px; }
     .auto-rules-card {
@@ -671,7 +672,7 @@
     /* ── BADGE COMPTEUR NAV ── */
     .nav-count {
       display: inline-block; margin-left: 6px;
-      background: var(--accent); color: #fff;
+      background: var(--accent); color: var(--on-accent);
       font-size: 0.68rem; font-weight: 700;
       border-radius: 10px; padding: 1px 7px; min-width: 18px;
       vertical-align: middle;
@@ -691,7 +692,7 @@
     button.saved {
       background: var(--success) !important;
       border-color: var(--success) !important;
-      color: #fff !important;
+      color: var(--on-accent) !important;
     }
 
     /* ── NOTES ── */
@@ -788,7 +789,7 @@
       min-height: 22px; font-weight: 500; white-space: nowrap;
       transition: background 0.12s; line-height: 1.4;
     }
-    .row-shortcut:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .row-shortcut:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .row-range-toggle {
       display: inline-flex; align-items: center; gap: 5px;
       font-size: 0.75rem; color: var(--text-muted); cursor: pointer;
@@ -813,7 +814,7 @@
       transition: 0.12s; padding: 0; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
     }
-    .day-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .day-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .day-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
     .day-presets { display: flex; gap: 3px; flex-wrap: wrap; }
 
@@ -833,7 +834,7 @@
       transition: background 0.12s, border-color 0.12s, color 0.12s;
     }
     .cc-pill:hover { filter: brightness(1.2); }
-    .cc-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cc-pill.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .chart-control.cc-toggle {
       cursor: pointer; user-select: none; font-size: 0.8rem; color: var(--text);
     }
@@ -916,7 +917,7 @@
     .bsect-entry:hover { background: rgba(255,255,255,0.03); }
     .bsect-entry .bsect-pts {
       flex-shrink: 0; min-width: 58px; text-align: center;
-      color: #fff; font-size: 0.78rem; font-weight: 800;
+      color: var(--on-accent); font-size: 0.78rem; font-weight: 800;
       border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
       box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
@@ -948,7 +949,7 @@
     .bd-entry:hover { background: rgba(255,255,255,0.03); }
     .bd-badge {
       flex-shrink: 0; min-width: 58px; text-align: center;
-      color: #fff; font-size: 0.78rem; font-weight: 800;
+      color: var(--on-accent); font-size: 0.78rem; font-weight: 800;
       border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
       box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
@@ -1120,7 +1121,7 @@
       cursor: pointer; font-size: 0.82rem; font-weight: 600;
       background: var(--btn-alt); color: var(--text); transition: all 0.12s;
     }
-    .export-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .export-pill.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .export-preview-wrap { background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; }
     .export-preview-wrap canvas, .export-preview-wrap img { max-width: 100%; max-height: 220px; border-radius: 6px; }
 
@@ -1273,7 +1274,7 @@
     .hist-fchip img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 4px; }
 
     /* ── TOAST UNDO (suppression différée) ── */
-    .toast.warning { border-color: #ffd166; color: #ffd166; }
+    .toast.warning { border-color: var(--warn); color: var(--warn); }
     .toast-undo-btn {
       background: transparent; border: 1px solid currentColor;
       color: inherit; border-radius: 4px; padding: 3px 8px;
@@ -1595,16 +1596,16 @@
     .btn-add-row:hover { border-color: var(--accent); color: var(--accent); }
     .btn-group-mode {
       background: rgba(255,170,0,0.08); border: 1.5px solid rgba(255,170,0,0.35);
-      border-radius: 8px; color: #ffaa00; padding: 9px 16px;
+      border-radius: 8px; color: var(--warn); padding: 9px 16px;
       font-size: 0.85rem; cursor: pointer; font-family: inherit;
       transition: background 0.2s, border-color 0.2s;
     }
-    .btn-group-mode:hover { background: rgba(255,170,0,0.18); border-color: #ffaa00; }
-    .btn-group-mode.active { background: rgba(255,170,0,0.22); border-color: #ffaa00; font-weight: 700; }
+    .btn-group-mode:hover { background: rgba(255,170,0,0.18); border-color: var(--warn); }
+    .btn-group-mode.active { background: rgba(255,170,0,0.22); border-color: var(--warn); font-weight: 700; }
     .btn-submit-lot {
       margin-left: auto;
       background: var(--accent); border: none; border-radius: 10px;
-      color: #fff; padding: 10px 26px; font-size: 0.92rem; font-weight: 700;
+      color: var(--on-accent); padding: 10px 26px; font-size: 0.92rem; font-weight: 700;
       cursor: pointer; letter-spacing: 0.02em; font-family: inherit;
       transition: opacity 0.2s, transform 0.1s;
     }
@@ -1648,7 +1649,7 @@
       white-space: normal; word-break: break-word;
       display: flex; align-items: center; gap: 5px;
     }
-    .bq-btn:hover { background: var(--row-accent, var(--btn-alt)); color: #fff; border-color: var(--row-accent, var(--border)); }
+    .bq-btn:hover { background: var(--row-accent, var(--btn-alt)); color: var(--on-accent); border-color: var(--row-accent, var(--border)); }
     .bq-btn .bq-action { flex: 1; }
     .bq-btn .bq-pts {
       font-weight: 700; font-variant-numeric: tabular-nums;
@@ -1796,7 +1797,7 @@
     .hq-page-btn:hover:not(:disabled) {
       background: var(--row-accent, var(--btn-alt));
       border-color: var(--row-accent, var(--border));
-      color: #fff;
+      color: var(--on-accent);
     }
     .hq-page-btn:disabled { opacity: 0.35; cursor: default; }
     .hq-page-info { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
@@ -1812,7 +1813,7 @@
       position: absolute; top: 4px; right: 7px;
       font-size: 0.6rem; font-weight: 900; letter-spacing: 0.03em;
       padding: 1px 6px; border-radius: 8px;
-      background: var(--accent); color: #fff; opacity: 0.85;
+      background: var(--accent); color: var(--on-accent); opacity: 0.85;
     }
     .lot-group-bar {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1878,8 +1879,8 @@
       color: var(--text);
     }
     body.light option {
-      background: #ffffff;
-      color: #1a202c;
+      background: var(--card);
+      color: var(--text);
     }
     .player-sel-wrap select,
     .c-sel-wrap select {
@@ -1953,7 +1954,7 @@
     border: 1.5px solid var(--border); background: var(--btn-alt); color: var(--text);
     transition: all 0.13s; min-height: 32px; user-select: none;
   }
-  .preset-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .preset-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .preset-chip:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
   .preset-chip-lock { font-size: 0.65rem; opacity: 0.6; }
   .preset-chip-add {
@@ -3525,7 +3526,7 @@
   function setActivePresetId(id) {
     if (!requireIdentity()) return;
     _activePreset = id || PHRASES_DEFAULT_ID;
-    callServer('apiSetActivePhrasePreset', [_activePreset], null, 'Sauvegarde preset actif');
+    callServer('apiSetActivePhrasePreset', [_activePreset, _whoAmI || ''], null, 'Sauvegarde preset actif');
   }
 
   function getCustomPresetNames() {
@@ -8255,6 +8256,7 @@
         undoBtn.textContent = '↩️ Annuler';
         undoBtn.title = 'Annuler : ' + log.action;
         undoBtn.addEventListener('click', () => {
+          if (!requireIdentity()) return;
           if (!confirm('Annuler cette action ("' + log.action + '") ?')) return;
           undoBtn.disabled = true;
           callServer('apiUndoAuditEntry', [log.id, _whoAmI || ''], res => {

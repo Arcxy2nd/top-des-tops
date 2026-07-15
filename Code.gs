@@ -633,9 +633,9 @@ const StorageService = {
     });
 
     const totalVisual = visualItems.length;
-    const ps    = pageSize || 20;
-    const start = ((page || 1) - 1) * ps;
-    const pagedItems = visualItems.slice(start, start + ps);
+    const ps        = pageSize || 20;
+    const pageStart  = ((page || 1) - 1) * ps;
+    const pagedItems = visualItems.slice(pageStart, pageStart + ps);
 
     // Aplatir pour renvoyer toutes les entrées de la page (groupes complets inclus)
     const paged = [];
@@ -2422,10 +2422,15 @@ function apiGetActivePhrasePreset() {
   } catch(e) { return fail(e); }
 }
 
-function apiSetActivePhrasePreset(name) {
+function apiSetActivePhrasePreset(name, author) {
   try {
     if (!name || !name.trim()) throw new Error("Nom de preset manquant.");
-    PropertiesService.getScriptProperties().setProperty('active_phrase_preset', name.trim());
-    return { success: true };
+    return withLock(() => {
+      const before = PropertiesService.getScriptProperties().getProperty('active_phrase_preset') || '__default__';
+      const after  = name.trim();
+      PropertiesService.getScriptProperties().setProperty('active_phrase_preset', after);
+      AuditService.log(author, 'Preset actif changé', 'Phrases', before, after, '');
+      return { success: true };
+    });
   } catch(e) { return fail(e); }
 }

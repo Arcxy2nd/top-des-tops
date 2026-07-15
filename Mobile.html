@@ -19,6 +19,7 @@
       --success: #2ed573; --error: #ff4757;
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
       --btn-alt: #353b48; --tap-min: 48px;
+      --on-accent: #fff;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
@@ -62,8 +63,8 @@
       cursor: pointer; min-height: var(--tap-min);
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     }
-    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    button.danger  { background: var(--error); color: #fff; border-color: var(--error); }
+    button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); }
     button.small   { padding: 8px 12px; font-size: 0.82rem; min-height: 36px; }
     button:disabled { opacity: 0.55; cursor: default; }
     .m-container { max-width: 640px; margin: 0 auto; padding: 12px max(12px, env(safe-area-inset-left)) 12px max(12px, env(safe-area-inset-right)); }
@@ -114,7 +115,7 @@
     .m-side-nav.expanded .m-side-label { opacity: 1; }
     .m-nav-count {
       position: absolute; top: -4px; right: -8px;
-      background: var(--accent); color: #fff; border-radius: 8px;
+      background: var(--accent); color: var(--on-accent); border-radius: 8px;
       font-size: 0.55rem; font-weight: 700; padding: 1px 4px; min-width: 14px;
     }
     .m-side-overlay {
@@ -1606,6 +1607,7 @@
   }
 
   function undoAuditEntry(auditId, actionLabel) {
+    if (!requireIdentity()) return;
     if (!confirm('Annuler cette action ("' + actionLabel + '") ?')) return;
     callServer('apiUndoAuditEntry', [auditId, _whoAmI || ''], res => {
       if (res && res.success === false) {
@@ -1644,12 +1646,13 @@
     const d = new Date(log.timestamp);
     const ds = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
     const cat = cachedCategories.find(c => c.name === log.category);
+    const sp = log.saiseur ? cachedPlayers.find(pl => pl.name === log.saiseur) : null;
     return '<div class="m-hist-card" data-row="' + log.rowIndex + '">' +
       '<div class="m-hist-top">' + avatarImgHtml(log.player, p ? p.meta : '', 'm-avatar sm') +
       '<strong>' + escapeHtml(log.player) + '</strong>' +
       '<span style="color:' + categoryColor(log.category) + ';">' + (cat ? cat.icon : '') + ' ' + escapeHtml(log.category) + '</span>' +
       '<span class="m-hist-pts">' + log.points + ' pts</span></div>' +
-      '<div class="m-hist-meta">' + ds + (log.saiseur ? ' · saisi par ' + escapeHtml(log.saiseur) : '') + '</div>' +
+      '<div class="m-hist-meta">' + ds + (log.saiseur ? ' · saisi par ' + avatarImgHtml(log.saiseur, sp ? sp.meta : '', 'm-avatar sm') + escapeHtml(log.saiseur) : '') + '</div>' +
       (log.description ? '<div class="m-hist-desc">' + renderMarkdown(log.description) + '</div>' : '') +
       '<div class="m-hist-actions">' +
       '<button class="small" data-edit="' + log.rowIndex + '">✏️</button>' +
@@ -1791,7 +1794,8 @@
 
     const list = document.getElementById('mEntityList');
     list.innerHTML = items.map(item =>
-      '<div class="m-row" style="border-bottom:1px solid var(--border); padding:10px 0;" data-name="' + escapeHtml(item.name) + '">' +
+      '<div style="border-bottom:1px solid var(--border); padding:10px 0;" data-name="' + escapeHtml(item.name) + '">' +
+      '<div class="m-row">' +
       (type === 'Players' ? avatarImgHtml(item.name, item.meta, 'm-avatar sm')
                            : '<span style="font-size:1.2rem;">' + (item.icon || '🏷️') + '</span>') +
       '<span style="flex:1;">' + escapeHtml(item.name) + '</span>' +
@@ -1799,6 +1803,10 @@
         (type === 'Players' ? playerColor(item.name) : categoryColor(item.name)) + ';"></span>' +
       '<button class="small" data-edit>✏️</button>' +
       '<button class="danger small" data-del>🗑️</button>' +
+      '</div>' +
+      (type === 'Categories' && item.meta
+        ? '<div class="m-hist-desc" style="margin-top:6px;">' + renderMarkdown(item.meta) + '</div>'
+        : '') +
       '</div>'
     ).join('') || '<p class="m-empty">Aucun élément.</p>';
 
@@ -1958,7 +1966,8 @@
           '<option value="' + escapeHtml(p) + '"' + (p === mActivePreset ? ' selected' : '') + '>' +
           (p === '__default__' ? 'Défaut' : escapeHtml(p)) + '</option>').join('');
         select.addEventListener('change', () => {
-          callServer('apiSetActivePhrasePreset', [select.value], () => {
+          if (!requireIdentity()) { select.value = mActivePreset; return; }
+          callServer('apiSetActivePhrasePreset', [select.value, _whoAmI || ''], () => {
             mActivePreset = select.value;
             renderPhrasesList();
           }, 'Changement preset actif');
@@ -1976,7 +1985,7 @@
       if (!requireIdentity()) return;
       openPresetNameModal('Nouveau preset', '', name => {
         if (name === '__default__' || name === 'Défaut') { showToast('Nom réservé.', 'error'); return; }
-        callServer('apiSetActivePhrasePreset', [name], () => {
+        callServer('apiSetActivePhrasePreset', [name, _whoAmI || ''], () => {
           mActivePreset = name;
           showToast('Preset "' + name + '" créé ✓', 'success');
           renderPhrasesSettings();

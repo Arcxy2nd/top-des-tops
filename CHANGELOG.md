@@ -4,6 +4,27 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-15
+
+### Corrigé
+**Humanisé** : L'onglet Historique pouvait planter complètement selon les cas (page blanche au lieu de la liste des scores) — un bug de code faisait que la pagination était mal calculée en interne.
+**Technique** : `StorageService.getHistoryPage` (Code.gs) déclarait deux fois la constante `start` dans la même fonction (bornes de dates puis offset de pagination), ce qui est une erreur de syntaxe JavaScript empêchant le fichier de s'exécuter. La seconde a été renommée `pageStart`.
+
+**Humanisé** : Le bouton « Annuler » d'une action dans le Journal d'audit ne redemandait pas de confirmer son identité avant d'agir, contrairement à toutes les autres actions qui modifient des données — sur PC comme sur mobile. Pareil pour le changement de preset de phrases actif sur mobile (menu déroulant dans Paramètres → Commentaires).
+**Technique** : Ajout de `requireIdentity()` avant l'appel serveur dans le handler du bouton d'annulation (`Index.html`, `Mobile.html`) et dans le listener `change` du `<select>` de preset actif (`Mobile.html`), pour rester cohérent avec la règle « toute édition passe par `requireIdentity()` ».
+
+**Humanisé** : Changer le preset de phrases actif (Paramètres → Commentaires) ne laissait aucune trace dans le Journal d'audit, contrairement à toutes les autres actions de ce type.
+**Technique** : `apiSetActivePhrasePreset` (Code.gs) n'avait ni paramètre `author` ni appel à `AuditService.log`. Ajout des deux, enveloppé dans `withLock()` comme les autres setters simples ; les 3 appels client (`Index.html`, `Mobile.html` ×2) passent désormais `_whoAmI`.
+
+**Humanisé** : Dans Historique côté mobile, le nom de la personne qui a saisi une entrée pour quelqu'un d'autre s'affichait sans avatar, alors que le joueur concerné en a un juste à côté.
+**Technique** : `historyCardHtml` (Mobile.html) enveloppe désormais le nom du `saiseur` dans `avatarImgHtml()`, comme le fait déjà `buildHistRow` côté Index.html.
+
+**Humanisé** : La description d'un Top (Paramètres → Tops) était invisible côté mobile — ni dans la liste, ni mise en forme — alors qu'elle s'affiche en markdown sur PC.
+**Technique** : `renderEntitySettings` (Mobile.html) affiche désormais `item.meta` rendu via `renderMarkdown()` sous le nom de chaque Top, à l'identique du bloc `entity-meta` d'Index.html. La saisie côté mobile reste un champ texte simple (choix assumé et documenté : pas d'éditeur riche sur petit écran), seul l'affichage était manquant.
+
+**Humanisé** : Plusieurs couleurs (blanc du texte sur bouton coloré, jaune d'avertissement) étaient écrites en dur dans le style au lieu d'utiliser les variables du thème, ce qui contrevient à la règle du projet et complique une future refonte de palette.
+**Technique** : Nouvelle variable `--on-accent` (dark + light) dans `Index.html`/`Mobile.html`, remplace ~25 occurrences de `color: #fff`/`#fff !important`. `#ffaa00`/`#ffd166` (CSS uniquement, hors tableaux de couleurs JS pour Chart.js) remplacés par `var(--warn)`. `body.light option { background/color }` remplacé par `var(--card)`/`var(--text)`.
+
 ## [Non publié] - 2026-07-14
 
 ### Corrigé
