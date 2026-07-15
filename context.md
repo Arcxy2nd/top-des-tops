@@ -291,7 +291,7 @@ Le projet n'a pas de suite de tests automatisés. Vérifier les changements via 
 
 ### Commit & push
 
-Toute modification livrée doit être commit **et poussée** (`git push`) — pas seulement commit en local. Le push déclenche le déploiement automatique (§10), donc un commit non poussé ne se retrouve jamais dans l'app en ligne.
+Toute modification livrée doit être commit **et poussée** (`git push`) — pas seulement commit en local. Le push déclenche le déploiement automatique (§10), donc un commit non poussé ne se retrouve jamais dans l'app en ligne. **Ne jamais demander la permission de committer/pousser** — c'est systématique, pas un choix à valider à chaque fois.
 
 ---
 
