@@ -100,3 +100,71 @@ test('apiApplyMentionFixes writes the fixed description back and logs one audit 
   assert.strictEqual(auditLog._grid.length, 2);
   assert.strictEqual(auditLog._grid[1][2], 'Mentions corrigées');
 });
+
+test('apiGetMentionStats counts mentions by target, by author (saiseur fallback to player), and top duo', () => {
+  const gas = loadGas();
+  const players = makeSheet([['Jean', '', ''], ['Marie', '', ''], ['Léa', '', '']]);
+  const history = makeSheet([
+    HEADER,
+    // Jean (saisi par Marie) mentionne Léa deux fois → cible Léa+2, auteur Marie+2, paire Marie-Léa+2
+    [D('2026-01-10'), 'Jean', 'Jeux', 5, '@Léa a bien joué, merci @Léa', '', 'Marie'],
+    // Marie (pas de saiseur renseigné → repli sur player) mentionne Jean une fois
+    [D('2026-01-11'), 'Marie', 'Jeux', 3, 'GG @Jean', '', '']
+  ]);
+  const notes = makeSheet([
+    ['Date', 'Joueur', 'Note'],
+    [D('2026-01-12'), 'Léa', '@Jean était en retard']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history, players, notes });
+
+  const res = gas.apiGetMentionStats();
+  assert.strictEqual(res.success, true);
+
+  const leaMentioned = res.mostMentioned.find(m => m.player === 'Léa');
+  assert.strictEqual(leaMentioned.count, 2);
+  const jeanMentioned = res.mostMentioned.find(m => m.player === 'Jean');
+  assert.strictEqual(jeanMentioned.count, 2); // 1 (Marie, History) + 1 (Léa, Notes)
+
+  // Marie est l'auteur des deux lignes History (saiseur explicite sur la 1ère,
+  // repli sur player sur la 2ᵉ) : 2 mentions de Léa + 1 mention de Jean = 3.
+  const marieMentioning = res.mostMentioning.find(m => m.player === 'Marie');
+  assert.strictEqual(marieMentioning.count, 3);
+  // Jean n'est jamais auteur (ni saiseur ni player-sans-saiseur d'aucune ligne) → absent.
+  assert.strictEqual(res.mostMentioning.find(m => m.player === 'Jean'), undefined);
+
+  assert.ok(res.topDuo);
+  assert.strictEqual(res.topDuo.count, 2);
+  assert.deepStrictEqual([res.topDuo.playerA, res.topDuo.playerB].sort(), ['Léa', 'Marie']);
+});
+
+test('apiGetMentionStats returns empty lists and null duo when there are no mentions', () => {
+  const gas = loadGas();
+  const players = makeSheet([['Jean', '', '']]);
+  const history = makeSheet([
+    HEADER,
+    [D('2026-01-10'), 'Jean', 'Jeux', 5, 'Rien à signaler', '', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history, players, notes: null });
+
+  const res = gas.apiGetMentionStats();
+  assert.strictEqual(res.success, true);
+  assert.deepStrictEqual([...res.mostMentioned], []);
+  assert.deepStrictEqual([...res.mostMentioning], []);
+  assert.strictEqual(res.topDuo, null);
+});
+
+test('apiGetMentionStats never counts a self-mention as a duo', () => {
+  const gas = loadGas();
+  const players = makeSheet([['Jean', '', '']]);
+  const history = makeSheet([
+    HEADER,
+    [D('2026-01-10'), 'Jean', 'Jeux', 5, '@Jean parle de lui-même', '', 'Jean']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history, players, notes: null });
+
+  const res = gas.apiGetMentionStats();
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.mostMentioned[0].count, 1);
+  assert.strictEqual(res.mostMentioning[0].count, 1);
+  assert.strictEqual(res.topDuo, null);
+});

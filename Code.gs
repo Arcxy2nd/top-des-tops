@@ -2428,6 +2428,76 @@ function apiApplyMentionFixes(fixes, author) {
   } catch(e) { return fail(e); }
 }
 
+/** Compte, pour un texte donné, les occurrences de `@NomComplet` pour chaque joueur
+ *  de `playersSortedByLengthDesc` (triés du nom le plus long au plus court). Chaque
+ *  occurrence trouvée est retirée du texte de travail avant de tester les noms plus
+ *  courts, pour qu'un nom contenu dans un autre (ex. "Marie" dans "Marie Curie") ne
+ *  soit jamais compté à tort. */
+function _countMentionsInText(text, playersSortedByLengthDesc) {
+  const counts = {};
+  if (!text) return counts;
+  let working = text;
+  playersSortedByLengthDesc.forEach(name => {
+    const re = new RegExp('@' + _escapeRegExpMention(name) + '(?![\\p{L}\\p{N}_])', 'giu');
+    const matches = working.match(re);
+    if (matches) {
+      counts[name] = matches.length;
+      working = working.replace(re, '');
+    }
+  });
+  return counts;
+}
+
+/** Statistiques de mentions @Nom pour le Dashboard : joueurs les plus mentionnés,
+ *  joueurs qui mentionnent le plus (auteur = saisisseur réel de l'entrée, avec repli
+ *  sur le joueur concerné pour les lignes sans saisisseur tracé, ou pour les notes),
+ *  et la paire de joueurs qui se mentionnent mutuellement le plus. */
+function apiGetMentionStats() {
+  try {
+    const players = SettingsService.getEntities('Players').map(p => p.name).filter(Boolean);
+    if (!players.length) return { success: true, mostMentioned: [], mostMentioning: [], topDuo: null };
+    const sorted = players.slice().sort((a, b) => b.length - a.length);
+
+    const mentionedTotals = {};
+    const mentioningTotals = {};
+    const pairTotals = {};
+
+    function process(text, authorPlayer) {
+      if (!text || !authorPlayer) return;
+      const counts = _countMentionsInText(text, sorted);
+      Object.keys(counts).forEach(target => {
+        const n = counts[target];
+        mentionedTotals[target] = (mentionedTotals[target] || 0) + n;
+        mentioningTotals[authorPlayer] = (mentioningTotals[authorPlayer] || 0) + n;
+        if (target !== authorPlayer) {
+          const key = [authorPlayer, target].sort().join('|');
+          pairTotals[key] = (pairTotals[key] || 0) + n;
+        }
+      });
+    }
+
+    StorageService.getFullHistoryRowsCached().forEach(r => process(r.description, r.saiseur || r.player));
+    NotesService.getAllNotes().notes.forEach(n => process(n.text, n.player));
+
+    const toSortedArray = obj => Object.keys(obj)
+      .map(k => ({ player: k, count: obj[k] }))
+      .sort((a, b) => b.count - a.count);
+
+    const mostMentioned = toSortedArray(mentionedTotals).slice(0, 5);
+    const mostMentioning = toSortedArray(mentioningTotals).slice(0, 5);
+
+    let topDuo = null;
+    Object.keys(pairTotals).forEach(key => {
+      if (!topDuo || pairTotals[key] > topDuo.count) {
+        const parts = key.split('|');
+        topDuo = { playerA: parts[0], playerB: parts[1], count: pairTotals[key] };
+      }
+    });
+
+    return { success: true, mostMentioned, mostMentioning, topDuo };
+  } catch (e) { return fail(e); }
+}
+
 // ── Phrases ────────────────────────────────────────────────────────────────────
 
 function apiGetPhrases() {
