@@ -761,7 +761,8 @@
       mStatAccordionHtml('mRecordsAcc', '🏅 Records', 'mRecordsBody') +
       mStatAccordionHtml('mTrendsAcc', '📈 Tendances', 'mTrendsBody') +
       mStatAccordionHtml('mWeekdayAcc', '📅 Jour le plus actif', 'mWeekdayBody') +
-      mStatAccordionHtml('mPairsAcc', '🔁 Duo le plus fréquent', 'mPairsBody');
+      mStatAccordionHtml('mPairsAcc', '🔁 Duo le plus fréquent', 'mPairsBody') +
+      mStatAccordionHtml('mMentionsAcc', '💬 Mentions', 'mMentionsBody');
 
     document.getElementById('mFilterHead').addEventListener('click', () => {
       document.getElementById('mFilterAccordion').classList.toggle('open');
@@ -770,6 +771,7 @@
     bindStatAccordion('mTrendsAcc', loadTrendsStat);
     bindStatAccordion('mWeekdayAcc', loadWeekdayStat);
     bindStatAccordion('mPairsAcc', loadPairsStat);
+    bindStatAccordion('mMentionsAcc', loadMentionStats);
     document.getElementById('mPeriodSelect').value = mFilterPeriod;
     document.getElementById('mPeriodSelect').addEventListener('change', e => {
       mFilterPeriod = e.target.value;
@@ -860,6 +862,38 @@
       }).join('');
       body.outerHTML = '<div id="mPairsBody">' + (html || '<p class="m-empty">Aucune donnée.</p>') + '</div>';
     }, 'Chargement duos fréquents');
+  }
+
+  function loadMentionStats() {
+    callServer('apiGetMentionStats', [], res => {
+      const body = document.getElementById('mMentionsBody');
+      let html = '';
+      if ((res.mostMentioned || []).length) {
+        html += '<p style="font-weight:700; margin:0 0 8px;">📣 Les plus mentionnés</p>';
+        html += res.mostMentioned.map(m => {
+          const p = cachedPlayers.find(pl => pl.name === m.player);
+          return statRow(avatarImgHtml(m.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(m.player), m.count + ' mention(s)');
+        }).join('');
+      }
+      if ((res.mostMentioning || []).length) {
+        html += '<p style="font-weight:700; margin:14px 0 8px;">✍️ Ceux qui mentionnent le plus</p>';
+        html += res.mostMentioning.map(m => {
+          const p = cachedPlayers.find(pl => pl.name === m.player);
+          return statRow(avatarImgHtml(m.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(m.player), m.count + ' mention(s) écrite(s)');
+        }).join('');
+      }
+      if (res.topDuo) {
+        html += '<p style="font-weight:700; margin:14px 0 8px;">🔗 Duo le plus complice</p>';
+        const pa = cachedPlayers.find(pl => pl.name === res.topDuo.playerA);
+        const pb = cachedPlayers.find(pl => pl.name === res.topDuo.playerB);
+        html += statRow(
+          avatarImgHtml(res.topDuo.playerA, pa ? pa.meta : '', 'm-avatar sm') + avatarImgHtml(res.topDuo.playerB, pb ? pb.meta : '', 'm-avatar sm'),
+          escapeHtml(res.topDuo.playerA) + ' & ' + escapeHtml(res.topDuo.playerB),
+          res.topDuo.count + ' mention(s) croisée(s)'
+        );
+      }
+      body.outerHTML = '<div id="mMentionsBody">' + (html || '<p class="m-empty">Aucune mention trouvée.</p>') + '</div>';
+    }, 'Chargement mentions');
   }
 
   function renderFilterChips() {
