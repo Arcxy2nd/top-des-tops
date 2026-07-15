@@ -3191,6 +3191,97 @@
     return src;
   }
 
+  // ── AUTOCOMPLÉTION DE MENTION (@Nom), réutilisable sur n'importe quel
+  // <input>/<textarea> ─────────────────────────────────────────────────
+  // Le popup est ajouté à document.body en position:fixed et repositionné via
+  // getBoundingClientRect() à chaque affichage : ça évite tout problème de
+  // clipping/overflow quand le champ est dans un conteneur qui scrolle (ex.
+  // les modales d'édition, qui ont overflow-y:auto).
+  function attachMentionAutocomplete(inputEl, opts) {
+    opts = opts || {};
+    const popup = document.createElement('div');
+    popup.className = 'md-mention-popup';
+    popup.style.display = 'none';
+    popup.style.position = 'fixed';
+    document.body.appendChild(popup);
+
+    let matches = [];
+    let activeIdx = 0;
+    let range = null; // { start, end } dans inputEl.value du "@partiel" à remplacer
+
+    function hide() {
+      popup.style.display = 'none';
+      range = null;
+    }
+
+    function position() {
+      const r = inputEl.getBoundingClientRect();
+      popup.style.left = Math.round(r.left) + 'px';
+      popup.style.top = Math.round(r.bottom + 4) + 'px';
+      popup.style.width = Math.round(Math.min(Math.max(r.width, 180), 320)) + 'px';
+    }
+
+    function apply(name) {
+      if (!range) return;
+      const val = inputEl.value;
+      const replacement = '@' + name + ' ';
+      inputEl.value = val.slice(0, range.start) + replacement + val.slice(range.end);
+      const caret = range.start + replacement.length;
+      inputEl.focus();
+      inputEl.setSelectionRange(caret, caret);
+      hide();
+      if (opts.onApply) opts.onApply(inputEl.value);
+    }
+
+    function render() {
+      popup.innerHTML = '';
+      matches.forEach((p, idx) => {
+        const item = document.createElement('div');
+        item.className = 'md-mention-item' + (idx === activeIdx ? ' md-mention-active' : '');
+        const img = document.createElement('img');
+        img.src = getAvatarUrl(p.name, p.meta);
+        img.alt = '';
+        img.onerror = () => img.remove();
+        item.appendChild(img);
+        item.appendChild(document.createTextNode(p.name));
+        item.addEventListener('mousedown', e => { e.preventDefault(); apply(p.name); });
+        popup.appendChild(item);
+      });
+      popup.style.display = matches.length ? '' : 'none';
+      if (matches.length) position();
+    }
+
+    function check() {
+      const pos = inputEl.selectionStart;
+      const upToCursor = inputEl.value.slice(0, pos);
+      const m = /@([^\s@]{0,24})$/.exec(upToCursor);
+      if (!m || !cachedPlayers.length) { hide(); return; }
+      const query = m[1].toLowerCase();
+      matches = cachedPlayers.filter(p => p.name.toLowerCase().startsWith(query)).slice(0, 6);
+      activeIdx = 0;
+      range = { start: pos - m[0].length, end: pos };
+      render();
+    }
+
+    inputEl.addEventListener('input', check);
+    inputEl.addEventListener('blur', () => setTimeout(hide, 120));
+    // Enregistré ici (avant tout autre listener keydown éventuel sur le champ,
+    // ex. "Entrée pour valider" des composeurs de notes) + stopImmediatePropagation
+    // pour que sélectionner une mention au clavier ne déclenche jamais aussi
+    // l'action par défaut du champ (soumission, etc.).
+    inputEl.addEventListener('keydown', e => {
+      if (popup.style.display === 'none') return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, matches.length - 1); render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); render(); }
+      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); apply(matches[activeIdx].name); }
+      else if (e.key === 'Escape') { hide(); }
+    });
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+
+    return { hide };
+  }
+
   // ── ÉDITEUR DE TEXTE RÉUTILISABLE (markdown + mentions) ─────────────────
   // Retourne un div.md-editor avec ._getValue()/._setValue(). Utilisé partout
   // où l'utilisateur saisit une description/un texte libre (entrées, notes,
@@ -3265,73 +3356,13 @@
     previewPane.className = 'md-preview';
     previewPane.style.display = 'none';
 
-    // ── Autocomplétion de mention (@Nom) ──────────────────────────────────
-    const mentionPopup = document.createElement('div');
-    mentionPopup.className = 'md-mention-popup';
-    mentionPopup.style.display = 'none';
-    let mentionMatches = [];
-    let mentionActiveIdx = 0;
-    let mentionRange = null; // { start, end } dans textarea.value du "@partiel" à remplacer
-
-    function hideMentionPopup() {
-      mentionPopup.style.display = 'none';
-      mentionRange = null;
-    }
-
-    function applyMention(name) {
-      if (!mentionRange) return;
-      const val = textarea.value;
-      const replacement = '@' + name + ' ';
-      textarea.value = val.slice(0, mentionRange.start) + replacement + val.slice(mentionRange.end);
-      const caret = mentionRange.start + replacement.length;
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = caret;
-      hideMentionPopup();
-      triggerChange();
-    }
-
-    function renderMentionPopup() {
-      mentionPopup.innerHTML = '';
-      mentionMatches.forEach((p, idx) => {
-        const item = document.createElement('div');
-        item.className = 'md-mention-item' + (idx === mentionActiveIdx ? ' md-mention-active' : '');
-        const img = document.createElement('img');
-        img.src = getAvatarUrl(p.name, p.meta);
-        img.alt = '';
-        img.onerror = () => img.remove();
-        item.appendChild(img);
-        item.appendChild(document.createTextNode(p.name));
-        item.addEventListener('mousedown', e => { e.preventDefault(); applyMention(p.name); });
-        mentionPopup.appendChild(item);
-      });
-      mentionPopup.style.display = mentionMatches.length ? '' : 'none';
-    }
-
-    function checkMentionTrigger() {
-      const pos = textarea.selectionStart;
-      const upToCursor = textarea.value.slice(0, pos);
-      const m = /@([^\s@]{0,24})$/.exec(upToCursor);
-      if (!m || !cachedPlayers.length) { hideMentionPopup(); return; }
-      const query = m[1].toLowerCase();
-      mentionMatches = cachedPlayers.filter(p => p.name.toLowerCase().startsWith(query)).slice(0, 6);
-      mentionActiveIdx = 0;
-      mentionRange = { start: pos - m[0].length, end: pos };
-      renderMentionPopup();
-    }
-
-    textarea.addEventListener('input', () => { checkMentionTrigger(); triggerChange(); });
-    textarea.addEventListener('blur', () => setTimeout(hideMentionPopup, 120));
-    textarea.addEventListener('keydown', e => {
-      if (mentionPopup.style.display === 'none') return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); mentionActiveIdx = Math.min(mentionActiveIdx + 1, mentionMatches.length - 1); renderMentionPopup(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); mentionActiveIdx = Math.max(mentionActiveIdx - 1, 0); renderMentionPopup(); }
-      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applyMention(mentionMatches[mentionActiveIdx].name); }
-      else if (e.key === 'Escape') { hideMentionPopup(); }
-    });
+    // Saisie normale (sans mention) : déclenche quand même le changement/aperçu.
+    textarea.addEventListener('input', () => triggerChange());
+    // Autocomplétion @Nom, partagée avec les autres champs de l'app.
+    attachMentionAutocomplete(textarea, { onApply: () => triggerChange() });
 
     wrap.appendChild(toolbar);
     wrap.appendChild(textarea);
-    wrap.appendChild(mentionPopup);
     wrap.appendChild(previewPane);
 
     wrap._getValue = () => textarea.value;
@@ -8909,7 +8940,8 @@
 
     const fInput = document.createElement('input');
     fInput.type = 'text'; fInput.id = 'flashNoteText';
-    fInput.placeholder = 'Note rapide… (Entrée pour valider)';
+    fInput.placeholder = 'Note rapide… (Entrée pour valider, @ pour mentionner)';
+    attachMentionAutocomplete(fInput);
 
     let flashDate = '';
     const fDateField = document.createElement('input');
@@ -9024,7 +9056,8 @@
     const add = document.createElement('div');
     add.className = 'npb-add';
     const ta = document.createElement('input');
-    ta.type = 'text'; ta.placeholder = 'Ajoute une note pour ' + player.name + '…';
+    ta.type = 'text'; ta.placeholder = 'Ajoute une note pour ' + player.name + '… (@ pour mentionner)';
+    attachMentionAutocomplete(ta);
 
     let npbDate = '';
     const npbDateField = document.createElement('input');
