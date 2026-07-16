@@ -1213,36 +1213,6 @@
     .md-mention-item .md-mention-cat-icon { width: 22px; text-align: center; font-size: 1rem; flex-shrink: 0; }
     .md-mention-item.md-mention-active { background: rgba(255,255,255,0.06); }
 
-    /* ── CARROUSEL DES TOPS (swipe / drag / flèches) ── */
-    .tops-carousel { display: flex; align-items: stretch; gap: 8px; }
-    .tops-carousel-viewport { flex: 1; overflow: hidden; border-radius: 12px; }
-    .tops-carousel-track { display: flex; transition: transform 0.28s ease; touch-action: pan-y; cursor: grab; }
-    .tops-carousel-track.dragging { transition: none; cursor: grabbing; }
-    .tops-slide {
-      flex: 0 0 100%; box-sizing: border-box; padding: 18px 20px; min-height: 120px;
-      display: flex; flex-direction: column; gap: 10px; user-select: none;
-    }
-    .tops-slide-header { display: flex; align-items: center; gap: 10px; }
-    .tops-slide-icon { font-size: 1.6rem; }
-    .tops-slide-name {
-      font-weight: 700; font-size: 1.05rem; padding: 3px 14px; border-radius: 20px;
-      background: color-mix(in srgb, var(--tops-color, var(--accent)) 18%, transparent);
-      border: 1px solid color-mix(in srgb, var(--tops-color, var(--accent)) 55%, transparent);
-    }
-    .tops-slide-desc { font-size: 0.88rem; color: var(--text); line-height: 1.5; }
-    .tops-slide-desc.empty { color: var(--text-muted); font-style: italic; }
-    .tops-carousel-arrow {
-      flex-shrink: 0; width: 36px; border: 1px solid var(--border); border-radius: 8px;
-      background: var(--btn-alt); color: var(--text); font-size: 1.3rem; cursor: pointer;
-    }
-    .tops-carousel-arrow:hover { background: var(--accent); color: #fff; }
-    .tops-carousel-arrow:disabled { opacity: 0.35; cursor: default; background: var(--btn-alt); color: var(--text); }
-    .tops-carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
-    .tops-carousel-dot {
-      width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0;
-      background: var(--border); cursor: pointer;
-    }
-    .tops-carousel-dot.active { background: var(--accent); width: 20px; border-radius: 4px; }
 
     /* ── TCHAT FLOTTANT (bouton déplaçable, accessible depuis tous les onglets) ── */
     .chat-fab {
@@ -2511,19 +2481,6 @@
         <div id="topStatsStrip"></div>
       </div>
     </div>
-    </div>
-
-    <!-- ══ CARROUSEL DES TOPS (descriptions, swipe) ══ -->
-    <div class="card card-collapsible" id="topsCarouselCard">
-      <div class="card-collapse-header"><h2>🏆 Les Tops</h2></div>
-      <div class="tops-carousel">
-        <button class="tops-carousel-arrow tops-carousel-prev" id="topsCarouselPrev" title="Précédent" aria-label="Top précédent">‹</button>
-        <div class="tops-carousel-viewport" id="topsCarouselViewport">
-          <div class="tops-carousel-track" id="topsCarouselTrack"></div>
-        </div>
-        <button class="tops-carousel-arrow tops-carousel-next" id="topsCarouselNext" title="Suivant" aria-label="Top suivant">›</button>
-      </div>
-      <div class="tops-carousel-dots" id="topsCarouselDots"></div>
     </div>
 
     <!-- ══ RECORDS ══ -->
@@ -4664,102 +4621,6 @@
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
 
-  // ── CARROUSEL DES TOPS (Dashboard, descriptions par catégorie, swipe) ─
-  let _topsCarouselIndex = 0;
-
-  function renderTopsCarousel() {
-    const track = document.getElementById('topsCarouselTrack');
-    const dots  = document.getElementById('topsCarouselDots');
-    if (!track) return;
-
-    if (!cachedCategories.length) {
-      track.innerHTML = '<div class="tops-slide"><div class="tops-slide-desc empty">Aucun Top pour le moment.</div></div>';
-      dots.innerHTML = '';
-      applyTopsCarouselTransform(false);
-      return;
-    }
-    if (_topsCarouselIndex >= cachedCategories.length) _topsCarouselIndex = 0;
-
-    track.innerHTML = cachedCategories.map(cat => {
-      const col = categoryColor(cat.name);
-      const desc = (cat.meta && cat.meta.trim())
-        ? '<div class="tops-slide-desc">' + renderMarkdown(cat.meta) + '</div>'
-        : '<div class="tops-slide-desc empty">Aucune description pour ce Top.</div>';
-      return '<div class="tops-slide" style="--tops-color:' + col + ';">' +
-        '<div class="tops-slide-header">' +
-          '<span class="tops-slide-icon">' + (cat.icon || '🏆') + '</span>' +
-          '<span class="tops-slide-name" style="--tops-color:' + col + ';">' + escapeHtml(cat.name) + '</span>' +
-        '</div>' + desc + '</div>';
-    }).join('');
-
-    dots.innerHTML = cachedCategories.map((c, i) =>
-      '<button class="tops-carousel-dot' + (i === _topsCarouselIndex ? ' active' : '') + '" data-idx="' + i + '" title="' + escapeHtml(c.name) + '"></button>'
-    ).join('');
-    dots.querySelectorAll('.tops-carousel-dot').forEach(btn => {
-      btn.addEventListener('click', () => goToTopsSlide(parseInt(btn.dataset.idx, 10)));
-    });
-
-    applyTopsCarouselTransform(false);
-  }
-
-  function applyTopsCarouselTransform() {
-    const track = document.getElementById('topsCarouselTrack');
-    if (!track) return;
-    track.style.transform = 'translateX(-' + (_topsCarouselIndex * 100) + '%)';
-    document.querySelectorAll('#topsCarouselDots .tops-carousel-dot').forEach((d, i) => d.classList.toggle('active', i === _topsCarouselIndex));
-    const prevBtn = document.getElementById('topsCarouselPrev');
-    const nextBtn = document.getElementById('topsCarouselNext');
-    if (prevBtn) prevBtn.disabled = cachedCategories.length <= 1;
-    if (nextBtn) nextBtn.disabled = cachedCategories.length <= 1;
-  }
-
-  function goToTopsSlide(index) {
-    if (!cachedCategories.length) return;
-    const n = cachedCategories.length;
-    _topsCarouselIndex = ((index % n) + n) % n;
-    applyTopsCarouselTransform();
-  }
-
-  function initTopsCarousel() {
-    const track    = document.getElementById('topsCarouselTrack');
-    const viewport = document.getElementById('topsCarouselViewport');
-    const prevBtn  = document.getElementById('topsCarouselPrev');
-    const nextBtn  = document.getElementById('topsCarouselNext');
-    if (!track) return;
-
-    prevBtn.addEventListener('click', () => goToTopsSlide(_topsCarouselIndex - 1));
-    nextBtn.addEventListener('click', () => goToTopsSlide(_topsCarouselIndex + 1));
-
-    // Glisser à la souris ET au doigt via Pointer Events (un seul jeu de handlers pour les deux).
-    let dragging = false, startX = 0, startPx = 0;
-
-    track.addEventListener('pointerdown', e => {
-      if (cachedCategories.length <= 1) return;
-      dragging = true;
-      startX = e.clientX;
-      startPx = -_topsCarouselIndex * viewport.clientWidth;
-      track.classList.add('dragging');
-      track.setPointerCapture(e.pointerId);
-    });
-    track.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      track.style.transform = 'translateX(' + (startPx + (e.clientX - startX)) + 'px)';
-    });
-    function endDrag(e) {
-      if (!dragging) return;
-      dragging = false;
-      track.classList.remove('dragging');
-      const dx = e.clientX - startX;
-      const threshold = viewport.clientWidth * 0.18;
-      if (dx > threshold) goToTopsSlide(_topsCarouselIndex - 1);
-      else if (dx < -threshold) goToTopsSlide(_topsCarouselIndex + 1);
-      else applyTopsCarouselTransform();
-    }
-    track.addEventListener('pointerup', endDrag);
-    track.addEventListener('pointercancel', endDrag);
-    window.addEventListener('resize', applyTopsCarouselTransform);
-  }
-
   // ── TCHAT FLOTTANT ─────────────────────────────────────────────────
   // Widget global (bouton + panneau), pas un onglet : accessible depuis n'importe
   // quelle page de l'app. Le bouton se déplace au clic-maintenu-glisser (souris et
@@ -5972,7 +5833,6 @@
 
     renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
     renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
-    renderTopsCarousel();
     // Le barème est groupé par catégorie mais son contenu (les règles) ne dépend
     // pas des joueurs/catégories eux-mêmes : un rendu local avec les entrées déjà
     // en cache suffit tant qu'elles ont été chargées une première fois — pas
@@ -11728,7 +11588,6 @@
     initLayoutMode();
     initSettingsTabs();
     initHistoryTabs();
-    initTopsCarousel();
     initChatWidget();
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
