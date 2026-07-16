@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-16
 
+### Corrigé
+**Humanisé** : Dans le tchat flottant, taper `@` ou `#` n'affichait aucune suggestion. En cause : le champ de saisie est collé en bas de l'écran (widget flottant), et la liste de suggestions s'ouvrait toujours vers le bas — donc hors de l'écran, invisible. Elle bascule maintenant automatiquement au-dessus du champ quand il n'y a pas la place en dessous.
+**Technique** : `attachMentionAutocomplete` (Index.html) — `position()` calcule l'espace disponible sous le champ via `getBoundingClientRect()`/`window.innerHeight` et bascule le popup au-dessus (`r.top - popupHeight - 4`) quand il manque de place en dessous et qu'il y en a assez au-dessus ; position horizontale également clampée pour ne jamais déborder à droite. Correction partagée par tous les champs utilisant cette fonction (descriptions, notes, tchat…).
+
 ### Ajouté
 **Humanisé** : Le Dashboard propose maintenant une card « 🏆 Les Tops » où on feuillette les Tops un par un (flèches, points de pagination, ou glisser au doigt/à la souris) pour lire la description complète de chacun, plutôt que la version tronquée qu'on voyait déjà dans Paramètres.
 **Technique** : `Index.html`/`Mobile.html` — nouvelle card `#topsCarouselCard`/`#mTopsCarouselCard` alimentée par `cachedCategories`, rendu markdown complet (`renderMarkdown`) par slide. Navigation via Pointer Events (glisser souris + tactile unifiés), flèches et points cliquables ; aucun appel serveur supplémentaire.

@@ -3420,9 +3420,18 @@
 
     function position() {
       const r = inputEl.getBoundingClientRect();
-      popup.style.left = Math.round(r.left) + 'px';
-      popup.style.top = Math.round(r.bottom + 4) + 'px';
-      popup.style.width = Math.round(Math.min(Math.max(r.width, 180), 320)) + 'px';
+      const width = Math.round(Math.min(Math.max(r.width, 180), 320));
+      popup.style.width = width + 'px';
+      // Bascule au-dessus du champ quand il n'y a pas la place en dessous — le
+      // composeur du tchat flottant est collé en bas de l'écran, donc le popup
+      // s'ouvrait hors-viewport (invisible) sans cette bascule.
+      const popupHeight = popup.offsetHeight || 220;
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top = (spaceBelow < popupHeight + 8 && r.top > popupHeight + 8)
+        ? r.top - popupHeight - 4
+        : r.bottom + 4;
+      popup.style.left = Math.round(Math.min(r.left, window.innerWidth - width - 8)) + 'px';
+      popup.style.top  = Math.round(top) + 'px';
     }
 
     function apply(entry) {
