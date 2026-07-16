@@ -7,6 +7,7 @@
  * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
  * Settings  : [0] Key  | [1] Value  (optional sheet, auto-created — app_title, logo_url)
  * AutoRules : automatic point-granting rules (optional sheet, auto-created — see AutoPoints.gs)
+ * Chat      : [0] Id | [1] Date | [2] Author | [3] Text | [4] ReplyToId (optional sheet, auto-created)
  */
 
 // ─── NAVIGATION REGISTRY ───────────────────────────────────────────────────────
@@ -58,7 +59,8 @@ const ConfigService = (() => {
       const auditLog = ss.getSheetByName('AuditLog') || null;
       const settings = ss.getSheetByName('Settings') || null;
       const autoRules = ss.getSheetByName('AutoRules') || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules };
+      const chat      = ss.getSheetByName('Chat')      || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -843,6 +845,97 @@ const NotesService = {
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
     this._sheet().getRange(idx, 3).setValue(newText.trim());
+  }
+};
+
+// ─── CHAT SERVICE ──────────────────────────────────────────────────────────────
+const ChatService = {
+
+  // Volume borné : l'app cible un petit groupe de joueurs, pas un historique
+  // illimité — au-delà, les plus anciens messages sortent simplement de la vue.
+  MAX_MESSAGES: 500,
+
+  /** Renvoie la feuille Chat, en la CRÉANT automatiquement si elle n'existe pas. */
+  _sheet() {
+    let sheet = ConfigService.getSheets().chat;
+    if (sheet) return sheet;
+    const ss = ConfigService.getSheets().spreadsheet;
+    sheet = ss.insertSheet('Chat');
+    sheet.appendRow(['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ']);
+    sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    ConfigService.clearCache();
+    return sheet;
+  },
+
+  /** Tous les messages (les plus anciens d'abord). L'aperçu du message cité par une
+   *  réponse est résolu ici, côté serveur, pour survivre même si l'original est
+   *  supprimé entre-temps (replyToDeleted). */
+  getAllMessages() {
+    const sheet = ConfigService.getSheets().chat;
+    if (!sheet) return { messages: [] };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { messages: [] };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const byId = {};
+    const rows = [];
+    for (let i = 0; i < data.length; i++) {
+      const row    = data[i];
+      const id     = row[0] ? row[0].toString() : '';
+      const author = row[2] ? row[2].toString() : '';
+      const text   = row[3] ? row[3].toString() : '';
+      if (!id || (!author && !text)) continue;
+      const d = new Date(row[1]);
+      const msg = {
+        id,
+        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
+        author,
+        text,
+        replyToId: row[4] ? row[4].toString() : '',
+        rowIndex: i + 2
+      };
+      byId[id] = msg;
+      rows.push(msg);
+    }
+    rows.forEach(msg => {
+      if (!msg.replyToId) return;
+      const original = byId[msg.replyToId];
+      msg.replyToAuthor  = original ? original.author : '';
+      msg.replyToText    = original ? original.text   : '';
+      msg.replyToDeleted = !original;
+    });
+    return { messages: rows.slice(-ChatService.MAX_MESSAGES) };
+  },
+
+  postMessage(author, text, replyToId) {
+    if (!author) throw new Error("Identité manquante.");
+    if (!text || !text.trim()) throw new Error("Le message ne peut pas être vide.");
+    const trimmed = text.trim();
+    if (trimmed.length > 2000) throw new Error("Message trop long (2000 caractères max).");
+
+    const sheet = this._sheet();
+    const id = Utilities.getUuid();
+    const now = new Date();
+    sheet.appendRow([id, now, author, trimmed, replyToId || '']);
+    return { id, rowIndex: sheet.getLastRow(), timestamp: now.toISOString(), author, text: trimmed, replyToId: replyToId || '' };
+  },
+
+  /** Supprime un message — uniquement si `author` en est bien l'auteur. */
+  deleteMessage(id, author) {
+    const sheet = ConfigService.getSheets().chat;
+    if (!sheet) throw new Error("Message introuvable.");
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) throw new Error("Message introuvable.");
+    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString() === id) {
+        const rowAuthor = data[i][2] ? data[i][2].toString() : '';
+        if (rowAuthor !== author) throw new Error("Tu ne peux supprimer que tes propres messages.");
+        sheet.deleteRow(i + 2);
+        return { deletedRow: data[i] };
+      }
+    }
+    throw new Error("Message introuvable.");
   }
 };
 
@@ -1787,6 +1880,41 @@ function apiEditNote(rowIndex, newText, author) {
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
         'ligne #' + rowIndex,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+// ── Tchat ───────────────────────────────────────────────────────────────────────
+
+function apiGetChatMessages() {
+  try {
+    const result = ChatService.getAllMessages();
+    return { success: true, messages: result.messages };
+  } catch(e) { return fail(e); }
+}
+
+function apiPostChatMessage(text, replyToId, author) {
+  try {
+    return withLock(() => {
+      const msg = ChatService.postMessage(author, text, replyToId);
+      const sheet = ConfigService.getSheets().chat;
+      AuditService.log(author, 'Message tchat envoyé', 'Chat',
+        '', msg.text.slice(0, 200), replyToId ? 'en réponse à un message' : '',
+        { sheet: 'chat', op: 'insert', rowIndex: msg.rowIndex,
+          after: sheet.getRange(msg.rowIndex, 1, 1, 5).getValues()[0] });
+      return { success: true, message: msg };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiDeleteChatMessage(id, author) {
+  try {
+    return withLock(() => {
+      const result = ChatService.deleteMessage(id, author);
+      AuditService.log(author, 'Message tchat supprimé', 'Chat',
+        (result.deletedRow[3] || '').toString().slice(0, 200), '', 'id ' + id,
+        { sheet: 'chat', op: 'delete', before: result.deletedRow });
       return { success: true };
     });
   } catch(e) { return fail(e); }

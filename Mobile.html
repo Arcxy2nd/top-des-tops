@@ -206,7 +206,88 @@
       color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
     }
     .mention img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+    .category-mention {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 18px;
+      border-radius: 44px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
+      color: var(--text); font-weight: 600; font-size: 0.85em; white-space: nowrap;
+    }
     .m-hist-actions { display: flex; gap: 14px; margin-top: 18px; }
+
+    /* ── CARROUSEL DES TOPS (swipe tactile) ── */
+    .m-tops-carousel { display: flex; align-items: stretch; gap: 10px; margin-top: 10px; }
+    .m-tops-viewport { flex: 1; overflow: hidden; border-radius: 22px; }
+    .m-tops-track { display: flex; transition: transform 0.28s ease; touch-action: pan-y; }
+    .m-tops-track.dragging { transition: none; }
+    .m-tops-slide { flex: 0 0 100%; box-sizing: border-box; padding: 8px 4px; display: flex; flex-direction: column; gap: 14px; user-select: none; }
+    .m-tops-slide-header { display: flex; align-items: center; gap: 14px; }
+    .m-tops-slide-icon { font-size: 2.4rem; }
+    .m-tops-slide-name {
+      font-weight: 700; font-size: 1.7rem; padding: 6px 20px; border-radius: 34px;
+      background: color-mix(in srgb, var(--tops-color, var(--accent)) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--tops-color, var(--accent)) 55%, transparent);
+    }
+    .m-tops-slide-desc { font-size: 1.8rem; color: var(--text); line-height: 1.5; }
+    .m-tops-slide-desc.empty { color: var(--text-muted); font-style: italic; }
+    .m-tops-arrow {
+      flex-shrink: 0; width: 60px; border: 1px solid var(--border); border-radius: 14px;
+      background: var(--btn-alt); color: var(--text); font-size: 2.2rem; min-height: unset;
+    }
+    .m-tops-arrow:disabled { opacity: 0.35; }
+    .m-tops-dots { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+    .m-tops-dot { width: 14px; height: 14px; border-radius: 50%; border: none; padding: 0; background: var(--border); }
+    .m-tops-dot.active { background: var(--accent); width: 34px; border-radius: 8px; }
+
+    /* ── TCHAT FLOTTANT (bouton déplaçable, accessible depuis tous les onglets) ── */
+    .m-chat-fab {
+      position: fixed; right: 34px; bottom: calc(34px + env(safe-area-inset-bottom)); z-index: 9500;
+      width: 100px; height: 100px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--accent); color: #fff; font-size: 2.6rem; min-height: unset;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      touch-action: none; user-select: none; padding: 0;
+    }
+    .m-chat-fab-badge {
+      position: absolute; top: -6px; right: -6px; min-width: 34px; height: 34px; padding: 0 6px;
+      border-radius: 18px; background: var(--error); color: #fff; font-size: 1.15rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; border: 3px solid var(--bg);
+    }
+    .m-chat-panel {
+      position: fixed; right: 20px; bottom: 148px; z-index: 9499;
+      width: min(640px, calc(100vw - 40px)); max-height: min(72vh, 900px);
+      display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border);
+      border-radius: 26px; box-shadow: 0 10px 32px rgba(0,0,0,0.45); overflow: hidden;
+    }
+    .m-chat-panel-header {
+      display: flex; align-items: center; justify-content: space-between; padding: 18px 24px;
+      font-weight: 700; font-size: 1.9rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .m-chat-messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 22px; padding: 18px 22px; }
+    .m-chat-msg { display: flex; gap: 16px; }
+    .m-chat-msg-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .m-chat-msg-body-col { flex: 1; min-width: 0; }
+    .m-chat-msg-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .m-chat-msg-author { font-weight: 700; font-size: 1.7rem; }
+    .m-chat-msg-time { font-size: 1.35rem; color: var(--text-muted); }
+    .m-chat-msg-actions { margin-left: auto; display: flex; gap: 10px; }
+    .m-chat-msg-actions button { background: none; border: none; min-height: unset; padding: 4px 8px; font-size: 1.6rem; color: var(--text-muted); }
+    .m-chat-msg-reply {
+      display: flex; align-items: center; gap: 10px; font-size: 1.4rem; color: var(--text-muted);
+      border-left: 4px solid var(--border); padding: 4px 0 4px 14px; margin: 8px 0; max-width: 100%; overflow: hidden;
+    }
+    .m-chat-msg-reply strong { color: var(--text); }
+    .m-chat-msg-reply span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .m-chat-msg-reply.deleted { font-style: italic; }
+    .m-chat-msg-text { font-size: 1.75rem; line-height: 1.5; word-break: break-word; }
+    .m-chat-reply-banner {
+      display: flex; align-items: center; gap: 14px; background: var(--btn-alt);
+      border-radius: 14px; padding: 12px 18px; margin: 0 22px 14px; font-size: 1.5rem; flex-shrink: 0;
+    }
+    .m-chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .m-chat-reply-banner-snippet { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .m-chat-composer { display: flex; gap: 14px; align-items: flex-end; padding: 18px 22px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .m-chat-composer textarea { flex: 1; resize: vertical; min-height: 70px; max-height: 220px; font-size: 1.7rem; }
+    .m-chat-composer button { min-height: 70px; }
+    .m-chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 40px 0; font-size: 1.6rem; }
 
     /* ── DASHBOARD CHART TOOLTIP / DRILLDOWN ── */
     #mChartCustomTooltip {
@@ -351,6 +432,29 @@
 </div>
 <div id="mToastContainer"></div>
 
+<!-- ══ TCHAT FLOTTANT (accessible depuis n'importe quel onglet) ══ -->
+<button id="mChatFab" class="m-chat-fab" title="Tchat" aria-label="Ouvrir le tchat">
+  💬<span id="mChatFabBadge" class="m-chat-fab-badge" style="display:none;"></span>
+</button>
+<div id="mChatPanel" class="m-chat-panel" style="display:none;">
+  <div class="m-chat-panel-header">
+    <span>💬 Tchat</span>
+    <button id="mChatPanelClose" class="small" title="Fermer">✕</button>
+  </div>
+  <div id="mChatMessages" class="m-chat-messages"></div>
+  <div id="mChatReplyBanner" class="m-chat-reply-banner" style="display:none;">
+    <div class="m-chat-reply-banner-text">
+      <span>↩ Réponse à <strong id="mChatReplyBannerAuthor"></strong></span>
+      <span id="mChatReplyBannerSnippet" class="m-chat-reply-banner-snippet"></span>
+    </div>
+    <button id="mChatReplyBannerCancel" class="small" title="Annuler la réponse">✕</button>
+  </div>
+  <div class="m-chat-composer">
+    <textarea id="mChatInput" rows="2" placeholder="Écris un message… (@joueur, #top)"></textarea>
+    <button id="mChatSendBtn" class="primary">Envoyer</button>
+  </div>
+</div>
+
 
 <script>
   // Adresse publique exacte du déploiement courant, fournie par le serveur
@@ -413,6 +517,21 @@
     });
   }
 
+  function renderCategoryMentions(escapedHtml) {
+    if (!cachedCategories.length) return escapedHtml;
+    const names = cachedCategories.map(c => c.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)#(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedCategories.find(c => escapeHtml(c.name) === name);
+      const realName = original ? original.name : name;
+      const col = categoryColor(realName);
+      const icon = original && original.icon ? original.icon + ' ' : '';
+      return pre + '<span class="category-mention" data-category="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        icon + '#' + name + '</span>';
+    });
+  }
+
   function renderMarkdown(text) {
     if (!text) return '';
     let src = String(text).replace(/\r\n/g, '\n');
@@ -464,6 +583,7 @@
     src = grouped.join('\n');
     src = src.replace(/\n/g, '<br>');
     src = renderMentions(src);
+    src = renderCategoryMentions(src);
     src = src.replace(/ CODEBLOCK(\d+) /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
     return src;
   }
@@ -816,6 +936,15 @@
     const tab = document.getElementById('tab-dashboard');
     tab.innerHTML =
       '<div class="card" id="mCommentsCard"><h2>🎭 Commentaires</h2><div id="mCommentsBody" class="m-empty">Chargement…</div></div>' +
+      '<div class="card" id="mTopsCarouselCard">' +
+        '<h2>🏆 Les Tops</h2>' +
+        '<div class="m-tops-carousel">' +
+          '<button class="m-tops-arrow" id="mTopsCarouselPrev" title="Précédent" aria-label="Top précédent">‹</button>' +
+          '<div class="m-tops-viewport" id="mTopsCarouselViewport"><div class="m-tops-track" id="mTopsCarouselTrack"></div></div>' +
+          '<button class="m-tops-arrow" id="mTopsCarouselNext" title="Suivant" aria-label="Top suivant">›</button>' +
+        '</div>' +
+        '<div class="m-tops-dots" id="mTopsCarouselDots"></div>' +
+      '</div>' +
       '<div class="card m-accordion" id="mFilterAccordion">' +
         '<div class="m-accordion-head" id="mFilterHead"><span>🔎 Filtres</span><span class="m-accordion-arrow">▾</span></div>' +
         '<div class="m-accordion-body">' +
@@ -866,6 +995,103 @@
     });
 
     renderFilterChips();
+    initTopsCarouselMobile();
+  }
+
+  // ── CARROUSEL DES TOPS (Dashboard mobile, descriptions par catégorie, swipe) ──
+  let _mTopsCarouselIndex = 0;
+
+  function renderTopsCarouselMobile() {
+    const track = document.getElementById('mTopsCarouselTrack');
+    const dots  = document.getElementById('mTopsCarouselDots');
+    if (!track) return;
+
+    if (!cachedCategories.length) {
+      track.innerHTML = '<div class="m-tops-slide"><div class="m-tops-slide-desc empty">Aucun Top pour le moment.</div></div>';
+      dots.innerHTML = '';
+      applyTopsCarouselTransformMobile();
+      return;
+    }
+    if (_mTopsCarouselIndex >= cachedCategories.length) _mTopsCarouselIndex = 0;
+
+    track.innerHTML = cachedCategories.map(cat => {
+      const col = categoryColor(cat.name);
+      const desc = (cat.meta && cat.meta.trim())
+        ? '<div class="m-tops-slide-desc">' + renderMarkdown(cat.meta) + '</div>'
+        : '<div class="m-tops-slide-desc empty">Aucune description pour ce Top.</div>';
+      return '<div class="m-tops-slide" style="--tops-color:' + col + ';">' +
+        '<div class="m-tops-slide-header">' +
+          '<span class="m-tops-slide-icon">' + (cat.icon || '🏆') + '</span>' +
+          '<span class="m-tops-slide-name" style="--tops-color:' + col + ';">' + escapeHtml(cat.name) + '</span>' +
+        '</div>' + desc + '</div>';
+    }).join('');
+
+    dots.innerHTML = cachedCategories.map((c, i) =>
+      '<button class="m-tops-dot' + (i === _mTopsCarouselIndex ? ' active' : '') + '" data-idx="' + i + '" title="' + escapeHtml(c.name) + '"></button>'
+    ).join('');
+    dots.querySelectorAll('.m-tops-dot').forEach(btn => {
+      btn.addEventListener('click', () => goToTopsSlideMobile(parseInt(btn.dataset.idx, 10)));
+    });
+
+    applyTopsCarouselTransformMobile();
+  }
+
+  function applyTopsCarouselTransformMobile() {
+    const track = document.getElementById('mTopsCarouselTrack');
+    if (!track) return;
+    track.style.transform = 'translateX(-' + (_mTopsCarouselIndex * 100) + '%)';
+    document.querySelectorAll('#mTopsCarouselDots .m-tops-dot').forEach((d, i) => d.classList.toggle('active', i === _mTopsCarouselIndex));
+    const prevBtn = document.getElementById('mTopsCarouselPrev');
+    const nextBtn = document.getElementById('mTopsCarouselNext');
+    if (prevBtn) prevBtn.disabled = cachedCategories.length <= 1;
+    if (nextBtn) nextBtn.disabled = cachedCategories.length <= 1;
+  }
+
+  function goToTopsSlideMobile(index) {
+    if (!cachedCategories.length) return;
+    const n = cachedCategories.length;
+    _mTopsCarouselIndex = ((index % n) + n) % n;
+    applyTopsCarouselTransformMobile();
+  }
+
+  function initTopsCarouselMobile() {
+    const track    = document.getElementById('mTopsCarouselTrack');
+    const viewport = document.getElementById('mTopsCarouselViewport');
+    const prevBtn  = document.getElementById('mTopsCarouselPrev');
+    const nextBtn  = document.getElementById('mTopsCarouselNext');
+    if (!track) return;
+
+    _mTopsCarouselIndex = 0;
+    prevBtn.addEventListener('click', () => goToTopsSlideMobile(_mTopsCarouselIndex - 1));
+    nextBtn.addEventListener('click', () => goToTopsSlideMobile(_mTopsCarouselIndex + 1));
+
+    let dragging = false, startX = 0, startPx = 0;
+    track.addEventListener('pointerdown', e => {
+      if (cachedCategories.length <= 1) return;
+      dragging = true;
+      startX = e.clientX;
+      startPx = -_mTopsCarouselIndex * viewport.clientWidth;
+      track.classList.add('dragging');
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      track.style.transform = 'translateX(' + (startPx + (e.clientX - startX)) + 'px)';
+    });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      track.classList.remove('dragging');
+      const dx = e.clientX - startX;
+      const threshold = viewport.clientWidth * 0.18;
+      if (dx > threshold) goToTopsSlideMobile(_mTopsCarouselIndex - 1);
+      else if (dx < -threshold) goToTopsSlideMobile(_mTopsCarouselIndex + 1);
+      else applyTopsCarouselTransformMobile();
+    }
+    track.addEventListener('pointerup', endDrag);
+    track.addEventListener('pointercancel', endDrag);
+
+    renderTopsCarouselMobile();
   }
 
   // ── Cards statistiques repliables (Records/Tendances/Jour actif/Duo) ──
@@ -2353,6 +2579,297 @@
     if (!document.querySelector('#tab-guide .m-accordion')) renderGuideShell();
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // TCHAT FLOTTANT — widget global (bouton + panneau), pas un onglet :
+  // accessible depuis n'importe quel onglet. Le bouton se déplace au
+  // glisser (Pointer Events, souris et tactile) ; un tap sans déplacement
+  // ouvre/ferme le panneau. Position mémorisée en localStorage.
+  // ══════════════════════════════════════════════════════════════════════
+  let _mChatMessages = [];
+  let _mChatLoadedOnce = false;
+  let _mChatReplyTo = null;
+  let _mChatPollTimer = null;
+  let _mChatAtBottom = true;
+  let _mChatPanelOpen = false;
+  let _mChatUnreadCount = 0;
+  const M_CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos_mobile';
+
+  function mFormatChatTime(iso) {
+    if (!iso) return { short: '', title: '' };
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return { short: '', title: '' };
+    return {
+      short: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      title: d.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+    };
+  }
+
+  function mChatSnippet(text, len) {
+    const clean = (text || '').replace(/\n/g, ' ').trim();
+    return clean.length > len ? clean.slice(0, len) + '…' : clean;
+  }
+
+  function mBuildChatMessageEl(msg) {
+    const el = document.createElement('div');
+    el.className = 'm-chat-msg';
+    el.id = 'm-chat-msg-' + msg.id;
+
+    const player = cachedPlayers.find(p => p.name === msg.author);
+    const img = document.createElement('img');
+    img.className = 'm-chat-msg-avatar';
+    img.src = getAvatarUrl(msg.author, player ? player.meta : '');
+    img.alt = msg.author;
+    img.onerror = () => { img.src = getAvatarUrl(msg.author, ''); };
+    el.appendChild(img);
+
+    const col = document.createElement('div');
+    col.className = 'm-chat-msg-body-col';
+
+    const head = document.createElement('div');
+    head.className = 'm-chat-msg-head';
+    const author = document.createElement('span');
+    author.className = 'm-chat-msg-author';
+    author.textContent = msg.author;
+    author.style.color = playerColor(msg.author);
+    head.appendChild(author);
+    const time = mFormatChatTime(msg.timestamp);
+    const timeEl = document.createElement('span');
+    timeEl.className = 'm-chat-msg-time';
+    timeEl.textContent = time.short;
+    timeEl.title = time.title;
+    head.appendChild(timeEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'm-chat-msg-actions';
+    const replyBtn = document.createElement('button');
+    replyBtn.textContent = '↩️';
+    replyBtn.title = 'Répondre';
+    replyBtn.addEventListener('click', () => mSetChatReplyTo(msg));
+    actions.appendChild(replyBtn);
+    if (msg.author === _whoAmI) {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Supprimer';
+      delBtn.addEventListener('click', () => {
+        openConfirmModal('Supprimer ce message ?', () => {
+          buzz();
+          callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
+            _mChatMessages = _mChatMessages.filter(m => m.id !== msg.id);
+            mRenderChatMessages(false);
+          }, 'Suppression message');
+        });
+      });
+      actions.appendChild(delBtn);
+    }
+    head.appendChild(actions);
+    col.appendChild(head);
+
+    if (msg.replyToId) {
+      const reply = document.createElement('div');
+      reply.className = 'm-chat-msg-reply' + (msg.replyToDeleted ? ' deleted' : '');
+      if (msg.replyToDeleted) {
+        reply.innerHTML = '<span>Message supprimé</span>';
+      } else {
+        reply.innerHTML = '<strong>' + escapeHtml(msg.replyToAuthor) + '</strong><span>' + escapeHtml(mChatSnippet(msg.replyToText, 50)) + '</span>';
+        reply.addEventListener('click', () => {
+          const target = document.getElementById('m-chat-msg-' + msg.replyToId);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+      col.appendChild(reply);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'm-chat-msg-text';
+    body.innerHTML = renderMarkdown(msg.text);
+    col.appendChild(body);
+
+    el.appendChild(col);
+    return el;
+  }
+
+  function mRenderChatMessages(forceScroll) {
+    const container = document.getElementById('mChatMessages');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!_mChatMessages.length) {
+      container.innerHTML = '<div class="m-chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
+      return;
+    }
+    _mChatMessages.forEach(msg => container.appendChild(mBuildChatMessageEl(msg)));
+    if (forceScroll || _mChatAtBottom) container.scrollTop = container.scrollHeight;
+  }
+
+  function mSetChatReplyTo(msg) {
+    _mChatReplyTo = { id: msg.id, author: msg.author, text: msg.text };
+    document.getElementById('mChatReplyBannerAuthor').textContent = msg.author;
+    document.getElementById('mChatReplyBannerSnippet').textContent = mChatSnippet(msg.text, 70);
+    document.getElementById('mChatReplyBanner').style.display = 'flex';
+    document.getElementById('mChatInput').focus();
+  }
+
+  function mClearChatReplyTo() {
+    _mChatReplyTo = null;
+    document.getElementById('mChatReplyBanner').style.display = 'none';
+  }
+
+  function mUpdateChatBadge() {
+    const badge = document.getElementById('mChatFabBadge');
+    if (!badge) return;
+    if (_mChatUnreadCount > 0) {
+      badge.textContent = _mChatUnreadCount > 99 ? '99+' : String(_mChatUnreadCount);
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function mPositionChatPanel() {
+    const fab = document.getElementById('mChatFab');
+    const panel = document.getElementById('mChatPanel');
+    if (!fab || !panel || panel.style.display === 'none') return;
+    const fr = fab.getBoundingClientRect();
+    const pw = panel.offsetWidth, ph = panel.offsetHeight;
+    let left = fr.left + fr.width / 2 - pw / 2;
+    let top  = fr.top - ph - 20;
+    if (top < 8) top = fr.bottom + 20;
+    left = Math.min(Math.max(8, left), window.innerWidth  - pw - 8);
+    top  = Math.min(Math.max(8, top),  window.innerHeight - ph - 8);
+    panel.style.left = left + 'px';
+    panel.style.top  = top  + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
+  function mOpenChatPanel() {
+    _mChatPanelOpen = true;
+    document.getElementById('mChatPanel').style.display = 'flex';
+    mPositionChatPanel();
+    _mChatUnreadCount = 0;
+    mUpdateChatBadge();
+    if (!_mChatLoadedOnce) mLoadChat(); else mRenderChatMessages(true);
+  }
+
+  function mCloseChatPanel() {
+    _mChatPanelOpen = false;
+    document.getElementById('mChatPanel').style.display = 'none';
+  }
+
+  function mToggleChatPanel() {
+    if (_mChatPanelOpen) mCloseChatPanel(); else mOpenChatPanel();
+  }
+
+  function mLoadChat() {
+    callServer('apiGetChatMessages', [], res => {
+      _mChatMessages = res.messages || [];
+      _mChatLoadedOnce = true;
+      mRenderChatMessages(true);
+    }, 'Chargement du tchat');
+  }
+
+  function mPollChat() {
+    callServer('apiGetChatMessages', [], res => {
+      const fresh = res.messages || [];
+      const prevLastId = _mChatMessages.length ? _mChatMessages[_mChatMessages.length - 1].id : null;
+      const newCount = fresh.length - _mChatMessages.length;
+      const changed = fresh.length !== _mChatMessages.length ||
+        (fresh.length && prevLastId !== fresh[fresh.length - 1].id);
+      if (!changed) return;
+      _mChatMessages = fresh;
+      if (_mChatPanelOpen) {
+        mRenderChatMessages(false);
+      } else if (newCount > 0) {
+        _mChatUnreadCount += newCount;
+      }
+      mUpdateChatBadge();
+    }, 'Actualisation du tchat');
+  }
+
+  function mSendChatMessage() {
+    if (!requireIdentity()) return;
+    const input = document.getElementById('mChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = document.getElementById('mChatSendBtn');
+    const restore = startBtnLoading(btn, '…');
+    const replyToId = _mChatReplyTo ? _mChatReplyTo.id : '';
+    callServer('apiPostChatMessage', [text, replyToId, _whoAmI || ''], () => {
+      restore();
+      input.value = '';
+      mClearChatReplyTo();
+      mLoadChat();
+    }, 'Envoi du message', () => restore());
+  }
+
+  function initChatFabDragMobile(fab) {
+    let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+    const DRAG_THRESHOLD = 10;
+
+    function setPos(left, top) {
+      const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
+      const maxTop  = window.innerHeight - fab.offsetHeight - 8;
+      left = Math.min(Math.max(8, left), maxLeft);
+      top  = Math.min(Math.max(8, top),  maxTop);
+      fab.style.left = left + 'px';
+      fab.style.top  = top  + 'px';
+      fab.style.right = 'auto';
+      fab.style.bottom = 'auto';
+      mPositionChatPanel();
+    }
+
+    fab.addEventListener('pointerdown', e => {
+      dragging = true; moved = false;
+      const rect = fab.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      startLeft = rect.left; startTop = rect.top;
+      fab.setPointerCapture(e.pointerId);
+    });
+    fab.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
+      if (moved) setPos(startLeft + dx, startTop + dy);
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      if (moved) {
+        const rect = fab.getBoundingClientRect();
+        try { localStorage.setItem(M_CHAT_FAB_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
+      }
+    }
+    fab.addEventListener('pointerup', endDrag);
+    fab.addEventListener('pointercancel', endDrag);
+    fab.addEventListener('click', () => {
+      if (moved) { moved = false; return; }
+      mToggleChatPanel();
+    });
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(M_CHAT_FAB_POS_KEY) || 'null');
+      if (saved) setPos(saved.left, saved.top);
+    } catch {}
+    window.addEventListener('resize', () => {
+      const rect = fab.getBoundingClientRect();
+      setPos(rect.left, rect.top);
+    });
+  }
+
+  function initChatWidgetMobile() {
+    const fab = document.getElementById('mChatFab');
+    if (!fab) return;
+    initChatFabDragMobile(fab);
+    document.getElementById('mChatPanelClose').addEventListener('click', mCloseChatPanel);
+    document.getElementById('mChatSendBtn').addEventListener('click', mSendChatMessage);
+    document.getElementById('mChatReplyBannerCancel').addEventListener('click', mClearChatReplyTo);
+    document.getElementById('mChatMessages').addEventListener('scroll', function() {
+      _mChatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 80;
+    });
+
+    mLoadChat();
+    _mChatPollTimer = setInterval(mPollChat, 4000);
+  }
+
   // ── INIT ──────────────────────────────────────────────────────────────
   document.getElementById('mSideToggle').addEventListener('click', () => {
     document.getElementById('mSideNav').classList.toggle('expanded');
@@ -2368,6 +2885,7 @@
       loadEntities(() => {
         goToTab('tab-dashboard');
         loadNotesCountBadge();
+        initChatWidgetMobile();
       });
     }, 'Chargement du menu');
   });

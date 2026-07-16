@@ -64,9 +64,10 @@ Categories : Name | Description | Emoji | Hex color
 Notes      : Date | Player | Note text
 Bareme     : Action (text) | Points
 Phrases    : Preset | Pool | Phrase
+Chat       : Id | Date | Author | Text | ReplyToId
 ```
 
-Les feuilles **Notes**, **Bareme** et **Phrases** sont optionnelles — créées automatiquement si absentes.
+Les feuilles **Notes**, **Bareme**, **Phrases** et **Chat** sont optionnelles — créées automatiquement si absentes.
 
 ---
 
@@ -83,6 +84,7 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `AnalyticsService` | Agrégation des scores filtrés (joueurs, catégories, période), données pour graphiques, santé des données |
 | `BaremeService` | CRUD règles de points (barème), auto-création de la feuille |
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
+| `ChatService` | Messages du tchat flottant (lecture, envoi, suppression de ses propres messages), résolution du message cité par une réponse, auto-création de la feuille |
 
 ---
 
@@ -94,7 +96,7 @@ Fichier HTML/CSS/JS monofichier.
 
 | Onglet | Contenu |
 |--------|---------|
-| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires, puis en bas : Records, Tendances, Jour le plus actif, Duo le plus fréquent |
+| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires, card 🏆 Les Tops (carrousel swipe des descriptions par catégorie), puis en bas : Records, Tendances, Jour le plus actif, Duo le plus fréquent |
 | ✍️ Saisir un Lot | Constructeur de lignes de score (joueur + Top + points + date), saisie batch |
 | ⚙️ Paramètres | Gestion joueurs, catégories, barème, presets de phrases, sous-onglet 🔧 Outils |
 | 📝 Notes | Notes libres par joueur |
@@ -102,6 +104,10 @@ Fichier HTML/CSS/JS monofichier.
 | ❓ Guide | Documentation inline |
 
 `🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé, nettoyage (zéros/orphelins/doublons/scores aberrants), détection/regroupement de lots répartis, groupes hérités, joueurs inactifs, points automatiques.
+
+### Tchat flottant
+
+Pas un onglet — un widget global (bouton 💬 + panneau) superposé à toutes les pages, présent en dehors du système d'onglets. Le bouton se déplace par glisser (clic/tap maintenu), position mémorisée en localStorage ; un clic simple ouvre/ferme le panneau. Markdown complet, mentions `@Joueur` et `#Top` (avec autocomplétion), réponse à un message (aperçu cité), horodatage, suppression de ses propres messages uniquement. Stockage dans la feuille `Chat` (auto-créée) via `ChatService`. Pas de push serveur possible (GAS) : sondage toutes les 4s, avec badge de messages non lus quand le panneau est fermé.
 
 ### Types de graphique (Dashboard)
 

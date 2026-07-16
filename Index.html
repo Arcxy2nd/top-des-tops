@@ -1195,6 +1195,12 @@
       color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
     }
     .mention img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+    .category-mention {
+      display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px;
+      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
+      color: var(--text); font-weight: 600; font-size: 0.85em; white-space: nowrap;
+    }
     .md-mention-popup {
       position: absolute; z-index: 9999; background: var(--card-bg, var(--bg));
       border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28);
@@ -1204,7 +1210,98 @@
       display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 0.85rem;
     }
     .md-mention-item img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .md-mention-item .md-mention-cat-icon { width: 22px; text-align: center; font-size: 1rem; flex-shrink: 0; }
     .md-mention-item.md-mention-active { background: rgba(255,255,255,0.06); }
+
+    /* ── CARROUSEL DES TOPS (swipe / drag / flèches) ── */
+    .tops-carousel { display: flex; align-items: stretch; gap: 8px; }
+    .tops-carousel-viewport { flex: 1; overflow: hidden; border-radius: 12px; }
+    .tops-carousel-track { display: flex; transition: transform 0.28s ease; touch-action: pan-y; cursor: grab; }
+    .tops-carousel-track.dragging { transition: none; cursor: grabbing; }
+    .tops-slide {
+      flex: 0 0 100%; box-sizing: border-box; padding: 18px 20px; min-height: 120px;
+      display: flex; flex-direction: column; gap: 10px; user-select: none;
+    }
+    .tops-slide-header { display: flex; align-items: center; gap: 10px; }
+    .tops-slide-icon { font-size: 1.6rem; }
+    .tops-slide-name {
+      font-weight: 700; font-size: 1.05rem; padding: 3px 14px; border-radius: 20px;
+      background: color-mix(in srgb, var(--tops-color, var(--accent)) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--tops-color, var(--accent)) 55%, transparent);
+    }
+    .tops-slide-desc { font-size: 0.88rem; color: var(--text); line-height: 1.5; }
+    .tops-slide-desc.empty { color: var(--text-muted); font-style: italic; }
+    .tops-carousel-arrow {
+      flex-shrink: 0; width: 36px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--btn-alt); color: var(--text); font-size: 1.3rem; cursor: pointer;
+    }
+    .tops-carousel-arrow:hover { background: var(--accent); color: #fff; }
+    .tops-carousel-arrow:disabled { opacity: 0.35; cursor: default; background: var(--btn-alt); color: var(--text); }
+    .tops-carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .tops-carousel-dot {
+      width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0;
+      background: var(--border); cursor: pointer;
+    }
+    .tops-carousel-dot.active { background: var(--accent); width: 20px; border-radius: 4px; }
+
+    /* ── TCHAT FLOTTANT (bouton déplaçable, accessible depuis tous les onglets) ── */
+    .chat-fab {
+      position: fixed; right: 24px; bottom: 24px; z-index: 9500;
+      width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--accent); color: #fff; font-size: 1.5rem; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;
+      touch-action: none; user-select: none;
+    }
+    .chat-fab:active { cursor: grabbing; }
+    .chat-fab-badge {
+      position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
+      border-radius: 10px; background: var(--error); color: #fff; font-size: 0.68rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
+    }
+    .chat-panel {
+      position: fixed; right: 24px; bottom: 92px; z-index: 9499;
+      width: 360px; max-width: calc(100vw - 32px); max-height: min(70vh, 560px);
+      display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.4); overflow: hidden;
+    }
+    .chat-panel-header {
+      display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+      font-weight: 700; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 10px 12px; }
+    .chat-msg { display: flex; gap: 10px; }
+    .chat-msg-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .chat-msg-body-col { flex: 1; min-width: 0; }
+    .chat-msg-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .chat-msg-author { font-weight: 700; font-size: 0.9rem; }
+    .chat-msg-time { font-size: 0.72rem; color: var(--text-muted); }
+    .chat-msg-actions { margin-left: auto; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+    .chat-msg:hover .chat-msg-actions { opacity: 1; }
+    .chat-msg-actions button { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: 2px 4px; }
+    .chat-msg-actions button:hover { color: var(--accent); }
+    .chat-msg-reply {
+      display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted);
+      border-left: 3px solid var(--border); padding: 2px 0 2px 8px; margin: 4px 0; cursor: pointer;
+      max-width: 100%; overflow: hidden;
+    }
+    .chat-msg-reply strong { color: var(--text); }
+    .chat-msg-reply span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-msg-reply.deleted { font-style: italic; }
+    .chat-msg-text { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
+    .chat-msg.highlight { animation: chatHighlight 1.4s ease; }
+    @keyframes chatHighlight {
+      0%, 100% { background: transparent; }
+      20% { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+    }
+    .chat-reply-banner {
+      display: flex; align-items: center; gap: 10px; background: var(--btn-alt);
+      border-radius: 8px; padding: 6px 10px; margin: 0 12px 8px; font-size: 0.8rem; flex-shrink: 0;
+    }
+    .chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .chat-reply-banner-snippet { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .chat-composer textarea { flex: 1; resize: vertical; min-height: 40px; max-height: 120px; }
+    .chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px 0; }
 
     /* ── RICH SELECT ── */
     .rich-select {
@@ -2306,6 +2403,29 @@
 <div class="container">
   <div id="toastContainer"></div>
 
+  <!-- ══ TCHAT FLOTTANT (accessible depuis n'importe quel onglet) ══ -->
+  <button id="chatFab" class="chat-fab" title="Tchat — cliquer pour ouvrir, maintenir pour déplacer" aria-label="Ouvrir le tchat">
+    💬<span id="chatFabBadge" class="chat-fab-badge" style="display:none;"></span>
+  </button>
+  <div id="chatPanel" class="chat-panel" style="display:none;">
+    <div class="chat-panel-header">
+      <span>💬 Tchat</span>
+      <button id="chatPanelClose" class="small" title="Fermer">✕</button>
+    </div>
+    <div id="chatMessages" class="chat-messages"></div>
+    <div id="chatReplyBanner" class="chat-reply-banner" style="display:none;">
+      <div class="chat-reply-banner-text">
+        <span>↩ Réponse à <strong id="chatReplyBannerAuthor"></strong></span>
+        <span id="chatReplyBannerSnippet" class="chat-reply-banner-snippet"></span>
+      </div>
+      <button id="chatReplyBannerCancel" class="small" title="Annuler la réponse">✕</button>
+    </div>
+    <div class="chat-composer">
+      <textarea id="chatInput" rows="2" placeholder="Écris un message… (@joueur, #top, markdown supporté)"></textarea>
+      <button id="chatSendBtn" class="primary">Envoyer</button>
+    </div>
+  </div>
+
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
 
@@ -2391,6 +2511,19 @@
         <div id="topStatsStrip"></div>
       </div>
     </div>
+    </div>
+
+    <!-- ══ CARROUSEL DES TOPS (descriptions, swipe) ══ -->
+    <div class="card card-collapsible" id="topsCarouselCard">
+      <div class="card-collapse-header"><h2>🏆 Les Tops</h2></div>
+      <div class="tops-carousel">
+        <button class="tops-carousel-arrow tops-carousel-prev" id="topsCarouselPrev" title="Précédent" aria-label="Top précédent">‹</button>
+        <div class="tops-carousel-viewport" id="topsCarouselViewport">
+          <div class="tops-carousel-track" id="topsCarouselTrack"></div>
+        </div>
+        <button class="tops-carousel-arrow tops-carousel-next" id="topsCarouselNext" title="Suivant" aria-label="Top suivant">›</button>
+      </div>
+      <div class="tops-carousel-dots" id="topsCarouselDots"></div>
     </div>
 
     <!-- ══ RECORDS ══ -->
@@ -3170,6 +3303,22 @@
     });
   }
 
+  function renderCategoryMentions(escapedHtml) {
+    if (!cachedCategories.length) return escapedHtml;
+    // Les plus longs noms d'abord pour éviter qu'un nom court n'avale le début d'un plus long.
+    const names = cachedCategories.map(c => c.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)#(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedCategories.find(c => escapeHtml(c.name) === name);
+      const realName = original ? original.name : name;
+      const col = categoryColor(realName);
+      const icon = original && original.icon ? original.icon + ' ' : '';
+      return pre + '<span class="category-mention" data-category="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        icon + '#' + name + '</span>';
+    });
+  }
+
   function renderMarkdown(text) {
     if (!text) return '';
     let src = String(text).replace(/\r\n/g, '\n');
@@ -3235,8 +3384,9 @@
     // 7) Sauts de ligne restants (hors blocs déjà générés).
     src = src.replace(/\n/g, '<br>');
 
-    // 8) Mentions @Joueur.
+    // 8) Mentions @Joueur et #Top.
     src = renderMentions(src);
+    src = renderCategoryMentions(src);
 
     // 9) Réinjecter les blocs de code protégés à l'étape 1.
     src = src.replace(/ CODEBLOCK(\d+) /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
@@ -3260,7 +3410,8 @@
 
     let matches = [];
     let activeIdx = 0;
-    let range = null; // { start, end } dans inputEl.value du "@partiel" à remplacer
+    let range = null; // { start, end } dans inputEl.value du "@partiel"/"#partiel" à remplacer
+    let triggerChar = '@';
 
     function hide() {
       popup.style.display = 'none';
@@ -3274,10 +3425,10 @@
       popup.style.width = Math.round(Math.min(Math.max(r.width, 180), 320)) + 'px';
     }
 
-    function apply(name) {
+    function apply(entry) {
       if (!range) return;
       const val = inputEl.value;
-      const replacement = '@' + name + ' ';
+      const replacement = triggerChar + entry.name + ' ';
       inputEl.value = val.slice(0, range.start) + replacement + val.slice(range.end);
       const caret = range.start + replacement.length;
       inputEl.focus();
@@ -3288,16 +3439,23 @@
 
     function render() {
       popup.innerHTML = '';
-      matches.forEach((p, idx) => {
+      matches.forEach((entry, idx) => {
         const item = document.createElement('div');
         item.className = 'md-mention-item' + (idx === activeIdx ? ' md-mention-active' : '');
-        const img = document.createElement('img');
-        img.src = getAvatarUrl(p.name, p.meta);
-        img.alt = '';
-        img.onerror = () => img.remove();
-        item.appendChild(img);
-        item.appendChild(document.createTextNode(p.name));
-        item.addEventListener('mousedown', e => { e.preventDefault(); apply(p.name); });
+        if (triggerChar === '@') {
+          const img = document.createElement('img');
+          img.src = getAvatarUrl(entry.name, entry.meta);
+          img.alt = '';
+          img.onerror = () => img.remove();
+          item.appendChild(img);
+        } else {
+          const ic = document.createElement('span');
+          ic.className = 'md-mention-cat-icon';
+          ic.textContent = entry.icon || '#';
+          item.appendChild(ic);
+        }
+        item.appendChild(document.createTextNode(entry.name));
+        item.addEventListener('mousedown', e => { e.preventDefault(); apply(entry); });
         popup.appendChild(item);
       });
       popup.style.display = matches.length ? '' : 'none';
@@ -3307,10 +3465,13 @@
     function check() {
       const pos = inputEl.selectionStart;
       const upToCursor = inputEl.value.slice(0, pos);
-      const m = /@([^\s@]{0,24})$/.exec(upToCursor);
-      if (!m || !cachedPlayers.length) { hide(); return; }
-      const query = m[1].toLowerCase();
-      matches = cachedPlayers.filter(p => p.name.toLowerCase().startsWith(query)).slice(0, 6);
+      const m = /([@#])([^\s@#]{0,24})$/.exec(upToCursor);
+      if (!m) { hide(); return; }
+      triggerChar = m[1];
+      const list = triggerChar === '@' ? cachedPlayers : cachedCategories;
+      if (!list.length) { hide(); return; }
+      const query = m[2].toLowerCase();
+      matches = list.filter(entry => entry.name.toLowerCase().startsWith(query)).slice(0, 6);
       activeIdx = 0;
       range = { start: pos - m[0].length, end: pos };
       render();
@@ -3326,7 +3487,7 @@
       if (popup.style.display === 'none') return;
       if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, matches.length - 1); render(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); render(); }
-      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); apply(matches[activeIdx].name); }
+      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); apply(matches[activeIdx]); }
       else if (e.key === 'Escape') { hide(); }
     });
     window.addEventListener('scroll', hide, true);
@@ -3396,6 +3557,7 @@
     toolbar.appendChild(makeToolBtn('•', 'Liste', () => insertLinePrefix('- ')));
     toolbar.appendChild(makeToolBtn('🔗', 'Lien', () => wrapSelection('[', '](https://)')));
     toolbar.appendChild(makeToolBtn('@', 'Mentionner un joueur', () => wrapSelection('@', '')));
+    toolbar.appendChild(makeToolBtn('#', 'Mentionner un Top', () => wrapSelection('#', '')));
 
     const previewBtn = makeToolBtn('👁 Aperçu', 'Afficher/masquer l\'aperçu', () => {
       const showing = previewPane.style.display !== 'none';
@@ -4493,6 +4655,401 @@
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
 
+  // ── CARROUSEL DES TOPS (Dashboard, descriptions par catégorie, swipe) ─
+  let _topsCarouselIndex = 0;
+
+  function renderTopsCarousel() {
+    const track = document.getElementById('topsCarouselTrack');
+    const dots  = document.getElementById('topsCarouselDots');
+    if (!track) return;
+
+    if (!cachedCategories.length) {
+      track.innerHTML = '<div class="tops-slide"><div class="tops-slide-desc empty">Aucun Top pour le moment.</div></div>';
+      dots.innerHTML = '';
+      applyTopsCarouselTransform(false);
+      return;
+    }
+    if (_topsCarouselIndex >= cachedCategories.length) _topsCarouselIndex = 0;
+
+    track.innerHTML = cachedCategories.map(cat => {
+      const col = categoryColor(cat.name);
+      const desc = (cat.meta && cat.meta.trim())
+        ? '<div class="tops-slide-desc">' + renderMarkdown(cat.meta) + '</div>'
+        : '<div class="tops-slide-desc empty">Aucune description pour ce Top.</div>';
+      return '<div class="tops-slide" style="--tops-color:' + col + ';">' +
+        '<div class="tops-slide-header">' +
+          '<span class="tops-slide-icon">' + (cat.icon || '🏆') + '</span>' +
+          '<span class="tops-slide-name" style="--tops-color:' + col + ';">' + escapeHtml(cat.name) + '</span>' +
+        '</div>' + desc + '</div>';
+    }).join('');
+
+    dots.innerHTML = cachedCategories.map((c, i) =>
+      '<button class="tops-carousel-dot' + (i === _topsCarouselIndex ? ' active' : '') + '" data-idx="' + i + '" title="' + escapeHtml(c.name) + '"></button>'
+    ).join('');
+    dots.querySelectorAll('.tops-carousel-dot').forEach(btn => {
+      btn.addEventListener('click', () => goToTopsSlide(parseInt(btn.dataset.idx, 10)));
+    });
+
+    applyTopsCarouselTransform(false);
+  }
+
+  function applyTopsCarouselTransform() {
+    const track = document.getElementById('topsCarouselTrack');
+    if (!track) return;
+    track.style.transform = 'translateX(-' + (_topsCarouselIndex * 100) + '%)';
+    document.querySelectorAll('#topsCarouselDots .tops-carousel-dot').forEach((d, i) => d.classList.toggle('active', i === _topsCarouselIndex));
+    const prevBtn = document.getElementById('topsCarouselPrev');
+    const nextBtn = document.getElementById('topsCarouselNext');
+    if (prevBtn) prevBtn.disabled = cachedCategories.length <= 1;
+    if (nextBtn) nextBtn.disabled = cachedCategories.length <= 1;
+  }
+
+  function goToTopsSlide(index) {
+    if (!cachedCategories.length) return;
+    const n = cachedCategories.length;
+    _topsCarouselIndex = ((index % n) + n) % n;
+    applyTopsCarouselTransform();
+  }
+
+  function initTopsCarousel() {
+    const track    = document.getElementById('topsCarouselTrack');
+    const viewport = document.getElementById('topsCarouselViewport');
+    const prevBtn  = document.getElementById('topsCarouselPrev');
+    const nextBtn  = document.getElementById('topsCarouselNext');
+    if (!track) return;
+
+    prevBtn.addEventListener('click', () => goToTopsSlide(_topsCarouselIndex - 1));
+    nextBtn.addEventListener('click', () => goToTopsSlide(_topsCarouselIndex + 1));
+
+    // Glisser à la souris ET au doigt via Pointer Events (un seul jeu de handlers pour les deux).
+    let dragging = false, startX = 0, startPx = 0;
+
+    track.addEventListener('pointerdown', e => {
+      if (cachedCategories.length <= 1) return;
+      dragging = true;
+      startX = e.clientX;
+      startPx = -_topsCarouselIndex * viewport.clientWidth;
+      track.classList.add('dragging');
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      track.style.transform = 'translateX(' + (startPx + (e.clientX - startX)) + 'px)';
+    });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      track.classList.remove('dragging');
+      const dx = e.clientX - startX;
+      const threshold = viewport.clientWidth * 0.18;
+      if (dx > threshold) goToTopsSlide(_topsCarouselIndex - 1);
+      else if (dx < -threshold) goToTopsSlide(_topsCarouselIndex + 1);
+      else applyTopsCarouselTransform();
+    }
+    track.addEventListener('pointerup', endDrag);
+    track.addEventListener('pointercancel', endDrag);
+    window.addEventListener('resize', applyTopsCarouselTransform);
+  }
+
+  // ── TCHAT FLOTTANT ─────────────────────────────────────────────────
+  // Widget global (bouton + panneau), pas un onglet : accessible depuis n'importe
+  // quelle page de l'app. Le bouton se déplace au clic-maintenu-glisser (souris et
+  // tactile via Pointer Events) ; un simple clic (sans déplacement) ouvre/ferme
+  // le panneau. La position choisie est mémorisée en localStorage.
+  let _chatMessages = [];
+  let _chatLoadedOnce = false;
+  let _chatReplyTo = null; // { id, author, text } ou null
+  let _chatPollTimer = null;
+  let _chatAtBottom = true;
+  let _chatPanelOpen = false;
+  let _chatUnreadCount = 0;
+  const CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos';
+
+  function formatChatTime(iso) {
+    if (!iso) return { short: '', title: '' };
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return { short: '', title: '' };
+    const short = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const title = d.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+    return { short, title };
+  }
+
+  function chatSnippet(text, len) {
+    const clean = (text || '').replace(/\n/g, ' ').trim();
+    return clean.length > len ? clean.slice(0, len) + '…' : clean;
+  }
+
+  function buildChatMessageEl(msg) {
+    const el = document.createElement('div');
+    el.className = 'chat-msg';
+    el.id = 'chat-msg-' + msg.id;
+
+    const player = cachedPlayers.find(p => p.name === msg.author);
+    const img = document.createElement('img');
+    img.className = 'chat-msg-avatar';
+    img.src = getAvatarUrl(msg.author, player ? player.meta : '');
+    img.alt = msg.author;
+    img.onerror = () => { img.src = getAvatarUrl(msg.author, ''); };
+    el.appendChild(img);
+
+    const col = document.createElement('div');
+    col.className = 'chat-msg-body-col';
+
+    const head = document.createElement('div');
+    head.className = 'chat-msg-head';
+    const author = document.createElement('span');
+    author.className = 'chat-msg-author';
+    author.textContent = msg.author;
+    author.style.color = playerColor(msg.author);
+    head.appendChild(author);
+    const time = formatChatTime(msg.timestamp);
+    const timeEl = document.createElement('span');
+    timeEl.className = 'chat-msg-time';
+    timeEl.textContent = time.short;
+    timeEl.title = time.title;
+    head.appendChild(timeEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'chat-msg-actions';
+    const replyBtn = document.createElement('button');
+    replyBtn.textContent = '↩️';
+    replyBtn.title = 'Répondre';
+    replyBtn.addEventListener('click', () => setChatReplyTo(msg));
+    actions.appendChild(replyBtn);
+    if (msg.author === _whoAmI) {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Supprimer';
+      delBtn.addEventListener('click', () => {
+        openConfirmModal('Supprimer ce message ?', () => {
+          buzz();
+          callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
+            _chatMessages = _chatMessages.filter(m => m.id !== msg.id);
+            renderChatMessages(false);
+          }, 'Suppression message');
+        });
+      });
+      actions.appendChild(delBtn);
+    }
+    head.appendChild(actions);
+    col.appendChild(head);
+
+    if (msg.replyToId) {
+      const reply = document.createElement('div');
+      reply.className = 'chat-msg-reply' + (msg.replyToDeleted ? ' deleted' : '');
+      if (msg.replyToDeleted) {
+        reply.innerHTML = '<span>Message supprimé</span>';
+      } else {
+        reply.innerHTML = '<strong>' + escapeHtml(msg.replyToAuthor) + '</strong><span>' + escapeHtml(chatSnippet(msg.replyToText, 60)) + '</span>';
+        reply.addEventListener('click', () => {
+          const target = document.getElementById('chat-msg-' + msg.replyToId);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.remove('highlight'); void target.offsetWidth; target.classList.add('highlight');
+          }
+        });
+      }
+      col.appendChild(reply);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'chat-msg-text';
+    body.innerHTML = renderMarkdown(msg.text);
+    col.appendChild(body);
+
+    el.appendChild(col);
+    return el;
+  }
+
+  function renderChatMessages(forceScroll) {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!_chatMessages.length) {
+      container.innerHTML = '<div class="chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
+      return;
+    }
+    _chatMessages.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
+    if (forceScroll || _chatAtBottom) container.scrollTop = container.scrollHeight;
+  }
+
+  function setChatReplyTo(msg) {
+    _chatReplyTo = { id: msg.id, author: msg.author, text: msg.text };
+    document.getElementById('chatReplyBannerAuthor').textContent = msg.author;
+    document.getElementById('chatReplyBannerSnippet').textContent = chatSnippet(msg.text, 80);
+    document.getElementById('chatReplyBanner').style.display = 'flex';
+    document.getElementById('chatInput').focus();
+  }
+
+  function clearChatReplyTo() {
+    _chatReplyTo = null;
+    document.getElementById('chatReplyBanner').style.display = 'none';
+  }
+
+  function updateChatBadge() {
+    const badge = document.getElementById('chatFabBadge');
+    if (!badge) return;
+    if (_chatUnreadCount > 0) {
+      badge.textContent = _chatUnreadCount > 99 ? '99+' : String(_chatUnreadCount);
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function positionChatPanel() {
+    const fab = document.getElementById('chatFab');
+    const panel = document.getElementById('chatPanel');
+    if (!fab || !panel || panel.style.display === 'none') return;
+    const fr = fab.getBoundingClientRect();
+    const pw = panel.offsetWidth || 360, ph = panel.offsetHeight || 480;
+    let left = fr.left + fr.width / 2 - pw / 2;
+    let top  = fr.top - ph - 12; // au-dessus du bouton par défaut
+    if (top < 8) top = fr.bottom + 12; // pas assez de place au-dessus → sous le bouton
+    left = Math.min(Math.max(8, left), window.innerWidth  - pw - 8);
+    top  = Math.min(Math.max(8, top),  window.innerHeight - ph - 8);
+    panel.style.left = left + 'px';
+    panel.style.top  = top  + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
+  function openChatPanel() {
+    _chatPanelOpen = true;
+    document.getElementById('chatPanel').style.display = 'flex';
+    positionChatPanel();
+    _chatUnreadCount = 0;
+    updateChatBadge();
+    if (!_chatLoadedOnce) loadChat(); else renderChatMessages(true);
+  }
+
+  function closeChatPanel() {
+    _chatPanelOpen = false;
+    document.getElementById('chatPanel').style.display = 'none';
+  }
+
+  function toggleChatPanel() {
+    if (_chatPanelOpen) closeChatPanel(); else openChatPanel();
+  }
+
+  function loadChat() {
+    callServer('apiGetChatMessages', [], res => {
+      _chatMessages = res.messages || [];
+      _chatLoadedOnce = true;
+      renderChatMessages(true);
+    }, 'Chargement du tchat');
+  }
+
+  function pollChat() {
+    callServer('apiGetChatMessages', [], res => {
+      const fresh = res.messages || [];
+      const prevLastId = _chatMessages.length ? _chatMessages[_chatMessages.length - 1].id : null;
+      const newCount = fresh.length - _chatMessages.length;
+      const changed = fresh.length !== _chatMessages.length ||
+        (fresh.length && prevLastId !== fresh[fresh.length - 1].id);
+      if (!changed) return;
+      _chatMessages = fresh;
+      if (_chatPanelOpen) {
+        renderChatMessages(false);
+      } else if (newCount > 0) {
+        _chatUnreadCount += newCount;
+      }
+      updateChatBadge();
+    }, 'Actualisation du tchat');
+  }
+
+  function sendChatMessage() {
+    if (!requireIdentity()) return;
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = document.getElementById('chatSendBtn');
+    const restore = startBtnLoading(btn, '…');
+    const replyToId = _chatReplyTo ? _chatReplyTo.id : '';
+    callServer('apiPostChatMessage', [text, replyToId, _whoAmI || ''], () => {
+      restore();
+      input.value = '';
+      clearChatReplyTo();
+      loadChat();
+    }, 'Envoi du message', () => restore());
+  }
+
+  // Glisser (souris ET tactile) via Pointer Events. Un déplacement au-delà du
+  // seuil marque `moved`, ce qui empêche le "click" qui suit de basculer le
+  // panneau — sinon chaque fin de glissement ouvrirait/fermerait le tchat.
+  function initChatFabDrag(fab) {
+    let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+    const DRAG_THRESHOLD = 6;
+
+    function setPos(left, top) {
+      const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
+      const maxTop  = window.innerHeight - fab.offsetHeight - 8;
+      left = Math.min(Math.max(8, left), maxLeft);
+      top  = Math.min(Math.max(8, top),  maxTop);
+      fab.style.left = left + 'px';
+      fab.style.top  = top  + 'px';
+      fab.style.right = 'auto';
+      fab.style.bottom = 'auto';
+      positionChatPanel();
+    }
+
+    fab.addEventListener('pointerdown', e => {
+      dragging = true; moved = false;
+      const rect = fab.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      startLeft = rect.left; startTop = rect.top;
+      fab.setPointerCapture(e.pointerId);
+    });
+    fab.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
+      if (moved) setPos(startLeft + dx, startTop + dy);
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      if (moved) {
+        const rect = fab.getBoundingClientRect();
+        try { localStorage.setItem(CHAT_FAB_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
+      }
+    }
+    fab.addEventListener('pointerup', endDrag);
+    fab.addEventListener('pointercancel', endDrag);
+    fab.addEventListener('click', () => {
+      if (moved) { moved = false; return; } // c'était un glisser, pas un clic
+      toggleChatPanel();
+    });
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(CHAT_FAB_POS_KEY) || 'null');
+      if (saved) setPos(saved.left, saved.top);
+    } catch {}
+    window.addEventListener('resize', () => {
+      const rect = fab.getBoundingClientRect();
+      setPos(rect.left, rect.top);
+    });
+  }
+
+  function initChatWidget() {
+    const fab = document.getElementById('chatFab');
+    if (!fab) return;
+    initChatFabDrag(fab);
+    document.getElementById('chatPanelClose').addEventListener('click', closeChatPanel);
+    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+    document.getElementById('chatReplyBannerCancel').addEventListener('click', clearChatReplyTo);
+    document.getElementById('chatMessages').addEventListener('scroll', function() {
+      _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
+    });
+    attachMentionAutocomplete(document.getElementById('chatInput'));
+
+    loadChat();
+    _chatPollTimer = setInterval(pollChat, 4000);
+  }
+
   // ── SÉLECTION MULTIPLE PAR GLISSER (souris seule et tactile) ─────────
   // Équivalent à un shift+clic mais sans dépendre du clavier : on clique
   // (ou touche) une case, puis on glisse dessus/à travers les autres pour
@@ -5406,6 +5963,7 @@
 
     renderEntityList(document.getElementById('playersList'),    cachedPlayers,    'Players');
     renderEntityList(document.getElementById('categoriesList'), cachedCategories, 'Categories');
+    renderTopsCarousel();
     // Le barème est groupé par catégorie mais son contenu (les règles) ne dépend
     // pas des joueurs/catégories eux-mêmes : un rendu local avec les entrées déjà
     // en cache suffit tant qu'elles ont été chargées une première fois — pas
@@ -11161,6 +11719,8 @@
     initLayoutMode();
     initSettingsTabs();
     initHistoryTabs();
+    initTopsCarousel();
+    initChatWidget();
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');

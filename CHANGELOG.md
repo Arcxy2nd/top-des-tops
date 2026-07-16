@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-16
+
+### Ajouté
+**Humanisé** : Le Dashboard propose maintenant une card « 🏆 Les Tops » où on feuillette les Tops un par un (flèches, points de pagination, ou glisser au doigt/à la souris) pour lire la description complète de chacun, plutôt que la version tronquée qu'on voyait déjà dans Paramètres.
+**Technique** : `Index.html`/`Mobile.html` — nouvelle card `#topsCarouselCard`/`#mTopsCarouselCard` alimentée par `cachedCategories`, rendu markdown complet (`renderMarkdown`) par slide. Navigation via Pointer Events (glisser souris + tactile unifiés), flèches et points cliquables ; aucun appel serveur supplémentaire.
+
+**Humanisé** : Un tchat est maintenant accessible partout dans l'app via un bouton flottant 💬 — un clic l'ouvre, un maintien-glissé le déplace où on veut sur l'écran (position mémorisée). On peut écrire en markdown, mentionner un joueur (`@Nom`) ou un Top (`#NomDuTop`, nouveauté — jusqu'ici seul `@` existait), répondre à un message précis (aperçu cité, cliquable pour remonter dessus), et chaque message affiche son heure. Un badge rouge sur le bouton indique le nombre de nouveaux messages non lus. On ne peut supprimer que ses propres messages.
+**Technique** : Nouveau `ChatService` (Code.gs) + feuille `Chat` auto-créée (`Id | Date | Auteur | Texte | RéponseÀ`), API `apiGetChatMessages`/`apiPostChatMessage`/`apiDeleteChatMessage` (audit + `requireIdentity` comme partout ailleurs). Frontend : widget global hors du système d'onglets (`#chatFab`/`#chatPanel` sur Index.html, `#mChatFab`/`#mChatPanel` sur Mobile.html), sondage toutes les 4s (`google.script.run` n'a pas de push serveur), glisser du bouton via Pointer Events avec seuil anti-faux-clic, position persistée en localStorage. Extension de `renderMarkdown`/`attachMentionAutocomplete` (Index.html et Mobile.html en lecture) pour reconnaître `#NomDuTop` au même titre que `@Nom`, réutilisée automatiquement partout où le rendu markdown existait déjà (descriptions, notes, règles auto).
+
 ## [Non publié] - 2026-07-15
 
 ### Corrigé
