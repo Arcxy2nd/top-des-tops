@@ -1336,6 +1336,18 @@
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .hist-filter-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; min-width: 44px; }
+    .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .stats-hub-head h2 { margin: 0; }
+    .stats-hub-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .stats-hub-tab {
+      padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .stats-hub-tab:hover { color: var(--text); border-color: var(--accent); }
+    .stats-hub-tab.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .stats-hub-pane { display: none; }
+    .stats-hub-pane.active { display: block; }
     .hist-range-btn {
       padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
@@ -2501,41 +2513,40 @@
     </div>
     </div>
 
-    <!-- ══ RECORDS ══ -->
-    <div class="card card-collapsible" id="recordsCard">
-      <div class="card-collapse-header"><h2>🏅 Records</h2></div>
-      <div id="recordsResults"></div>
-    </div>
-
-    <!-- ══ TENDANCES ══ -->
-    <div class="card card-collapsible" id="trendsCard">
-      <div class="card-collapse-header"><h2>📊 Tendances</h2></div>
-      <div class="chart-type-bar" id="trendsScopeToggle" style="margin-bottom:12px;">
-        <button class="chart-type-btn active" data-scope="category">Par Top</button>
-        <button class="chart-type-btn" data-scope="player">Par joueur</button>
+    <!-- ══ STATISTIQUES (Records / Tendances / Jour actif / Duo / Mentions) ══ -->
+    <div class="card" id="statsHubCard">
+      <div class="stats-hub-head">
+        <h2>📊 Statistiques</h2>
+        <div class="stats-hub-tabs" id="statsHubTabs">
+          <button class="stats-hub-tab active" data-pane="records">🏅 Records</button>
+          <button class="stats-hub-tab" data-pane="trends">📈 Tendances</button>
+          <button class="stats-hub-tab" data-pane="weekday">📅 Jour actif</button>
+          <button class="stats-hub-tab" data-pane="pairs">🔁 Duo</button>
+          <button class="stats-hub-tab" data-pane="mentions">💬 Mentions</button>
+        </div>
       </div>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">30 derniers jours vs 30 jours précédents.</p>
-      <div class="chart-wrapper" style="height:280px;"><canvas id="trendsChart"></canvas></div>
-      <div id="trendsEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</div>
-    </div>
-
-    <!-- ══ JOUR LE PLUS ACTIF ══ -->
-    <div class="card card-collapsible" id="weekdayCard">
-      <div class="card-collapse-header"><h2>📅 Jour le plus actif</h2></div>
-      <div class="chart-wrapper" style="height:240px;"><canvas id="weekdayChart"></canvas></div>
-      <div id="weekdayEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Aucune donnée.</div>
-    </div>
-
-    <!-- ══ DUO LE PLUS FRÉQUENT ══ -->
-    <div class="card card-collapsible" id="pairsCard">
-      <div class="card-collapse-header"><h2>🔁 Duo le plus fréquent</h2></div>
-      <div id="pairsResults"></div>
-    </div>
-
-    <!-- ══ MENTIONS ══ -->
-    <div class="card card-collapsible" id="mentionsCard">
-      <div class="card-collapse-header"><h2>💬 Mentions</h2></div>
-      <div id="mentionsResults"></div>
+      <div class="stats-hub-pane active" data-pane="records">
+        <div id="recordsResults"></div>
+      </div>
+      <div class="stats-hub-pane" data-pane="trends">
+        <div class="chart-type-bar" id="trendsScopeToggle" style="margin-bottom:12px;">
+          <button class="chart-type-btn active" data-scope="category">Par Top</button>
+          <button class="chart-type-btn" data-scope="player">Par joueur</button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">30 derniers jours vs 30 jours précédents.</p>
+        <div class="chart-wrapper" style="height:280px;"><canvas id="trendsChart"></canvas></div>
+        <div id="trendsEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</div>
+      </div>
+      <div class="stats-hub-pane" data-pane="weekday">
+        <div class="chart-wrapper" style="height:240px;"><canvas id="weekdayChart"></canvas></div>
+        <div id="weekdayEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Aucune donnée.</div>
+      </div>
+      <div class="stats-hub-pane" data-pane="pairs">
+        <div id="pairsResults"></div>
+      </div>
+      <div class="stats-hub-pane" data-pane="mentions">
+        <div id="mentionsResults"></div>
+      </div>
     </div>
 
   </div>
@@ -11859,10 +11870,26 @@
     document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
     document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
-    makeCollapsible(document.getElementById('recordsCard'), 'tdt_collapsed_records');
-    makeCollapsible(document.getElementById('trendsCard'),  'tdt_collapsed_trends');
-    makeCollapsible(document.getElementById('weekdayCard'), 'tdt_collapsed_weekday');
-    makeCollapsible(document.getElementById('pairsCard'),   'tdt_collapsed_pairs');
+    // Hub Statistiques : une seule carte à onglets (Records / Tendances /
+    // Jour actif / Duo / Mentions), onglet actif mémorisé. Les graphiques
+    // Chart.js créés dans un volet masqué ont une taille nulle : resize()
+    // au moment où leur volet devient visible.
+    const STATS_HUB_TAB_KEY = 'tdt_stats_hub_tab';
+    function switchStatsHubPane(pane) {
+      document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(b =>
+        b.classList.toggle('active', b.dataset.pane === pane));
+      document.querySelectorAll('#statsHubCard .stats-hub-pane').forEach(p =>
+        p.classList.toggle('active', p.dataset.pane === pane));
+      try { localStorage.setItem(STATS_HUB_TAB_KEY, pane); } catch {}
+      if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
+      if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
+    }
+    document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(btn =>
+      btn.addEventListener('click', () => switchStatsHubPane(btn.dataset.pane)));
+    try {
+      const savedPane = localStorage.getItem(STATS_HUB_TAB_KEY);
+      if (savedPane && document.querySelector('#statsHubTabs [data-pane="' + savedPane + '"]')) switchStatsHubPane(savedPane);
+    } catch {}
     document.getElementById('trendsScopeToggle').addEventListener('click', e => {
       if (!e.target.dataset.scope) return;
       trendsScope = e.target.dataset.scope;
