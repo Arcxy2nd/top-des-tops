@@ -1583,14 +1583,22 @@
     /* ── Commentaires par Top (section plate, toujours visible) ── */
     .phrases-cat-section { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
     .phrases-cat-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
       font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
     }
+    .phrases-cat-autoplay-toggle {
+      background: transparent; border: none; padding: 2px 6px; min-height: auto;
+      font-size: 0.85rem; line-height: 1; cursor: pointer; color: var(--text-muted);
+      border-radius: 6px; transition: color 0.2s, background 0.2s;
+    }
+    .phrases-cat-autoplay-toggle:hover { color: var(--text); background: var(--btn-alt); }
     .phrases-cat-body {
       display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
       scrollbar-width: none; gap: 8px; padding: 0 0 4px;
       scroll-snap-type: x mandatory;
     }
+    .phrases-cat-body.autoplay-active { scroll-snap-type: none; }
     .phrases-cat-body::-webkit-scrollbar { display: none; }
     .phrase-cat-card {
       flex-shrink: 0; width: 168px; border-radius: 12px; padding: 12px 12px 11px;
@@ -3186,6 +3194,14 @@
 
   // ── SETTINGS PHRASES D'ACCROCHE ─────────────────────────────────────────
   const PHRASE_SETTINGS_KEY = 'tdt_phrase_settings';
+  const CAT_AUTOPLAY_KEY = 'tdt_cat_autoplay';
+
+  function isCatAutoplayEnabled() {
+    return localStorage.getItem(CAT_AUTOPLAY_KEY) !== '0';
+  }
+  function setCatAutoplayEnabled(enabled) {
+    localStorage.setItem(CAT_AUTOPLAY_KEY, enabled ? '1' : '0');
+  }
 
   function getPhraseSettings() {
     try {
@@ -4396,6 +4412,46 @@
     if (list) list.innerHTML = '<div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>';
     if (rerollBtn) rerollBtn.style.display = 'none';
     lastPhraseSortedRows = null;
+    stopCatAutoplay();
+  }
+
+  // ── Auto-scroll continu de la card "Commentaires par Top" ──
+  let catAutoplayRafId    = null;
+  let catAutoplayPauseTil = 0;
+
+  function stopCatAutoplay() {
+    if (catAutoplayRafId) { cancelAnimationFrame(catAutoplayRafId); catAutoplayRafId = null; }
+  }
+
+  function startCatAutoplay(rail) {
+    stopCatAutoplay();
+    if (!isCatAutoplayEnabled()) return;
+    const maxScroll = rail.scrollWidth - rail.clientWidth;
+    if (maxScroll <= 0) return;
+
+    let dir = 1;
+    let pos = rail.scrollLeft; // position flottante suivie à part : scrollLeft est arrondi à l'entier par certains navigateurs
+    const SPEED = 0.4; // px par frame
+
+    function step() {
+      if (!rail.isConnected) { catAutoplayRafId = null; return; }
+      if (Date.now() < catAutoplayPauseTil) {
+        catAutoplayRafId = requestAnimationFrame(step);
+        return;
+      }
+      rail.classList.add('autoplay-active');
+      pos += dir * SPEED;
+      if (pos >= maxScroll) { pos = maxScroll; dir = -1; }
+      else if (pos <= 0) { pos = 0; dir = 1; }
+      rail.scrollLeft = pos;
+      catAutoplayRafId = requestAnimationFrame(step);
+    }
+    catAutoplayRafId = requestAnimationFrame(step);
+  }
+
+  function pauseCatAutoplayBriefly(rail) {
+    catAutoplayPauseTil = Date.now() + 4000;
+    rail.classList.remove('autoplay-active');
   }
 
   function computeRankedTotals(chartData) {
@@ -4574,7 +4630,22 @@
 
       const catHeader = document.createElement('div');
       catHeader.className = 'phrases-cat-header';
-      catHeader.textContent = '💬 Commentaires par Top';
+
+      const catHeaderLabel = document.createElement('span');
+      catHeaderLabel.textContent = '💬 Commentaires par Top';
+      catHeader.appendChild(catHeaderLabel);
+
+      const autoplayBtn = document.createElement('button');
+      autoplayBtn.type = 'button';
+      autoplayBtn.className = 'phrases-cat-autoplay-toggle';
+      const syncAutoplayBtn = () => {
+        const on = isCatAutoplayEnabled();
+        autoplayBtn.textContent = on ? '⏸️' : '▶️';
+        autoplayBtn.setAttribute('aria-label', on ? 'Mettre en pause le défilement automatique' : 'Reprendre le défilement automatique');
+        autoplayBtn.title = autoplayBtn.getAttribute('aria-label');
+      };
+      syncAutoplayBtn();
+      if (catItems.length > 1) catHeader.appendChild(autoplayBtn);
 
       const body = document.createElement('div');
       body.className = 'phrases-cat-body';
@@ -4619,6 +4690,7 @@
           dot.className = 'phrases-cat-dot' + (i === 0 ? ' active' : '');
           dot.setAttribute('aria-label', 'Aller à la carte ' + (i + 1));
           dot.addEventListener('click', () => {
+            pauseCatAutoplayBriefly(body);
             const target = body.children[i];
             if (target) target.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
           });
@@ -4644,7 +4716,20 @@
         section.appendChild(dots);
       }
 
+      ['pointerdown', 'touchstart', 'wheel'].forEach(evt => {
+        body.addEventListener(evt, () => pauseCatAutoplayBriefly(body), { passive: true });
+      });
+
+      autoplayBtn.addEventListener('click', () => {
+        const nowEnabled = !isCatAutoplayEnabled();
+        setCatAutoplayEnabled(nowEnabled);
+        syncAutoplayBtn();
+        if (nowEnabled) startCatAutoplay(body);
+        else stopCatAutoplay();
+      });
+
       list.appendChild(section);
+      startCatAutoplay(body);
     }
   }
 
