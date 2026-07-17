@@ -1613,6 +1613,7 @@
         btn.style.outline = '2px solid var(--accent)';
       });
     });
+    autoGrowTextarea(document.getElementById('mNoteText'));
     document.getElementById('mNoteSubmit').addEventListener('click', () => {
       if (!requireIdentity()) return;
       if (!selectedPlayer) { showToast('Choisis un joueur.', 'error'); return; }
@@ -1674,6 +1675,7 @@
             '<textarea id="mEditNoteText" rows="4">' + escapeHtml(note.text) + '</textarea>' +
             '<button class="primary" style="width:100%; margin-top:22px;" id="mEditNoteSave">Enregistrer</button>'
           );
+          autoGrowTextarea(document.getElementById('mEditNoteText'));
           document.getElementById('mEditNoteSave').addEventListener('click', () => {
             const v = document.getElementById('mEditNoteText').value;
             if (!v.trim()) { showToast('La note ne peut pas être vide.', 'error'); return; }
@@ -2356,6 +2358,7 @@
       '<textarea id="mPhraseText" rows="3">' + (entry ? escapeHtml(entry.text) : '') + '</textarea>' +
       '<button class="primary" style="width:100%; margin-top:26px;" id="mPhraseSave">Enregistrer</button>'
     );
+    autoGrowTextarea(document.getElementById('mPhraseText'));
     document.getElementById('mPhraseSave').addEventListener('click', () => {
       const text = document.getElementById('mPhraseText').value.trim();
       if (!text) { showToast('Le texte ne peut pas être vide.', 'error'); return; }
@@ -2805,10 +2808,29 @@
     });
   }
 
+  // La hauteur des zones de texte suit le contenu, bornée à une fraction de
+  // l'écran : plus besoin de scroller dans une petite boîte, et la boîte ne
+  // peut jamais dépasser l'écran.
+  function autoGrowTextarea(ta, maxVhRatio) {
+    const fit = () => {
+      const max = Math.round(window.innerHeight * (maxVhRatio || 0.4));
+      ta.style.height = 'auto';
+      const wanted = ta.scrollHeight + 2;
+      ta.style.height = Math.min(wanted, max) + 'px';
+      ta.style.overflowY = wanted > max ? 'auto' : 'hidden';
+    };
+    ta.addEventListener('input', fit);
+    ta.addEventListener('focus', fit);
+    window.addEventListener('resize', fit);
+    requestAnimationFrame(fit); // premier ajustement une fois posé dans le DOM
+    return fit;
+  }
+
   function initChatWidgetMobile() {
     const fab = document.getElementById('mChatFab');
     if (!fab) return;
     initChatFabDragMobile(fab);
+    autoGrowTextarea(document.getElementById('mChatInput'), 0.3);
     document.getElementById('mChatPanelClose').addEventListener('click', mCloseChatPanel);
     document.getElementById('mChatSendBtn').addEventListener('click', mSendChatMessage);
     document.getElementById('mChatReplyBannerCancel').addEventListener('click', mClearChatReplyTo);

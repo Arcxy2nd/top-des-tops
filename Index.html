@@ -3500,6 +3500,25 @@
     return { hide };
   }
 
+  // ── AUTO-DIMENSIONNEMENT DES ZONES DE TEXTE ─────────────────────────────
+  // La hauteur suit le contenu, bornée à une fraction de l'écran (par défaut
+  // 40vh) : plus besoin de scroller dans une petite boîte de 3 lignes, et la
+  // boîte ne peut jamais dépasser l'écran quelle que soit sa taille.
+  function autoGrowTextarea(ta, maxVhRatio) {
+    const fit = () => {
+      const max = Math.round(window.innerHeight * (maxVhRatio || 0.4));
+      ta.style.height = 'auto';
+      const wanted = ta.scrollHeight + 2;
+      ta.style.height = Math.min(wanted, max) + 'px';
+      ta.style.overflowY = wanted > max ? 'auto' : 'hidden';
+    };
+    ta.addEventListener('input', fit);
+    ta.addEventListener('focus', fit);
+    window.addEventListener('resize', fit);
+    requestAnimationFrame(fit); // premier ajustement une fois posé dans le DOM
+    return fit;
+  }
+
   // ── ÉDITEUR DE TEXTE RÉUTILISABLE (markdown + mentions) ─────────────────
   // Retourne un div.md-editor avec ._getValue()/._setValue(). Utilisé partout
   // où l'utilisateur saisit une description/un texte libre (entrées, notes,
@@ -3584,8 +3603,9 @@
     wrap.appendChild(textarea);
     wrap.appendChild(previewPane);
 
+    const refit = autoGrowTextarea(textarea);
     wrap._getValue = () => textarea.value;
-    wrap._setValue = v => { textarea.value = v || ''; triggerChange(); };
+    wrap._setValue = v => { textarea.value = v || ''; triggerChange(); refit(); };
     wrap._textarea = textarea;
 
     return wrap;
@@ -3990,7 +4010,10 @@
     const label = displayLabel || (POOL_LABELS[pool] ? POOL_LABELS[pool].label : pool);
     document.getElementById('phraseModalTitle').textContent =
       entry ? 'Modifier la phrase' : 'Nouvelle phrase — ' + label;
-    document.getElementById('phraseModalText').value = entry ? entry.text : '';
+    const phraseTa = document.getElementById('phraseModalText');
+    if (!phraseTa._autogrown) { phraseTa._autogrown = true; autoGrowTextarea(phraseTa); }
+    phraseTa.value = entry ? entry.text : '';
+    phraseTa.dispatchEvent(new Event('input'));
     document.getElementById('phraseEditModal').style.display = 'flex';
     setTimeout(() => document.getElementById('phraseModalText').focus(), 60);
   }
@@ -4199,7 +4222,9 @@
     if (!requireIdentity()) return;
     _bulkImportCtx = { presetName, pool };
     document.getElementById('bulkImportModalTitle').textContent = 'Importer — ' + poolLabel;
-    document.getElementById('bulkImportTextarea').value = '';
+    const bulkTa = document.getElementById('bulkImportTextarea');
+    if (!bulkTa._autogrown) { bulkTa._autogrown = true; autoGrowTextarea(bulkTa, 0.5); }
+    bulkTa.value = '';
     document.getElementById('bulkImportCount').textContent = '';
     document.getElementById('bulkImportModal').style.display = 'flex';
     setTimeout(() => document.getElementById('bulkImportTextarea').focus(), 60);
@@ -5048,6 +5073,7 @@
     // Registered BEFORE the Enter-to-send listener: the autocomplete popup must
     // swallow Enter (stopImmediatePropagation) or picking a mention sends the message.
     attachMentionAutocomplete(document.getElementById('chatInput'));
+    autoGrowTextarea(document.getElementById('chatInput'), 0.3);
     document.getElementById('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
     });
