@@ -1336,6 +1336,16 @@
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .hist-filter-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; min-width: 44px; }
+    .tools-quick-nav {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+      padding: 10px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .tools-quick-nav button {
+      padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tools-quick-nav button:hover { color: var(--text); border-color: var(--accent); }
     .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .stats-hub-head h2 { margin: 0; }
     .stats-hub-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -2693,6 +2703,18 @@
     <!-- ─ Outils ─ (une carte repliable par outil, pour ne pas tout dérouler d'un bloc) -->
     <div id="stab-tools" class="settings-tab-pane">
 
+      <!-- Sommaire des outils : un clic déplie l'outil visé et y descend. -->
+      <div class="tools-quick-nav" id="toolsQuickNav">
+        <button data-target="toolHealthCard">🔧 Santé</button>
+        <button data-target="toolLotsCard">🔗 Lots répartis</button>
+        <button data-target="toolLegacyCard">⚠️ Groupes hérités</button>
+        <button data-target="toolDuplicatesCard">🧬 Doublons</button>
+        <button data-target="toolOutliersCard">📈 Aberrants</button>
+        <button data-target="toolMentionsCard">🏷️ Mentions</button>
+        <button data-target="toolInactiveCard">💤 Inactifs</button>
+        <button data-target="toolAutoCard">🤖 Points auto</button>
+      </div>
+
       <div class="card card-collapsible" id="toolHealthCard">
         <div class="card-collapse-header"><h2>🔧 Santé & nettoyage</h2></div>
         <div class="health-grid" id="healthGrid">
@@ -2767,6 +2789,9 @@
 
       <div class="card card-collapsible" id="toolInactiveCard">
         <div class="card-collapse-header"><h2>💤 Joueurs inactifs</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Liste les joueurs sans aucune entrée récente, pour repérer qui décroche.
+        </p>
         <button id="scanInactiveBtn" class="secondary small">🔄 Actualiser</button>
         <div id="inactiveResults" style="margin-top:12px;"></div>
       </div>
@@ -11866,6 +11891,15 @@
     makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
     makeCollapsible(document.getElementById('toolAutoCard'),       'tdt_collapsed_tool_auto');
+    // Sommaire des outils : déplie la carte visée puis descend dessus.
+    document.querySelectorAll('#toolsQuickNav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = document.getElementById(btn.dataset.target);
+        if (!card) return;
+        card.classList.remove('collapsed');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
     document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
