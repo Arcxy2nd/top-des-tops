@@ -118,6 +118,10 @@ const AutoPointsService = (() => {
   function _validate(rule) {
     if (!rule.player || !rule.player.trim()) throw new Error("Joueur manquant.");
     if (!rule.category || !rule.category.trim()) throw new Error("Top (catégorie) manquant.");
+    const knownPlayers = SettingsService.getEntities('Players').map(p => p.name);
+    if (knownPlayers.indexOf(rule.player) === -1) throw new Error("Joueur introuvable : " + rule.player);
+    const knownCategories = SettingsService.getEntities('Categories').map(c => c.name);
+    if (knownCategories.indexOf(rule.category) === -1) throw new Error("Top introuvable : " + rule.category);
     const pts = parseInt(rule.points, 10);
     if (isNaN(pts) || pts < 1) throw new Error("Les points doivent être ≥ 1.");
     if (FREQUENCIES.indexOf(rule.frequency) === -1) throw new Error("Fréquence invalide : " + rule.frequency);
@@ -261,7 +265,7 @@ const AutoPointsService = (() => {
 
   function installTrigger() {
     uninstallTrigger();
-    ScriptApp.newTrigger('runAutoPoints').timeBased().everyHours(1).create();
+    ScriptApp.newTrigger('runAutoPoints').timeBased().everyHours(CONFIG.AUTO_TRIGGER_INTERVAL_HOURS).create();
   }
 
   function uninstallTrigger() {
@@ -303,6 +307,7 @@ function apiGetAutoRules() {
 
 function apiAddAutoRule(rule, author) {
   try {
+    requireAuthor(author);
     return withLock(() => {
       const created = AutoPointsService.addRule(rule, author);
       AuditService.log(author, 'Création règle auto', 'AutoRules', '', '',
@@ -314,6 +319,7 @@ function apiAddAutoRule(rule, author) {
 
 function apiUpdateAutoRule(id, patch, author) {
   try {
+    requireAuthor(author);
     return withLock(() => {
       const updated = AutoPointsService.updateRule(id, patch);
       AuditService.log(author, 'Modification règle auto', 'AutoRules', id, '', JSON.stringify(patch));
@@ -324,6 +330,7 @@ function apiUpdateAutoRule(id, patch, author) {
 
 function apiDeleteAutoRule(id, author) {
   try {
+    requireAuthor(author);
     return withLock(() => {
       AutoPointsService.deleteRule(id);
       AuditService.log(author, 'Suppression règle auto', 'AutoRules', id, '', '');
@@ -334,15 +341,19 @@ function apiDeleteAutoRule(id, author) {
 
 function apiSetAutoTrigger(enabled, author) {
   try {
-    if (enabled) AutoPointsService.installTrigger();
-    else AutoPointsService.uninstallTrigger();
-    AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules', '', '', '');
-    return { success: true, installed: AutoPointsService.isTriggerInstalled() };
+    requireAuthor(author);
+    return withLock(() => {
+      if (enabled) AutoPointsService.installTrigger();
+      else AutoPointsService.uninstallTrigger();
+      AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules', '', '', '');
+      return { success: true, installed: AutoPointsService.isTriggerInstalled() };
+    });
   } catch (e) { return fail(e); }
 }
 
 function apiRunAutoRulesNow(author) {
   try {
+    requireAuthor(author);
     return withLock(() => {
       const result = AutoPointsService.runDue(author);
       return { success: true, result };

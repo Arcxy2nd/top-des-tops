@@ -181,7 +181,7 @@
     }
     .who-am-i-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .who-am-i-badge { font-size: 0.75rem; opacity: 0.7; flex-shrink: 0; min-width: 16px; text-align: right; }
-    .who-am-i-option.active .who-am-i-badge { color: #2ed573; opacity: 1; font-weight: 700; }
+    .who-am-i-option.active .who-am-i-badge { color: var(--success); opacity: 1; font-weight: 700; }
 
     /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; 
@@ -235,7 +235,7 @@
     button.primary:hover { background: var(--accent-hover); }
     button.secondary { background: transparent; border: 1px solid var(--border); }
     button.secondary:hover { background: var(--btn-alt); }
-    button.small { padding: 7px 11px; font-size: 0.8rem; min-height: 34px; }
+    button.small { padding: 6px 11px; font-size: 0.8rem; min-height: var(--tap-min); }
     button.danger { background: rgba(255,71,87,0.12); color: var(--error); border-color: var(--error); }
     button.danger:hover { background: var(--error); color: var(--on-accent); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1218,14 +1218,14 @@
     .chat-fab {
       position: fixed; right: 24px; bottom: 24px; z-index: 9500;
       width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--accent); color: #fff; font-size: 1.5rem; cursor: pointer;
+      background: var(--accent); color: var(--on-accent); font-size: 1.5rem; cursor: pointer;
       box-shadow: 0 4px 16px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;
       touch-action: none; user-select: none;
     }
     .chat-fab:active { cursor: grabbing; }
     .chat-fab-badge {
       position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
-      border-radius: 10px; background: var(--error); color: #fff; font-size: 0.68rem; font-weight: 700;
+      border-radius: 10px; background: var(--error); color: var(--on-accent); font-size: 0.68rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
     }
     .chat-panel {
@@ -4994,8 +4994,12 @@
     _chatPollTimer = setInterval(pollChat, _chatPanelOpen ? 2000 : 8000);
   }
 
+  let _chatPollInFlight = false;
   function pollChat() {
+    if (_chatPollInFlight) return;
+    _chatPollInFlight = true;
     callServer('apiGetChatMessages', [], res => {
+      _chatPollInFlight = false;
       const fresh = res.messages || [];
       const prevLastId = _chatMessages.length ? _chatMessages[_chatMessages.length - 1].id : null;
       const newCount = fresh.length - _chatMessages.length;
@@ -5009,7 +5013,7 @@
         _chatUnreadCount += newCount;
       }
       updateChatBadge();
-    }, 'Actualisation du tchat');
+    }, 'Actualisation du tchat', () => { _chatPollInFlight = false; });
   }
 
   // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
@@ -5776,7 +5780,7 @@
           showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
         } else {
-          onSuccess(res);
+          if (onSuccess) onSuccess(res);
         }
       })
       .withFailureHandler(err => {
@@ -7291,6 +7295,11 @@
     cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d');
 
+    // opts.theme est un choix explicite de l'utilisateur pour l'image exportée,
+    // indépendant du thème actuellement affiché à l'écran — getComputedStyle()
+    // ne peut donc pas être utilisé ici (il ne renvoie que le thème live du DOM).
+    // Ces valeurs doivent rester synchronisées avec les variables --bg/--card/
+    // --text/--text-muted/--accent définies dans le CSS (voir §6 de context.md).
     const isDark = opts.theme === 'dark';
     const BG    = isDark ? '#0b0c10' : '#f0f2f5';
     const CARD  = isDark ? '#1f2833' : '#ffffff';

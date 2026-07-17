@@ -10,6 +10,31 @@
  * Chat      : [0] Id | [1] Date | [2] Author | [3] Text | [4] ReplyToId (optional sheet, auto-created)
  */
 
+// ─── CONFIG ────────────────────────────────────────────────────────────────────
+const CONFIG = {
+  LOCK_TIMEOUT_MS: 10000,
+  CACHE_TTL_SECONDS: 600,
+  CACHE_MAX_BYTES: 95000, // ≤ CacheService ~100KB limit
+  AUTO_TRIGGER_INTERVAL_HOURS: 1
+};
+
+// ─── SHARED DATE/ID HELPERS ────────────────────────────────────────────────────
+/** Zero-pads a number to 2 digits. */
+function _pad2(n) { return String(n).padStart(2, '0'); }
+
+/** Formats a Date as a local 'YYYY-MM-DD' key (no timezone conversion). */
+function _dayKey(d) { return d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate()); }
+
+/** Parses a 'YYYY-MM-DD' string into a local Date, carrying the current time-of-day (throws-free — check isNaN on the result). */
+function _parseLocalDateWithNow(dateStr) {
+  const now = new Date();
+  const parts = String(dateStr).trim().split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), now.getSeconds());
+}
+
+/** Generates a short, collision-resistant id used to tag/group a batch of rows. */
+function _generateGroupId() { return 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
+
 // ─── NAVIGATION REGISTRY ───────────────────────────────────────────────────────
 // Single source of truth for "which tabs exist, in what order, with which icon".
 // Consumed by both Index.html (desktop) and Mobile.html via apiGetNavPages() —
@@ -83,7 +108,7 @@ const ConfigService = (() => {
 function withLock(operation) {
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
+    lock.waitLock(CONFIG.LOCK_TIMEOUT_MS);
   } catch (e) {
     throw new Error("Système occupé (écriture concurrente). Réessayez dans un instant.");
   }
@@ -388,6 +413,41 @@ const SettingsService = {
       }
       if (modified) range.setValues(vals);
     }
+
+    this._renameInColumn(ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
+    if (type === 'Players') return;
+
+    this._renameInColumn(ConfigService.getSheets().bareme, 1, oldName, newName);
+
+    const phrasesSheet = ConfigService.getSheets().phrases;
+    if (phrasesSheet) {
+      const pLastRow = phrasesSheet.getLastRow();
+      if (pLastRow > 1) {
+        const poolRange = phrasesSheet.getRange(2, 2, pLastRow - 1, 1);
+        const poolVals  = poolRange.getValues();
+        const oldPool   = 'cat:' + oldName;
+        const newPool   = 'cat:' + newName;
+        let poolModified = false;
+        for (let i = 0; i < poolVals.length; i++) {
+          if (poolVals[i][0] === oldPool) { poolVals[i][0] = newPool; poolModified = true; }
+        }
+        if (poolModified) poolRange.setValues(poolVals);
+      }
+    }
+  },
+
+  /** Renames every occurrence of oldName to newName in a single 1-based column of sheet (header row skipped). No-op if sheet is absent. */
+  _renameInColumn(sheet, colIndex1Based, oldName, newName) {
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+    const range = sheet.getRange(2, colIndex1Based, lastRow - 1, 1);
+    const vals  = range.getValues();
+    let modified = false;
+    for (let i = 0; i < vals.length; i++) {
+      if (vals[i][0] === oldName) { vals[i][0] = newName; modified = true; }
+    }
+    if (modified) range.setValues(vals);
   },
 
   /** Returns true if the given password matches the player's password (column D of Players). */
@@ -444,11 +504,9 @@ const StorageService = {
 
     const rows = [];
     const tagToRealId = {};
-    const _now = new Date();
     plan.forEach(day => {
       if (!day.date || !day.date.trim()) throw new Error("Date manquante dans le plan.");
-      const _parts = day.date.trim().split('-').map(Number);
-      const targetDate = new Date(_parts[0], _parts[1] - 1, _parts[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
+      const targetDate = _parseLocalDateWithNow(day.date);
       if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
       (day.entries || []).forEach(e => {
         if (!e.player || !e.category) throw new Error("Joueur ou catégorie manquant(e).");
@@ -459,7 +517,7 @@ const StorageService = {
         let realGroupId = '';
         if (e.groupTag) {
           if (!tagToRealId[e.groupTag]) {
-            tagToRealId[e.groupTag] = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            tagToRealId[e.groupTag] = _generateGroupId();
           }
           realGroupId = tagToRealId[e.groupTag];
         }
@@ -526,7 +584,7 @@ const StorageService = {
     }
     const result = this._readFullHistoryRows();
     const serial = JSON.stringify(result.map(r => Object.assign({}, r, { date: r.date.toISOString() })));
-    if (serial.length <= 95000) cache.put(key, serial, 600);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -554,7 +612,7 @@ const StorageService = {
       const serial = JSON.stringify(result.map(l => ({
         t: l.timestamp.getTime(), p: l.player, c: l.category, pts: l.points
       })));
-      if (serial.length <= 95000) cache.put(key, serial, 600);  // ≤ CacheService ~100KB limit; 10-min TTL
+      if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
     }
 
     ConfigService.setLogsCache(result);
@@ -672,9 +730,7 @@ const StorageService = {
     if (!fields.category) throw new Error("Top requis.");
     const pts = parseInt(fields.points, 10);
     if (isNaN(pts) || pts < 1) throw new Error("Les points doivent être ≥ 1.");
-    const _now = new Date();
-    const _dp = (fields.date || '').trim().split('-').map(Number);
-    const targetDate = new Date(_dp[0], _dp[1] - 1, _dp[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
+    const targetDate = _parseLocalDateWithNow(fields.date || '');
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
     const sheet = ConfigService.getSheets().history;
     sheet.getRange(idx, 1, 1, 5)
@@ -693,7 +749,7 @@ const StorageService = {
       try { return JSON.parse(raw); } catch (e) { /* corrupt entry → recompute */ }
     }
     const result = this._computeDataHealth();
-    cache.put(key, JSON.stringify(result), 600);
+    cache.put(key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -824,14 +880,7 @@ const NotesService = {
     if (!player) throw new Error("Joueur manquant.");
     if (!text || !text.trim()) throw new Error("La note ne peut pas être vide.");
 
-    const _now = new Date();
-    let targetDate;
-    if (dateStr && dateStr.trim()) {
-      const _parts = dateStr.trim().split('-').map(Number);
-      targetDate = new Date(_parts[0], _parts[1] - 1, _parts[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
-    } else {
-      targetDate = _now;
-    }
+    const targetDate = (dateStr && dateStr.trim()) ? _parseLocalDateWithNow(dateStr) : new Date();
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
     const sheet = this._sheet();
@@ -1051,8 +1100,8 @@ const AnalyticsService = {
 
     if (!logs.length) return { labels: [], series: {} };
 
-    const pad = n => String(n).padStart(2, '0');
-    const dayKey   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const pad = _pad2;
+    const dayKey   = _dayKey;
     const monthKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
     const startOfWeek = d => {
       const t = new Date(d); t.setHours(0,0,0,0);
@@ -1980,18 +2029,18 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
 
         var targetDate;
         if (hasDate) {
-          var _now = new Date();
-          var _dp = (partialFields.date + '').split('-').map(Number);
-          targetDate = new Date(_dp[0], _dp[1] - 1, _dp[2], _now.getHours(), _now.getMinutes(), _now.getSeconds());
+          targetDate = _parseLocalDateWithNow(partialFields.date + '');
           if (isNaN(targetDate.getTime())) { skipped.push(idx); return; }
         } else {
           targetDate = (row[0] instanceof Date) ? row[0] : new Date(row[0]);
         }
 
-        history.getRange(idx, 1, 1, 5).setValues([[targetDate, player, category, pts, desc]]);
-        if (hasSais) history.getRange(idx, 7).setValue(saiseur);
-        undoRows.push({ rowIndex: idx, before: beforeRow, after: history.getRange(idx, 1, 1, 7).getValues()[0] });
+        row[0] = targetDate; row[1] = player; row[2] = category; row[3] = pts; row[4] = desc;
+        if (hasSais) row[6] = saiseur;
+        undoRows.push({ rowIndex: idx, before: beforeRow, after: row.slice() });
       });
+
+      if (undoRows.length) history.getRange(2, 1, lastRow - 1, 7).setValues(allData);
 
       var changedFields = Object.keys(partialFields).join(', ');
       AuditService.log(author, 'Modification bulk', 'History', '', changedFields,
@@ -2016,7 +2065,7 @@ function apiDetectDistributedLots() {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, lots: [] };
 
-    const pad = function(n) { return String(n).padStart(2, '0'); };
+    const pad = _pad2;
     const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const entries = [];
     for (var i = 0; i < data.length; i++) {
@@ -2092,7 +2141,7 @@ function apiDetectDistributedLots() {
 
     lots.sort(function(a, b) { return b.count - a.count; });
     const serial = JSON.stringify(lots);
-    if (serial.length <= 95000) cache.put(key, serial, 600);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
     return { success: true, lots: lots };
   } catch(e) { return fail(e); }
 }
@@ -2100,7 +2149,7 @@ function apiDetectDistributedLots() {
 function apiDetectLegacyGroups() {
   try {
     const LEGACY_GID_RE = /^G\d{1,6}$/;
-    const pad = function(n) { return String(n).padStart(2, '0'); };
+    const pad = _pad2;
 
     const rows = StorageService.getFullHistoryRowsCached();
     const groups = {};
@@ -2148,12 +2197,17 @@ function apiGroupDistributedLots(lotsToGroup, author) {
     if (!lotsToGroup || !lotsToGroup.length) throw new Error("Aucun lot fourni.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
+      const lastRow = sheet.getLastRow();
+      if (lastRow <= 1) return { success: true };
+      const colRange = sheet.getRange(2, 6, lastRow - 1, 1);
+      const values = colRange.getValues();
       lotsToGroup.forEach(function(lot) {
         var rows = lot.rowIndexes;
         if (!rows || rows.length < 2) return;
-        var gid = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        rows.forEach(function(r) { sheet.getRange(r, 6).setValue(gid); });
+        var gid = _generateGroupId();
+        rows.forEach(function(r) { values[r - 2][0] = gid; });
       });
+      colRange.setValues(values);
       AuditService.log(author, 'Lots auto-groupés', 'History', '', '',
         lotsToGroup.length + ' lot(s)');
       ConfigService.clearCache();
@@ -2170,7 +2224,7 @@ function apiGroupRows(rowIndexes, author) {
       const { history } = ConfigService.getSheets();
       const lastRow = history.getLastRow();
       if (lastRow <= 1) throw new Error("Historique vide.");
-      const gid      = 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      const gid      = _generateGroupId();
       const colRange = history.getRange(2, 6, lastRow - 1, 1);
       const values   = colRange.getValues();
       const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
@@ -2194,12 +2248,16 @@ function apiUngroupLot(groupId, author) {
       const sheet = ConfigService.getSheets().history;
       const lastRow = sheet.getLastRow();
       if (lastRow <= 1) return { success: true };
-      const data = sheet.getRange(2, 6, lastRow - 1, 1).getValues();
+      const colRange = sheet.getRange(2, 6, lastRow - 1, 1);
+      const data = colRange.getValues();
+      let modified = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i][0] && data[i][0].toString() === groupId) {
-          sheet.getRange(i + 2, 6).setValue('');
+          data[i][0] = '';
+          modified = true;
         }
       }
+      if (modified) colRange.setValues(data);
       AuditService.log(author, 'Dégroupement lot', 'History', '', '', 'gid: ' + groupId);
       ConfigService.clearCache();
       return { success: true };
@@ -2210,8 +2268,7 @@ function apiUngroupLot(groupId, author) {
 function apiDetectDuplicates() {
   try {
     const rows = StorageService.getFullHistoryRowsCached();
-    const pad = n => String(n).padStart(2, '0');
-    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const dayKey = _dayKey;
 
     const groups = {};
     rows.forEach(r => {
@@ -2244,8 +2301,7 @@ function apiDetectOutlierScores() {
     const byCategory = {};
     rows.forEach(r => (byCategory[r.category] = byCategory[r.category] || []).push(r));
 
-    const pad = n => String(n).padStart(2, '0');
-    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const dayKey = _dayKey;
 
     // Médiane + MAD (écart absolu médian) plutôt que moyenne + écart-type : ces
     // dernières se font fausser par l'aberration elle-même sur un petit échantillon
@@ -2309,8 +2365,7 @@ function apiGetPlayerRecords() {
     const byPlayer = {};
     rows.forEach(r => (byPlayer[r.player] = byPlayer[r.player] || []).push(r));
 
-    const pad = n => String(n).padStart(2, '0');
-    const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const dayKey = _dayKey;
 
     let globalBest = null;
     const records = Object.keys(byPlayer).map(player => {

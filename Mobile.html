@@ -190,7 +190,7 @@
       background: var(--btn-alt); color: var(--text-muted); font-size: 1.6rem; font-weight: 600;
       min-height: var(--tap-min); cursor: pointer;
     }
-    .m-hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .m-hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .m-hist-top { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; flex-wrap: wrap; row-gap: 10px; }
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
@@ -225,13 +225,13 @@
     .m-chat-fab {
       position: fixed; right: 34px; bottom: calc(34px + env(safe-area-inset-bottom)); z-index: 9500;
       width: 100px; height: 100px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--accent); color: #fff; font-size: 2.6rem; min-height: unset;
+      background: var(--accent); color: var(--on-accent); font-size: 2.6rem; min-height: unset;
       box-shadow: 0 6px 20px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
       touch-action: none; user-select: none; padding: 0;
     }
     .m-chat-fab-badge {
       position: absolute; top: -6px; right: -6px; min-width: 34px; height: 34px; padding: 0 6px;
-      border-radius: 18px; background: var(--error); color: #fff; font-size: 1.15rem; font-weight: 700;
+      border-radius: 18px; background: var(--error); color: var(--on-accent); font-size: 1.15rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center; border: 3px solid var(--bg);
     }
     .m-chat-panel {
@@ -615,7 +615,7 @@
           showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
         } else {
-          onSuccess(res);
+          if (onSuccess) onSuccess(res);
         }
       })
       .withFailureHandler(err => {
@@ -2705,8 +2705,12 @@
     _mChatPollTimer = setInterval(mPollChat, _mChatPanelOpen ? 2000 : 8000);
   }
 
+  let _mChatPollInFlight = false;
   function mPollChat() {
+    if (_mChatPollInFlight) return;
+    _mChatPollInFlight = true;
     callServer('apiGetChatMessages', [], res => {
+      _mChatPollInFlight = false;
       const fresh = res.messages || [];
       const prevLastId = _mChatMessages.length ? _mChatMessages[_mChatMessages.length - 1].id : null;
       const newCount = fresh.length - _mChatMessages.length;
@@ -2720,7 +2724,7 @@
         _mChatUnreadCount += newCount;
       }
       mUpdateChatBadge();
-    }, 'Actualisation du tchat');
+    }, 'Actualisation du tchat', () => { _mChatPollInFlight = false; });
   }
 
   // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
