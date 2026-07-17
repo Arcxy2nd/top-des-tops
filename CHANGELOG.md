@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-18
+
+### Corrigé
+**Humanisé** : Dans le tchat, appuyer sur Entrée pour valider une mention (@joueur ou #top) envoyait le message au lieu d'insérer la mention. Entrée insère maintenant la mention quand la liste de suggestions est ouverte, et n'envoie que sinon. Par ailleurs, sur un très petit écran le panneau du tchat (et le bouton 💬) pouvait se retrouver poussé hors de l'écran — il reste désormais toujours visible.
+**Technique** : `Index.html` — `attachMentionAutocomplete(chatInput)` est désormais enregistré avant l'écouteur `keydown` Entrée-envoi (son `stopImmediatePropagation` ne pouvait pas agir en second). Clamp de position corrigé dans `positionChatPanel`/`setPos` (Index et Mobile) : `Math.max(8, Math.min(...))` au lieu de l'ordre inverse qui produisait une coordonnée négative quand la borne haute était négative.
+
+### Modifié
+**Humanisé** : Le tchat est nettement plus réactif : le message envoyé s'affiche instantanément (grisé avec une horloge le temps que le serveur confirme), les nouveaux messages arrivent toutes les 2 secondes quand le panneau est ouvert (8 s quand il est fermé, juste pour le badge), et l'ouverture du panneau rafraîchit immédiatement la conversation. PC et mobile.
+**Technique** : `Index.html`/`Mobile.html` — envoi optimiste via `_chatPendingSends`/`_mChatPendingSends` (message temporaire `pending`, opacité réduite, actions désactivées, retiré et texte restauré en cas d'échec) ; sondage adaptatif `scheduleChatPoll()`/`mScheduleChatPoll()` (2 s ouvert / 8 s fermé, re-planifié à l'ouverture/fermeture) remplaçant le `setInterval` fixe de 4 s ; `pollChat()` immédiat à l'ouverture du panneau.
+
 ## [Non publié] - 2026-07-17
 
 ### Corrigé

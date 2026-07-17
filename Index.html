@@ -1240,6 +1240,7 @@
     }
     .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 10px 12px; }
     .chat-msg { display: flex; gap: 10px; }
+    .chat-msg.pending { opacity: 0.55; }
     .chat-msg-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .chat-msg-body-col { flex: 1; min-width: 0; }
     .chat-msg-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
@@ -4720,6 +4721,7 @@
   let _chatAtBottom = true;
   let _chatPanelOpen = false;
   let _chatUnreadCount = 0;
+  let _chatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
   const CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos';
 
   function formatChatTime(iso) {
@@ -4738,7 +4740,7 @@
 
   function buildChatMessageEl(msg) {
     const el = document.createElement('div');
-    el.className = 'chat-msg';
+    el.className = 'chat-msg' + (msg.pending ? ' pending' : '');
     el.id = 'chat-msg-' + msg.id;
 
     const player = cachedPlayers.find(p => p.name === msg.author);
@@ -4762,32 +4764,34 @@
     const time = formatChatTime(msg.timestamp);
     const timeEl = document.createElement('span');
     timeEl.className = 'chat-msg-time';
-    timeEl.textContent = time.short;
-    timeEl.title = time.title;
+    timeEl.textContent = msg.pending ? '🕒' : time.short;
+    timeEl.title = msg.pending ? 'Envoi en cours…' : time.title;
     head.appendChild(timeEl);
 
     const actions = document.createElement('div');
     actions.className = 'chat-msg-actions';
-    const replyBtn = document.createElement('button');
-    replyBtn.textContent = '↩️';
-    replyBtn.title = 'Répondre';
-    replyBtn.addEventListener('click', () => setChatReplyTo(msg));
-    actions.appendChild(replyBtn);
-    if (msg.author === _whoAmI) {
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑️';
-      delBtn.title = 'Supprimer';
-      delBtn.addEventListener('click', () => {
-        if (!requireIdentity()) return;
-        openConfirmModal('Supprimer ce message ?', () => {
-          buzz();
-          callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
-            _chatMessages = _chatMessages.filter(m => m.id !== msg.id);
-            renderChatMessages(false);
-          }, 'Suppression message');
+    if (!msg.pending) {
+      const replyBtn = document.createElement('button');
+      replyBtn.textContent = '↩️';
+      replyBtn.title = 'Répondre';
+      replyBtn.addEventListener('click', () => setChatReplyTo(msg));
+      actions.appendChild(replyBtn);
+      if (msg.author === _whoAmI) {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.title = 'Supprimer';
+        delBtn.addEventListener('click', () => {
+          if (!requireIdentity()) return;
+          openConfirmModal('Supprimer ce message ?', () => {
+            buzz();
+            callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
+              _chatMessages = _chatMessages.filter(m => m.id !== msg.id);
+              renderChatMessages(false);
+            }, 'Suppression message');
+          });
         });
-      });
-      actions.appendChild(delBtn);
+        actions.appendChild(delBtn);
+      }
     }
     head.appendChild(actions);
     col.appendChild(head);
@@ -4823,11 +4827,12 @@
     const container = document.getElementById('chatMessages');
     if (!container) return;
     container.innerHTML = '';
-    if (!_chatMessages.length) {
+    const all = _chatMessages.concat(_chatPendingSends);
+    if (!all.length) {
       container.innerHTML = '<div class="chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
       return;
     }
-    _chatMessages.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
+    all.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
     if (forceScroll || _chatAtBottom) container.scrollTop = container.scrollHeight;
   }
 
@@ -4864,8 +4869,10 @@
     let left = fr.left + fr.width / 2 - pw / 2;
     let top  = fr.top - ph - 12; // au-dessus du bouton par défaut
     if (top < 8) top = fr.bottom + 12; // pas assez de place au-dessus → sous le bouton
-    left = Math.min(Math.max(8, left), window.innerWidth  - pw - 8);
-    top  = Math.min(Math.max(8, top),  window.innerHeight - ph - 8);
+    // Math.max en dernier : sur un petit viewport la borne haute peut être
+    // négative, et l'ancien ordre poussait le panneau hors écran.
+    left = Math.max(8, Math.min(left, window.innerWidth  - pw - 8));
+    top  = Math.max(8, Math.min(top,  window.innerHeight - ph - 8));
     panel.style.left = left + 'px';
     panel.style.top  = top  + 'px';
     panel.style.right = 'auto';
@@ -4878,12 +4885,14 @@
     positionChatPanel();
     _chatUnreadCount = 0;
     updateChatBadge();
-    if (!_chatLoadedOnce) loadChat(); else renderChatMessages(true);
+    if (!_chatLoadedOnce) loadChat(); else { renderChatMessages(true); pollChat(); }
+    scheduleChatPoll();
   }
 
   function closeChatPanel() {
     _chatPanelOpen = false;
     document.getElementById('chatPanel').style.display = 'none';
+    scheduleChatPoll();
   }
 
   function toggleChatPanel() {
@@ -4896,6 +4905,13 @@
       _chatLoadedOnce = true;
       renderChatMessages(true);
     }, 'Chargement du tchat');
+  }
+
+  // Sondage adaptatif : rapide quand le panneau est ouvert (conversation en
+  // cours), lent quand il est fermé (juste le badge de non-lus à tenir à jour).
+  function scheduleChatPoll() {
+    if (_chatPollTimer) clearInterval(_chatPollTimer);
+    _chatPollTimer = setInterval(pollChat, _chatPanelOpen ? 2000 : 8000);
   }
 
   function pollChat() {
@@ -4916,20 +4932,35 @@
     }, 'Actualisation du tchat');
   }
 
+  // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
+  // attendre le serveur ; en cas d'échec il est retiré et le texte restauré.
   function sendChatMessage() {
     if (!requireIdentity()) return;
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     if (!text) return;
-    const btn = document.getElementById('chatSendBtn');
-    const restore = startBtnLoading(btn, '…');
-    const replyToId = _chatReplyTo ? _chatReplyTo.id : '';
-    callServer('apiPostChatMessage', [text, replyToId, _whoAmI || ''], () => {
-      restore();
-      input.value = '';
-      clearChatReplyTo();
+    const replyTo = _chatReplyTo;
+    const temp = {
+      id: 'pending-' + Date.now(),
+      author: _whoAmI, text, timestamp: new Date().toISOString(),
+      replyToId: replyTo ? replyTo.id : '',
+      replyToAuthor: replyTo ? replyTo.author : '',
+      replyToText: replyTo ? replyTo.text : '',
+      pending: true
+    };
+    _chatPendingSends.push(temp);
+    input.value = '';
+    clearChatReplyTo();
+    renderChatMessages(true);
+    callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
+      _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
       loadChat();
-    }, 'Envoi du message', () => restore());
+    }, 'Envoi du message', () => {
+      _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
+      input.value = text;
+      if (replyTo) setChatReplyTo({ id: replyTo.id, author: replyTo.author, text: replyTo.text });
+      renderChatMessages(false);
+    });
   }
 
   // Glisser (souris ET tactile) via Pointer Events. Un déplacement au-delà du
@@ -4942,8 +4973,8 @@
     function setPos(left, top) {
       const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
       const maxTop  = window.innerHeight - fab.offsetHeight - 8;
-      left = Math.min(Math.max(8, left), maxLeft);
-      top  = Math.min(Math.max(8, top),  maxTop);
+      left = Math.max(8, Math.min(left, maxLeft));
+      top  = Math.max(8, Math.min(top,  maxTop));
       fab.style.left = left + 'px';
       fab.style.top  = top  + 'px';
       fab.style.right = 'auto';
@@ -4995,6 +5026,9 @@
     initChatFabDrag(fab);
     document.getElementById('chatPanelClose').addEventListener('click', closeChatPanel);
     document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    // Registered BEFORE the Enter-to-send listener: the autocomplete popup must
+    // swallow Enter (stopImmediatePropagation) or picking a mention sends the message.
+    attachMentionAutocomplete(document.getElementById('chatInput'));
     document.getElementById('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
     });
@@ -5002,10 +5036,8 @@
     document.getElementById('chatMessages').addEventListener('scroll', function() {
       _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
     });
-    attachMentionAutocomplete(document.getElementById('chatInput'));
-
     loadChat();
-    _chatPollTimer = setInterval(pollChat, 4000);
+    scheduleChatPoll();
   }
 
   // ── SÉLECTION MULTIPLE PAR GLISSER (souris seule et tactile) ─────────

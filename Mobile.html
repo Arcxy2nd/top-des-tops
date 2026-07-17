@@ -239,6 +239,7 @@
     }
     .m-chat-messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 22px; padding: 18px 22px; }
     .m-chat-msg { display: flex; gap: 16px; }
+    .m-chat-msg.pending { opacity: 0.55; }
     .m-chat-msg-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .m-chat-msg-body-col { flex: 1; min-width: 0; }
     .m-chat-msg-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -2463,6 +2464,7 @@
   let _mChatAtBottom = true;
   let _mChatPanelOpen = false;
   let _mChatUnreadCount = 0;
+  let _mChatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
   const M_CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos_mobile';
 
   function mFormatChatTime(iso) {
@@ -2482,7 +2484,7 @@
 
   function mBuildChatMessageEl(msg) {
     const el = document.createElement('div');
-    el.className = 'm-chat-msg';
+    el.className = 'm-chat-msg' + (msg.pending ? ' pending' : '');
     el.id = 'm-chat-msg-' + msg.id;
 
     const player = cachedPlayers.find(p => p.name === msg.author);
@@ -2506,32 +2508,34 @@
     const time = mFormatChatTime(msg.timestamp);
     const timeEl = document.createElement('span');
     timeEl.className = 'm-chat-msg-time';
-    timeEl.textContent = time.short;
-    timeEl.title = time.title;
+    timeEl.textContent = msg.pending ? '🕒' : time.short;
+    timeEl.title = msg.pending ? 'Envoi en cours…' : time.title;
     head.appendChild(timeEl);
 
     const actions = document.createElement('div');
     actions.className = 'm-chat-msg-actions';
-    const replyBtn = document.createElement('button');
-    replyBtn.textContent = '↩️';
-    replyBtn.title = 'Répondre';
-    replyBtn.addEventListener('click', () => mSetChatReplyTo(msg));
-    actions.appendChild(replyBtn);
-    if (msg.author === _whoAmI) {
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑️';
-      delBtn.title = 'Supprimer';
-      delBtn.addEventListener('click', () => {
-        if (!requireIdentity()) return;
-        openConfirmModal('Supprimer ce message ?', () => {
-          buzz();
-          callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
-            _mChatMessages = _mChatMessages.filter(m => m.id !== msg.id);
-            mRenderChatMessages(false);
-          }, 'Suppression message');
+    if (!msg.pending) {
+      const replyBtn = document.createElement('button');
+      replyBtn.textContent = '↩️';
+      replyBtn.title = 'Répondre';
+      replyBtn.addEventListener('click', () => mSetChatReplyTo(msg));
+      actions.appendChild(replyBtn);
+      if (msg.author === _whoAmI) {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.title = 'Supprimer';
+        delBtn.addEventListener('click', () => {
+          if (!requireIdentity()) return;
+          openConfirmModal('Supprimer ce message ?', () => {
+            buzz();
+            callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
+              _mChatMessages = _mChatMessages.filter(m => m.id !== msg.id);
+              mRenderChatMessages(false);
+            }, 'Suppression message');
+          });
         });
-      });
-      actions.appendChild(delBtn);
+        actions.appendChild(delBtn);
+      }
     }
     head.appendChild(actions);
     col.appendChild(head);
@@ -2564,11 +2568,12 @@
     const container = document.getElementById('mChatMessages');
     if (!container) return;
     container.innerHTML = '';
-    if (!_mChatMessages.length) {
+    const all = _mChatMessages.concat(_mChatPendingSends);
+    if (!all.length) {
       container.innerHTML = '<div class="m-chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
       return;
     }
-    _mChatMessages.forEach(msg => container.appendChild(mBuildChatMessageEl(msg)));
+    all.forEach(msg => container.appendChild(mBuildChatMessageEl(msg)));
     if (forceScroll || _mChatAtBottom) container.scrollTop = container.scrollHeight;
   }
 
@@ -2605,8 +2610,10 @@
     let left = fr.left + fr.width / 2 - pw / 2;
     let top  = fr.top - ph - 20;
     if (top < 8) top = fr.bottom + 20;
-    left = Math.min(Math.max(8, left), window.innerWidth  - pw - 8);
-    top  = Math.min(Math.max(8, top),  window.innerHeight - ph - 8);
+    // Math.max en dernier : sur un petit viewport la borne haute peut être
+    // négative, et l'ancien ordre poussait le panneau hors écran.
+    left = Math.max(8, Math.min(left, window.innerWidth  - pw - 8));
+    top  = Math.max(8, Math.min(top,  window.innerHeight - ph - 8));
     panel.style.left = left + 'px';
     panel.style.top  = top  + 'px';
     panel.style.right = 'auto';
@@ -2619,12 +2626,14 @@
     mPositionChatPanel();
     _mChatUnreadCount = 0;
     mUpdateChatBadge();
-    if (!_mChatLoadedOnce) mLoadChat(); else mRenderChatMessages(true);
+    if (!_mChatLoadedOnce) mLoadChat(); else { mRenderChatMessages(true); mPollChat(); }
+    mScheduleChatPoll();
   }
 
   function mCloseChatPanel() {
     _mChatPanelOpen = false;
     document.getElementById('mChatPanel').style.display = 'none';
+    mScheduleChatPoll();
   }
 
   function mToggleChatPanel() {
@@ -2637,6 +2646,13 @@
       _mChatLoadedOnce = true;
       mRenderChatMessages(true);
     }, 'Chargement du tchat');
+  }
+
+  // Sondage adaptatif : rapide quand le panneau est ouvert (conversation en
+  // cours), lent quand il est fermé (juste le badge de non-lus à tenir à jour).
+  function mScheduleChatPoll() {
+    if (_mChatPollTimer) clearInterval(_mChatPollTimer);
+    _mChatPollTimer = setInterval(mPollChat, _mChatPanelOpen ? 2000 : 8000);
   }
 
   function mPollChat() {
@@ -2657,20 +2673,35 @@
     }, 'Actualisation du tchat');
   }
 
+  // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
+  // attendre le serveur ; en cas d'échec il est retiré et le texte restauré.
   function mSendChatMessage() {
     if (!requireIdentity()) return;
     const input = document.getElementById('mChatInput');
     const text = input.value.trim();
     if (!text) return;
-    const btn = document.getElementById('mChatSendBtn');
-    const restore = startBtnLoading(btn, '…');
-    const replyToId = _mChatReplyTo ? _mChatReplyTo.id : '';
-    callServer('apiPostChatMessage', [text, replyToId, _whoAmI || ''], () => {
-      restore();
-      input.value = '';
-      mClearChatReplyTo();
+    const replyTo = _mChatReplyTo;
+    const temp = {
+      id: 'pending-' + Date.now(),
+      author: _whoAmI, text, timestamp: new Date().toISOString(),
+      replyToId: replyTo ? replyTo.id : '',
+      replyToAuthor: replyTo ? replyTo.author : '',
+      replyToText: replyTo ? replyTo.text : '',
+      pending: true
+    };
+    _mChatPendingSends.push(temp);
+    input.value = '';
+    mClearChatReplyTo();
+    mRenderChatMessages(true);
+    callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
+      _mChatPendingSends = _mChatPendingSends.filter(m => m.id !== temp.id);
       mLoadChat();
-    }, 'Envoi du message', () => restore());
+    }, 'Envoi du message', () => {
+      _mChatPendingSends = _mChatPendingSends.filter(m => m.id !== temp.id);
+      input.value = text;
+      if (replyTo) mSetChatReplyTo({ id: replyTo.id, author: replyTo.author, text: replyTo.text });
+      mRenderChatMessages(false);
+    });
   }
 
   function initChatFabDragMobile(fab) {
@@ -2680,8 +2711,8 @@
     function setPos(left, top) {
       const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
       const maxTop  = window.innerHeight - fab.offsetHeight - 8;
-      left = Math.min(Math.max(8, left), maxLeft);
-      top  = Math.min(Math.max(8, top),  maxTop);
+      left = Math.max(8, Math.min(left, maxLeft));
+      top  = Math.max(8, Math.min(top,  maxTop));
       fab.style.left = left + 'px';
       fab.style.top  = top  + 'px';
       fab.style.right = 'auto';
@@ -2739,7 +2770,7 @@
     });
 
     mLoadChat();
-    _mChatPollTimer = setInterval(mPollChat, 4000);
+    mScheduleChatPoll();
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────
