@@ -20,7 +20,7 @@ test('updates only specified fields, leaves others intact', () => {
   ]);
   injectSheets(gas, { history });
 
-  const res = gas.apiUpdateBulkEntries([2, 3], { description: 'edited' });
+  const res = gas.apiUpdateBulkEntries([2, 3], { description: 'edited' }, 'Testeur');
   assert.strictEqual(res.success, true);
 
   const g = history._grid;
@@ -48,7 +48,7 @@ test('updates saiseur when explicitly in partialFields', () => {
   ]);
   injectSheets(gas, { history });
 
-  const res = gas.apiUpdateBulkEntries([2, 3], { saiseur: 'Eve' });
+  const res = gas.apiUpdateBulkEntries([2, 3], { saiseur: 'Eve' }, 'Testeur');
   assert.strictEqual(res.success, true);
 
   const g = history._grid;
@@ -65,7 +65,7 @@ test('skips invalid row indexes silently', () => {
   ]);
   injectSheets(gas, { history });
 
-  const res = gas.apiUpdateBulkEntries([99, 2], { description: 'x' });
+  const res = gas.apiUpdateBulkEntries([99, 2], { description: 'x' }, 'Testeur');
   assert.strictEqual(res.success, true);
   assert.ok(res.skipped.includes(99), 'row 99 should be in skipped');
 
@@ -82,6 +82,6 @@ test('returns success immediately when partialFields is empty', () => {
   ]);
   injectSheets(gas, { history });
 
-  const res = gas.apiUpdateBulkEntries([2], {});
+  const res = gas.apiUpdateBulkEntries([2], {}, 'Testeur');
   assert.strictEqual(res.success, true);
 });

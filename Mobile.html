@@ -1606,6 +1606,7 @@
       });
     });
     document.getElementById('mNoteSubmit').addEventListener('click', () => {
+      if (!requireIdentity()) return;
       if (!selectedPlayer) { showToast('Choisis un joueur.', 'error'); return; }
       const text = document.getElementById('mNoteText').value;
       if (!text.trim()) { showToast('La note ne peut pas être vide.', 'error'); return; }
@@ -2521,6 +2522,7 @@
       delBtn.textContent = '🗑️';
       delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
         openConfirmModal('Supprimer ce message ?', () => {
           buzz();
           callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
