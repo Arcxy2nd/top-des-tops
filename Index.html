@@ -1336,6 +1336,13 @@
     .hist-filter-section { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .hist-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .hist-filter-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; min-width: 44px; }
+    .hist-range-btn {
+      padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .hist-range-btn:hover { color: var(--text); border-color: var(--accent); }
+    .hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .hist-fchip-row { display: flex; flex-wrap: wrap; gap: 4px; }
     .hist-fchip { padding: 2px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.74rem; cursor: pointer; transition: all 0.13s; background: transparent; color: var(--text-muted); line-height: 1.5; }
     .hist-fchip:hover { border-color: var(--text-muted); color: var(--text); }
@@ -2857,6 +2864,18 @@
           <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
         </div>
         <div class="hist-filter-section">
+          <div class="hist-filter-row">
+            <span class="hist-filter-label">Période</span>
+            <div class="hist-fchip-row" id="histRangeChips">
+              <button class="hist-range-btn" data-range="today">Aujourd'hui</button>
+              <button class="hist-range-btn" data-range="7d">7 jours</button>
+              <button class="hist-range-btn" data-range="month">Ce mois</button>
+              <button class="hist-range-btn" data-range="prevmonth">Mois dernier</button>
+              <button class="hist-range-btn" data-range="3m">3 mois</button>
+              <button class="hist-range-btn" data-range="year">Cette année</button>
+              <button class="hist-range-btn active" data-range="all">Tout</button>
+            </div>
+          </div>
           <div class="hist-filter-row">
             <span class="hist-filter-label">Joueurs</span>
             <div class="hist-fchip-row" id="histPlayerChips"></div>
@@ -10513,9 +10532,43 @@
       histDateClearBtn.addEventListener('click', () => {
         if (histDateFromEl) histDateFromEl.value = '';
         if (histDateToEl)   histDateToEl.value   = '';
+        setActiveHistRange('all');
         reloadHistFromDateChange();
       });
     }
+
+    // Plages rapides de l'Historique : posent la plage dans les champs date
+    // (donc composables avec les autres filtres) et rechargent la liste.
+    function setActiveHistRange(range) {
+      document.querySelectorAll('#histRangeChips .hist-range-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.range === range));
+    }
+    function histQuickRangeDates(range) {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      switch (range) {
+        case 'today':     return { from: now, to: now };
+        case '7d':        return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6), to: now };
+        case 'month':     return { from: startOfMonth, to: now };
+        case 'prevmonth': return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+                                   to:   new Date(now.getFullYear(), now.getMonth(), 0) };
+        case '3m':        return { from: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()), to: now };
+        case 'year':      return { from: new Date(now.getFullYear(), 0, 1), to: now };
+        default:          return { from: null, to: null }; // 'all'
+      }
+    }
+    document.querySelectorAll('#histRangeChips .hist-range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const { from, to } = histQuickRangeDates(btn.dataset.range);
+        if (histDateFromEl) histDateFromEl.value = from ? toDateStr(from) : '';
+        if (histDateToEl)   histDateToEl.value   = to   ? toDateStr(to)   : '';
+        setActiveHistRange(btn.dataset.range);
+        reloadHistFromDateChange();
+      });
+    });
+    // Une saisie manuelle de date sort du mode "plage rapide".
+    if (histDateFromEl) histDateFromEl.addEventListener('change', () => setActiveHistRange(''));
+    if (histDateToEl)   histDateToEl.addEventListener('change',   () => setActiveHistRange(''));
 
     document.querySelectorAll('.chart-type-btn').forEach(btn => {
       btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));

@@ -184,6 +184,13 @@
     /* flex-wrap : sur un écran étroit, joueur + top + points ne tiennent pas toujours
        sur une ligne (long nom de joueur ou de top) — sans ça la ligne dépassait la
        carte et forçait un scroll horizontal de toute la page. */
+    .m-hist-range-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .m-hist-range-btn {
+      padding: 10px 20px; border-radius: 40px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 1.6rem; font-weight: 600;
+      min-height: var(--tap-min); cursor: pointer;
+    }
+    .m-hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     .m-hist-top { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; flex-wrap: wrap; row-gap: 10px; }
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
@@ -1739,6 +1746,15 @@
           '<input type="date" id="mHistDateTo"   title="Jusqu\'au" style="flex:1;">' +
           '<button id="mHistDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>' +
         '</div>' +
+        '<div class="m-hist-range-row" id="mHistRangeChips">' +
+          '<button class="m-hist-range-btn" data-range="today">Aujourd\'hui</button>' +
+          '<button class="m-hist-range-btn" data-range="7d">7 jours</button>' +
+          '<button class="m-hist-range-btn" data-range="month">Ce mois</button>' +
+          '<button class="m-hist-range-btn" data-range="prevmonth">Mois dernier</button>' +
+          '<button class="m-hist-range-btn" data-range="3m">3 mois</button>' +
+          '<button class="m-hist-range-btn" data-range="year">Cette année</button>' +
+          '<button class="m-hist-range-btn active" data-range="all">Tout</button>' +
+        '</div>' +
       '</div>' +
       '<div id="mHistCards"></div>' +
       '<button id="mHistLoadMore" class="secondary" style="width:100%;">Charger plus</button>';
@@ -1754,8 +1770,39 @@
     document.getElementById('mHistDateClearBtn').addEventListener('click', () => {
       document.getElementById('mHistDateFrom').value = '';
       document.getElementById('mHistDateTo').value   = '';
+      mSetActiveHistRange('all');
       reloadFromDateChange();
     });
+    // Plages rapides : posent la plage dans les champs date puis rechargent.
+    const mSetActiveHistRange = range => {
+      document.querySelectorAll('#mHistRangeChips .m-hist-range-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.range === range));
+    };
+    const mHistQuickRangeDates = range => {
+      const now = new Date();
+      switch (range) {
+        case 'today':     return { from: now, to: now };
+        case '7d':        return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6), to: now };
+        case 'month':     return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
+        case 'prevmonth': return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+                                   to:   new Date(now.getFullYear(), now.getMonth(), 0) };
+        case '3m':        return { from: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()), to: now };
+        case 'year':      return { from: new Date(now.getFullYear(), 0, 1), to: now };
+        default:          return { from: null, to: null }; // 'all'
+      }
+    };
+    document.querySelectorAll('#mHistRangeChips .m-hist-range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const { from, to } = mHistQuickRangeDates(btn.dataset.range);
+        document.getElementById('mHistDateFrom').value = from ? toDateStr(from) : '';
+        document.getElementById('mHistDateTo').value   = to   ? toDateStr(to)   : '';
+        mSetActiveHistRange(btn.dataset.range);
+        reloadFromDateChange();
+      });
+    });
+    // Une saisie manuelle de date sort du mode "plage rapide".
+    document.getElementById('mHistDateFrom').addEventListener('change', () => mSetActiveHistRange(''));
+    document.getElementById('mHistDateTo').addEventListener('change',   () => mSetActiveHistRange(''));
     document.getElementById('mHistLoadMore').addEventListener('click', () => {
       mHistoryPage++;
       loadHistoryTab(true);
