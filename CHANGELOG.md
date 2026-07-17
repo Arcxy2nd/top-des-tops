@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-17
+
+### Ajouté
+**Humanisé** : Dans le Dashboard, la card "Commentaires par Top" (Index.html — les phrases par catégorie configurées dans Paramètres → Commentaires) se manipule maintenant comme un vrai carrousel au doigt : le glissé s'aimante carte par carte au lieu de s'arrêter n'importe où, et des petits points sous les cartes indiquent la position (cliquables pour sauter directement à une carte).
+**Technique** : `renderPhrasesCard` (Index.html) — ajout de `.phrases-cat-dots` générés dynamiquement, synchronisés au scroll de `.phrases-cat-body` via `requestAnimationFrame` (calcul de la carte la plus proche du `scrollLeft`) ; CSS `scroll-snap-type: x mandatory` / `scroll-snap-align: start` sur le rail existant. Mobile.html n'a pas cette section (non répliquée côté mobile), donc pas de changement là-bas.
+
 ## [Non publié] - 2026-07-16
 
 ### Corrigé

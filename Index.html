@@ -1589,6 +1589,7 @@
     .phrases-cat-body {
       display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
       scrollbar-width: none; gap: 8px; padding: 0 0 4px;
+      scroll-snap-type: x mandatory;
     }
     .phrases-cat-body::-webkit-scrollbar { display: none; }
     .phrase-cat-card {
@@ -1599,7 +1600,17 @@
       position: relative; overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s;
+      scroll-snap-align: start;
     }
+    .phrases-cat-dots {
+      display: flex; justify-content: center; gap: 6px; margin-top: 8px;
+    }
+    .phrases-cat-dot {
+      width: 6px; height: 6px; border-radius: 50%; border: none; padding: 0;
+      background: var(--border); cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .phrases-cat-dot.active { background: var(--accent); transform: scale(1.4); }
     .phrase-cat-card::before {
       content: ''; position: absolute; inset: 0;
       background: var(--phrase-color, var(--accent));
@@ -4598,6 +4609,41 @@
 
       section.appendChild(catHeader);
       section.appendChild(body);
+
+      if (catItems.length > 1) {
+        const dots = document.createElement('div');
+        dots.className = 'phrases-cat-dots';
+        const dotEls = catItems.map((_, i) => {
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'phrases-cat-dot' + (i === 0 ? ' active' : '');
+          dot.setAttribute('aria-label', 'Aller à la carte ' + (i + 1));
+          dot.addEventListener('click', () => {
+            const target = body.children[i];
+            if (target) target.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+          });
+          dots.appendChild(dot);
+          return dot;
+        });
+
+        let scrollPending = false;
+        body.addEventListener('scroll', () => {
+          if (scrollPending) return;
+          scrollPending = true;
+          setTimeout(() => {
+            scrollPending = false;
+            let closest = 0, closestDist = Infinity;
+            Array.from(body.children).forEach((c, i) => {
+              const dist = Math.abs(c.offsetLeft - body.scrollLeft);
+              if (dist < closestDist) { closestDist = dist; closest = i; }
+            });
+            dotEls.forEach((d, i) => d.classList.toggle('active', i === closest));
+          }, 50);
+        });
+
+        section.appendChild(dots);
+      }
+
       list.appendChild(section);
     }
   }
