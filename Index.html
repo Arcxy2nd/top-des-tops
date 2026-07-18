@@ -82,10 +82,18 @@
       .qs-pill { min-width: 128px; padding: 7px 10px; }
     }
     .nav-container {
-      display: flex; min-width: max-content;
+      display: flex; min-width: 0;
       width: 100%; max-width: 1200px; gap: 2px;
       align-items: center;
     }
+    /* Seuls les onglets défilent horizontalement : brand + contrôles de droite
+       (thème, identité, bascule mobile) restent épinglés et visibles sur petit écran. */
+    .nav-btn-group {
+      display: flex; align-items: center;
+      flex: 1 1 auto; min-width: 0;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .nav-btn-group::-webkit-scrollbar { display: none; }
     .nav-btn {
       background: transparent; border: none;
       color: var(--text-muted); font-size: 0.88rem;
@@ -779,9 +787,44 @@
     .row-desc .desc-in::placeholder { font-style: italic; color: var(--text-muted); opacity: 0.7; }
     .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); }
 
-    /* ── CELLULE DATE INLINE (par ligne de saisie) ── */
-    .d-cell { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+    /* ── CELLULE DATE : pastille résumée + popover d'édition (par ligne) ── */
+    .d-cell { position: relative; }
     .d-cell .d-start, .d-cell .d-end { width: 100%; }
+    /* Pastille : ce que la ligne montre au repos (« 📅 Auj. », « 📅 18 juil. → 24 juil. »). */
+    .d-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; min-height: var(--tap-min); cursor: pointer;
+      color: var(--text); font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+      font-family: inherit; transition: border-color 0.15s, background 0.15s;
+    }
+    .d-pill:hover  { border-color: var(--accent); }
+    .d-pill.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
+    /* Popover : la surface focalisée où toute l'édition de date se passe. */
+    .d-pop {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+      flex-direction: column; gap: 6px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px; min-width: min(260px, calc(100vw - 40px)); max-width: min(320px, calc(100vw - 24px));
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .d-pop.open { display: flex; animation: fadeIn 0.12s ease; }
+    .d-pop input[type="date"] { width: 100%; }
+    .d-pop-sublabel {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted);
+    }
+    .d-pop .row-range-toggle {
+      margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);
+      font-size: 0.82rem; font-weight: 600; color: var(--text);
+    }
+    .d-pop-done {
+      margin-top: 2px; align-self: flex-end;
+      background: var(--accent); color: var(--on-accent); border: none; border-radius: 8px;
+      padding: 7px 20px; font-weight: 700; font-size: 0.82rem; cursor: pointer;
+      min-height: 36px; font-family: inherit; transition: background 0.15s;
+    }
+    .d-pop-done:hover { background: var(--accent-hover); }
     .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
     .row-shortcut {
       background: var(--btn-alt); border: 1px solid var(--border);
@@ -2403,13 +2446,14 @@
 
   /* ── Bascule vers la version mobile dédiée (Mobile.html) ────────────── */
   .layout-mode-toggle {
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--btn-alt); border: none; border-radius: 20px;
-    text-decoration: none; font-size: 1.2rem; cursor: pointer; color: var(--text);
-    min-width: var(--tap-min); min-height: var(--tap-min); padding: 8px 12px;
-    transition: background 0.2s; touch-action: manipulation;
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    background: var(--btn-alt); border: 1px solid var(--border); border-radius: 20px;
+    text-decoration: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text);
+    min-height: 36px; padding: 6px 12px; margin-right: 4px;
+    transition: background 0.2s, color 0.2s, border-color 0.2s; touch-action: manipulation;
   }
-  .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); }
+  .layout-mode-toggle .lmt-icon { font-size: 1.05rem; line-height: 1; }
+  .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
   /* ── Bannière CTA : proposer la version mobile sur petit écran ───────── */
   .mobile-cta-banner {
@@ -2462,7 +2506,7 @@
       <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
-    <a class="layout-mode-toggle" id="layoutModeToggle" target="_top" aria-label="Basculer l'affichage mobile/desktop" title="Passer à la version mobile">🖥️</a>
+    <a class="layout-mode-toggle" id="layoutModeToggle" target="_top" aria-label="Passer à la version mobile" title="Passer à la version mobile"><span class="lmt-icon">📱</span><span class="lmt-label">Mobile</span></a>
   </div>
 </nav>
 
@@ -5680,6 +5724,30 @@
     ];
   }
 
+  // Mois abrégés FR pour l'affichage compact des pastilles de date.
+  const SHORT_MONTHS_FR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+  // "2026-07-18" → "18 juil." (jour + mois abrégé, sans année pour rester court).
+  function fmtDateShort(ds) {
+    if (!ds) return '';
+    const parts = ds.split('-');
+    if (parts.length !== 3) return ds;
+    return parseInt(parts[2], 10) + ' ' + (SHORT_MONTHS_FR[parseInt(parts[1], 10) - 1] || '');
+  }
+
+  // Libellé humain d'une pastille de date : "📅 Auj.", "📅 Hier", "📅 18 juil."
+  // ou, en mode plage, "📅 18 juil. → 24 juil.".
+  function datePillLabel(startStr, endStr, hasRange) {
+    if (!startStr) return '📅 Choisir…';
+    if (hasRange && endStr) return '📅 ' + fmtDateShort(startStr) + ' → ' + fmtDateShort(endStr);
+    const today = toDateStr(new Date());
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yesterday = toDateStr(y);
+    if (startStr === today) return '📅 Auj.';
+    if (startStr === yesterday) return '📅 Hier';
+    return '📅 ' + fmtDateShort(startStr);
+  }
+
   // Plages prédéfinies (réutilisées par le Dashboard et par l'éditeur de date des lignes).
   function rangePresetItems() {
     const t = new Date();
@@ -8210,10 +8278,14 @@
     const defEnd   = (defEndEl && defEndEl.value) || '';
     const defFill  = (defFillEl && defFillEl.dataset.fill) || 'repeat';
 
+    // La ligne n'affiche qu'une pastille résumée ; toute l'édition (date, plage,
+    // Répéter/Répartir, jours) vit dans un popover. Les champs gardent leurs
+    // classes .d-start/.d-end/.range-cb/.line-fill/.day-picker-wrap : ils restent
+    // les hooks de lecture au moment de l'envoi et de « Appliquer à toutes ».
     const dateCell = document.createElement('div');
     dateCell.className = 'd-cell';
 
-    // Date de début (toujours visible)
+    // Date de début
     const startInput = document.createElement('input');
     startInput.type = 'date'; startInput.className = 'd-start';
     startInput.value = (preset && preset.date) || defStart;
@@ -8230,12 +8302,15 @@
     const hasRange = preset ? (preset.dateEnd != null && preset.dateEnd !== '') : !!defEnd;
     rangeCb.checked = hasRange;
     rangeLabel.appendChild(rangeCb);
-    rangeLabel.appendChild(document.createTextNode(' Plage'));
+    rangeLabel.appendChild(document.createTextNode(' Plage de dates'));
 
     // Détails de la plage (masqués par défaut si pas de plage)
     const rangeDetails = document.createElement('div');
     rangeDetails.className = 'row-range-details';
     rangeDetails.style.display = hasRange ? 'flex' : 'none';
+
+    const endLbl = document.createElement('div');
+    endLbl.className = 'd-pop-sublabel'; endLbl.textContent = 'Jusqu’au';
 
     const endInput = document.createElement('input');
     endInput.type = 'date'; endInput.className = 'd-end';
@@ -8248,6 +8323,7 @@
 
     const dayPickerWrap = createDayPicker(preset && preset.days ? preset.days : []);
 
+    rangeDetails.appendChild(endLbl);
     rangeDetails.appendChild(endInput);
     rangeDetails.appendChild(endShortcuts);
     rangeDetails.appendChild(fillToggle);
@@ -8256,15 +8332,55 @@
     // Les chips de plage remplissent les deux inputs + activent la case
     buildRowRangePresets(endShortcuts, startInput, endInput, rangeCb, rangeDetails);
 
+    // ── Pastille résumé + popover d'édition ───────────────────────────────
+    const pill = document.createElement('button');
+    pill.type = 'button'; pill.className = 'd-pill';
+
+    const pop = document.createElement('div');
+    pop.className = 'd-pop';
+    const startLbl = document.createElement('div');
+    startLbl.className = 'd-pop-sublabel'; startLbl.textContent = 'Date';
+    const popDone = document.createElement('button');
+    popDone.type = 'button'; popDone.className = 'd-pop-done'; popDone.textContent = 'OK';
+    pop.appendChild(startLbl);
+    pop.appendChild(startInput);
+    pop.appendChild(startShortcuts);
+    pop.appendChild(rangeLabel);
+    pop.appendChild(rangeDetails);
+    pop.appendChild(popDone);
+
+    const refreshPill = () => { pill.textContent = datePillLabel(startInput.value, endInput.value, rangeCb.checked); };
+    refreshPill();
+
+    const onDocClick = (e) => { if (!dateCell.contains(e.target)) closePop(); };
+    function closePop() {
+      pop.classList.remove('open'); pill.classList.remove('active');
+      document.removeEventListener('click', onDocClick);
+    }
+    function openPop() {
+      document.querySelectorAll('.d-pop.open').forEach(p => { if (p !== pop) p.classList.remove('open'); });
+      pop.classList.add('open'); pill.classList.add('active');
+      // Différé pour que le clic d'ouverture ne se referme pas aussitôt.
+      setTimeout(() => document.addEventListener('click', onDocClick), 0);
+    }
+    pill.addEventListener('click', () => { pop.classList.contains('open') ? closePop() : openPop(); });
+    popDone.addEventListener('click', closePop);
+    pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+
+    // La pastille se met à jour quand la date change (saisie, chips, plage).
+    startInput.addEventListener('change', refreshPill);
+    endInput.addEventListener('change', refreshPill);
+    startShortcuts.addEventListener('click', () => setTimeout(refreshPill, 0));
+    endShortcuts.addEventListener('click', () => setTimeout(refreshPill, 0));
+
     rangeCb.addEventListener('change', () => {
       rangeDetails.style.display = rangeCb.checked ? 'flex' : 'none';
       if (!rangeCb.checked) endInput.value = '';
+      refreshPill();
     });
 
-    dateCell.appendChild(startInput);
-    dateCell.appendChild(startShortcuts);
-    dateCell.appendChild(rangeLabel);
-    dateCell.appendChild(rangeDetails);
+    dateCell.appendChild(pill);
+    dateCell.appendChild(pop);
 
     // ── Description (rangée pleine largeur, plus en vue) ────────────────
     const descRowWrapper = document.createElement('div');
@@ -10738,6 +10854,8 @@
             b.classList.toggle('active', bVal === defFill);
           });
         }
+        // Rafraîchit la pastille résumée de la ligne (lit end + plage courants).
+        if (startInp) startInp.dispatchEvent(new Event('change'));
       });
 
       const what = isRange ? 'Plage' : 'Date';
