@@ -1709,6 +1709,7 @@
   let mHistoryPage = 1;
   const M_HIST_PAGE_SIZE = 15;
   let mHistoryLoaded = [];
+  let mHistSortDir = 'desc'; // 'desc' = plus récents d'abord (défaut) | 'asc' = plus anciens d'abord
 
   let mHistorySubTab = 'entries';
 
@@ -1747,6 +1748,7 @@
           '<input type="date" id="mHistDateFrom" title="Depuis" style="flex:1;">' +
           '<input type="date" id="mHistDateTo"   title="Jusqu\'au" style="flex:1;">' +
           '<button id="mHistDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>' +
+          '<button id="mHistSortBtn" class="m-hist-range-btn" title="Ordre par date">↓ Récents</button>' +
         '</div>' +
         '<div class="m-hist-range-row" id="mHistRangeChips">' +
           '<button class="m-hist-range-btn" data-range="today">Aujourd\'hui</button>' +
@@ -1805,6 +1807,19 @@
     // Une saisie manuelle de date sort du mode "plage rapide".
     document.getElementById('mHistDateFrom').addEventListener('change', () => mSetActiveHistRange(''));
     document.getElementById('mHistDateTo').addEventListener('change',   () => mSetActiveHistRange(''));
+    // Bascule de tri par date (récent ↔ ancien), parité avec le PC.
+    const mSortBtn = document.getElementById('mHistSortBtn');
+    const renderMSort = () => {
+      const asc = mHistSortDir === 'asc';
+      mSortBtn.textContent = asc ? '↑ Anciens' : '↓ Récents';
+      mSortBtn.classList.toggle('active', asc);
+    };
+    mSortBtn.addEventListener('click', () => {
+      mHistSortDir = mHistSortDir === 'asc' ? 'desc' : 'asc';
+      renderMSort();
+      reloadFromDateChange();
+    });
+    renderMSort();
     document.getElementById('mHistLoadMore').addEventListener('click', () => {
       mHistoryPage++;
       loadHistoryTab(true);
@@ -2000,7 +2015,7 @@
     const text = (document.getElementById('mHistSearch') || {}).value || '';
     const dateFrom = (document.getElementById('mHistDateFrom') || {}).value || null;
     const dateTo   = (document.getElementById('mHistDateTo')   || {}).value || null;
-    callServer('apiGetHistoryPage', [mHistoryPage, M_HIST_PAGE_SIZE, [], [], text, dateFrom, dateTo], res => {
+    callServer('apiGetHistoryPage', [mHistoryPage, M_HIST_PAGE_SIZE, [], [], text, dateFrom, dateTo, mHistSortDir], res => {
       mHistoryLoaded = append ? mHistoryLoaded.concat(res.logs) : res.logs;
       const container = document.getElementById('mHistCards');
       if (!mHistoryLoaded.length) {
@@ -2513,6 +2528,7 @@
   let _mChatPollTimer = null;
   let _mChatAtBottom = true;
   let _mChatPanelOpen = false;
+  let _mChatInputFit = null;
   let _mChatUnreadCount = 0;
   let _mChatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
   const M_CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos_mobile';
@@ -2621,10 +2637,13 @@
     const all = _mChatMessages.concat(_mChatPendingSends);
     if (!all.length) {
       container.innerHTML = '<div class="m-chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
-      return;
+    } else {
+      all.forEach(msg => container.appendChild(mBuildChatMessageEl(msg)));
+      if (forceScroll || _mChatAtBottom) container.scrollTop = container.scrollHeight;
     }
-    all.forEach(msg => container.appendChild(mBuildChatMessageEl(msg)));
-    if (forceScroll || _mChatAtBottom) container.scrollTop = container.scrollHeight;
+    // Réancrage après rendu : le panneau est ancré par son `top` en px, sinon
+    // chaque message le fait grandir vers le bas et déborder l'écran.
+    if (_mChatPanelOpen) requestAnimationFrame(mPositionChatPanel);
   }
 
   function mSetChatReplyTo(msg) {
@@ -2745,6 +2764,7 @@
     };
     _mChatPendingSends.push(temp);
     input.value = '';
+    if (_mChatInputFit) _mChatInputFit(); // reset la hauteur du textarea après envoi
     mClearChatReplyTo();
     mRenderChatMessages(true);
     callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
@@ -2834,7 +2854,7 @@
     const fab = document.getElementById('mChatFab');
     if (!fab) return;
     initChatFabDragMobile(fab);
-    autoGrowTextarea(document.getElementById('mChatInput'), 0.3);
+    _mChatInputFit = autoGrowTextarea(document.getElementById('mChatInput'), 0.3);
     document.getElementById('mChatPanelClose').addEventListener('click', mCloseChatPanel);
     document.getElementById('mChatSendBtn').addEventListener('click', mSendChatMessage);
     document.getElementById('mChatReplyBannerCancel').addEventListener('click', mClearChatReplyTo);

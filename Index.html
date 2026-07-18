@@ -2896,21 +2896,15 @@
           <input type="date" id="historyDateFrom" title="Depuis">
           <input type="date" id="historyDateTo"   title="Jusqu'au">
           <button id="historyDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>
+          <button id="histSortBtn" class="hist-range-btn" title="Ordre par date">↓ Récents</button>
           <button id="refreshHistoryBtn" class="secondary small">🔄</button>
           <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
         </div>
         <div class="hist-filter-section">
           <div class="hist-filter-row">
             <span class="hist-filter-label">Période</span>
-            <div class="hist-fchip-row" id="histRangeChips">
-              <button class="hist-range-btn" data-range="today">Aujourd'hui</button>
-              <button class="hist-range-btn" data-range="7d">7 jours</button>
-              <button class="hist-range-btn" data-range="month">Ce mois</button>
-              <button class="hist-range-btn" data-range="prevmonth">Mois dernier</button>
-              <button class="hist-range-btn" data-range="3m">3 mois</button>
-              <button class="hist-range-btn" data-range="year">Cette année</button>
-              <button class="hist-range-btn active" data-range="all">Tout</button>
-            </div>
+            <!-- Chips générées par setupDateRangeControls (DATE_RANGE_CHIPS) -->
+            <div class="hist-fchip-row" id="histRangeChips"></div>
           </div>
           <div class="hist-filter-row">
             <span class="hist-filter-label">Joueurs</span>
@@ -2955,7 +2949,16 @@
           </select>
           <input type="date" id="auditFilterFrom" title="Depuis">
           <input type="date" id="auditFilterTo"   title="Jusqu'au">
+          <button id="auditDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>
+          <button id="auditSortBtn" class="hist-range-btn" title="Ordre par date">↓ Récents</button>
           <button id="auditRefreshBtn" class="secondary small">🔄 Actualiser</button>
+        </div>
+        <div class="hist-filter-section">
+          <div class="hist-filter-row">
+            <span class="hist-filter-label">Période</span>
+            <!-- Chips générées par setupDateRangeControls (DATE_RANGE_CHIPS) -->
+            <div class="hist-fchip-row" id="auditRangeChips"></div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -3184,8 +3187,9 @@
   // Vidée à chaque changement de filtre/texte (les points d'entrée qui rechargent déjà
   // la page 1 après une mutation la vident aussi, via clearHistPrefetchCache()).
   const histPrefetchCache = new Map();
+  let _histSortDir = 'desc'; // 'desc' = plus récents d'abord (défaut) | 'asc' = plus anciens d'abord
   function histPrefetchKey(page, players, cats, text, dateFrom, dateTo) {
-    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '');
+    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '') + '|' + _histSortDir;
   }
   function clearHistPrefetchCache() { histPrefetchCache.clear(); }
   const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
@@ -3224,6 +3228,7 @@
 
   // ── Audit log state ──────────────────────────────────────────────────────────
   let _auditCurrentPage = 1;
+  let _auditSortDir = 'desc'; // 'desc' = plus récents d'abord (défaut) | 'asc' = plus anciens d'abord
   const AUDIT_PAGE_SIZE = 20;
 
   function requireIdentity() {
@@ -4800,6 +4805,7 @@
   let _chatPollTimer = null;
   let _chatAtBottom = true;
   let _chatPanelOpen = false;
+  let _chatInputFit = null;
   let _chatUnreadCount = 0;
   let _chatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
   const CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos';
@@ -4910,10 +4916,15 @@
     const all = _chatMessages.concat(_chatPendingSends);
     if (!all.length) {
       container.innerHTML = '<div class="chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
-      return;
+    } else {
+      all.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
+      if (forceScroll || _chatAtBottom) container.scrollTop = container.scrollHeight;
     }
-    all.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
-    if (forceScroll || _chatAtBottom) container.scrollTop = container.scrollHeight;
+    // Le panneau est ancré par son `top` en px : sans réancrage, chaque message
+    // ajouté le fait grandir vers le bas et déborder l'écran. On repositionne
+    // après chaque rendu pour que sa base reste au-dessus du bouton (croissance
+    // vers le haut). rAF : attendre que le DOM ait sa nouvelle hauteur.
+    if (_chatPanelOpen) requestAnimationFrame(positionChatPanel);
   }
 
   function setChatReplyTo(msg) {
@@ -5034,6 +5045,7 @@
     };
     _chatPendingSends.push(temp);
     input.value = '';
+    if (_chatInputFit) _chatInputFit(); // reset la hauteur du textarea après envoi
     clearChatReplyTo();
     renderChatMessages(true);
     callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
@@ -5113,7 +5125,7 @@
     // Registered BEFORE the Enter-to-send listener: the autocomplete popup must
     // swallow Enter (stopImmediatePropagation) or picking a mention sends the message.
     attachMentionAutocomplete(document.getElementById('chatInput'));
-    autoGrowTextarea(document.getElementById('chatInput'), 0.3);
+    _chatInputFit = autoGrowTextarea(document.getElementById('chatInput'), 0.3);
     document.getElementById('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
     });
@@ -5683,6 +5695,83 @@
       });
       el.appendChild(b);
     });
+  }
+
+  // ── PLAGES RAPIDES DE DATE (réutilisable, DRY) ───────────────────────
+  // Source unique des plages nommées, partagée par l'Historique, le Journal
+  // d'audit et tout futur filtre à dates. Retourne des objets Date (ou null
+  // pour « tout »), convertis en YYYY-MM-DD au moment de remplir les inputs.
+  function dateRangePreset(key) {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    switch (key) {
+      case 'today':     return { from: new Date(y, m, d),      to: new Date(y, m, d) };
+      case '7d':        return { from: new Date(y, m, d - 6),  to: new Date(y, m, d) };
+      case 'month':     return { from: new Date(y, m, 1),      to: new Date(y, m, d) };
+      case 'prevmonth': return { from: new Date(y, m - 1, 1),  to: new Date(y, m, 0) };
+      case '3m':        return { from: new Date(y, m - 3, d),  to: new Date(y, m, d) };
+      case 'year':      return { from: new Date(y, 0, 1),      to: new Date(y, m, d) };
+      default:          return { from: null, to: null }; // 'all'
+    }
+  }
+  const DATE_RANGE_CHIPS = [
+    { key: 'today',     label: "Aujourd'hui" },
+    { key: '7d',        label: '7 jours' },
+    { key: 'month',     label: 'Ce mois' },
+    { key: 'prevmonth', label: 'Mois dernier' },
+    { key: '3m',        label: '3 mois' },
+    { key: 'year',      label: 'Cette année' },
+    { key: 'all',       label: 'Tout' }
+  ];
+  // Génère les chips de plage dans `chipsContainer`, les câble aux inputs
+  // from/to + au bouton clear, et déclenche `onChange` à chaque changement.
+  // Aucune chip en dur dans le HTML : tout vient de DATE_RANGE_CHIPS.
+  function setupDateRangeControls(cfg) {
+    const { chipsContainer, fromInput, toInput, clearBtn, defaultKey, onChange } = cfg;
+    if (!chipsContainer) return;
+    const setActive = key => chipsContainer.querySelectorAll('.hist-range-btn')
+      .forEach(b => b.classList.toggle('active', b.dataset.range === key));
+    chipsContainer.innerHTML = '';
+    DATE_RANGE_CHIPS.forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'hist-range-btn'; b.dataset.range = c.key;
+      b.textContent = c.label;
+      b.addEventListener('click', () => {
+        const { from, to } = dateRangePreset(c.key);
+        if (fromInput) fromInput.value = from ? toDateStr(from) : '';
+        if (toInput)   toInput.value   = to   ? toDateStr(to)   : '';
+        setActive(c.key);
+        onChange();
+      });
+      chipsContainer.appendChild(b);
+    });
+    // Une saisie manuelle de date sort du mode « plage rapide ».
+    if (fromInput) fromInput.addEventListener('change', () => { setActive(''); onChange(); });
+    if (toInput)   toInput.addEventListener('change',   () => { setActive(''); onChange(); });
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      if (fromInput) fromInput.value = '';
+      if (toInput)   toInput.value   = '';
+      setActive(defaultKey || 'all');
+      onChange();
+    });
+    if (defaultKey) setActive(defaultKey);
+  }
+
+  // Bouton-bascule de tri par date (récent ↔ ancien), réutilisable partout où
+  // une liste est ordonnée par date. `getDir` lit l'état courant, `onToggle`
+  // reçoit la nouvelle direction ('asc'|'desc') et recharge la liste.
+  function setupDateSortToggle(btn, getDir, onToggle) {
+    if (!btn) return;
+    const render = () => {
+      const asc = getDir() === 'asc';
+      btn.textContent = asc ? '↑ Anciens' : '↓ Récents';
+      btn.classList.toggle('active', asc);
+      btn.title = asc
+        ? 'Tri par date : du plus ancien au plus récent — cliquer pour inverser'
+        : 'Tri par date : du plus récent au plus ancien — cliquer pour inverser';
+    };
+    btn.addEventListener('click', () => { onToggle(getDir() === 'asc' ? 'desc' : 'asc'); render(); });
+    render();
   }
 
   // ── FILTER CHIPS ─────────────────────────────────────────────────────
@@ -8758,7 +8847,7 @@
     const search = document.getElementById('auditFilterSearch').value.trim() || null;
     callServer(
       'apiGetAuditLog',
-      [_auditCurrentPage, AUDIT_PAGE_SIZE, author, action, from, to, search],
+      [_auditCurrentPage, AUDIT_PAGE_SIZE, author, action, from, to, search, _auditSortDir],
       res => renderAuditTable(res),
       'Chargement journal'
     );
@@ -9370,7 +9459,7 @@
     }
 
     showTableSkeleton(document.getElementById('historyTableBody'), histSelectMode ? 7 : 6, PAGE_SIZE);
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null], res => {
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir], res => {
       _renderHistoryPage(page, res);
       _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo);
     }, 'Chargement historique');
@@ -9383,7 +9472,7 @@
     const nextPage = page + 1;
     const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo);
     if (histPrefetchCache.has(key)) return;
-    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null],
+    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir],
       res => { histPrefetchCache.set(key, res); },
       null,
       // Pas de toast (échec silencieux pour l'utilisateur : la page suivante sera
@@ -10573,8 +10662,19 @@
     document.getElementById('auditRefreshBtn').addEventListener('click',   () => loadAuditLog(1));
     document.getElementById('auditFilterAuthor').addEventListener('change', () => loadAuditLog(1));
     document.getElementById('auditFilterAction').addEventListener('change', () => loadAuditLog(1));
-    document.getElementById('auditFilterFrom').addEventListener('change',   () => loadAuditLog(1));
-    document.getElementById('auditFilterTo').addEventListener('change',     () => loadAuditLog(1));
+    // Plages rapides + effacement du Journal via le même helper DRY que l'Historique.
+    // (Le helper câble aussi les inputs from/to → plus de listener 'change' manuel ici.)
+    setupDateRangeControls({
+      chipsContainer: document.getElementById('auditRangeChips'),
+      fromInput:      document.getElementById('auditFilterFrom'),
+      toInput:        document.getElementById('auditFilterTo'),
+      clearBtn:       document.getElementById('auditDateClearBtn'),
+      defaultKey:     'all',
+      onChange:       () => loadAuditLog(1)
+    });
+    setupDateSortToggle(document.getElementById('auditSortBtn'),
+      () => _auditSortDir,
+      dir => { _auditSortDir = dir; loadAuditLog(1); });
     const auditSearchEl = document.getElementById('auditFilterSearch');
     let _auditSearchTimeout;
     auditSearchEl.addEventListener('input', () => {
@@ -10593,53 +10693,21 @@
       });
     }
 
-    const histDateFromEl = document.getElementById('historyDateFrom');
-    const histDateToEl   = document.getElementById('historyDateTo');
+    // Plages rapides de l'Historique via le helper DRY partagé : posent la
+    // plage dans les champs date (composables avec les autres filtres) et
+    // rechargent la liste. Chips générées, plus de HTML en dur.
     const reloadHistFromDateChange = () => { currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1); };
-    if (histDateFromEl) histDateFromEl.addEventListener('change', reloadHistFromDateChange);
-    if (histDateToEl)   histDateToEl.addEventListener('change',   reloadHistFromDateChange);
-    const histDateClearBtn = document.getElementById('historyDateClearBtn');
-    if (histDateClearBtn) {
-      histDateClearBtn.addEventListener('click', () => {
-        if (histDateFromEl) histDateFromEl.value = '';
-        if (histDateToEl)   histDateToEl.value   = '';
-        setActiveHistRange('all');
-        reloadHistFromDateChange();
-      });
-    }
-
-    // Plages rapides de l'Historique : posent la plage dans les champs date
-    // (donc composables avec les autres filtres) et rechargent la liste.
-    function setActiveHistRange(range) {
-      document.querySelectorAll('#histRangeChips .hist-range-btn').forEach(b =>
-        b.classList.toggle('active', b.dataset.range === range));
-    }
-    function histQuickRangeDates(range) {
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      switch (range) {
-        case 'today':     return { from: now, to: now };
-        case '7d':        return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6), to: now };
-        case 'month':     return { from: startOfMonth, to: now };
-        case 'prevmonth': return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-                                   to:   new Date(now.getFullYear(), now.getMonth(), 0) };
-        case '3m':        return { from: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()), to: now };
-        case 'year':      return { from: new Date(now.getFullYear(), 0, 1), to: now };
-        default:          return { from: null, to: null }; // 'all'
-      }
-    }
-    document.querySelectorAll('#histRangeChips .hist-range-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const { from, to } = histQuickRangeDates(btn.dataset.range);
-        if (histDateFromEl) histDateFromEl.value = from ? toDateStr(from) : '';
-        if (histDateToEl)   histDateToEl.value   = to   ? toDateStr(to)   : '';
-        setActiveHistRange(btn.dataset.range);
-        reloadHistFromDateChange();
-      });
+    setupDateRangeControls({
+      chipsContainer: document.getElementById('histRangeChips'),
+      fromInput:      document.getElementById('historyDateFrom'),
+      toInput:        document.getElementById('historyDateTo'),
+      clearBtn:       document.getElementById('historyDateClearBtn'),
+      defaultKey:     'all',
+      onChange:       reloadHistFromDateChange
     });
-    // Une saisie manuelle de date sort du mode "plage rapide".
-    if (histDateFromEl) histDateFromEl.addEventListener('change', () => setActiveHistRange(''));
-    if (histDateToEl)   histDateToEl.addEventListener('change',   () => setActiveHistRange(''));
+    setupDateSortToggle(document.getElementById('histSortBtn'),
+      () => _histSortDir,
+      dir => { _histSortDir = dir; reloadHistFromDateChange(); });
 
     document.querySelectorAll('.chart-type-btn').forEach(btn => {
       btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));

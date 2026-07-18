@@ -210,6 +210,26 @@ test('getHistoryPage groups entries sharing a groupId into one visual item', () 
   assert.strictEqual(res.logs.length, 3);  // page returns every entry of its items
 });
 
+test('getHistoryPage honours sortDir: desc (default) newest-first, asc oldest-first', () => {
+  const gas = loadGas();
+  const rows = [
+    HEADER,
+    [D('2026-01-01'), 'A', 'Jeux',  5, '', ''],
+    [D('2026-01-02'), 'B', 'Défis', 3, '', ''],
+    [D('2026-01-03'), 'C', 'Jeux',  7, '', '']
+  ];
+  gas.ConfigService.getSheets = () => ({ history: makeSheet(rows) });
+
+  const desc = gas.StorageService.getHistoryPage(1, 20, null, null, null);
+  assert.strictEqual(desc.logs[0].player, 'C'); // 03/01 first
+  assert.strictEqual(desc.logs[2].player, 'A'); // 01/01 last
+
+  gas.ConfigService.getSheets = () => ({ history: makeSheet(rows) });
+  const asc = gas.StorageService.getHistoryPage(1, 20, null, null, null, null, null, 'asc');
+  assert.strictEqual(asc.logs[0].player, 'A'); // 01/01 first
+  assert.strictEqual(asc.logs[2].player, 'C'); // 03/01 last
+});
+
 // ── 1.2 — backup before destructive cleanup ─────────────────────────────
 test('fixZeroPoints backs up History then removes non-positive-point rows', () => {
   const gas = loadGas();

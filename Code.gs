@@ -647,7 +647,7 @@ const StorageService = {
     });
   },
 
-  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate) {
+  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir) {
     const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
@@ -680,7 +680,9 @@ const StorageService = {
       });
     }
 
-    allWithIndex.reverse();
+    // Les lignes sont en ordre chronologique (feuille). Par défaut on affiche
+    // les plus récentes d'abord (desc) ; sortDir === 'asc' garde l'ordre ancien→récent.
+    if (sortDir !== 'asc') allWithIndex.reverse();
 
     // Construire des "éléments visuels" : un groupe = 1 élément, une entrée isolée = 1 élément
     const visualItems = [];
@@ -1569,11 +1571,11 @@ function apiGetFilteredLogs(players, categories, startDate, endDate) {
   } catch (e) { return fail(e); }
 }
 
-function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate) {
+function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir) {
   try {
     const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
     const categories = (filterCategories && filterCategories.length) ? filterCategories : null;
-    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null);
+    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null, sortDir || null);
     return { success: true, logs: result.logs, total: result.total, totalEntries: result.totalEntries };
   } catch(e) { return fail(e); }
 }
@@ -1763,7 +1765,7 @@ function apiGetDataHealth() {
 }
 
 // ── Journal d'audit (lecture paginée et filtrable) ─────────────────────────────
-function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, endDate, searchText) {
+function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, endDate, searchText, sortDir) {
   try {
     const sheet = ConfigService.getSheets().auditLog;
     if (!sheet) return { success: true, logs: [], total: 0 };
@@ -1801,6 +1803,10 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
         undoable:  !!row[7] && !row[8]
       });
     }
+
+    // `filtered` est construit du plus récent au plus ancien (desc, défaut) ;
+    // sortDir === 'asc' réordonne du plus ancien au plus récent.
+    if (sortDir === 'asc') filtered.reverse();
 
     const total  = filtered.length;
     const ps     = parseInt(pageSize, 10) || 20;
