@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-18
 
+### Modifié
+**Humanisé** : Dans le Dashboard, les stats Records, Duo le plus fréquent et Mentions ne ressemblent plus à des lignes de réglages : elles adoptent un vrai style « livre des records » — une médaille dorée/argent/bronze pour le podium, l'avatar de chaque joueur cerclé de sa couleur, et le chiffre bien lisible à droite. Le record absolu s'affiche en tête dans une carte trophée dorée, et le duo le plus complice montre les deux avatars côte à côte.
+**Technique** : `Index.html` — nouveau kit CSS « livre des records » (`.sr-list`/`.sr-row`/`.sr-rank` médaillé or/argent/bronze, `.sr-avatar` cerclé de `--sr-accent`, `.sr-hero` doré, `.sr-avatar-cluster` pour les duos, `.sr-section`) + tokens `--medal-gold/silver/bronze`. Constructeurs DRY `buildStatRow(cfg)`/`buildStatRank(rank)`/`playerMetaOf(name)` partagés par `scanRecords`/`scanTopPairs`/`loadMentionStats`, qui remplacent leurs anciennes lignes `.tool-action`. Helper `categoryPill(name)` factorisé (pastille de Top emoji+nom teintée) et réutilisé aux 6 endroits qui reconstruisaient ce bloc à l'identique. Aucun changement de données ni d'appel serveur. `Mobile.html` inchangé (stats déjà en format compact adapté au tactile, choix assumé).
+
 ### Corrigé
 **Humanisé** : Dans le tchat, envoyer un message faisait grandir le panneau vers le bas jusqu'à le faire déborder de l'écran ; et après un long message, la zone de saisie restait haute. Le panneau se recale maintenant à chaque message pour rester au-dessus du bouton (il grandit vers le haut), et la zone de saisie reprend sa taille normale après envoi. PC et mobile.
 **Technique** : `Index.html`/`Mobile.html` — `renderChatMessages()`/`mRenderChatMessages()` rappellent `positionChatPanel()` en `requestAnimationFrame` après rendu (le panneau est ancré par son `top` en px, donc grandissait vers le bas sans réancrage). `sendChatMessage()`/`mSendChatMessage()` rappellent la fonction `fit` de `autoGrowTextarea` (capturée dans `_chatInputFit`/`_mChatInputFit`) après avoir vidé le champ.

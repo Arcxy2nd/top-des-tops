@@ -21,6 +21,7 @@
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
       --btn-alt: #353b48; --tap-min: 44px;
       --on-accent: #fff;
+      --medal-gold: #f6c445; --medal-silver: #c2ccd6; --medal-bronze: #cd8b52;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
@@ -1358,6 +1359,83 @@
     .stats-hub-tab.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .stats-hub-pane { display: none; }
     .stats-hub-pane.active { display: block; }
+
+    /* ── LIVRE DES RECORDS — kit de lignes classées (Records · Duo · Mentions) ──
+       Signature visuelle commune à ces panes : un médaillon de rang (or/argent/
+       bronze pour le podium), un avatar cerclé de la couleur du joueur, et une
+       valeur chiffrée alignée à droite. Remplace les lignes .tool-action génériques. */
+    .sr-list { display: flex; flex-direction: column; gap: 8px; }
+    .sr-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px 10px 14px; border-radius: 10px;
+      background: rgba(0,0,0,0.14); border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    body.light .sr-row { background: rgba(0,0,0,0.03); }
+    /* Liseré vertical à la couleur du joueur/Top */
+    .sr-row::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--sr-accent, var(--border));
+    }
+    .sr-rank {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      background: var(--btn-alt); color: var(--text-muted); border: 1px solid var(--border);
+    }
+    .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); }
+    .sr-rank.silver { background: var(--medal-silver); color: #33383d; border-color: var(--medal-silver); }
+    .sr-rank.bronze { background: var(--medal-bronze); color: #331d0c; border-color: var(--medal-bronze); }
+    .sr-avatar {
+      width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--sr-accent, var(--border));
+    }
+    /* Cluster de deux avatars superposés (lignes « duo ») */
+    .sr-avatar-cluster { flex-shrink: 0; display: flex; align-items: center; }
+    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -12px; }
+    .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .sr-name { font-weight: 700; font-size: 0.92rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .sr-sub { font-size: 0.77rem; color: var(--text-muted); }
+    .sr-value {
+      flex-shrink: 0; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums;
+      font-size: 1.15rem; color: var(--text); line-height: 1;
+    }
+    .sr-value small {
+      display: block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 3px;
+    }
+    /* Hero : le record absolu, mis en avant en tête du pane Records */
+    .sr-hero {
+      display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--medal-gold) 24%, transparent),
+        color-mix(in srgb, var(--medal-gold) 6%, transparent));
+      border: 1.5px solid color-mix(in srgb, var(--medal-gold) 55%, var(--border));
+    }
+    .sr-hero-trophy { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+    .sr-hero-avatar {
+      width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--medal-gold);
+    }
+    .sr-hero-body { flex: 1; min-width: 0; }
+    .sr-hero-label {
+      font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+      color: color-mix(in srgb, var(--medal-gold) 70%, var(--text));
+    }
+    .sr-hero-name { font-weight: 800; font-size: 1.05rem; }
+    .sr-hero-sub { font-size: 0.79rem; color: var(--text-muted); }
+    .sr-hero-pts { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; line-height: 1; }
+    .sr-hero-pts small {
+      display: block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 3px;
+    }
+    /* Étiquette de sous-section (pane Mentions) */
+    .sr-section {
+      font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); margin: 16px 0 8px; display: flex; gap: 6px; align-items: center;
+    }
+    .sr-section:first-child { margin-top: 0; }
     .hist-range-btn {
       padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
@@ -4792,6 +4870,18 @@
     if (c && c.color) return c.color;
     const i = cachedCategories.findIndex(c => c.name === name);
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
+  }
+  // Pastille de Top colorée (emoji + nom), teintée par la couleur de la catégorie.
+  function categoryPill(name) {
+    const col = categoryColor(name);
+    const pill = document.createElement('span');
+    pill.className = 'hist-pill';
+    pill.style.setProperty('--pill-bg', tint(col, 0.16));
+    pill.style.setProperty('--pill-bd', tint(col, 0.55));
+    const ic = catIcon(name);
+    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
+    pill.appendChild(document.createTextNode(name));
+    return pill;
   }
 
   // ── TCHAT FLOTTANT ─────────────────────────────────────────────────
@@ -9315,15 +9405,7 @@
           mixedPill.textContent = '⚡ Mixte (' + distinctCategories.length + ')';
           catCell.appendChild(mixedPill);
         } else {
-          const cColor = categoryColor(first.category);
-          const pill = document.createElement('span');
-          pill.className = 'hist-pill';
-          pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
-          pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
-          const ic = catIcon(first.category);
-          if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-          pill.appendChild(document.createTextNode(first.category));
-          catCell.appendChild(pill);
+          catCell.appendChild(categoryPill(first.category));
         }
         if (!isMultiCategory && first.description) {
           const SHORT_LIMIT = 55;
@@ -9525,15 +9607,7 @@
 
     const catCell = tr.insertCell();
     catCell.setAttribute('data-label', 'Top');
-    const cColor = categoryColor(log.category);
-    const pill = document.createElement('span');
-    pill.className = 'hist-pill';
-    pill.style.setProperty('--pill-bg', tint(cColor, 0.16));
-    pill.style.setProperty('--pill-bd', tint(cColor, 0.55));
-    const ic = catIcon(log.category);
-    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-    pill.appendChild(document.createTextNode(log.category));
-    catCell.appendChild(pill);
+    catCell.appendChild(categoryPill(log.category));
     if (log.description) {
       const SHORT_LIMIT = 55;
       const descEl = document.createElement('div');
@@ -10367,15 +10441,7 @@
         (broken ? '<span class="auto-rule-warn" title="Cette règle ne s\'exécutera pas : joueur ou Top introuvable">⚠️</span> ' : '') +
         '<strong>' + escapeHtml(rule.player) + '</strong> +' + rule.points + ' pts · ';
 
-      const col = categoryColor(rule.category);
-      const pill = document.createElement('span');
-      pill.className = 'hist-pill';
-      pill.style.setProperty('--pill-bg', tint(col, 0.16));
-      pill.style.setProperty('--pill-bd', tint(col, 0.55));
-      const ic = catIcon(rule.category);
-      if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-      pill.appendChild(document.createTextNode(rule.category));
-      main.appendChild(pill);
+      main.appendChild(categoryPill(rule.category));
 
       const tail = document.createElement('span');
       tail.innerHTML =
@@ -10860,15 +10926,7 @@
       nameEl.textContent = lot.player;
       label.appendChild(nameEl);
 
-      const col = categoryColor(lot.category);
-      const pill = document.createElement('span');
-      pill.className = 'hist-pill';
-      pill.style.setProperty('--pill-bg', tint(col, 0.16));
-      pill.style.setProperty('--pill-bd', tint(col, 0.55));
-      const ic = catIcon(lot.category);
-      if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-      pill.appendChild(document.createTextNode(lot.category));
-      label.appendChild(pill);
+      label.appendChild(categoryPill(lot.category));
 
       const rest = document.createElement('span');
       rest.style.color = 'var(--text-muted)';
@@ -11003,15 +11061,7 @@
     name.style.fontWeight = '600';
     row.appendChild(name);
 
-    const col = categoryColor(entry.category);
-    const pill = document.createElement('span');
-    pill.className = 'hist-pill';
-    pill.style.setProperty('--pill-bg', tint(col, 0.16));
-    pill.style.setProperty('--pill-bd', tint(col, 0.55));
-    const ic = catIcon(entry.category);
-    if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-    pill.appendChild(document.createTextNode(entry.category));
-    row.appendChild(pill);
+    row.appendChild(categoryPill(entry.category));
 
     const rest = document.createElement('span');
     rest.style.color = 'var(--text-muted)';
@@ -11511,6 +11561,81 @@
     }, 'Chargement joueurs inactifs');
   }
 
+  // ── LIVRE DES RECORDS — constructeurs de lignes classées (DRY) ─────────
+  // Partagés par les panes Records, Duo et Mentions : un médaillon de rang
+  // (podium doré/argent/bronze), l'avatar cerclé de la couleur du joueur, et
+  // une valeur chiffrée à droite. Un seul kit → cohérence visuelle des trois.
+  const MEDAL_CLASS = ['gold', 'silver', 'bronze'];
+  function playerMetaOf(name) {
+    const p = cachedPlayers.find(pl => pl.name === name);
+    return p ? p.meta : '';
+  }
+  // Médaillon : numéro de rang, coloré or/argent/bronze pour le top 3.
+  function buildStatRank(rank) {
+    const el = document.createElement('div');
+    el.className = 'sr-rank' + (rank <= 3 ? ' ' + MEDAL_CLASS[rank - 1] : '');
+    el.textContent = rank;
+    return el;
+  }
+  // cfg : { rank | badge, playerName, accent, nameSuffix?, sub?, value?, valueLabel? }
+  function buildStatRow(cfg) {
+    const row = document.createElement('div');
+    row.className = 'sr-row';
+    if (cfg.accent) row.style.setProperty('--sr-accent', cfg.accent);
+
+    if (cfg.rank != null) {
+      row.appendChild(buildStatRank(cfg.rank));
+    } else if (cfg.badge) {
+      const b = document.createElement('div');
+      b.className = 'sr-rank'; b.textContent = cfg.badge;
+      row.appendChild(b);
+    }
+
+    const mkAvatar = who => {
+      const img = document.createElement('img');
+      img.className = 'sr-avatar';
+      img.src = getAvatarUrl(who, playerMetaOf(who));
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+      return img;
+    };
+    if (cfg.secondPlayer) {
+      const cluster = document.createElement('div');
+      cluster.className = 'sr-avatar-cluster';
+      cluster.appendChild(mkAvatar(cfg.playerName));
+      cluster.appendChild(mkAvatar(cfg.secondPlayer));
+      row.appendChild(cluster);
+    } else {
+      row.appendChild(mkAvatar(cfg.playerName));
+    }
+
+    const body = document.createElement('div');
+    body.className = 'sr-body';
+    const name = document.createElement('div');
+    name.className = 'sr-name';
+    const displayName = cfg.secondPlayer ? cfg.playerName + ' & ' + cfg.secondPlayer : cfg.playerName;
+    name.appendChild(document.createTextNode(displayName));
+    if (cfg.nameSuffix) name.appendChild(cfg.nameSuffix);
+    body.appendChild(name);
+    if (cfg.sub) {
+      const sub = document.createElement('div');
+      sub.className = 'sr-sub'; sub.textContent = cfg.sub;
+      body.appendChild(sub);
+    }
+    row.appendChild(body);
+
+    if (cfg.value != null) {
+      const val = document.createElement('div');
+      val.className = 'sr-value';
+      val.appendChild(document.createTextNode(cfg.value));
+      if (cfg.valueLabel) {
+        const s = document.createElement('small');
+        s.textContent = cfg.valueLabel; val.appendChild(s);
+      }
+      row.appendChild(val);
+    }
+    return row;
+  }
+
   // ── RECORDS ──────────────────────────────────────────────────────────
   function scanRecords() {
     const container = document.getElementById('recordsResults');
@@ -11518,45 +11643,43 @@
     callServer('apiGetPlayerRecords', [], res => {
       container.innerHTML = '';
       if (res.globalBest) {
-        const best = document.createElement('div');
-        best.className = 'tool-action';
-        best.style.cssText = 'background:rgba(255,71,87,0.08);border-radius:8px;';
-        const p = cachedPlayers.find(pl => pl.name === res.globalBest.player);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(res.globalBest.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode('🏆 Record absolu : ' + res.globalBest.player));
-        const span = document.createElement('span');
-        span.textContent = res.globalBest.points + ' pts en une entrée, le ' + res.globalBest.dateStr;
-        info.appendChild(strong); info.appendChild(span);
-        best.appendChild(info);
-        container.appendChild(best);
+        const gb = res.globalBest;
+        const hero = document.createElement('div');
+        hero.className = 'sr-hero';
+        const trophy = document.createElement('div');
+        trophy.className = 'sr-hero-trophy'; trophy.textContent = '🏆';
+        const av = document.createElement('img');
+        av.className = 'sr-hero-avatar';
+        av.src = getAvatarUrl(gb.player, playerMetaOf(gb.player));
+        av.onerror = () => { av.style.visibility = 'hidden'; };
+        const b = document.createElement('div');
+        b.className = 'sr-hero-body';
+        const lab = document.createElement('div'); lab.className = 'sr-hero-label'; lab.textContent = 'Record absolu';
+        const nm  = document.createElement('div'); nm.className = 'sr-hero-name';  nm.textContent = gb.player;
+        const sub = document.createElement('div'); sub.className = 'sr-hero-sub';  sub.textContent = 'en une entrée · le ' + gb.dateStr;
+        b.appendChild(lab); b.appendChild(nm); b.appendChild(sub);
+        const pts = document.createElement('div'); pts.className = 'sr-hero-pts';
+        pts.appendChild(document.createTextNode(gb.points));
+        const ps = document.createElement('small'); ps.textContent = 'pts'; pts.appendChild(ps);
+        hero.appendChild(trophy); hero.appendChild(av); hero.appendChild(b); hero.appendChild(pts);
+        container.appendChild(hero);
       }
-      res.records.forEach(r => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const p = cachedPlayers.find(pl => pl.name === r.player);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(r.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(r.player));
-        const span = document.createElement('span');
-        span.textContent = 'Meilleur score : ' + r.bestSingleEntry + ' pts (' + r.bestEntryDate + ') · Série la plus longue : ' + r.longestStreakDays + ' jour(s)';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
-      });
-      if (!res.records.length) container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+      if (res.records.length) {
+        const list = document.createElement('div');
+        list.className = 'sr-list';
+        res.records.forEach((r, i) => {
+          list.appendChild(buildStatRow({
+            rank: i + 1,
+            playerName: r.player,
+            accent: playerColor(r.player),
+            sub: 'record le ' + r.bestEntryDate + ' · série ' + r.longestStreakDays + ' j',
+            value: r.bestSingleEntry, valueLabel: 'pts'
+          }));
+        });
+        container.appendChild(list);
+      } else if (!res.globalBest) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+      }
     }, 'Chargement records');
   }
 
@@ -11671,63 +11794,31 @@
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
         return;
       }
-      res.pairs.forEach(pair => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const p = cachedPlayers.find(pl => pl.name === pair.player);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(pair.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(pair.player));
-        const col = categoryColor(pair.category);
-        const pill = document.createElement('span');
-        pill.className = 'hist-pill';
-        pill.style.setProperty('--pill-bg', tint(col, 0.16));
-        pill.style.setProperty('--pill-bd', tint(col, 0.55));
-        const ic = catIcon(pair.category);
-        if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
-        pill.appendChild(document.createTextNode(pair.category));
-        strong.appendChild(pill);
-        const span = document.createElement('span');
-        span.textContent = pair.count + ' fois';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
+      const list = document.createElement('div');
+      list.className = 'sr-list';
+      res.pairs.forEach((pair, i) => {
+        list.appendChild(buildStatRow({
+          rank: i + 1,
+          playerName: pair.player,
+          accent: playerColor(pair.player),
+          nameSuffix: categoryPill(pair.category),
+          value: pair.count, valueLabel: 'fois'
+        }));
       });
+      container.appendChild(list);
     }, 'Chargement duos fréquents');
   }
 
   // ── MENTIONS ─────────────────────────────────────────────────────────
-  function mentionAvatarRow(name, count, suffix) {
-    const row = document.createElement('div');
-    row.className = 'tool-action';
-    const p = cachedPlayers.find(pl => pl.name === name);
-    const info = document.createElement('div');
-    info.className = 'tool-action-info';
-    const strong = document.createElement('strong');
-    const avatar = document.createElement('img');
-    avatar.className = 'qs-avatar';
-    avatar.src = getAvatarUrl(name, p ? p.meta : '');
-    avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-    strong.appendChild(avatar);
-    strong.appendChild(document.createTextNode(name));
-    const span = document.createElement('span');
-    span.textContent = count + ' ' + suffix;
-    info.appendChild(strong); info.appendChild(span);
-    row.appendChild(info);
-    return row;
-  }
-
-  function mentionSectionTitle(text, marginTop) {
-    const h = document.createElement('h3');
-    h.textContent = text;
-    h.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin:' + marginTop + 'px 0 6px;';
-    return h;
+  function mentionSection(container, icon, label) {
+    const h = document.createElement('div');
+    h.className = 'sr-section';
+    h.textContent = icon + ' ' + label;
+    container.appendChild(h);
+    const list = document.createElement('div');
+    list.className = 'sr-list';
+    container.appendChild(list);
+    return list;
   }
 
   function loadMentionStats() {
@@ -11736,39 +11827,27 @@
     callServer('apiGetMentionStats', [], res => {
       container.innerHTML = '';
       if (res.mostMentioned.length) {
-        container.appendChild(mentionSectionTitle('📣 Les plus mentionnés', 0));
-        res.mostMentioned.forEach(m => container.appendChild(mentionAvatarRow(m.player, m.count, 'mention(s)')));
+        const list = mentionSection(container, '📣', 'Les plus mentionnés');
+        res.mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
+          rank: i + 1, playerName: m.player, accent: playerColor(m.player),
+          value: m.count, valueLabel: 'mentions'
+        })));
       }
       if (res.mostMentioning.length) {
-        container.appendChild(mentionSectionTitle('✍️ Ceux qui mentionnent le plus', 14));
-        res.mostMentioning.forEach(m => container.appendChild(mentionAvatarRow(m.player, m.count, 'mention(s) écrite(s)')));
+        const list = mentionSection(container, '✍️', 'Ceux qui mentionnent le plus');
+        res.mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
+          rank: i + 1, playerName: m.player, accent: playerColor(m.player),
+          value: m.count, valueLabel: 'écrites'
+        })));
       }
       if (res.topDuo) {
-        container.appendChild(mentionSectionTitle('🔗 Duo le plus complice', 14));
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const pa = cachedPlayers.find(pl => pl.name === res.topDuo.playerA);
-        const pb = cachedPlayers.find(pl => pl.name === res.topDuo.playerB);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avA = document.createElement('img');
-        avA.className = 'qs-avatar';
-        avA.src = getAvatarUrl(res.topDuo.playerA, pa ? pa.meta : '');
-        avA.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:4px;';
-        const avB = document.createElement('img');
-        avB.className = 'qs-avatar';
-        avB.src = getAvatarUrl(res.topDuo.playerB, pb ? pb.meta : '');
-        avB.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin:0 6px 0 2px;';
-        strong.appendChild(avA);
-        strong.appendChild(document.createTextNode(res.topDuo.playerA + ' & '));
-        strong.appendChild(avB);
-        strong.appendChild(document.createTextNode(res.topDuo.playerB));
-        const span = document.createElement('span');
-        span.textContent = res.topDuo.count + ' mention(s) croisée(s)';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
+        const list = mentionSection(container, '🔗', 'Duo le plus complice');
+        list.appendChild(buildStatRow({
+          badge: '🤝',
+          playerName: res.topDuo.playerA, secondPlayer: res.topDuo.playerB,
+          accent: playerColor(res.topDuo.playerA),
+          value: res.topDuo.count, valueLabel: 'croisées'
+        }));
       }
       if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
