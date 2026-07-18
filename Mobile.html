@@ -169,6 +169,27 @@
     .m-accordion.open .m-accordion-arrow { transform: rotate(180deg); }
     .m-accordion-arrow { transition: transform 0.2s; }
 
+    /* ── GUIDE (grille de cards → vue détail) ── */
+    .m-guide-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .m-guide-tile {
+      display: flex; align-items: center; gap: 24px; width: 100%;
+      background: var(--card); border: 1px solid var(--border); border-left: 8px solid var(--accent);
+      border-radius: 20px; padding: 28px 30px; cursor: pointer; text-align: left;
+      font: inherit; color: inherit;
+    }
+    .m-guide-tile-icon { font-size: 4.6rem; line-height: 1; flex-shrink: 0; }
+    .m-guide-tile-title { font-size: 2.1rem; font-weight: 700; color: var(--text); }
+    .m-guide-detail { border-left: 8px solid var(--accent); border-radius: 0 20px 20px 0; padding: 4px 0 4px 30px; }
+    .m-guide-back {
+      display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 26px; font-size: 1.8rem; font-weight: 700; color: var(--text); cursor: pointer;
+    }
+    .m-guide-detail h3 { margin: 0 0 18px; font-size: 2.3rem; }
+    .m-guide-detail-body { font-size: 1.9rem; line-height: 1.7; color: var(--text-muted); }
+    .m-guide-detail-body p { margin: 0 0 18px; }
+    .m-guide-detail-body strong { color: var(--text); }
+
     /* ── CHIPS (filtres joueurs/catégories) ── */
     .m-chip-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
     .m-chip {
@@ -2487,33 +2508,60 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // GUIDE — contenu texte en accordéon
+  // GUIDE — grille de cards → vue détail
   // ══════════════════════════════════════════════════════════════════════
   const GUIDE_SECTIONS = [
-    { title: '📊 Dashboard', body: 'Filtre les scores par joueurs, tops et période. Choisis un type de graphique (Empilé, Groupé, Courbes, Radar, Donut, Classement). La card Commentaires génère des phrases automatiques à partir du classement courant.' },
-    { title: '✍️ Saisir un Lot', body: 'Choisis une date, ajoute une ligne par entrée (joueur, top, points, description optionnelle), puis enregistre le lot en une fois.' },
-    { title: '⚙️ Paramètres', body: 'Gère les joueurs et tops (nom, avatar/emoji, couleur), le barème de points par top, et les presets de phrases de la card Commentaires.' },
-    { title: '📝 Notes', body: 'Ajoute une note libre pour un joueur en un geste : sélectionne son avatar, écris le texte, envoie.' },
-    { title: '📜 Historique', body: 'Toutes les entrées sous forme de cartes, les plus récentes en premier. Recherche, édition et suppression disponibles sur chaque carte.' },
-    { title: '🔧 Outils', body: 'Rapport de santé des données, nettoyage des entrées orphelines (joueur/top supprimé), détection et regroupement des lots saisis manuellement sur plusieurs jours.' },
-    { title: '👤 Qui suis-je ?', body: 'Sélectionne ton identité en haut de l\'écran avant toute action qui modifie les données. Un joueur protégé par mot de passe demande une confirmation.' }
+    { key: 'dashboard', icon: '📊', title: 'Dashboard', body: 'Filtre les scores par joueurs, tops et période. Choisis un type de graphique (Empilé, Groupé, Courbes, Radar, Donut, Classement). La card Commentaires génère des phrases automatiques à partir du classement courant. Export Infographie/CSV/Excel en haut de la card graphique.' },
+    { key: 'saisie', icon: '✍️', title: 'Saisir un Lot', body: 'Choisis une date, ajoute une ligne par entrée (joueur, top, points, description optionnelle), puis enregistre le lot en une fois. Une plage de dates permet de répéter ou répartir une entrée sur plusieurs jours.' },
+    { key: 'parametres', icon: '⚙️', title: 'Paramètres', body: 'Gère les joueurs et tops (nom, avatar/emoji, couleur), le barème de points par top, et les presets de phrases de la card Commentaires.' },
+    { key: 'notes', icon: '📝', title: 'Notes', body: 'Ajoute une note libre pour un joueur en un geste : sélectionne son avatar, écris le texte, envoie.' },
+    { key: 'historique', icon: '📜', title: 'Historique', body: 'Toutes les entrées sous forme de cartes, les plus récentes en premier. Recherche, édition et suppression disponibles sur chaque carte. Le Journal d\'audit (sous-onglet) garde la trace de chaque action qui modifie les données.' },
+    { key: 'tchat', icon: '💬', title: 'Tchat', body: 'Widget flottant (bouton 💬) présent sur tous les onglets. Markdown, mentions @Joueur et #Top avec autocomplétion, réponse à un message, suppression de ses propres messages. Pas de notification en temps réel : vérification toutes les 4 secondes.' },
+    { key: 'outils', icon: '🔧', title: 'Outils', body: 'Rapport de santé des données, nettoyage des entrées orphelines/en doublon/à 0 point ou aux scores aberrants, détection et regroupement des lots saisis manuellement sur plusieurs jours, détection des joueurs inactifs, points automatiques.' },
+    { key: 'theme', icon: '🎨', title: 'Thème & identité', body: 'Bascule dark/light dans la barre de navigation. Le sélecteur d\'identité en haut permet de choisir ton joueur avant toute action qui modifie les données. Un joueur protégé par mot de passe demande une confirmation.' }
   ];
 
   function renderGuideShell() {
     const tab = document.getElementById('tab-guide');
-    tab.innerHTML = GUIDE_SECTIONS.map((s, i) =>
-      '<div class="card m-accordion" data-guide="' + i + '">' +
-        '<div class="m-accordion-head"><span>' + escapeHtml(s.title) + '</span><span class="m-accordion-arrow">▾</span></div>' +
-        '<div class="m-accordion-body"><p style="margin:0; font-size:1.85rem; color:var(--text-muted);">' + escapeHtml(s.body) + '</p></div>' +
-      '</div>'
-    ).join('');
-    tab.querySelectorAll('.m-accordion-head').forEach(head => {
-      head.addEventListener('click', () => head.closest('.m-accordion').classList.toggle('open'));
+    tab.innerHTML =
+      '<div class="card">' +
+        '<div id="mGuideGrid" class="m-guide-grid">' +
+          GUIDE_SECTIONS.map(s =>
+            '<button type="button" class="m-guide-tile" data-guide="' + s.key + '">' +
+              '<span class="m-guide-tile-icon">' + s.icon + '</span>' +
+              '<span class="m-guide-tile-title">' + escapeHtml(s.title) + '</span>' +
+            '</button>'
+          ).join('') +
+        '</div>' +
+        '<div id="mGuideDetail" class="m-guide-detail" style="display:none;">' +
+          '<button type="button" id="mGuideBackBtn" class="m-guide-back">← Retour</button>' +
+          '<h3 id="mGuideDetailTitle"></h3>' +
+          '<div id="mGuideDetailBody" class="m-guide-detail-body"></div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('mGuideGrid').addEventListener('click', (e) => {
+      const tile = e.target.closest('.m-guide-tile');
+      if (tile) openMGuideDetail(tile.dataset.guide);
     });
+    document.getElementById('mGuideBackBtn').addEventListener('click', closeMGuideDetail);
+  }
+
+  function openMGuideDetail(key) {
+    const section = GUIDE_SECTIONS.find(s => s.key === key);
+    if (!section) return;
+    document.getElementById('mGuideDetailTitle').textContent = section.icon + ' ' + section.title;
+    document.getElementById('mGuideDetailBody').innerHTML = '<p>' + escapeHtml(section.body) + '</p>';
+    document.getElementById('mGuideGrid').style.display = 'none';
+    document.getElementById('mGuideDetail').style.display = 'block';
+  }
+
+  function closeMGuideDetail() {
+    document.getElementById('mGuideDetail').style.display = 'none';
+    document.getElementById('mGuideGrid').style.display = 'grid';
   }
 
   function initGuideTab() {
-    if (!document.querySelector('#tab-guide .m-accordion')) renderGuideShell();
+    if (!document.querySelector('#tab-guide .m-guide-grid')) renderGuideShell();
   }
 
   // ══════════════════════════════════════════════════════════════════════

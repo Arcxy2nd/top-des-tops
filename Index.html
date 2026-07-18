@@ -1091,17 +1091,30 @@
     .diff-ins { color: var(--success); font-weight: 600; text-decoration: none; }
 
     /* ── GUIDE TAB ── */
-    .guide-section { margin-bottom: 24px; }
-    .guide-section h3 { cursor: pointer; user-select: none; }
-    .guide-section h3::before { content: '▸ '; color: var(--accent); }
-    .guide-section.open h3::before { content: '▾ '; }
-    .guide-body {
-      display: none; padding: 10px 0 0 8px;
-      font-size: 0.9rem; line-height: 1.7; color: var(--text-muted);
+    .guide-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
     }
-    .guide-section.open .guide-body { display: block; }
-    .guide-body p { margin: 0 0 8px; }
-    .guide-body strong { color: var(--text); }
+    .guide-tile {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      border-radius: 12px; padding: 16px 18px; cursor: pointer; text-align: left;
+      font: inherit; color: inherit; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .guide-tile:hover, .guide-tile:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+    .guide-tile-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+    .guide-tile-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .guide-detail { border-left: 4px solid var(--accent); border-radius: 0 12px 12px 0; padding: 4px 0 4px 18px; }
+    .guide-back {
+      display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; font-size: 0.85rem; font-weight: 600; color: var(--text); cursor: pointer;
+    }
+    .guide-back:hover { border-color: var(--accent); }
+    .guide-detail h3 { margin: 0 0 10px; font-size: 1.1rem; }
+    .guide-detail-body { font-size: 0.9rem; line-height: 1.7; color: var(--text-muted); }
+    .guide-detail-body p { margin: 0 0 8px; }
+    .guide-detail-body strong { color: var(--text); }
 
     /* ── EXPORT MODAL ── */
     .export-modal-overlay {
@@ -3060,65 +3073,76 @@
     <div class="card">
       <h2>❓ Comment utiliser le site</h2>
 
-      <div class="guide-section open">
-        <h3>📊 Dashboard</h3>
-        <div class="guide-body">
-          <p>Page d'accueil. Tout en haut : la card <strong>🎭 Commentaires</strong> — elle affiche en permanence le classement global avec des phrases générées automatiquement. Tu peux la replier en cliquant sur le bouton ▲ en haut à droite de la card.</p>
-          <p>En dessous : les <strong>filtres</strong> (joueurs, Tops, période), puis le <strong>graphique</strong>.</p>
-          <p><strong>Types de graphique :</strong> Empilé, Groupé, Courbes, Radar, Donut, Classement. Le Classement affiche les barres horizontales par joueur — survoler une barre met en évidence la bonne ligne.</p>
-          <p><strong>Commentaires par Top :</strong> si des phrases de catégorie sont configurées dans Paramètres → Commentaires, elles apparaissent sous le classement, triées par le score le plus élevé dans chaque Top.</p>
-          <p><strong>Export :</strong> boutons Infographie, CSV, Excel en haut à droite de la card graphique.</p>
-        </div>
+      <div id="guideGrid" class="guide-grid">
+        <button type="button" class="guide-tile" data-guide="dashboard"><span class="guide-tile-icon">📊</span><span class="guide-tile-title">Dashboard</span></button>
+        <button type="button" class="guide-tile" data-guide="saisie"><span class="guide-tile-icon">✍️</span><span class="guide-tile-title">Saisir un Lot</span></button>
+        <button type="button" class="guide-tile" data-guide="parametres"><span class="guide-tile-icon">⚙️</span><span class="guide-tile-title">Paramètres</span></button>
+        <button type="button" class="guide-tile" data-guide="notes"><span class="guide-tile-icon">📝</span><span class="guide-tile-title">Notes</span></button>
+        <button type="button" class="guide-tile" data-guide="historique"><span class="guide-tile-icon">📜</span><span class="guide-tile-title">Historique</span></button>
+        <button type="button" class="guide-tile" data-guide="tchat"><span class="guide-tile-icon">💬</span><span class="guide-tile-title">Tchat</span></button>
+        <button type="button" class="guide-tile" data-guide="bareme"><span class="guide-tile-icon">⚖️</span><span class="guide-tile-title">Barème</span></button>
+        <button type="button" class="guide-tile" data-guide="theme"><span class="guide-tile-icon">🎨</span><span class="guide-tile-title">Thème &amp; identité</span></button>
       </div>
 
-      <div class="guide-section">
-        <h3>✍️ Saisir un Lot</h3>
-        <div class="guide-body">
-          <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne = un joueur, un Top, un score, une date.</p>
-          <p><strong>Raccourcis de points :</strong> les boutons rapides (1, 3, 5…) permettent de cliquer directement. Tu peux aussi saisir une valeur personnalisée.</p>
-          <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours. Mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé). Le filtre par jour de semaine permet de n'inclure que certains jours (ex : du lundi au vendredi).</p>
-          <p><strong>Boutons en bas :</strong> <em>＋ Ligne</em> ajoute une ligne, <em>🔗 Grouper</em> permet de lier des lignes en lot visible dans l'Historique, <em>✓ Inscrire le lot</em> enregistre tout.</p>
-          <p><strong>Dupliquer :</strong> bouton 📋 sur chaque ligne pour copier rapidement.</p>
-          <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points. Les identités marquées 🔒 sont protégées par un mot de passe : demande-le au gestionnaire du classeur. Le mot de passe se définit directement dans la colonne D de la feuille <em>Players</em> du Google Sheet (invisible dans l'app).</p>
-        </div>
+      <div id="guideDetail" class="guide-detail" style="display:none;">
+        <button type="button" id="guideBackBtn" class="guide-back">← Retour</button>
+        <h3 id="guideDetailTitle"></h3>
+        <div id="guideDetailBody" class="guide-detail-body"></div>
       </div>
 
-      <div class="guide-section">
-        <h3>⚙️ Paramètres</h3>
-        <div class="guide-body">
-          <p>Cinq sous-onglets :</p>
-          <p><strong>👤 Joueurs :</strong> ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</p>
-          <p><strong>🎯 Tops :</strong> gérer les catégories (nom, description, emoji, couleur).</p>
-          <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton flottant ⚖️ (raccourci clavier : <strong>?</strong>).</p>
-          <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases. Les variables disponibles dans les phrases sont <code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>. Les pools <code>first</code>, <code>second</code>, <code>third</code>, <code>mid</code>, <code>last</code>, <code>tied</code>, <code>solo</code> permettent de cibler chaque position. Le pool <code>cat:NomDuTop</code> génère des commentaires spécifiques à un Top.</p>
-          <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point ou orphelines, détection et fusion de lots répartis.</p>
-        </div>
-      </div>
+      <template id="guideContent-dashboard">
+        <p>Page d'accueil. Tout en haut : la card <strong>🎭 Commentaires</strong> — elle affiche en permanence le classement global avec des phrases générées automatiquement. Tu peux la replier en cliquant sur le bouton ▲ en haut à droite de la card.</p>
+        <p>En dessous : les <strong>filtres</strong> (joueurs, Tops, période), puis le <strong>graphique</strong>.</p>
+        <p><strong>Types de graphique :</strong> Empilé, Groupé, Courbes, Radar, Donut, Classement. Le Classement affiche les barres horizontales par joueur — survoler une barre met en évidence la bonne ligne.</p>
+        <p><strong>Commentaires par Top :</strong> si des phrases de catégorie sont configurées dans Paramètres → Commentaires, elles apparaissent sous le classement, triées par le score le plus élevé dans chaque Top.</p>
+        <p><strong>Export :</strong> boutons Infographie, CSV, Excel en haut à droite de la card graphique.</p>
+      </template>
 
-      <div class="guide-section">
-        <h3>📝 Notes</h3>
-        <div class="guide-body">
-          <p>Espace de <strong>remarques libres</strong> par joueur. La barre rapide en haut permet d'ajouter une note en une seconde : choisis le joueur (chip), tape la note, appuie sur Entrée.</p>
-          <p>Les blocs par joueur en dessous montrent toutes ses notes avec date et option de suppression.</p>
-        </div>
-      </div>
+      <template id="guideContent-saisie">
+        <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne = un joueur, un Top, un score, une date.</p>
+        <p><strong>Raccourcis de points :</strong> les boutons rapides (1, 3, 5…) permettent de cliquer directement. Tu peux aussi saisir une valeur personnalisée.</p>
+        <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours. Mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé). Le filtre par jour de semaine permet de n'inclure que certains jours (ex : du lundi au vendredi).</p>
+        <p><strong>Boutons en bas :</strong> <em>＋ Ligne</em> ajoute une ligne, <em>🔗 Grouper</em> permet de lier des lignes en lot visible dans l'Historique, <em>✓ Inscrire le lot</em> enregistre tout.</p>
+        <p><strong>Dupliquer :</strong> bouton 📋 sur chaque ligne pour copier rapidement.</p>
+      </template>
 
-      <div class="guide-section">
-        <h3>📜 Historique</h3>
-        <div class="guide-body">
-          <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top, ou par recherche texte.</p>
-          <p><strong>Regroupement automatique :</strong> les entrées identiques consécutives sont groupées. Clique sur un groupe pour le déplier.</p>
-          <p><strong>Mode sélection (☑) :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, ou les grouper en lot.</p>
-        </div>
-      </div>
+      <template id="guideContent-parametres">
+        <p>Cinq sous-onglets :</p>
+        <p><strong>👤 Joueurs :</strong> ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</p>
+        <p><strong>🎯 Tops :</strong> gérer les catégories (nom, description, emoji, couleur).</p>
+        <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton flottant ⚖️ (raccourci clavier : <strong>?</strong>).</p>
+        <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases. Les variables disponibles dans les phrases sont <code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>. Les pools <code>first</code>, <code>second</code>, <code>third</code>, <code>mid</code>, <code>last</code>, <code>tied</code>, <code>solo</code> permettent de cibler chaque position. Le pool <code>cat:NomDuTop</code> génère des commentaires spécifiques à un Top.</p>
+        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point, orphelines, en doublon ou aux scores aberrants, détection et fusion de lots répartis, gestion des groupes hérités, détection des joueurs inactifs, points automatiques, et un sommaire de navigation pour retrouver chaque outil rapidement.</p>
+      </template>
 
-      <div class="guide-section">
-        <h3>Barème (bouton ⚖️)</h3>
-        <div class="guide-body">
-          <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans Paramètres → Barème. Aide-mémoire rapide accessible depuis n'importe quel onglet.</p>
-          <p>Raccourci clavier : <strong>?</strong></p>
-        </div>
-      </div>
+      <template id="guideContent-notes">
+        <p>Espace de <strong>remarques libres</strong> par joueur. La barre rapide en haut permet d'ajouter une note en une seconde : choisis le joueur (chip), tape la note, appuie sur Entrée.</p>
+        <p>Les blocs par joueur en dessous montrent toutes ses notes avec date et option de suppression.</p>
+      </template>
+
+      <template id="guideContent-historique">
+        <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top, ou par recherche texte.</p>
+        <p><strong>Regroupement automatique :</strong> les entrées identiques consécutives sont groupées. Clique sur un groupe pour le déplier.</p>
+        <p><strong>Mode sélection (☑) :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, ou les grouper en lot.</p>
+        <p><strong>🔍 Journal d'audit</strong> (sous-onglet) : historique de toutes les actions qui modifient des données (créations, éditions, suppressions), avec l'auteur, la cible et un résumé du changement.</p>
+      </template>
+
+      <template id="guideContent-tchat">
+        <p>Widget flottant (bouton 💬), présent sur tous les onglets. Un clic maintenu déplace le bouton, un clic simple ouvre ou ferme le panneau.</p>
+        <p><strong>Markdown</strong> complet dans les messages, mentions <code>@Joueur</code> et <code>#Top</code> avec autocomplétion, réponse à un message (aperçu cité), horodatage.</p>
+        <p>Chacun peut supprimer ses propres messages. Pas de notification en temps réel : l'app vérifie les nouveaux messages toutes les 4 secondes, avec un badge de messages non lus quand le panneau est fermé.</p>
+      </template>
+
+      <template id="guideContent-bareme">
+        <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans Paramètres → Barème. Aide-mémoire rapide accessible depuis n'importe quel onglet.</p>
+        <p>Raccourci clavier : <strong>?</strong></p>
+      </template>
+
+      <template id="guideContent-theme">
+        <p><strong>Thème :</strong> bascule dark/light dans la barre de navigation, préférence mémorisée sur cet appareil.</p>
+        <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points ou écrit une note.</p>
+        <p><strong>Mot de passe :</strong> les identités marquées 🔒 sont protégées. Demande le mot de passe au gestionnaire du classeur — il se définit directement dans la colonne D de la feuille <em>Players</em> du Google Sheet (invisible dans l'app).</p>
+      </template>
     </div>
   </div>
 
@@ -10833,16 +10857,34 @@
     document.getElementById('detectLegacyGroupsBtn').addEventListener('click', scanLegacyGroups);
   }
 
-  // ── GUIDE ACCORDION ─────────────────────────────────────────────────
+  // ── GUIDE (grille de cards → vue détail) ─────────────────────────────
+  const GUIDE_TITLES = {
+    dashboard: '📊 Dashboard', saisie: '✍️ Saisir un Lot', parametres: '⚙️ Paramètres',
+    notes: '📝 Notes', historique: '📜 Historique', tchat: '💬 Tchat',
+    bareme: '⚖️ Barème', theme: '🎨 Thème & identité'
+  };
   let guideInited = false;
   function initGuideAccordion() {
     if (guideInited) return;
     guideInited = true;
-    document.querySelectorAll('.guide-section h3').forEach(h3 => {
-      h3.addEventListener('click', () => {
-        h3.parentElement.classList.toggle('open');
-      });
+    document.getElementById('guideGrid').addEventListener('click', (e) => {
+      const tile = e.target.closest('.guide-tile');
+      if (tile) openGuideDetail(tile.dataset.guide);
     });
+    document.getElementById('guideBackBtn').addEventListener('click', closeGuideDetail);
+  }
+  function openGuideDetail(key) {
+    const tpl = document.getElementById('guideContent-' + key);
+    if (!tpl) return;
+    document.getElementById('guideDetailTitle').textContent = GUIDE_TITLES[key] || '';
+    document.getElementById('guideDetailBody').innerHTML = '';
+    document.getElementById('guideDetailBody').appendChild(tpl.content.cloneNode(true));
+    document.getElementById('guideGrid').style.display = 'none';
+    document.getElementById('guideDetail').style.display = 'block';
+  }
+  function closeGuideDetail() {
+    document.getElementById('guideDetail').style.display = 'none';
+    document.getElementById('guideGrid').style.display = 'grid';
   }
 
   // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
