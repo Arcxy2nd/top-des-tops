@@ -787,44 +787,69 @@
     .row-desc .desc-in::placeholder { font-style: italic; color: var(--text-muted); opacity: 0.7; }
     .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); }
 
-    /* ── CELLULE DATE : pastille résumée + popover d'édition (par ligne) ── */
-    .d-cell { position: relative; }
+    /* ── CELLULE DATE : « Un jour » / « Une période » (par ligne) ── */
+    .d-cell { min-width: 190px; }
     .d-cell .d-start, .d-cell .d-end { width: 100%; }
-    /* Pastille : ce que la ligne montre au repos (« 📅 Auj. », « 📅 18 juil. → 24 juil. »). */
-    .d-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 12px; min-height: var(--tap-min); cursor: pointer;
-      color: var(--text); font-size: 0.82rem; font-weight: 600; white-space: nowrap;
-      font-family: inherit; transition: border-color 0.15s, background 0.15s;
+    /* Interrupteur de mode — remplace la case à cocher, impossible à rater */
+    .d-mode-seg {
+      display: inline-flex; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 2px; gap: 2px; margin-bottom: 6px;
     }
-    .d-pill:hover  { border-color: var(--accent); }
-    .d-pill.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
-    /* Popover : la surface focalisée où toute l'édition de date se passe. */
-    .d-pop {
-      display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
-      flex-direction: column; gap: 6px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px; min-width: min(260px, calc(100vw - 40px)); max-width: min(320px, calc(100vw - 24px));
-      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    .d-mode-btn {
+      border: none; background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      padding: 6px 12px; border-radius: 6px; min-height: 32px; white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
     }
-    .d-pop.open { display: flex; animation: fadeIn 0.12s ease; }
-    .d-pop input[type="date"] { width: 100%; }
-    .d-pop-sublabel {
-      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: var(--text-muted);
+    .d-mode-btn:hover { color: var(--text); }
+    .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
+    .d-single { display: flex; flex-direction: column; gap: 4px; }
+    .d-period { display: none; flex-direction: column; gap: 8px; }
+    /* Mini-calendrier : clic 1er jour puis dernier, période colorée entre les deux */
+    .d-cal {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px; width: 100%; max-width: 260px;
     }
-    .d-pop .row-range-toggle {
-      margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);
-      font-size: 0.82rem; font-weight: 600; color: var(--text);
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .d-cal-title { font-size: 0.82rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
+    .d-cal-nav {
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); cursor: pointer; width: 28px; height: 28px; font-size: 1rem;
+      line-height: 1; display: flex; align-items: center; justify-content: center;
     }
-    .d-pop-done {
-      margin-top: 2px; align-self: flex-end;
-      background: var(--accent); color: var(--on-accent); border: none; border-radius: 8px;
-      padding: 7px 20px; font-weight: 700; font-size: 0.82rem; cursor: pointer;
-      min-height: 36px; font-family: inherit; transition: background 0.15s;
+    .d-cal-nav:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .d-cal-dow { text-align: center; font-size: 0.62rem; font-weight: 700; color: var(--text-muted); padding-bottom: 2px; }
+    .d-cal-day {
+      aspect-ratio: 1; border: 1px solid transparent; background: transparent;
+      color: var(--text); font-family: inherit; font-size: 0.75rem; cursor: pointer;
+      border-radius: 6px; padding: 0; transition: background 0.1s;
     }
-    .d-pop-done:hover { background: var(--accent-hover); }
+    .d-cal-day:hover { background: var(--btn-alt); }
+    .d-cal-day.is-today { border-color: var(--border); font-weight: 700; }
+    .d-cal-day.in-range { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+    .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+    .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; text-align: center; }
+    /* Choix « comment poser le score » en langage clair (le jargon disparaît) */
+    .fill-choice {
+      display: flex; flex-direction: column; gap: 4px; margin: 0;
+      border-top: 1px solid var(--border); padding-top: 8px;
+    }
+    .fill-opt {
+      text-align: left; padding: 7px 10px; border-radius: 8px;
+      background: var(--btn-alt); border: 1px solid var(--border); color: var(--text-muted);
+      font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; min-height: 36px;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .fill-opt::before { content: '○ '; }
+    .fill-opt.active::before { content: '● '; }
+    .fill-opt.active { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
+    /* Aperçu chiffré live de l'effet de la période sur le score */
+    .d-fill-preview {
+      font-size: 0.74rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums;
+      background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 6px; padding: 5px 8px;
+    }
+    .d-fill-preview:empty { display: none; }
     .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
     .row-shortcut {
       background: var(--btn-alt); border: 1px solid var(--border);
@@ -840,10 +865,6 @@
       user-select: none; margin-top: 2px;
     }
     .row-range-toggle input[type="checkbox"] { width: auto; min-width: 0; margin: 0; }
-    .row-range-details {
-      display: none; flex-direction: column; gap: 4px;
-      border-left: 2px solid var(--accent); padding-left: 8px; margin-top: 2px;
-    }
 
     /* ── SÉLECTEUR JOURS DE LA SEMAINE ── */
     .day-picker-wrap { display: flex; flex-direction: column; gap: 4px; }
@@ -2706,11 +2727,12 @@
         </label>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start;">
           <div id="defaultDateWrap" style="display:flex; flex-direction:column; gap:5px;">
+            <div class="d-mode-seg" id="defaultModeSeg">
+              <button type="button" class="d-mode-btn active" id="defaultModeSingle">📅 Un jour</button>
+              <button type="button" class="d-mode-btn" id="defaultModeRange">🗓️ Une période</button>
+            </div>
             <input type="date" id="defaultStart" style="min-width:160px;">
-            <label class="row-range-toggle" style="margin-top:2px;">
-              <input type="checkbox" id="defaultRangeCb"> Plage
-            </label>
-            <div id="defaultRangeArea" style="display:none; flex-direction:column; gap:4px; border-left:2px solid var(--accent); padding-left:8px; margin-top:2px;">
+            <div id="defaultRangeArea" style="display:none; flex-direction:column; gap:4px; margin-top:2px;">
               <input type="date" id="defaultEnd">
               <div id="defaultFillSlot"></div>
             </div>
@@ -2718,9 +2740,9 @@
           <button type="button" class="secondary small" id="applyDateAllBtn" style="align-self:flex-start; margin-top:2px;">📅 Appliquer à toutes les lignes</button>
         </div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-          Définit la date (ou la plage + Répéter/Répartir) des <strong>nouvelles</strong> lignes.
+          Définit la date (ou la période) des <strong>nouvelles</strong> lignes.
           « Appliquer à toutes les lignes » la copie sur toutes les lignes déjà saisies.
-          Chaque ligne reste modifiable individuellement via son bouton 📅.
+          Chaque ligne reste modifiable individuellement.
         </div>
       </div>
       <div style="border-top:1px solid var(--border);margin:14px -4px 14px;opacity:0.5;"></div>
@@ -5727,6 +5749,8 @@
   // Mois abrégés FR pour l'affichage compact des pastilles de date.
   const SHORT_MONTHS_FR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
+  const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
   // "2026-07-18" → "18 juil." (jour + mois abrégé, sans année pour rester court).
   function fmtDateShort(ds) {
     if (!ds) return '';
@@ -5735,17 +5759,95 @@
     return parseInt(parts[2], 10) + ' ' + (SHORT_MONTHS_FR[parseInt(parts[1], 10) - 1] || '');
   }
 
-  // Libellé humain d'une pastille de date : "📅 Auj.", "📅 Hier", "📅 18 juil."
-  // ou, en mode plage, "📅 18 juil. → 24 juil.".
-  function datePillLabel(startStr, endStr, hasRange) {
-    if (!startStr) return '📅 Choisir…';
-    if (hasRange && endStr) return '📅 ' + fmtDateShort(startStr) + ' → ' + fmtDateShort(endStr);
-    const today = toDateStr(new Date());
-    const y = new Date(); y.setDate(y.getDate() - 1);
-    const yesterday = toDateStr(y);
-    if (startStr === today) return '📅 Auj.';
-    if (startStr === yesterday) return '📅 Hier';
-    return '📅 ' + fmtDateShort(startStr);
+  // Nombre de jours d'une période continue [start, end] inclus (1 si pas de fin).
+  function daysBetweenInclusive(startStr, endStr) {
+    if (!startStr) return 0;
+    if (!endStr) return 1;
+    const a = new Date(startStr + 'T12:00:00'), b = new Date(endStr + 'T12:00:00');
+    return Math.max(1, Math.round((b - a) / 86400000) + 1);
+  }
+
+  /**
+   * Mini-calendrier de sélection d'une période continue. Clic 1er jour → début ;
+   * clic suivant → fin (échange si antérieur). Écrit dans startInput/endInput
+   * (classes .d-start/.d-end conservées comme hooks) et appelle onChange après chaque
+   * changement. Retourne le wrapper, avec .refresh() pour re-render depuis l'extérieur
+   * (ex : chips de période qui remplissent les deux dates).
+   */
+  function createMiniCalendar(startInput, endInput, onChange) {
+    const wrap = document.createElement('div');
+    wrap.className = 'd-cal';
+    const view = { y: 0, m: 0 };
+
+    const syncViewToStart = () => {
+      const base = startInput.value || toDateStr(new Date());
+      const p = base.split('-');
+      view.y = parseInt(p[0], 10); view.m = parseInt(p[1], 10) - 1;
+    };
+    syncViewToStart();
+
+    function pick(ds) {
+      const s = startInput.value, e = endInput.value;
+      if (!s || (s && e)) { startInput.value = ds; endInput.value = ''; }
+      else if (ds >= s) { endInput.value = ds; }
+      else { startInput.value = ds; }
+      render();
+      if (typeof onChange === 'function') onChange();
+    }
+
+    function render() {
+      wrap.innerHTML = '';
+      const s = startInput.value, e = endInput.value;
+
+      // En-tête : ‹ mois année ›
+      const head = document.createElement('div');
+      head.className = 'd-cal-head';
+      const prev = document.createElement('button');
+      prev.type = 'button'; prev.className = 'd-cal-nav'; prev.textContent = '‹'; prev.title = 'Mois précédent';
+      prev.addEventListener('click', () => { if (--view.m < 0) { view.m = 11; view.y--; } render(); });
+      const title = document.createElement('span');
+      title.className = 'd-cal-title'; title.textContent = MONTHS_FR[view.m] + ' ' + view.y;
+      const next = document.createElement('button');
+      next.type = 'button'; next.className = 'd-cal-nav'; next.textContent = '›'; next.title = 'Mois suivant';
+      next.addEventListener('click', () => { if (++view.m > 11) { view.m = 0; view.y++; } render(); });
+      head.appendChild(prev); head.appendChild(title); head.appendChild(next);
+      wrap.appendChild(head);
+
+      // Grille : entête jours (Lu…Di) puis cases
+      const grid = document.createElement('div');
+      grid.className = 'd-cal-grid';
+      ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].forEach(d => {
+        const h = document.createElement('div'); h.className = 'd-cal-dow'; h.textContent = d; grid.appendChild(h);
+      });
+      const first = new Date(view.y, view.m, 1);
+      const lead = (first.getDay() + 6) % 7; // Lundi = 0
+      const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+      for (let i = 0; i < lead; i++) grid.appendChild(document.createElement('div'));
+      const todayStr = toDateStr(new Date());
+      for (let d = 1; d <= daysInMonth; d++) {
+        const ds = toDateStr(new Date(view.y, view.m, d));
+        const cell = document.createElement('button');
+        cell.type = 'button'; cell.className = 'd-cal-day'; cell.textContent = String(d);
+        if (ds === todayStr) cell.classList.add('is-today');
+        if (s && e && ds >= s && ds <= e) cell.classList.add('in-range');
+        if (ds === s || (ds === e && e)) cell.classList.add('is-end');
+        cell.addEventListener('click', () => pick(ds));
+        grid.appendChild(cell);
+      }
+      wrap.appendChild(grid);
+
+      // Indice + résumé
+      const hint = document.createElement('div');
+      hint.className = 'd-cal-hint';
+      hint.textContent = (s && e)
+        ? (daysBetweenInclusive(s, e) + ' jours : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
+        : (s ? 'Cliquez le dernier jour de la période' : 'Cliquez le 1er jour');
+      wrap.appendChild(hint);
+    }
+
+    wrap.refresh = () => { syncViewToStart(); render(); };
+    render();
+    return wrap;
   }
 
   // Plages prédéfinies (réutilisées par le Dashboard et par l'éditeur de date des lignes).
@@ -5860,23 +5962,6 @@
   function filterDatesByDays(dates, selectedDays) {
     if (!selectedDays || !selectedDays.length) return dates;
     return dates.filter(ds => selectedDays.includes(new Date(ds + 'T12:00:00').getDay()));
-  }
-
-  // Remplit un conteneur de chips de plage (7j, 30j…) — remplit les deux inputs + active la case Plage.
-  function buildRowRangePresets(el, startInput, endInput, rangeCb, rangeDetails) {
-    rangePresetItems().forEach(r => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = r.label;
-      b.addEventListener('click', () => {
-        startInput.value = r.from;
-        endInput.value   = r.to;
-        if (!rangeCb.checked) {
-          rangeCb.checked = true;
-          rangeDetails.style.display = 'flex';
-        }
-      });
-      el.appendChild(b);
-    });
   }
 
   // ── PLAGES RAPIDES DE DATE (réutilisable, DRY) ───────────────────────
@@ -8027,25 +8112,40 @@
     return wrap;
   }
 
-  // Petit sélecteur Répéter/Répartir propre à une ligne. Sa valeur est dans dataset.fill.
-  function createFillToggle(defaultMode) {
+  // Choix « comment poser le score sur la période » en langage clair (fini le
+  // jargon Répéter/Répartir). Valeur canonique dans dataset.fill ('repeat'|'distribute')
+  // et sur chaque option via data-fill. onChange (optionnel) permet de rafraîchir un
+  // aperçu chiffré à côté. Garde les classes .line-fill/.seg-btn = hooks de lecture.
+  function createFillToggle(defaultMode, onChange) {
     const wrap = document.createElement('div');
-    wrap.className = 'seg-toggle line-fill';
+    wrap.className = 'seg-toggle line-fill fill-choice';
     wrap.dataset.fill = defaultMode || 'repeat';
-    [['repeat', 'Répéter'], ['distribute', 'Répartir']].forEach(([val, label]) => {
+    [
+      ['repeat',     'Le même score chaque jour'],
+      ['distribute', 'Un total à répartir']
+    ].forEach(([val, label]) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'seg-btn' + (val === wrap.dataset.fill ? ' active' : '');
+      b.className = 'seg-btn fill-opt' + (val === wrap.dataset.fill ? ' active' : '');
+      b.dataset.fill = val;
       b.textContent = label;
-      b.title = val === 'repeat' ? 'Même score chaque jour' : 'Total divisé sur les jours';
       b.addEventListener('click', () => {
         wrap.dataset.fill = val;
         wrap.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
+        if (typeof onChange === 'function') onChange();
       });
       wrap.appendChild(b);
     });
     return wrap;
+  }
+
+  // Reflète un mode fill sur un élément .line-fill (dataset + option active).
+  // Partagé par « Appliquer à toutes les lignes » et l'init, indépendant du libellé.
+  function setLineFill(fillEl, mode) {
+    if (!fillEl) return;
+    fillEl.dataset.fill = mode;
+    fillEl.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.fill === mode));
   }
 
   // ── TRI / RÉORGANISATION DES LIGNES ─────────────────────────────────
@@ -8251,6 +8351,7 @@
         customPtsInput.classList.add('pts-val-anim');
         setTimeout(() => customPtsInput.classList.remove('pts-val-anim'), 300);
         updateLotSummary();
+        updateDatePreview();
       });
     });
     // Input → raccourcis (surligne si valeur standard, sinon tout désactivé)
@@ -8260,6 +8361,7 @@
         b.classList.toggle('active', !isNaN(v) && parseInt(b.dataset.val, 10) === v);
       });
       updateLotSummary();
+      updateDatePreview();
     });
     customPtsInput.addEventListener('blur', () => {
       const v = parseInt(customPtsInput.value, 10);
@@ -8268,6 +8370,7 @@
         ptsToggle.querySelectorAll('.pts-btn').forEach(b => b.classList.toggle('active', b.dataset.val === '1'));
       }
       updateLotSummary();
+      updateDatePreview();
     });
 
     // ── Cellule date inline ──────────────────────────────────────────────
@@ -8278,109 +8381,127 @@
     const defEnd   = (defEndEl && defEndEl.value) || '';
     const defFill  = (defFillEl && defFillEl.dataset.fill) || 'repeat';
 
-    // La ligne n'affiche qu'une pastille résumée ; toute l'édition (date, plage,
-    // Répéter/Répartir, jours) vit dans un popover. Les champs gardent leurs
-    // classes .d-start/.d-end/.range-cb/.line-fill/.day-picker-wrap : ils restent
-    // les hooks de lecture au moment de l'envoi et de « Appliquer à toutes ».
+    // Cellule date : « Un jour » (défaut) ou « Une période » via un interrupteur
+    // segmenté explicite. Les champs .d-start/.d-end/.range-cb/.line-fill/.day-picker-wrap
+    // restent les hooks de lecture (envoi, duplication, « Appliquer à toutes »).
     const dateCell = document.createElement('div');
     dateCell.className = 'd-cell';
 
-    // Date de début
+    const hasRange = preset ? (preset.dateEnd != null && preset.dateEnd !== '') : !!defEnd;
+
+    // Champs canoniques début / fin
     const startInput = document.createElement('input');
     startInput.type = 'date'; startInput.className = 'd-start';
     startInput.value = (preset && preset.date) || defStart;
-
-    const startShortcuts = document.createElement('div');
-    startShortcuts.className = 'row-shortcuts';
-    buildRowDateShortcuts(startShortcuts, startInput);
-
-    // Case à cocher Plage
-    const rangeLabel = document.createElement('label');
-    rangeLabel.className = 'row-range-toggle';
-    const rangeCb = document.createElement('input');
-    rangeCb.type = 'checkbox'; rangeCb.className = 'range-cb';
-    const hasRange = preset ? (preset.dateEnd != null && preset.dateEnd !== '') : !!defEnd;
-    rangeCb.checked = hasRange;
-    rangeLabel.appendChild(rangeCb);
-    rangeLabel.appendChild(document.createTextNode(' Plage de dates'));
-
-    // Détails de la plage (masqués par défaut si pas de plage)
-    const rangeDetails = document.createElement('div');
-    rangeDetails.className = 'row-range-details';
-    rangeDetails.style.display = hasRange ? 'flex' : 'none';
-
-    const endLbl = document.createElement('div');
-    endLbl.className = 'd-pop-sublabel'; endLbl.textContent = 'Jusqu’au';
 
     const endInput = document.createElement('input');
     endInput.type = 'date'; endInput.className = 'd-end';
     endInput.value = (preset && preset.dateEnd != null) ? preset.dateEnd : defEnd;
 
-    const endShortcuts = document.createElement('div');
-    endShortcuts.className = 'row-shortcuts';
+    // Case Plage conservée en hook caché : cochée = mode « Une période ».
+    const rangeCb = document.createElement('input');
+    rangeCb.type = 'checkbox'; rangeCb.className = 'range-cb';
+    rangeCb.checked = hasRange; rangeCb.style.display = 'none';
 
-    const fillToggle = createFillToggle((preset && preset.fill) || defFill);
-
+    // Sélecteur de jours retiré de l'UI (cas réels = périodes continues) ; conservé
+    // caché à '[]' (tous les jours) pour ne rien changer aux lectures/backend.
     const dayPickerWrap = createDayPicker(preset && preset.days ? preset.days : []);
+    dayPickerWrap.style.display = 'none';
 
-    rangeDetails.appendChild(endLbl);
-    rangeDetails.appendChild(endInput);
-    rangeDetails.appendChild(endShortcuts);
-    rangeDetails.appendChild(fillToggle);
-    rangeDetails.appendChild(dayPickerWrap);
+    // ── Interrupteur de mode (très visible, remplace la case à cocher) ─────
+    const modeSeg = document.createElement('div');
+    modeSeg.className = 'd-mode-seg';
+    const modeSingle = document.createElement('button');
+    modeSingle.type = 'button'; modeSingle.className = 'd-mode-btn'; modeSingle.textContent = '📅 Un jour';
+    const modeRange = document.createElement('button');
+    modeRange.type = 'button'; modeRange.className = 'd-mode-btn'; modeRange.textContent = '🗓️ Une période';
+    modeSeg.appendChild(modeSingle); modeSeg.appendChild(modeRange);
 
-    // Les chips de plage remplissent les deux inputs + activent la case
-    buildRowRangePresets(endShortcuts, startInput, endInput, rangeCb, rangeDetails);
+    // ── Panneau « Un jour » ───────────────────────────────────────────────
+    const singlePanel = document.createElement('div');
+    singlePanel.className = 'd-single';
+    const startShortcuts = document.createElement('div');
+    startShortcuts.className = 'row-shortcuts';
+    buildRowDateShortcuts(startShortcuts, startInput);
+    singlePanel.appendChild(startInput);
+    singlePanel.appendChild(startShortcuts);
 
-    // ── Pastille résumé + popover d'édition ───────────────────────────────
-    const pill = document.createElement('button');
-    pill.type = 'button'; pill.className = 'd-pill';
+    // ── Panneau « Une période » ───────────────────────────────────────────
+    const periodPanel = document.createElement('div');
+    periodPanel.className = 'd-period';
 
-    const pop = document.createElement('div');
-    pop.className = 'd-pop';
-    const startLbl = document.createElement('div');
-    startLbl.className = 'd-pop-sublabel'; startLbl.textContent = 'Date';
-    const popDone = document.createElement('button');
-    popDone.type = 'button'; popDone.className = 'd-pop-done'; popDone.textContent = 'OK';
-    pop.appendChild(startLbl);
-    pop.appendChild(startInput);
-    pop.appendChild(startShortcuts);
-    pop.appendChild(rangeLabel);
-    pop.appendChild(rangeDetails);
-    pop.appendChild(popDone);
+    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
 
-    const refreshPill = () => { pill.textContent = datePillLabel(startInput.value, endInput.value, rangeCb.checked); };
-    refreshPill();
-
-    const onDocClick = (e) => { if (!dateCell.contains(e.target)) closePop(); };
-    function closePop() {
-      pop.classList.remove('open'); pill.classList.remove('active');
-      document.removeEventListener('click', onDocClick);
-    }
-    function openPop() {
-      document.querySelectorAll('.d-pop.open').forEach(p => { if (p !== pop) p.classList.remove('open'); });
-      pop.classList.add('open'); pill.classList.add('active');
-      // Différé pour que le clic d'ouverture ne se referme pas aussitôt.
-      setTimeout(() => document.addEventListener('click', onDocClick), 0);
-    }
-    pill.addEventListener('click', () => { pop.classList.contains('open') ? closePop() : openPop(); });
-    popDone.addEventListener('click', closePop);
-    pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
-
-    // La pastille se met à jour quand la date change (saisie, chips, plage).
-    startInput.addEventListener('change', refreshPill);
-    endInput.addEventListener('change', refreshPill);
-    startShortcuts.addEventListener('click', () => setTimeout(refreshPill, 0));
-    endShortcuts.addEventListener('click', () => setTimeout(refreshPill, 0));
-
-    rangeCb.addEventListener('change', () => {
-      rangeDetails.style.display = rangeCb.checked ? 'flex' : 'none';
-      if (!rangeCb.checked) endInput.value = '';
-      refreshPill();
+    const periodShortcuts = document.createElement('div');
+    periodShortcuts.className = 'row-shortcuts';
+    rangePresetItems().forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = r.label;
+      b.addEventListener('click', () => {
+        startInput.value = r.from; endInput.value = r.to;
+        cal.refresh(); updateDatePreview();
+      });
+      periodShortcuts.appendChild(b);
     });
 
-    dateCell.appendChild(pill);
-    dateCell.appendChild(pop);
+    const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => updateDatePreview());
+
+    const fillPreview = document.createElement('div');
+    fillPreview.className = 'd-fill-preview';
+
+    periodPanel.appendChild(cal);
+    periodPanel.appendChild(periodShortcuts);
+    periodPanel.appendChild(fillToggle);
+    periodPanel.appendChild(fillPreview);
+
+    // Aperçu chiffré live : points de la ligne × période, selon le mode fill.
+    function updateDatePreview() {
+      const pts = parseInt(customPtsInput.value, 10) || 0;
+      const n = daysBetweenInclusive(startInput.value, endInput.value);
+      const plural = n > 1 ? 's' : '';
+      if (fillToggle.dataset.fill === 'distribute') {
+        const per = n ? Math.round((pts / n) * 10) / 10 : pts;
+        fillPreview.textContent = pts + ' pts ÷ ' + n + ' jour' + plural + ' ≈ ' + per + ' / jour';
+      } else {
+        fillPreview.textContent = pts + ' pts chaque jour × ' + n + ' jour' + plural + ' = ' + (pts * n) + ' au total';
+      }
+    }
+
+    // Bascule de mode : synchronise range-cb + panneaux + aperçu.
+    function setDateMode(range) {
+      rangeCb.checked = range;
+      modeRange.classList.toggle('active', range);
+      modeSingle.classList.toggle('active', !range);
+      periodPanel.style.display = range ? 'flex' : 'none';
+      singlePanel.style.display = range ? 'none' : 'flex';
+      if (range) {
+        if (!endInput.value) endInput.value = startInput.value; // période valide dès l'entrée
+        cal.refresh(); updateDatePreview();
+      } else {
+        endInput.value = '';
+      }
+    }
+    modeSingle.addEventListener('click', () => setDateMode(false));
+    modeRange.addEventListener('click', () => setDateMode(true));
+
+    // Un raccourci « Un jour » change la date → resync calendrier + aperçu.
+    startInput.addEventListener('change', () => { cal.refresh(); updateDatePreview(); });
+
+    // Appliquée par « Appliquer à toutes les lignes » : pose date/période/fill + mode.
+    div.__applyDate = (start, end, fill) => {
+      startInput.value = start; endInput.value = end || '';
+      setLineFill(fillToggle, fill);
+      setDateMode(!!end);
+      cal.refresh(); updateDatePreview();
+    };
+
+    dateCell.appendChild(rangeCb);
+    dateCell.appendChild(dayPickerWrap);
+    dateCell.appendChild(modeSeg);
+    dateCell.appendChild(singlePanel);
+    dateCell.appendChild(periodPanel);
+
+    setDateMode(hasRange);
 
     // ── Description (rangée pleine largeur, plus en vue) ────────────────
     const descRowWrapper = document.createElement('div');
@@ -8471,6 +8592,7 @@
       });
       if (action) descInput.value = action;
       updateLotSummary();
+      updateDatePreview();
     }
 
     function renderBaremeQuickBtns(entries, topName) {
@@ -10837,28 +10959,11 @@
       if (!rows.length) { showToast('Aucune ligne à modifier.', 'error'); return; }
 
       rows.forEach(row => {
-        const startInp = row.querySelector('.d-start');
-        const endInp   = row.querySelector('.d-end');
-        const cb       = row.querySelector('.range-cb');
-        const details  = row.querySelector('.row-range-details');
-        const fillTog  = row.querySelector('.line-fill');
-
-        if (startInp) startInp.value = defStart;
-        if (endInp)   endInp.value   = defEnd;
-        if (cb)       cb.checked     = isRange;
-        if (details)  details.style.display = isRange ? 'flex' : 'none';
-        if (fillTog) {
-          fillTog.dataset.fill = defFill;
-          fillTog.querySelectorAll('.seg-btn').forEach(b => {
-            const bVal = b.textContent === 'Répéter' ? 'repeat' : 'distribute';
-            b.classList.toggle('active', bVal === defFill);
-          });
-        }
-        // Rafraîchit la pastille résumée de la ligne (lit end + plage courants).
-        if (startInp) startInp.dispatchEvent(new Event('change'));
+        // Chaque ligne expose __applyDate (pose date/période/fill + bascule le mode).
+        if (typeof row.__applyDate === 'function') row.__applyDate(defStart, defEnd, defFill);
       });
 
-      const what = isRange ? 'Plage' : 'Date';
+      const what = isRange ? 'Période' : 'Date';
       showToast(`${what} appliquée à ${rows.length} ligne(s).`, 'success');
     });
 
@@ -12172,20 +12277,26 @@
       }, 'Chargement preset actif');
     });
 
-    // Champs date/plage par défaut du lot : inline, plus de modal.
+    // Champs date/période par défaut du lot : interrupteur segmenté (même modèle
+    // que les lignes) + choix Répéter/Répartir en langage clair.
     (() => {
-      const startEl   = document.getElementById('defaultStart');
-      const endEl     = document.getElementById('defaultEnd');
-      const rangeCb   = document.getElementById('defaultRangeCb');
-      const rangeArea = document.getElementById('defaultRangeArea');
-      const fillSlot  = document.getElementById('defaultFillSlot');
+      const startEl    = document.getElementById('defaultStart');
+      const endEl      = document.getElementById('defaultEnd');
+      const modeSingle = document.getElementById('defaultModeSingle');
+      const modeRange  = document.getElementById('defaultModeRange');
+      const rangeArea  = document.getElementById('defaultRangeArea');
+      const fillSlot   = document.getElementById('defaultFillSlot');
       startEl.value = toDateStr(new Date());
-      const fillTog = createFillToggle('repeat');
-      fillSlot.appendChild(fillTog);
-      rangeCb.addEventListener('change', () => {
-        rangeArea.style.display = rangeCb.checked ? 'flex' : 'none';
-        if (!rangeCb.checked) endEl.value = '';
-      });
+      fillSlot.appendChild(createFillToggle('repeat'));
+      const setMode = (range) => {
+        modeRange.classList.toggle('active', range);
+        modeSingle.classList.toggle('active', !range);
+        rangeArea.style.display = range ? 'flex' : 'none';
+        if (range) { if (!endEl.value) endEl.value = startEl.value; }
+        else endEl.value = '';
+      };
+      modeSingle.addEventListener('click', () => setMode(false));
+      modeRange.addEventListener('click', () => setMode(true));
     })();
 
     // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
