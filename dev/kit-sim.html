@@ -1,0 +1,64 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#0b0c10;--card:#1f2833;--border:#2a313d;--text:#e0e6ed;--text-muted:#9aa5be;--accent:#ff4757;--btn-alt:#353b48;--medal-gold:#f6c445;--medal-silver:#c2ccd6;--medal-bronze:#cd8b52;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px;max-width:520px;margin:auto;}
+h2{font-size:1rem;color:var(--text-muted);margin:24px 0 8px;}
+.hist-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:0.82rem;font-weight:600;white-space:nowrap;background:var(--pill-bg,rgba(255,255,255,0.06));border:1px solid var(--pill-bd,var(--border));color:var(--text);}
+.hist-pill .pill-emoji{font-size:1rem;line-height:1;}
+.sr-list{display:flex;flex-direction:column;gap:8px;}
+.sr-row{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-radius:10px;background:rgba(0,0,0,0.14);border:1px solid var(--border);position:relative;overflow:hidden;}
+.sr-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sr-accent,var(--border));}
+.sr-rank{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:800;background:var(--btn-alt);color:var(--text-muted);border:1px solid var(--border);}
+.sr-rank.gold{background:var(--medal-gold);color:#4a3800;border-color:var(--medal-gold);}
+.sr-rank.silver{background:var(--medal-silver);color:#33383d;border-color:var(--medal-silver);}
+.sr-rank.bronze{background:var(--medal-bronze);color:#331d0c;border-color:var(--medal-bronze);}
+.sr-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--sr-accent,var(--border));}
+.sr-avatar-cluster{flex-shrink:0;display:flex;align-items:center;}
+.sr-avatar-cluster .sr-avatar:last-child{margin-left:-12px;}
+.sr-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.sr-name{font-weight:700;font-size:0.92rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.sr-sub{font-size:0.77rem;color:var(--text-muted);}
+.sr-value{flex-shrink:0;text-align:right;font-weight:800;font-size:1.15rem;color:var(--text);line-height:1;}
+.sr-value small{display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);margin-top:3px;}
+.sr-hero{display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:14px;border-radius:12px;background:linear-gradient(135deg,color-mix(in srgb,var(--medal-gold) 24%,transparent),color-mix(in srgb,var(--medal-gold) 6%,transparent));border:1.5px solid color-mix(in srgb,var(--medal-gold) 55%,var(--border));}
+.sr-hero-trophy{font-size:2rem;line-height:1;flex-shrink:0;}
+.sr-hero-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--medal-gold);}
+.sr-hero-body{flex:1;min-width:0;}
+.sr-hero-label{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:color-mix(in srgb,var(--medal-gold) 70%,var(--text));}
+.sr-hero-name{font-weight:800;font-size:1.05rem;}
+.sr-hero-sub{font-size:0.79rem;color:var(--text-muted);}
+.sr-hero-pts{font-size:1.7rem;font-weight:800;text-align:right;line-height:1;}
+.sr-hero-pts small{display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-top:3px;}
+.sr-section{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:16px 0 8px;display:flex;gap:6px;align-items:center;}
+.sr-section:first-child{margin-top:0;}
+</style></head><body>
+<div id="app"></div>
+<script>
+const MEDAL_CLASS=['gold','silver','bronze'];
+const AV=n=>'https://api.dicebear.com/7.x/thumbs/svg?seed='+encodeURIComponent(n);
+const COL={Alice:'#ff6b81',Bob:'#4f9dff',Chloé:'#2ed573',Dan:'#ffa502'};
+function buildStatRank(rank){const el=document.createElement('div');el.className='sr-rank'+(rank<=3?' '+MEDAL_CLASS[rank-1]:'');el.textContent=rank;return el;}
+function catPill(name,col,ic){const p=document.createElement('span');p.className='hist-pill';p.style.setProperty('--pill-bg',col+'29');p.style.setProperty('--pill-bd',col+'8c');if(ic){const e=document.createElement('span');e.className='pill-emoji';e.textContent=ic;p.appendChild(e);}p.appendChild(document.createTextNode(name));return p;}
+function buildStatRow(cfg){const row=document.createElement('div');row.className='sr-row';if(cfg.accent)row.style.setProperty('--sr-accent',cfg.accent);
+if(cfg.rank!=null)row.appendChild(buildStatRank(cfg.rank));else if(cfg.badge){const b=document.createElement('div');b.className='sr-rank';b.textContent=cfg.badge;row.appendChild(b);}
+const mk=w=>{const i=document.createElement('img');i.className='sr-avatar';i.src=AV(w);return i;};
+if(cfg.secondPlayer){const c=document.createElement('div');c.className='sr-avatar-cluster';c.appendChild(mk(cfg.playerName));c.appendChild(mk(cfg.secondPlayer));row.appendChild(c);}else row.appendChild(mk(cfg.playerName));
+const body=document.createElement('div');body.className='sr-body';const name=document.createElement('div');name.className='sr-name';name.appendChild(document.createTextNode(cfg.secondPlayer?cfg.playerName+' & '+cfg.secondPlayer:cfg.playerName));if(cfg.nameSuffix)name.appendChild(cfg.nameSuffix);body.appendChild(name);
+if(cfg.sub){const s=document.createElement('div');s.className='sr-sub';s.textContent=cfg.sub;body.appendChild(s);}row.appendChild(body);
+if(cfg.value!=null){const v=document.createElement('div');v.className='sr-value';v.appendChild(document.createTextNode(cfg.value));if(cfg.valueLabel){const s=document.createElement('small');s.textContent=cfg.valueLabel;v.appendChild(s);}row.appendChild(v);}return row;}
+const app=document.getElementById('app');
+// RECORDS
+app.insertAdjacentHTML('beforeend','<h2>📊 Records</h2>');
+const hero=document.createElement('div');hero.className='sr-hero';hero.innerHTML='<div class="sr-hero-trophy">🏆</div><img class="sr-hero-avatar" src="'+AV('Alice')+'"><div class="sr-hero-body"><div class="sr-hero-label">Record absolu</div><div class="sr-hero-name">Alice</div><div class="sr-hero-sub">en une entrée · le 12/07/2026</div></div><div class="sr-hero-pts">120<small>pts</small></div>';app.appendChild(hero);
+let l=document.createElement('div');l.className='sr-list';
+[['Alice',95,'record le 12/07 · série 8 j'],['Bob',80,'record le 09/07 · série 5 j'],['Chloé',72,'record le 03/07 · série 4 j'],['Dan',60,'record le 01/07 · série 2 j']].forEach((r,i)=>l.appendChild(buildStatRow({rank:i+1,playerName:r[0],accent:COL[r[0]],sub:r[2],value:r[1],valueLabel:'pts'})));app.appendChild(l);
+// DUO
+app.insertAdjacentHTML('beforeend','<h2>🤝 Duo le plus fréquent</h2>');
+l=document.createElement('div');l.className='sr-list';
+[['Alice','Quiz','#2ed573','🧠',14],['Bob','Sport','#ffa502','⚽',9],['Chloé','Ciné','#4f9dff','🎬',6]].forEach((r,i)=>l.appendChild(buildStatRow({rank:i+1,playerName:r[0],accent:COL[r[0]],nameSuffix:catPill(r[1],r[2],r[3]),value:r[4],valueLabel:'fois'})));app.appendChild(l);
+// MENTIONS
+app.insertAdjacentHTML('beforeend','<h2>💬 Mentions</h2>');
+app.insertAdjacentHTML('beforeend','<div class="sr-section">📣 Les plus mentionnés</div>');
+l=document.createElement('div');l.className='sr-list';[['Alice',22],['Bob',15],['Chloé',9]].forEach((r,i)=>l.appendChild(buildStatRow({rank:i+1,playerName:r[0],accent:COL[r[0]],value:r[1],valueLabel:'mentions'})));app.appendChild(l);
+app.insertAdjacentHTML('beforeend','<div class="sr-section">🔗 Duo le plus complice</div>');
+l=document.createElement('div');l.className='sr-list';l.appendChild(buildStatRow({badge:'🤝',playerName:'Alice',secondPlayer:'Bob',accent:COL.Alice,value:18,valueLabel:'croisées'}));app.appendChild(l);
+</script></body></html>
