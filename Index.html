@@ -5839,8 +5839,9 @@
       // Indice + résumé
       const hint = document.createElement('div');
       hint.className = 'd-cal-hint';
+      const nd = daysBetweenInclusive(s, e);
       hint.textContent = (s && e)
-        ? (daysBetweenInclusive(s, e) + ' jours : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
+        ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
         : (s ? 'Cliquez le dernier jour de la période' : 'Cliquez le 1er jour');
       wrap.appendChild(hint);
     }
@@ -8458,12 +8459,13 @@
     function updateDatePreview() {
       const pts = parseInt(customPtsInput.value, 10) || 0;
       const n = daysBetweenInclusive(startInput.value, endInput.value);
-      const plural = n > 1 ? 's' : '';
+      const jour = ' jour' + (n > 1 ? 's' : '');
+      const pt = pts + ' pt' + (pts > 1 ? 's' : '');
       if (fillToggle.dataset.fill === 'distribute') {
         const per = n ? Math.round((pts / n) * 10) / 10 : pts;
-        fillPreview.textContent = pts + ' pts ÷ ' + n + ' jour' + plural + ' ≈ ' + per + ' / jour';
+        fillPreview.textContent = pt + ' ÷ ' + n + jour + ' ≈ ' + per + ' / jour';
       } else {
-        fillPreview.textContent = pts + ' pts chaque jour × ' + n + ' jour' + plural + ' = ' + (pts * n) + ' au total';
+        fillPreview.textContent = pt + ' chaque jour × ' + n + jour + ' = ' + (pts * n) + ' au total';
       }
     }
 
