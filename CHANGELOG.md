@@ -90,6 +90,22 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Le tchat est nettement plus réactif : le message envoyé s'affiche instantanément (grisé avec une horloge le temps que le serveur confirme), les nouveaux messages arrivent toutes les 2 secondes quand le panneau est ouvert (8 s quand il est fermé, juste pour le badge), et l'ouverture du panneau rafraîchit immédiatement la conversation. PC et mobile.
 **Technique** : `Index.html`/`Mobile.html` — envoi optimiste via `_chatPendingSends`/`_mChatPendingSends` (message temporaire `pending`, opacité réduite, actions désactivées, retiré et texte restauré en cas d'échec) ; sondage adaptatif `scheduleChatPoll()`/`mScheduleChatPoll()` (2 s ouvert / 8 s fermé, re-planifié à l'ouverture/fermeture) remplaçant le `setInterval` fixe de 4 s ; `pollChat()` immédiat à l'ouverture du panneau.
 
+### Modifié
+**Humanisé** : Dans la navbar, les onglets se répartissent maintenant tout seuls dans l'espace disponible entre le titre du site et le bouton rafraîchir — plus d'espacement figé. Et quand un onglet s'ouvre (son nom apparaît), il s'élargit en douceur depuis son centre au lieu de pousser brutalement vers la droite.
+**Technique** : `Index.html` — `.nav-btn` passe de `padding` fixe à `flex:1 1 0` + `justify-content:center` (partage égal de l'espace libre, contenu toujours centré) ; `.nav-btn.active` prend `flex-grow:2.6` (les voisins, tous à `flex-grow:1`, se resserrent symétriquement autour de lui). `.nav-btn-label` passe d'un toggle `display:none/inline-block` sec à une transition `max-width`/`opacity`/`margin-left` pour un dépliage progressif.
+
+### Ajouté
+**Humanisé** : Sur chaque note, les pastilles « Créé par » et « Modifié par » affichent maintenant l'avatar du joueur (comme partout ailleurs dans l'app), et l'historique de modifications aussi. Style des pastilles retravaillé (plus contrasté, mieux espacé).
+**Technique** : `Index.html` — nouveau helper `buildNoteAuthorAvatar(name)` (résout `cachedPlayers`/`getAvatarUrl`, retombe silencieusement en absence d'image) injecté dans `buildNoteCard()` (pastilles `.note-meta-item`) et `openNoteHistoryPopover()` (`.nhp-entry-head`, wrapper `.nhp-entry-who`). CSS `.note-meta-avatar` (18-20px, circulaire) ; `.note-meta-item` repensé (fond plus contrasté, gap augmenté).
+
+### Corrigé
+**Humanisé** : Sur le Dashboard, le repère de survol du graphique (le point bleu qui suit la souris) pouvait rester affiché à un endroit du graphique après que la souris en soit sortie, en même temps que la petite bulle d'info — les deux ne disparaissaient pas toujours ensemble.
+**Technique** : `Index.html` — Chart.js dessine ce repère indépendamment de la bulle `#chartCustomTooltip` : masquer la bulle seule ne l'effaçait pas. `bindButtons()` centralise la fermeture dans `hideChartHover()`, qui vide aussi les éléments actifs du chart (`chart.setActiveElements([])`, `chart.tooltip.setActiveElements([], …)`, `chart.update('none')`) en plus de masquer la bulle — appelé par le `mouseleave` du canvas et par le filet de sécurité `mousemove` existant.
+
+### Ajouté
+**Humanisé** : La bulle d'info du graphique du Dashboard devient personnalisable : un bouton « 🎨 Style » à côté des types de graphique ouvre un panneau pour choisir la couleur de chaque palier (froid/normal/chaud/très chaud/incandescent), activer une jauge de progression sous chaque valeur, et activer/désactiver les effets de lueur/pulsation. Choix mémorisés d'une visite à l'autre.
+**Technique** : `Index.html` — préférences stockées dans `localStorage` (`topsdestops_tooltip_prefs`), lues/écrites via `getTooltipStylePrefs()`/`saveTooltipStylePrefs()`, appliquées en variables CSS (`--ctt-cold/normal/warm/hot/blaze`) et classe `.ctt-effects-on` sur `#chartCustomTooltip` par `applyTooltipStylePrefs()`. Panneau `openTooltipStylePopover()` (5 `<input type="color">` + 2 cases à cocher + réinitialisation), même famille de popover que `openNoteHistoryPopover`. Jauge optionnelle : `buildTooltipGauge(tier, ratio)`, `.ctt-gauge`/`.ctt-gauge-fill`, ratio exposé par `pointValueRatio()` (extrait de `pointValueTier`, inchangé sinon). Pas de dépendance externe ajoutée : jauge et couleurs codées en CSS/SVG maison plutôt qu'une bibliothèque tierce (coût de perf par re-render de tooltip au survol, et personnalisation plus simple à contrôler nous-mêmes).
+
 ## [Non publié] - 2026-07-17
 
 ### Corrigé

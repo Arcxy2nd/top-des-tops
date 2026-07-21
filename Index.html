@@ -101,21 +101,37 @@
       padding: 15px 14px; cursor: pointer;
       border-bottom: 3px solid transparent;
       white-space: nowrap; min-height: var(--tap-min);
-      font-weight: 500; transition: color 0.2s;
+      font-weight: 500; transition: color 0.2s, flex-grow 0.3s ease, padding 0.3s ease;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      display: flex; align-items: center;
+      display: flex; align-items: center; justify-content: center;
+      /* Chaque onglet se partage l'espace libre entre le titre et le bouton
+         rafraîchir à parts égales (flex-grow:1) : plus il y a de place, plus les
+         onglets s'écartent naturellement, sans jamais dépasser leur contenu. */
+      flex: 1 1 0; min-width: max-content;
     }
     .nav-btn:hover  { color: var(--text); }
-    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+    .nav-btn.active {
+      color: var(--accent); border-bottom-color: var(--accent); font-weight: 700;
+      /* Prend une part plus large que ses voisins (qui restent à flex-grow:1) :
+         comme tous les onglets sont centrés sur eux-mêmes, l'espace gagné se
+         répartit visuellement de part et d'autre → le libellé semble "s'ouvrir"
+         depuis le centre du bouton plutôt que de pousser vers la droite. */
+      flex-grow: 2.6;
+    }
     .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
     /* Le libellé n'est visible en ligne que pour l'onglet actif (repère permanent,
        n'affecte jamais la largeur des autres boutons). Au survol des autres onglets,
        le nom est donné par une bulle #navHoverTip en position fixed (voir JS) : la
        barre défile en overflow-x:auto, qui force overflow-y:auto et rognerait tout
-       label positionné en absolute à l'intérieur du bouton. */
-    .nav-btn-label { display: none; }
-    .nav-btn.active .nav-btn-label { display: inline-block; margin-left: 7px; }
+       label positionné en absolute à l'intérieur du bouton.
+       Transition en max-width/opacity (plutôt qu'un display:none/inline-block sec)
+       pour que le texte se déplie en douceur au lieu d'apparaître d'un coup. */
+    .nav-btn-label {
+      display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
+      transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
+    }
+    .nav-btn.active .nav-btn-label { max-width: 160px; opacity: 1; margin-left: 7px; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card); color: var(--text);
@@ -752,19 +768,22 @@
     }
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .note-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .note-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .note-meta-item {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
-      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
-      border-radius: 20px; padding: 3px 10px; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+      background: rgba(0,0,0,0.18); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px 4px 6px; font-family: inherit;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
+    .note-meta-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
     button.note-meta-edited {
-      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+      cursor: pointer;
     }
     button.note-meta-edited:hover {
       background: var(--accent); color: var(--on-accent); border-color: var(--accent);
     }
+    .nhp-entry-head .note-meta-avatar { width: 20px; height: 20px; margin-right: 6px; }
     .note-history-popover {
       position: fixed; z-index: 9999; width: 300px; max-width: calc(100vw - 16px);
       max-height: 340px; overflow-y: auto;
@@ -788,6 +807,7 @@
       font-size: 0.72rem; color: var(--text-muted); margin-bottom: 3px;
     }
     .note-history-popover .nhp-entry-head strong { color: var(--text); }
+    .note-history-popover .nhp-entry-who { display: flex; align-items: center; }
     .note-history-popover .nhp-entry-text {
       font-size: 0.82rem; color: var(--text); white-space: pre-wrap; word-break: break-word;
     }
@@ -2173,6 +2193,8 @@
     #chartCustomTooltip .ctt-row {
       display: flex; align-items: center; gap: 7px; padding: 2px 0;
     }
+    #chartCustomTooltip .ctt-row-content { flex: 1; min-width: 0; }
+    #chartCustomTooltip .ctt-row-main { display: flex; align-items: center; gap: 7px; }
     #chartCustomTooltip .ctt-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     }
@@ -2198,23 +2220,47 @@
       font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text);
     }
     /* Seuils dérivés de la moyenne du Top (voir pointValueTier) : froid → banal
-       → chaud → incandescent, plus l'écart à la moyenne grandit. */
-    #chartCustomTooltip .ctt-val.pv-cold   { color: var(--text-muted); }
-    #chartCustomTooltip .ctt-val.pv-normal { color: var(--text); }
-    #chartCustomTooltip .ctt-val.pv-warm   { color: var(--warn); }
-    #chartCustomTooltip .ctt-val.pv-hot    {
-      color: var(--error); text-shadow: 0 0 6px rgba(255,71,87,0.5);
-    }
-    #chartCustomTooltip .ctt-val.pv-blaze  {
-      color: #ffb347; animation: ctt-blaze-pulse 1.1s ease-in-out infinite;
-    }
+       → chaud → incandescent, plus l'écart à la moyenne grandit. Couleurs pilotées
+       par variables CSS (personnalisables via le panneau ⚙️ Style, voir JS). */
+    #chartCustomTooltip .ctt-val.pv-cold   { color: var(--ctt-cold, var(--text-muted)); }
+    #chartCustomTooltip .ctt-val.pv-normal { color: var(--ctt-normal, var(--text)); }
+    #chartCustomTooltip .ctt-val.pv-warm   { color: var(--ctt-warm, var(--warn)); }
+    #chartCustomTooltip .ctt-val.pv-hot    { color: var(--ctt-hot, var(--error)); }
+    #chartCustomTooltip .ctt-val.pv-blaze  { color: var(--ctt-blaze, #ffb347); }
+    #chartCustomTooltip.ctt-effects-on .ctt-val.pv-hot { text-shadow: 0 0 6px color-mix(in srgb, var(--ctt-hot, var(--error)) 50%, transparent); }
+    #chartCustomTooltip.ctt-effects-on .ctt-val.pv-blaze { animation: ctt-blaze-pulse 1.1s ease-in-out infinite; }
     @keyframes ctt-blaze-pulse {
-      0%, 100% { text-shadow: 0 0 6px rgba(255,71,87,0.6), 0 0 2px rgba(255,165,0,0.6); }
-      50%      { text-shadow: 0 0 14px rgba(255,71,87,0.95), 0 0 8px rgba(255,165,0,0.9); }
+      0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--ctt-hot, var(--error)) 60%, transparent), 0 0 2px color-mix(in srgb, var(--ctt-blaze, #ffb347) 60%, transparent); }
+      50%      { text-shadow: 0 0 14px color-mix(in srgb, var(--ctt-hot, var(--error)) 95%, transparent), 0 0 8px color-mix(in srgb, var(--ctt-blaze, #ffb347) 90%, transparent); }
     }
     @media (prefers-reduced-motion: reduce) {
-      #chartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
+      #chartCustomTooltip.ctt-effects-on .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px color-mix(in srgb, var(--ctt-hot, var(--error)) 85%, transparent); }
     }
+    /* Jauge optionnelle : petite barre de progression sous chaque valeur,
+       proportionnelle au ratio valeur/moyenne du Top (voir pointValueTier). */
+    #chartCustomTooltip .ctt-gauge {
+      display: block; width: 100%; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.08); margin-top: 3px; overflow: hidden;
+    }
+    #chartCustomTooltip .ctt-gauge-fill {
+      display: block; height: 100%; border-radius: 2px;
+      transition: width 0.2s ease;
+    }
+    /* ── Panneau de personnalisation des infobulles (⚙️ Style) ── */
+    .tooltip-style-popover {
+      position: fixed; z-index: 9999; width: 260px; max-width: calc(100vw - 16px);
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45); animation: fadeIn 0.15s ease;
+      padding: 12px 14px;
+    }
+    .tsp-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px;
+    }
+    .tsp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 0.82rem; }
+    .tsp-row input[type="color"] { width: 32px; height: 24px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; padding: 0; }
+    .tsp-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .tsp-reset { margin-top: 8px; width: 100%; }
 
     /* ── SELECT OPTIONS — contraste garanti dans les deux thèmes ── */
     option {
@@ -2747,6 +2793,7 @@
           <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
           <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
           <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
+          <button class="chart-type-btn tooltip-style-btn" id="tooltipStyleBtn" type="button" title="Personnaliser l'infobulle du graphique (couleurs, jauge, effets)" style="margin-left:auto;">🎨 Style</button>
         </div>
 
         <div class="chart-controls" id="chartControls" style="display:none;"></div>
@@ -6886,7 +6933,7 @@
 
   function switchChartType(type) {
     currentChartType = type;
-    document.querySelectorAll('.chart-type-btn').forEach(b => {
+    document.querySelectorAll('.chart-type-btn[data-chart-type]').forEach(b => {
       b.classList.toggle('active', b.dataset.chartType === type);
     });
     const donutWrap = document.getElementById('donutPlayerWrap');
@@ -7112,18 +7159,147 @@
   // Classe une valeur de points selon son écart à la moyenne de son propre Top,
   // moyenne recalculée à chaque survol sur l'échantillon réellement affiché
   // (jamais de seuil ni d'échelle figés dans le code : tout dérive de la donnée).
-  function pointValueTier(value, sampleValues) {
+  function pointValueRatio(value, sampleValues) {
     if (!(value > 0)) return null;
     const valid = (sampleValues || []).filter(v => typeof v === 'number' && !isNaN(v));
     if (valid.length < 2) return null;
     const avg = valid.reduce((s, v) => s + v, 0) / valid.length;
     if (!(avg > 0)) return null;
-    const ratio = value / avg;
+    return value / avg;
+  }
+
+  function pointValueTier(value, sampleValues) {
+    const ratio = pointValueRatio(value, sampleValues);
+    if (ratio === null) return null;
     if (ratio < 0.6) return 'pv-cold';
     if (ratio < 1.4) return 'pv-normal';
     if (ratio < 2.2) return 'pv-warm';
     if (ratio < 3.2) return 'pv-hot';
     return 'pv-blaze';
+  }
+
+  // ── Personnalisation des infobulles (couleurs par palier, jauge, effets) ──
+  const TOOLTIP_PREFS_KEY = 'topsdestops_tooltip_prefs';
+  const DEFAULT_TOOLTIP_PREFS = {
+    colors: { cold: '#9aa5be', normal: '#e0e6ed', warm: '#ffa502', hot: '#ff4757', blaze: '#ffb347' },
+    gauge: false,
+    effects: true
+  };
+
+  function getTooltipStylePrefs() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(TOOLTIP_PREFS_KEY) || '{}');
+      return {
+        colors: Object.assign({}, DEFAULT_TOOLTIP_PREFS.colors, raw.colors || {}),
+        gauge: typeof raw.gauge === 'boolean' ? raw.gauge : DEFAULT_TOOLTIP_PREFS.gauge,
+        effects: typeof raw.effects === 'boolean' ? raw.effects : DEFAULT_TOOLTIP_PREFS.effects
+      };
+    } catch { return JSON.parse(JSON.stringify(DEFAULT_TOOLTIP_PREFS)); }
+  }
+
+  function saveTooltipStylePrefs(prefs) {
+    localStorage.setItem(TOOLTIP_PREFS_KEY, JSON.stringify(prefs));
+    applyTooltipStylePrefs(prefs);
+  }
+
+  function applyTooltipStylePrefs(prefs) {
+    const el = document.getElementById('chartCustomTooltip');
+    if (!el) return;
+    el.style.setProperty('--ctt-cold', prefs.colors.cold);
+    el.style.setProperty('--ctt-normal', prefs.colors.normal);
+    el.style.setProperty('--ctt-warm', prefs.colors.warm);
+    el.style.setProperty('--ctt-hot', prefs.colors.hot);
+    el.style.setProperty('--ctt-blaze', prefs.colors.blaze);
+    el.classList.toggle('ctt-effects-on', !!prefs.effects);
+  }
+
+  // Jauge proportionnelle au ratio valeur/moyenne (même échelle que les paliers
+  // de couleur : 0 → froid, ~3.2x la moyenne → incandescent).
+  function buildTooltipGauge(tier, ratio) {
+    const wrap = document.createElement('span');
+    wrap.className = 'ctt-gauge';
+    const fill = document.createElement('span');
+    fill.className = 'ctt-gauge-fill';
+    const pct = Math.max(4, Math.min(100, (ratio || 0) / 3.2 * 100));
+    fill.style.width = pct + '%';
+    fill.style.background = 'var(--ctt-' + tier.replace('pv-', '') + ')';
+    wrap.appendChild(fill);
+    return wrap;
+  }
+
+  function openTooltipStylePopover(anchorEl) {
+    closeTooltipStylePopover();
+    const prefs = getTooltipStylePrefs();
+
+    const pop = document.createElement('div');
+    pop.className = 'tooltip-style-popover';
+    pop.innerHTML = '<div class="tsp-title">🎨 Style de l\'infobulle</div>';
+
+    const tiers = [
+      ['cold', 'Froid'], ['normal', 'Normal'], ['warm', 'Chaud'], ['hot', 'Très chaud'], ['blaze', 'Incandescent']
+    ];
+    tiers.forEach(([key, label]) => {
+      const row = document.createElement('label');
+      row.className = 'tsp-row';
+      const span = document.createElement('span'); span.textContent = label;
+      const input = document.createElement('input');
+      input.type = 'color'; input.value = prefs.colors[key];
+      input.addEventListener('input', () => {
+        prefs.colors[key] = input.value;
+        saveTooltipStylePrefs(prefs);
+      });
+      row.appendChild(span); row.appendChild(input);
+      pop.appendChild(row);
+    });
+
+    const gaugeRow = document.createElement('label');
+    gaugeRow.className = 'tsp-row';
+    const gaugeSpan = document.createElement('span'); gaugeSpan.textContent = 'Jauge de progression';
+    const gaugeInput = document.createElement('input');
+    gaugeInput.type = 'checkbox'; gaugeInput.checked = prefs.gauge;
+    gaugeInput.addEventListener('change', () => { prefs.gauge = gaugeInput.checked; saveTooltipStylePrefs(prefs); });
+    gaugeRow.appendChild(gaugeSpan); gaugeRow.appendChild(gaugeInput);
+    pop.appendChild(gaugeRow);
+
+    const fxRow = document.createElement('label');
+    fxRow.className = 'tsp-row';
+    const fxSpan = document.createElement('span'); fxSpan.textContent = 'Effets (lueur / pulsation)';
+    const fxInput = document.createElement('input');
+    fxInput.type = 'checkbox'; fxInput.checked = prefs.effects;
+    fxInput.addEventListener('change', () => { prefs.effects = fxInput.checked; saveTooltipStylePrefs(prefs); });
+    fxRow.appendChild(fxSpan); fxRow.appendChild(fxInput);
+    pop.appendChild(fxRow);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button'; resetBtn.className = 'small tsp-reset';
+    resetBtn.textContent = '↺ Réinitialiser';
+    resetBtn.addEventListener('click', () => {
+      const def = JSON.parse(JSON.stringify(DEFAULT_TOOLTIP_PREFS));
+      saveTooltipStylePrefs(def);
+      closeTooltipStylePopover();
+      openTooltipStylePopover(anchorEl);
+    });
+    pop.appendChild(resetBtn);
+
+    document.body.appendChild(pop);
+    const rect = anchorEl.getBoundingClientRect();
+    pop.style.top = (rect.bottom + 6) + 'px';
+    let left = rect.right - 260;
+    if (left < 8) left = 8;
+    pop.style.left = left + 'px';
+
+    _activeTooltipStylePopover = pop;
+    const onDocClick = e => { if (!pop.contains(e.target) && e.target !== anchorEl) closeTooltipStylePopover(); };
+    setTimeout(() => document.addEventListener('click', onDocClick), 0);
+    pop._onDocClick = onDocClick;
+  }
+
+  let _activeTooltipStylePopover = null;
+  function closeTooltipStylePopover() {
+    if (!_activeTooltipStylePopover) return;
+    if (_activeTooltipStylePopover._onDocClick) document.removeEventListener('click', _activeTooltipStylePopover._onDocClick);
+    _activeTooltipStylePopover.remove();
+    _activeTooltipStylePopover = null;
   }
 
   function buildCustomTooltipPlugin(opts) {
@@ -7139,6 +7315,7 @@
           const { chart: ch, tooltip } = ctx;
           if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
 
+          const tooltipPrefs = getTooltipStylePrefs();
           el.innerHTML = '';
 
           if (tooltip.title && tooltip.title.length) {
@@ -7194,17 +7371,31 @@
               }
             }
 
+            const content = document.createElement('div');
+            content.className = 'ctt-row-content';
+
+            const line = document.createElement('div');
+            line.className = 'ctt-row-main';
+
             const label = document.createElement('span');
             label.className = 'ctt-label';
             label.textContent = dsLabel;
 
             const val = document.createElement('span');
             val.className = 'ctt-val';
+            const ratio = pointValueRatio(dp.raw, dp.dataset.data);
             const tier = pointValueTier(dp.raw, dp.dataset.data);
             if (tier) val.classList.add(tier);
             val.textContent = dp.formattedValue + ' pts';
 
-            row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
+            line.appendChild(label); line.appendChild(val);
+            content.appendChild(line);
+
+            if (tooltipPrefs.gauge && tier) {
+              content.appendChild(buildTooltipGauge(tier, ratio));
+            }
+
+            row.appendChild(indicator); row.appendChild(content);
             el.appendChild(row);
           });
 
@@ -10368,6 +10559,18 @@
     return '';
   }
 
+  // Avatar obligatoire partout où un nom de joueur apparaît (§7) : les pastilles
+  // "Créé par"/"Modifié par" et l'historique doivent aussi porter l'avatar.
+  function buildNoteAuthorAvatar(name) {
+    const img = document.createElement('img');
+    img.className = 'note-meta-avatar';
+    const p = cachedPlayers.find(pl => pl.name === name);
+    img.src = getAvatarUrl(name, p ? p.meta : '');
+    img.alt = '';
+    img.onerror = () => img.remove();
+    return img;
+  }
+
   function buildNoteCard(note) {
     const d = note.timestamp ? new Date(note.timestamp) : null;
     const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
@@ -10397,7 +10600,8 @@
     if (note.createdBy) {
       const createdEl = document.createElement('span');
       createdEl.className = 'note-meta-item';
-      createdEl.textContent = '✍️ Créé par ' + note.createdBy;
+      createdEl.appendChild(buildNoteAuthorAvatar(note.createdBy));
+      createdEl.appendChild(document.createTextNode('Créé par ' + note.createdBy));
       meta.appendChild(createdEl);
     }
     if (note.lastEditedBy && note.lastEditedAt) {
@@ -10406,7 +10610,8 @@
       const editedBtn = document.createElement('button');
       editedBtn.type = 'button';
       editedBtn.className = 'note-meta-item note-meta-edited';
-      editedBtn.textContent = '📝 Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : '') + '  ⏱';
+      editedBtn.appendChild(buildNoteAuthorAvatar(note.lastEditedBy));
+      editedBtn.appendChild(document.createTextNode('Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : '') + '  ⏱'));
       editedBtn.title = 'Voir l\'historique des modifications';
       editedBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -10482,16 +10687,31 @@
         body.innerHTML = '<p class="nhp-empty">Aucune modification enregistrée.</p>';
         return;
       }
-      body.innerHTML = entries.map(en => {
+      body.innerHTML = '';
+      entries.forEach(en => {
         const d = new Date(en.timestamp);
         const ds = !isNaN(d)
           ? d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
           : '';
-        return '<div class="nhp-entry">' +
-          '<div class="nhp-entry-head"><strong>' + escapeHtml(en.author || '?') + '</strong><span>' + ds + '</span></div>' +
-          '<div class="nhp-entry-text">' + escapeHtml(en.after) + '</div>' +
-        '</div>';
-      }).join('');
+        const entry = document.createElement('div');
+        entry.className = 'nhp-entry';
+        const head = document.createElement('div');
+        head.className = 'nhp-entry-head';
+        const who = document.createElement('span');
+        who.className = 'nhp-entry-who';
+        if (en.author) who.appendChild(buildNoteAuthorAvatar(en.author));
+        const strong = document.createElement('strong');
+        strong.textContent = en.author || '?';
+        who.appendChild(strong);
+        const span = document.createElement('span');
+        span.textContent = ds;
+        head.appendChild(who); head.appendChild(span);
+        const text = document.createElement('div');
+        text.className = 'nhp-entry-text';
+        text.textContent = en.after;
+        entry.appendChild(head); entry.appendChild(text);
+        body.appendChild(entry);
+      });
     });
   }
 
@@ -11104,9 +11324,23 @@
 
   // ── BOUTONS ───────────────────────────────────────────────────────────
   function bindButtons() {
-    document.getElementById('mainChart').addEventListener('mouseleave', () => {
+    // Chart.js dessine lui-même un point/curseur actif sur le canvas pendant le
+    // survol (indépendant de la bulle #chartCustomTooltip) ; masquer la bulle ne
+    // l'efface pas. Il faut explicitement vider les éléments actifs du graphique
+    // pour que ce repère visuel disparaisse en même temps que la bulle.
+    function hideChartHover() {
       const el = document.getElementById('chartCustomTooltip');
       if (el) el.classList.remove('visible');
+      if (currentChart) {
+        currentChart.setActiveElements([]);
+        if (currentChart.tooltip) currentChart.tooltip.setActiveElements([], { x: 0, y: 0 });
+        currentChart.update('none');
+      }
+    }
+    document.getElementById('mainChart').addEventListener('mouseleave', hideChartHover);
+    document.getElementById('tooltipStyleBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      openTooltipStylePopover(e.currentTarget);
     });
     // Filet de sécurité : la légende Chart.js est dessinée à l'intérieur du
     // même <canvas>, donc mouseleave n'y suffit pas (le curseur reste
@@ -11122,12 +11356,9 @@
       const tRect = el.getBoundingClientRect();
       const inCanvas  = e.clientX >= cRect.left && e.clientX <= cRect.right && e.clientY >= cRect.top && e.clientY <= cRect.bottom;
       const inTooltip = e.clientX >= tRect.left && e.clientX <= tRect.right && e.clientY >= tRect.top && e.clientY <= tRect.bottom;
-      if (!inCanvas && !inTooltip) el.classList.remove('visible');
+      if (!inCanvas && !inTooltip) hideChartHover();
     });
-    document.addEventListener('mouseleave', () => {
-      const el = document.getElementById('chartCustomTooltip');
-      if (el) el.classList.remove('visible');
-    });
+    document.addEventListener('mouseleave', hideChartHover);
 
     document.getElementById('bulkImportCancel').addEventListener('click', closeBulkImportModal);
     document.getElementById('bulkImportSave').addEventListener('click', saveBulkImport);
@@ -11273,7 +11504,7 @@
       () => _histSortDir,
       dir => { _histSortDir = dir; reloadHistFromDateChange(); });
 
-    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+    document.querySelectorAll('#chartTypeBar .chart-type-btn[data-chart-type]').forEach(btn => {
       btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
     });
 
@@ -12497,6 +12728,7 @@
     initSettingsTabs();
     initHistoryTabs();
     initChatWidget();
+    applyTooltipStylePrefs(getTooltipStylePrefs());
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
