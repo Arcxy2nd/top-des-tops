@@ -4,9 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
-## [Non publié] - 2026-07-18
+## [Non publié] - 2026-07-21
+
+### Ajouté
+**Humanisé** : Chaque note affiche maintenant qui l'a créée, et si elle a été modifiée, par qui et quand.
+**Technique** : Feuille `Notes` étendue de 3 à 6 colonnes (`Date | Joueur | Note | Auteur | ModifiéPar | ModifiéLe`), migration douce via `NotesService._ensureAuthorColumns()` (ajoute les en-têtes manquants sans toucher aux notes existantes). `addNote(player, text, dateStr, author)` et `editNote(rowIndex, newText, editor)` écrivent désormais l'auteur/l'éditeur ; `getAllNotes()` renvoie `createdBy`/`lastEditedBy`/`lastEditedAt`. `apiAddNote`/`apiEditNote`/`apiDeleteNote` (Code.gs) journalisent sur 6 colonnes au lieu de 3. `Index.html`/`Mobile.html` : ligne `.note-meta`/`.m-note-meta` sous chaque note.
 
 ### Modifié
+**Humanisé** : La barre de navigation est plus compacte : les onglets n'affichent plus que leur icône, le nom apparaît au survol ou quand l'onglet est ouvert.
+**Technique** : `Index.html` — `navButtonHtml()` sépare icône (`.nav-btn-icon`) et libellé (`.nav-btn-label`, `max-width:0` par défaut, déployé au `:hover`/`.active` via transition CSS).
+
+**Humanisé** : Le record absolu (le meilleur score jamais fait en une seule entrée) apparaît maintenant dès l'ouverture du Dashboard, dans le bandeau résumé en haut de page — plus besoin d'aller chercher dans les statistiques du bas.
+**Technique** : `Code.gs` — `apiGetQuickStats()` calcule et renvoie `stats.globalBest`. `Index.html` — nouvelle pill `#qsRecordPill` dans `#quickStatsBar`, alimentée par `loadQuickStats()`, clic renvoie vers l'onglet Records du hub Statistiques (`goToRecords()`).
+
+**Humanisé** : Dans la légende du graphique principal, cliquer sur un Top le barre/masque à nouveau individuellement (comme avant), au lieu d'isoler ce Top et de masquer tous les autres. La légende est aussi un peu plus soignée (points ronds, espacement).
+**Technique** : `Index.html` — `isolatableLegendOnClick` remplacé par `toggleLegendOnClick` (toggle classique par dataset/segment) ; nouveau helper `CHART_LEGEND_LABELS(c)` (`usePointStyle`, `pointStyle:'circle'`, `boxWidth/boxHeight`, `padding`) appliqué aux 3 configurations de légende (stacked/grouped/radar/doughnut, courbes, classement détaillé).
+
 **Humanisé** : Le choix de date/période dans la saisie de lot est repensé pour être vraiment intuitif. Un interrupteur clair remplace la case à cocher : **« Un jour »** (par défaut, le cas courant) ou **« Une période »**. En mode période, un **mini-calendrier** s'ouvre : on clique le 1er jour puis le dernier, et la période se colore entre les deux — fini les deux champs de dates abstraits et le filtre par jour de la semaine (retiré, inutile pour l'usage réel). Le choix « Répéter / Répartir » devient deux options en français clair — **« Le même score chaque jour »** ou **« Un total à répartir »** — avec un **aperçu chiffré live** (« 3 pts ÷ 7 jours ≈ 0,4 / jour ») pour voir l'effet sans deviner. Le bloc « date par défaut » adopte le même interrupteur et le même langage.
 **Technique** : `Index.html` — la cellule date (`.d-cell`) passe d'un affichage inline permanent (champ + 8 chips + case Plage + Répéter/Répartir + sélecteur de jours) à un interrupteur segmenté `.d-mode-seg` pilotant deux panneaux `.d-single` / `.d-period`. Nouveau composant `createMiniCalendar(startInput, endInput, onChange)` (sélection de période continue, navigation de mois, surbrillance `.in-range`/`.is-end`) ; `createFillToggle` refait en options plain-language (`.fill-choice`/`.fill-opt`, `data-fill`) avec callback `onChange` ; ligne d'aperçu `.d-fill-preview` mise à jour via `updateDatePreview()` (branchée sur points, calendrier, mode, fill). Helpers `daysBetweenInclusive()` + `MONTHS_FR`. Les hooks de lecture sont conservés (`.d-start`/`.d-end`/`.range-cb` caché = mode période/`.line-fill`/`.day-picker-wrap` caché à `'[]'`) → envoi/duplication inchangés ; `applyDateAllBtn` réécrit via `row.__applyDate()` + helper `setLineFill()`. Code mort retiré (`buildRowRangePresets`, `datePillLabel`, CSS pastille/popover/`.row-range-details`). `Mobile.html` inchangé (saisie de lot mobile à date unique, sans période — choix assumé).
 

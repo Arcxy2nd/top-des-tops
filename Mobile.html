@@ -217,6 +217,7 @@
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
     .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
+    .m-note-meta { font-size: 1.4rem; color: var(--text-muted); margin-top: 8px; }
 
     /* ── LIVRE DES RECORDS — kit de lignes classées (parité PC, échelle tactile) ── */
     .sr-list { display: flex; flex-direction: column; gap: 14px; }
@@ -1775,10 +1776,19 @@
         const p = cachedPlayers.find(p => p.name === n.player);
         const d = n.timestamp ? new Date(n.timestamp) : null;
         const ds = d ? (String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear()) : '';
+        const metaParts = [];
+        if (n.createdBy) metaParts.push('Créé par ' + n.createdBy);
+        if (n.lastEditedBy && n.lastEditedAt) {
+          const ed = new Date(n.lastEditedAt);
+          const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
+          metaParts.push('Modifié par ' + n.lastEditedBy + (eds ? ' le ' + eds : ''));
+        }
+        const noteMetaHtml = metaParts.length ? '<div class="m-note-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '';
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +
           '<div class="m-hist-desc">' + renderMarkdown(n.text) + '</div>' +
+          noteMetaHtml +
           '<div class="m-hist-actions">' +
           '<button class="small" data-edit="' + n.rowIndex + '">✏️</button>' +
           '<button class="danger small" data-del="' + n.rowIndex + '">🗑️</button>' +

@@ -299,6 +299,8 @@ Le projet n'a pas de suite de tests automatisés. Vérifier les changements via 
 
 Toute modification livrée doit être commit **et poussée** (`git push`) — pas seulement commit en local. Le push déclenche le déploiement automatique (§10), donc un commit non poussé ne se retrouve jamais dans l'app en ligne. **Ne jamais demander la permission de committer/pousser** — c'est systématique, pas un choix à valider à chaque fois.
 
+**Deux comptes GitHub actifs sur la machine** (`Arcxy2nd` et `zebi-wouldik`) — avant tout `pull`/`push`/`commit` distant, vérifier le compte actif (`gh auth status`) et basculer sur `Arcxy2nd` si besoin (`gh auth switch --user Arcxy2nd`).
+
 ---
 
 ## §9 — SKILLS — USAGE OBLIGATOIRE

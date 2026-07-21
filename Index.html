@@ -97,15 +97,26 @@
     .nav-btn {
       background: transparent; border: none;
       color: var(--text-muted); font-size: 0.88rem;
-      padding: 15px 16px; cursor: pointer;
+      padding: 15px 14px; cursor: pointer;
       border-bottom: 3px solid transparent;
       white-space: nowrap; min-height: var(--tap-min);
       font-weight: 500; transition: color 0.2s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      display: flex; align-items: center;
     }
     .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+    .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
+    .nav-btn-label {
+      display: inline-block; overflow: hidden; white-space: nowrap;
+      max-width: 0; margin-left: 0; opacity: 0;
+      transition: max-width 0.25s ease, margin-left 0.25s ease, opacity 0.2s ease;
+    }
+    .nav-btn:hover .nav-btn-label,
+    .nav-btn.active .nav-btn-label {
+      max-width: 160px; margin-left: 7px; opacity: 1;
+    }
 
     /* ── Identité de l'app (titre + logo) ── */
     .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 4px; flex-shrink: 0; }
@@ -732,6 +743,7 @@
     }
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .note-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 8px; }
     .note-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
 
     /* ── NOTES : un bloc par joueur ── */
@@ -2566,6 +2578,13 @@
       <span class="qs-pill-value" id="qsLastValue">—</span>
     </div>
   </button>
+  <button type="button" class="qs-pill qs-record" id="qsRecordPill" title="Voir le livre des records">
+    <img class="qs-avatar" id="qsRecordAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🏅 Record absolu</span>
+      <span class="qs-pill-value" id="qsRecordValue">—</span>
+    </div>
+  </button>
 </div>
 
 <div class="container">
@@ -3882,13 +3901,15 @@
     const gapValue     = document.getElementById('qsGapValue');
     const monthValue   = document.getElementById('qsMonthValue');
     const lastValue    = document.getElementById('qsLastValue');
-    [leaderValue, gapValue, monthValue, lastValue].forEach(el => skeletonizeText(el, 60));
+    const recordValue  = document.getElementById('qsRecordValue');
+    [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => skeletonizeText(el, 60));
 
     callServer('apiGetQuickStats', [], res => {
       const s = res.stats;
       const leaderAvatar = document.getElementById('qsLeaderAvatar');
       const lastAvatar   = document.getElementById('qsLastAvatar');
-      [leaderValue, gapValue, monthValue, lastValue].forEach(el => unskeletonizeText(el));
+      const recordAvatar = document.getElementById('qsRecordAvatar');
+      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => unskeletonizeText(el));
 
       if (s.leader) {
         const p = cachedPlayers.find(pl => pl.name === s.leader.player);
@@ -3920,6 +3941,17 @@
         lastAvatar.style.display = 'none';
         lastValue.textContent = 'Aucun événement';
       }
+
+      if (s.globalBest) {
+        const p = cachedPlayers.find(pl => pl.name === s.globalBest.player);
+        recordAvatar.src = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
+        recordAvatar.onerror = () => { recordAvatar.src = getAvatarUrl(s.globalBest.player, ''); };
+        recordAvatar.style.display = '';
+        recordValue.textContent = s.globalBest.player + ' · ' + s.globalBest.points + ' pts';
+      } else {
+        recordAvatar.style.display = 'none';
+        recordValue.textContent = 'Aucun record';
+      }
     }, 'Chargement résumé');
   }
 
@@ -3927,10 +3959,16 @@
     goToTab('tab-dashboard');
     document.getElementById('phrasesCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  function goToRecords() {
+    goToTab('tab-dashboard');
+    if (typeof switchStatsHubPane === 'function') switchStatsHubPane('records');
+    document.getElementById('statsHubCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   document.getElementById('qsLeaderPill').addEventListener('click', goToPodium);
   document.getElementById('qsGapPill').addEventListener('click', goToPodium);
   document.getElementById('qsMonthPill').addEventListener('click', () => goToTab('tab-history'));
   document.getElementById('qsLastPill').addEventListener('click', () => goToTab('tab-history'));
+  document.getElementById('qsRecordPill').addEventListener('click', goToRecords);
 
   // ── ICÔNES DE CATÉGORIE (emoji) ──────────────────────────────────────
   function catIcon(name) {
@@ -7127,35 +7165,29 @@
     };
   }
 
-  // Légende isolable : clic isole la série cliquée (masque les autres), reclic restaure tout.
+  // Légende classique : clic barre/masque uniquement la série cliquée, reclic la restaure.
   // Cas particulier donut/pie : un seul dataset, une entrée de légende par part (pas de
   // datasetIndex exploitable) — on bascule alors la visibilité par index de donnée.
-  function isolatableLegendOnClick(e, legendItem, legend) {
+  function toggleLegendOnClick(e, legendItem, legend) {
     const chart = legend.chart;
 
     if (chart.data.datasets.length === 1 && legendItem.index !== undefined) {
-      const n = chart.data.labels.length;
-      const visible = [];
-      for (let i = 0; i < n; i++) if (chart.getDataVisibility(i)) visible.push(i);
-      const onlyThisVisible = visible.length === 1 && visible[0] === legendItem.index;
-      for (let i = 0; i < n; i++) {
-        const shouldBeVisible = onlyThisVisible ? true : (i === legendItem.index);
-        if (chart.getDataVisibility(i) !== shouldBeVisible) chart.toggleDataVisibility(i);
-      }
+      chart.toggleDataVisibility(legendItem.index);
       chart.update();
       return;
     }
 
-    const metas = chart.data.datasets.map((_, i) => chart.getDatasetMeta(i));
-    const onlyThisVisible = metas.every((m, i) => i === legendItem.datasetIndex ? !m.hidden : !!m.hidden);
-
-    if (onlyThisVisible) {
-      metas.forEach(m => { m.hidden = false; });
-    } else {
-      metas.forEach((m, i) => { m.hidden = i !== legendItem.datasetIndex; });
-    }
+    const meta = chart.getDatasetMeta(legendItem.datasetIndex);
+    meta.hidden = meta.hidden === null ? !chart.data.datasets[legendItem.datasetIndex].hidden : !meta.hidden;
     chart.update();
   }
+
+  // Styles communs de légende : points ronds espacés, texte barré sur les séries masquées.
+  const CHART_LEGEND_LABELS = c => ({
+    color: c.text, font: { size: 12 },
+    usePointStyle: true, pointStyle: 'circle',
+    boxWidth: 9, boxHeight: 9, padding: 14
+  });
 
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
@@ -7174,7 +7206,7 @@
     const baseOpts = {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: c.text, font: { size: 12 } }, onClick: isolatableLegendOnClick },
+        legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
         tooltip: { mode: 'index', intersect: false }
       }
     };
@@ -7313,7 +7345,7 @@
             tooltip: { mode: 'index', axis: 'y', intersect: false },
             // Légende volontairement non isolable sur le Classement (une seule barre par
             // joueur en mode simple — isoler une "série" n'a pas de sens ici).
-            legend: { display: chartOptions.detailed, labels: { color: c.text } }
+            legend: { display: chartOptions.detailed, labels: CHART_LEGEND_LABELS(c) }
           },
           scales: {
             x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
@@ -7530,7 +7562,7 @@
           y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
         plugins: {
-          legend: { labels: { color: c.text, font: { size: 12 } }, onClick: isolatableLegendOnClick },
+          legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
           tooltip: { mode: 'index', intersect: false }
         },
         onClick: (evt, elements) => {
@@ -10275,6 +10307,18 @@
     const txt = document.createElement('div');
     txt.className = 'note-text'; txt.innerHTML = renderMarkdown(note.text);
 
+    const meta = document.createElement('div');
+    meta.className = 'note-meta';
+    const metaParts = [];
+    if (note.createdBy) metaParts.push('Créé par ' + note.createdBy);
+    if (note.lastEditedBy && note.lastEditedAt) {
+      const ed = new Date(note.lastEditedAt);
+      const edStr = !isNaN(ed) ? ed.toLocaleDateString('fr-FR') : '';
+      metaParts.push('Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : ''));
+    }
+    meta.textContent = metaParts.join(' · ');
+    if (!metaParts.length) meta.style.display = 'none';
+
     const actions = document.createElement('div');
     actions.className = 'note-actions';
     const editBtn = document.createElement('button');
@@ -10300,7 +10344,7 @@
     });
     actions.appendChild(editBtn); actions.appendChild(delBtn);
 
-    card.appendChild(headc); card.appendChild(txt); card.appendChild(actions);
+    card.appendChild(headc); card.appendChild(txt); card.appendChild(meta); card.appendChild(actions);
     return card;
   }
 
@@ -10338,7 +10382,11 @@
       closeModal();
       callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], () => {
         const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
-        if (target) target.text = v;
+        if (target) {
+          target.text = v;
+          target.lastEditedBy = _whoAmI || '';
+          target.lastEditedAt = new Date().toISOString();
+        }
         renderNotesBlocks();
         showToast('Note modifiée.', 'success');
       }, 'Édition note');
@@ -10782,8 +10830,10 @@
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
-    return '<button class="nav-btn' + (extraClass ? ' ' + extraClass : '') + '" data-tab="' + page.id + '">' +
-      page.icon + ' ' + page.label + countSpan + '</button>';
+    return '<button class="nav-btn' + (extraClass ? ' ' + extraClass : '') + '" data-tab="' + page.id + '" title="' + page.label + '">' +
+      '<span class="nav-btn-icon">' + page.icon + '</span>' +
+      '<span class="nav-btn-label">' + page.label + '</span>' +
+      countSpan + '</button>';
   }
 
   function renderNav() {
