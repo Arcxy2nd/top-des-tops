@@ -2246,21 +2246,13 @@
       display: block; height: 100%; border-radius: 2px;
       transition: width 0.2s ease;
     }
-    /* ── Panneau de personnalisation des infobulles (⚙️ Style) ── */
-    .tooltip-style-popover {
-      position: fixed; z-index: 9999; width: 260px; max-width: calc(100vw - 16px);
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45); animation: fadeIn 0.15s ease;
-      padding: 12px 14px;
-    }
-    .tsp-title {
-      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px;
-    }
-    .tsp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 0.82rem; }
+    /* ── Réglages de style des infobulles (Paramètres → 🎨 Identité) ── */
+    .tsp-inline { max-width: 320px; }
+    .tsp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    .tsp-row:last-of-type { border-bottom: none; }
     .tsp-row input[type="color"] { width: 32px; height: 24px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; padding: 0; }
     .tsp-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .tsp-reset { margin-top: 8px; width: 100%; }
+    .tsp-reset { margin-top: 10px; }
 
     /* ── SELECT OPTIONS — contraste garanti dans les deux thèmes ── */
     option {
@@ -2793,7 +2785,6 @@
           <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
           <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
           <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
-          <button class="chart-type-btn tooltip-style-btn" id="tooltipStyleBtn" type="button" title="Personnaliser l'infobulle du graphique (couleurs, jauge, effets)" style="margin-left:auto;">🎨 Style</button>
         </div>
 
         <div class="chart-controls" id="chartControls" style="display:none;"></div>
@@ -3151,6 +3142,9 @@
         <input type="url" id="appSettingsLogo" placeholder="https://…">
         <button id="saveAppSettingsBtn" class="primary small">💾 Enregistrer</button>
       </div>
+
+      <h2 style="margin-top:22px;">🎨 Style de l'infobulle des graphiques</h2>
+      <div id="tooltipStyleSettings" class="tsp-inline"></div>
     </div>
 
   </div>
@@ -7227,13 +7221,14 @@
     return wrap;
   }
 
-  function openTooltipStylePopover(anchorEl) {
-    closeTooltipStylePopover();
+  // Rendu inline dans Paramètres → 🎨 Identité (pas un popover : c'est un
+  // réglage permanent de l'app, sa place est dans les paramètres, pas flottant
+  // à côté des boutons de type de graphique).
+  function renderTooltipStyleSettings() {
+    const host = document.getElementById('tooltipStyleSettings');
+    if (!host) return;
     const prefs = getTooltipStylePrefs();
-
-    const pop = document.createElement('div');
-    pop.className = 'tooltip-style-popover';
-    pop.innerHTML = '<div class="tsp-title">🎨 Style de l\'infobulle</div>';
+    host.innerHTML = '';
 
     const tiers = [
       ['cold', 'Froid'], ['normal', 'Normal'], ['warm', 'Chaud'], ['hot', 'Très chaud'], ['blaze', 'Incandescent']
@@ -7249,7 +7244,7 @@
         saveTooltipStylePrefs(prefs);
       });
       row.appendChild(span); row.appendChild(input);
-      pop.appendChild(row);
+      host.appendChild(row);
     });
 
     const gaugeRow = document.createElement('label');
@@ -7259,7 +7254,7 @@
     gaugeInput.type = 'checkbox'; gaugeInput.checked = prefs.gauge;
     gaugeInput.addEventListener('change', () => { prefs.gauge = gaugeInput.checked; saveTooltipStylePrefs(prefs); });
     gaugeRow.appendChild(gaugeSpan); gaugeRow.appendChild(gaugeInput);
-    pop.appendChild(gaugeRow);
+    host.appendChild(gaugeRow);
 
     const fxRow = document.createElement('label');
     fxRow.className = 'tsp-row';
@@ -7268,38 +7263,16 @@
     fxInput.type = 'checkbox'; fxInput.checked = prefs.effects;
     fxInput.addEventListener('change', () => { prefs.effects = fxInput.checked; saveTooltipStylePrefs(prefs); });
     fxRow.appendChild(fxSpan); fxRow.appendChild(fxInput);
-    pop.appendChild(fxRow);
+    host.appendChild(fxRow);
 
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button'; resetBtn.className = 'small tsp-reset';
     resetBtn.textContent = '↺ Réinitialiser';
     resetBtn.addEventListener('click', () => {
-      const def = JSON.parse(JSON.stringify(DEFAULT_TOOLTIP_PREFS));
-      saveTooltipStylePrefs(def);
-      closeTooltipStylePopover();
-      openTooltipStylePopover(anchorEl);
+      saveTooltipStylePrefs(JSON.parse(JSON.stringify(DEFAULT_TOOLTIP_PREFS)));
+      renderTooltipStyleSettings();
     });
-    pop.appendChild(resetBtn);
-
-    document.body.appendChild(pop);
-    const rect = anchorEl.getBoundingClientRect();
-    pop.style.top = (rect.bottom + 6) + 'px';
-    let left = rect.right - 260;
-    if (left < 8) left = 8;
-    pop.style.left = left + 'px';
-
-    _activeTooltipStylePopover = pop;
-    const onDocClick = e => { if (!pop.contains(e.target) && e.target !== anchorEl) closeTooltipStylePopover(); };
-    setTimeout(() => document.addEventListener('click', onDocClick), 0);
-    pop._onDocClick = onDocClick;
-  }
-
-  let _activeTooltipStylePopover = null;
-  function closeTooltipStylePopover() {
-    if (!_activeTooltipStylePopover) return;
-    if (_activeTooltipStylePopover._onDocClick) document.removeEventListener('click', _activeTooltipStylePopover._onDocClick);
-    _activeTooltipStylePopover.remove();
-    _activeTooltipStylePopover = null;
+    host.appendChild(resetBtn);
   }
 
   function buildCustomTooltipPlugin(opts) {
@@ -11338,10 +11311,6 @@
       }
     }
     document.getElementById('mainChart').addEventListener('mouseleave', hideChartHover);
-    document.getElementById('tooltipStyleBtn').addEventListener('click', e => {
-      e.stopPropagation();
-      openTooltipStylePopover(e.currentTarget);
-    });
     // Filet de sécurité : la légende Chart.js est dessinée à l'intérieur du
     // même <canvas>, donc mouseleave n'y suffit pas (le curseur reste
     // "dans" le canvas en survolant la légende, le tooltip peut y rester
@@ -12729,6 +12698,7 @@
     initHistoryTabs();
     initChatWidget();
     applyTooltipStylePrefs(getTooltipStylePrefs());
+    renderTooltipStyleSettings();
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
