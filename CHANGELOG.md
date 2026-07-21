@@ -106,6 +106,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : La bulle d'info du graphique du Dashboard devient personnalisable : un bouton « 🎨 Style » à côté des types de graphique ouvre un panneau pour choisir la couleur de chaque palier (froid/normal/chaud/très chaud/incandescent), activer une jauge de progression sous chaque valeur, et activer/désactiver les effets de lueur/pulsation. Choix mémorisés d'une visite à l'autre.
 **Technique** : `Index.html` — préférences stockées dans `localStorage` (`topsdestops_tooltip_prefs`), lues/écrites via `getTooltipStylePrefs()`/`saveTooltipStylePrefs()`, appliquées en variables CSS (`--ctt-cold/normal/warm/hot/blaze`) et classe `.ctt-effects-on` sur `#chartCustomTooltip` par `applyTooltipStylePrefs()`. Panneau `openTooltipStylePopover()` (5 `<input type="color">` + 2 cases à cocher + réinitialisation), même famille de popover que `openNoteHistoryPopover`. Jauge optionnelle : `buildTooltipGauge(tier, ratio)`, `.ctt-gauge`/`.ctt-gauge-fill`, ratio exposé par `pointValueRatio()` (extrait de `pointValueTier`, inchangé sinon). Pas de dépendance externe ajoutée : jauge et couleurs codées en CSS/SVG maison plutôt qu'une bibliothèque tierce (coût de perf par re-render de tooltip au survol, et personnalisation plus simple à contrôler nous-mêmes).
 
+### Modifié
+**Humanisé** : Ordre des onglets de la barre de navigation revu : Dashboard, Saisir un Lot, Notes, Historique, Paramètres, Guide.
+**Technique** : `Code.gs` — réordonnancement du tableau `NAV_PAGES` (source unique consommée par `Index.html` et `Mobile.html` via `apiGetNavPages()`), aucun autre changement nécessaire.
+
 ## [Non publié] - 2026-07-17
 
 ### Corrigé

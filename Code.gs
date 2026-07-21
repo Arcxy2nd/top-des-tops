@@ -45,9 +45,9 @@ function _generateGroupId() { return 'G' + Date.now() + '_' + Math.random().toSt
 const NAV_PAGES = [
   { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
   { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
-  { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
   { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
   { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
+  { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
   { id: 'tab-guide',     icon: '❓', label: 'Guide' },
 ];
 
