@@ -217,7 +217,23 @@
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
     .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
-    .m-note-meta { font-size: 1.4rem; color: var(--text-muted); margin-top: 8px; }
+    .m-note-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .m-note-meta-item {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 1.35rem; font-weight: 600; color: var(--text-muted);
+      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 12px; font-family: inherit;
+    }
+    button.m-note-meta-edited { cursor: pointer; }
+    button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .m-note-history-entry:last-child { border-bottom: none; }
+    .m-note-history-head {
+      display: flex; justify-content: space-between; gap: 10px;
+      font-size: 1.3rem; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .m-note-history-head strong { color: var(--text); }
+    .m-note-history-text { font-size: 1.5rem; color: var(--text); white-space: pre-wrap; word-break: break-word; }
 
     /* ── LIVRE DES RECORDS — kit de lignes classées (parité PC, échelle tactile) ── */
     .sr-list { display: flex; flex-direction: column; gap: 14px; }
@@ -377,6 +393,18 @@
     #mChartCustomTooltip .ctt-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
     #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #mChartCustomTooltip .ctt-val { font-weight: 700; }
+    #mChartCustomTooltip .ctt-val.pv-cold   { color: var(--text-muted); }
+    #mChartCustomTooltip .ctt-val.pv-normal { color: var(--text); }
+    #mChartCustomTooltip .ctt-val.pv-warm   { color: var(--warn); }
+    #mChartCustomTooltip .ctt-val.pv-hot    { color: var(--error); text-shadow: 0 0 6px rgba(255,71,87,0.5); }
+    #mChartCustomTooltip .ctt-val.pv-blaze  { color: #ffb347; animation: mCtt-blaze-pulse 1.1s ease-in-out infinite; }
+    @keyframes mCtt-blaze-pulse {
+      0%, 100% { text-shadow: 0 0 6px rgba(255,71,87,0.6), 0 0 2px rgba(255,165,0,0.6); }
+      50%      { text-shadow: 0 0 14px rgba(255,71,87,0.95), 0 0 8px rgba(255,165,0,0.9); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #mChartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
+    }
     #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 11px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 1.55rem; color: var(--text-muted); }
 
     /* ── Filet de sécurité générique : toute rangée/liste horizontale scrollable ── */
@@ -1323,6 +1351,22 @@
     chart.update();
   }
 
+  // Classe une valeur de points selon son écart à la moyenne de son propre Top,
+  // moyenne recalculée à chaque survol sur l'échantillon réellement affiché.
+  function pointValueTier(value, sampleValues) {
+    if (!(value > 0)) return null;
+    const valid = (sampleValues || []).filter(v => typeof v === 'number' && !isNaN(v));
+    if (valid.length < 2) return null;
+    const avg = valid.reduce((s, v) => s + v, 0) / valid.length;
+    if (!(avg > 0)) return null;
+    const ratio = value / avg;
+    if (ratio < 0.6) return 'pv-cold';
+    if (ratio < 1.4) return 'pv-normal';
+    if (ratio < 2.2) return 'pv-warm';
+    if (ratio < 3.2) return 'pv-hot';
+    return 'pv-blaze';
+  }
+
   function buildMobileTooltipPlugin(opts) {
     opts = opts || {};
     const el = document.getElementById('mChartCustomTooltip');
@@ -1380,6 +1424,8 @@
             label.textContent = dsLabel;
             const val = document.createElement('span');
             val.className = 'ctt-val';
+            const tier = pointValueTier(dp.raw, dp.dataset.data);
+            if (tier) val.classList.add(tier);
             val.textContent = dp.formattedValue + ' pts';
             row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
             el.appendChild(row);
@@ -1776,14 +1822,20 @@
         const p = cachedPlayers.find(p => p.name === n.player);
         const d = n.timestamp ? new Date(n.timestamp) : null;
         const ds = d ? (String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear()) : '';
-        const metaParts = [];
-        if (n.createdBy) metaParts.push('Créé par ' + n.createdBy);
-        if (n.lastEditedBy && n.lastEditedAt) {
-          const ed = new Date(n.lastEditedAt);
-          const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
-          metaParts.push('Modifié par ' + n.lastEditedBy + (eds ? ' le ' + eds : ''));
+        let noteMetaHtml = '';
+        if (n.createdBy || (n.lastEditedBy && n.lastEditedAt)) {
+          noteMetaHtml = '<div class="m-note-meta">';
+          if (n.createdBy) {
+            noteMetaHtml += '<span class="m-note-meta-item">✍️ Créé par ' + escapeHtml(n.createdBy) + '</span>';
+          }
+          if (n.lastEditedBy && n.lastEditedAt) {
+            const ed = new Date(n.lastEditedAt);
+            const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
+            noteMetaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + n.rowIndex + '">📝 Modifié par ' +
+              escapeHtml(n.lastEditedBy) + (eds ? ' le ' + eds : '') + '  ⏱</button>';
+          }
+          noteMetaHtml += '</div>';
         }
-        const noteMetaHtml = metaParts.length ? '<div class="m-note-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '';
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +
@@ -1794,6 +1846,28 @@
           '<button class="danger small" data-del="' + n.rowIndex + '">🗑️</button>' +
           '</div></div>';
       }).join('');
+      list.querySelectorAll('[data-history]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const rowIndex = btn.dataset.history;
+          openModal('<h2>Historique des modifications</h2><div id="mNoteHistoryBody"><p class="m-empty">Chargement…</p></div>');
+          callServer('apiGetNoteHistory', [rowIndex], histRes => {
+            const body = document.getElementById('mNoteHistoryBody');
+            if (!body) return;
+            const entries = histRes.entries || [];
+            if (!entries.length) { body.innerHTML = '<p class="m-empty">Aucune modification enregistrée.</p>'; return; }
+            body.innerHTML = entries.map(en => {
+              const d = new Date(en.timestamp);
+              const ds = !isNaN(d)
+                ? d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                : '';
+              return '<div class="m-note-history-entry">' +
+                '<div class="m-note-history-head"><strong>' + escapeHtml(en.author || '?') + '</strong><span>' + ds + '</span></div>' +
+                '<div class="m-note-history-text">' + escapeHtml(en.after) + '</div>' +
+              '</div>';
+            }).join('');
+          });
+        });
+      });
       list.querySelectorAll('[data-del]').forEach(btn => {
         btn.addEventListener('click', () => {
           if (!requireIdentity()) return;
@@ -3040,6 +3114,31 @@
     document.getElementById('mSideNav').classList.toggle('expanded');
   });
   document.getElementById('mSideOverlay').addEventListener('click', collapseSideNav);
+
+  // Filet de sécurité pour la bulle du graphique : sur tactile, aucun événement
+  // ne signale qu'on est sorti du graphique (pas de mouseleave). Un tap ou un
+  // déplacement de souris ailleurs sur la page doit fermer la bulle si elle
+  // n'était pas déjà refermée par Chart.js.
+  function hideMobileChartTooltipIfOutside(x, y) {
+    const el = document.getElementById('mChartCustomTooltip');
+    if (!el || !el.classList.contains('visible')) return;
+    const canvas = document.getElementById('mMainChart');
+    if (!canvas) return;
+    const cRect = canvas.getBoundingClientRect();
+    const tRect = el.getBoundingClientRect();
+    const inCanvas  = x >= cRect.left && x <= cRect.right && y >= cRect.top && y <= cRect.bottom;
+    const inTooltip = x >= tRect.left && x <= tRect.right && y >= tRect.top && y <= tRect.bottom;
+    if (!inCanvas && !inTooltip) el.classList.remove('visible');
+  }
+  document.addEventListener('mousemove', e => hideMobileChartTooltipIfOutside(e.clientX, e.clientY));
+  document.addEventListener('mouseleave', () => {
+    const el = document.getElementById('mChartCustomTooltip');
+    if (el) el.classList.remove('visible');
+  });
+  document.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if (t) hideMobileChartTooltipIfOutside(t.clientX, t.clientY);
+  }, { passive: true });
 
   window.addEventListener('DOMContentLoaded', () => {
     initTheme();

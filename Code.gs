@@ -1967,6 +1967,29 @@ function apiDeleteNote(rowIndex, author) {
   } catch(e) { return fail(e); }
 }
 
+function apiGetNoteHistory(rowIndex) {
+  try {
+    const sheet = ConfigService.getSheets().auditLog;
+    if (!sheet) return { success: true, entries: [] };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, entries: [] };
+    const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const needle = 'ligne #' + rowIndex;
+    const entries = [];
+    data.forEach(row => {
+      if (row[3] !== 'Note' || row[2] !== 'Note modifiée' || row[6] !== needle) return;
+      entries.push({
+        timestamp: new Date(row[0]).toISOString(),
+        author: row[1] ? row[1].toString() : '',
+        before: row[4] ? row[4].toString() : '',
+        after:  row[5] ? row[5].toString() : ''
+      });
+    });
+    entries.reverse(); // plus récent d'abord
+    return { success: true, entries };
+  } catch(e) { return fail(e); }
+}
+
 function apiEditNote(rowIndex, newText, author) {
   try {
     requireAuthor(author);

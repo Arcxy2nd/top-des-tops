@@ -95,9 +95,10 @@
     }
     .nav-btn-group::-webkit-scrollbar { display: none; }
     .nav-btn {
+      position: relative;
       background: transparent; border: none;
       color: var(--text-muted); font-size: 0.88rem;
-      padding: 15px 14px; cursor: pointer;
+      padding: 15px 16px; cursor: pointer;
       border-bottom: 3px solid transparent;
       white-space: nowrap; min-height: var(--tap-min);
       font-weight: 500; transition: color 0.2s;
@@ -108,15 +109,34 @@
     .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
     .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
+    /* Le libellé flotte au survol (bulle ancrée, hors flux) : il n'a jamais
+       d'emprise sur la largeur du bouton, donc les onglets voisins ne bougent
+       plus sous la souris pendant qu'on parcourt la barre. Seul l'onglet actif
+       le garde affiché en ligne, en repère permanent. */
     .nav-btn-label {
-      display: inline-block; overflow: hidden; white-space: nowrap;
-      max-width: 0; margin-left: 0; opacity: 0;
-      transition: max-width 0.25s ease, margin-left 0.25s ease, opacity 0.2s ease;
+      position: absolute; left: 50%; top: 100%;
+      transform: translateX(-50%) translateY(2px);
+      background: var(--text); color: var(--bg);
+      font-size: 0.7rem; font-weight: 600; white-space: nowrap;
+      padding: 4px 9px; border-radius: 6px; margin-top: 6px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      opacity: 0; pointer-events: none; z-index: 30;
+      transition: opacity 0.12s ease, transform 0.12s ease;
     }
-    .nav-btn:hover .nav-btn-label,
+    .nav-btn-label::before {
+      content: ''; position: absolute; left: 50%; bottom: 100%;
+      transform: translateX(-50%); border: 5px solid transparent;
+      border-bottom-color: var(--text);
+    }
+    .nav-btn:hover .nav-btn-label {
+      opacity: 1; transform: translateX(-50%) translateY(6px);
+    }
     .nav-btn.active .nav-btn-label {
-      max-width: 160px; margin-left: 7px; opacity: 1;
+      position: static; transform: none; margin: 0 0 0 7px; padding: 0;
+      background: transparent; color: inherit; box-shadow: none;
+      opacity: 1; pointer-events: none;
     }
+    .nav-btn.active .nav-btn-label::before { display: none; }
 
     /* ── Identité de l'app (titre + logo) ── */
     .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 4px; flex-shrink: 0; }
@@ -743,7 +763,45 @@
     }
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .note-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 8px; }
+    .note-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .note-meta-item {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 10px; font-family: inherit;
+    }
+    button.note-meta-edited {
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    button.note-meta-edited:hover {
+      background: var(--accent); color: var(--on-accent); border-color: var(--accent);
+    }
+    .note-history-popover {
+      position: fixed; z-index: 9999; width: 300px; max-width: calc(100vw - 16px);
+      max-height: 340px; overflow-y: auto;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45); animation: fadeIn 0.15s ease;
+    }
+    .note-history-popover .nhp-header {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted);
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--card);
+    }
+    .note-history-popover .nhp-body { padding: 6px 14px 10px; }
+    .note-history-popover .nhp-empty { font-size: 0.8rem; color: var(--text-muted); margin: 8px 0; }
+    .note-history-popover .nhp-entry {
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .note-history-popover .nhp-entry:last-child { border-bottom: none; }
+    .note-history-popover .nhp-entry-head {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 0.72rem; color: var(--text-muted); margin-bottom: 3px;
+    }
+    .note-history-popover .nhp-entry-head strong { color: var(--text); }
+    .note-history-popover .nhp-entry-text {
+      font-size: 0.82rem; color: var(--text); white-space: pre-wrap; word-break: break-word;
+    }
     .note-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
 
     /* ── NOTES : un bloc par joueur ── */
@@ -2149,6 +2207,24 @@
     #chartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
     #chartCustomTooltip .ctt-val {
       font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text);
+    }
+    /* Seuils dérivés de la moyenne du Top (voir pointValueTier) : froid → banal
+       → chaud → incandescent, plus l'écart à la moyenne grandit. */
+    #chartCustomTooltip .ctt-val.pv-cold   { color: var(--text-muted); }
+    #chartCustomTooltip .ctt-val.pv-normal { color: var(--text); }
+    #chartCustomTooltip .ctt-val.pv-warm   { color: var(--warn); }
+    #chartCustomTooltip .ctt-val.pv-hot    {
+      color: var(--error); text-shadow: 0 0 6px rgba(255,71,87,0.5);
+    }
+    #chartCustomTooltip .ctt-val.pv-blaze  {
+      color: #ffb347; animation: ctt-blaze-pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes ctt-blaze-pulse {
+      0%, 100% { text-shadow: 0 0 6px rgba(255,71,87,0.6), 0 0 2px rgba(255,165,0,0.6); }
+      50%      { text-shadow: 0 0 14px rgba(255,71,87,0.95), 0 0 8px rgba(255,165,0,0.9); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #chartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
     }
 
     /* ── SELECT OPTIONS — contraste garanti dans les deux thèmes ── */
@@ -7043,6 +7119,23 @@
     return null;
   }
 
+  // Classe une valeur de points selon son écart à la moyenne de son propre Top,
+  // moyenne recalculée à chaque survol sur l'échantillon réellement affiché
+  // (jamais de seuil ni d'échelle figés dans le code : tout dérive de la donnée).
+  function pointValueTier(value, sampleValues) {
+    if (!(value > 0)) return null;
+    const valid = (sampleValues || []).filter(v => typeof v === 'number' && !isNaN(v));
+    if (valid.length < 2) return null;
+    const avg = valid.reduce((s, v) => s + v, 0) / valid.length;
+    if (!(avg > 0)) return null;
+    const ratio = value / avg;
+    if (ratio < 0.6) return 'pv-cold';
+    if (ratio < 1.4) return 'pv-normal';
+    if (ratio < 2.2) return 'pv-warm';
+    if (ratio < 3.2) return 'pv-hot';
+    return 'pv-blaze';
+  }
+
   function buildCustomTooltipPlugin(opts) {
     opts = opts || {};
     const el = document.getElementById('chartCustomTooltip');
@@ -7117,6 +7210,8 @@
 
             const val = document.createElement('span');
             val.className = 'ctt-val';
+            const tier = pointValueTier(dp.raw, dp.dataset.data);
+            if (tier) val.classList.add(tier);
             val.textContent = dp.formattedValue + ' pts';
 
             row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
@@ -10309,15 +10404,27 @@
 
     const meta = document.createElement('div');
     meta.className = 'note-meta';
-    const metaParts = [];
-    if (note.createdBy) metaParts.push('Créé par ' + note.createdBy);
+    if (note.createdBy) {
+      const createdEl = document.createElement('span');
+      createdEl.className = 'note-meta-item';
+      createdEl.textContent = '✍️ Créé par ' + note.createdBy;
+      meta.appendChild(createdEl);
+    }
     if (note.lastEditedBy && note.lastEditedAt) {
       const ed = new Date(note.lastEditedAt);
       const edStr = !isNaN(ed) ? ed.toLocaleDateString('fr-FR') : '';
-      metaParts.push('Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : ''));
+      const editedBtn = document.createElement('button');
+      editedBtn.type = 'button';
+      editedBtn.className = 'note-meta-item note-meta-edited';
+      editedBtn.textContent = '📝 Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : '') + '  ⏱';
+      editedBtn.title = 'Voir l\'historique des modifications';
+      editedBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        openNoteHistoryPopover(e.currentTarget, note.rowIndex);
+      });
+      meta.appendChild(editedBtn);
     }
-    meta.textContent = metaParts.join(' · ');
-    if (!metaParts.length) meta.style.display = 'none';
+    if (!meta.children.length) meta.style.display = 'none';
 
     const actions = document.createElement('div');
     actions.className = 'note-actions';
@@ -10346,6 +10453,56 @@
 
     card.appendChild(headc); card.appendChild(txt); card.appendChild(meta); card.appendChild(actions);
     return card;
+  }
+
+  let _activeNoteHistoryPopover = null;
+
+  function closeNoteHistoryPopover() {
+    if (!_activeNoteHistoryPopover) return;
+    if (_activeNoteHistoryPopover._onDocClick) document.removeEventListener('click', _activeNoteHistoryPopover._onDocClick);
+    _activeNoteHistoryPopover.remove();
+    _activeNoteHistoryPopover = null;
+  }
+
+  function openNoteHistoryPopover(anchorEl, rowIndex) {
+    closeNoteHistoryPopover();
+
+    const pop = document.createElement('div');
+    pop.className = 'note-history-popover';
+    pop.innerHTML = '<div class="nhp-header">Historique des modifications</div><div class="nhp-body"><p class="nhp-empty">Chargement…</p></div>';
+    document.body.appendChild(pop);
+
+    const rect = anchorEl.getBoundingClientRect();
+    pop.style.top  = (rect.bottom + 6) + 'px';
+    let left = rect.left;
+    const maxLeft = window.innerWidth - 300 - 8;
+    if (left > maxLeft) left = Math.max(8, maxLeft);
+    pop.style.left = left + 'px';
+
+    _activeNoteHistoryPopover = pop;
+    const onDocClick = e => { if (!pop.contains(e.target) && e.target !== anchorEl) closeNoteHistoryPopover(); };
+    setTimeout(() => document.addEventListener('click', onDocClick), 0);
+    pop._onDocClick = onDocClick;
+
+    callServer('apiGetNoteHistory', [rowIndex], res => {
+      if (_activeNoteHistoryPopover !== pop) return; // fermée entre-temps
+      const body = pop.querySelector('.nhp-body');
+      const entries = res.entries || [];
+      if (!entries.length) {
+        body.innerHTML = '<p class="nhp-empty">Aucune modification enregistrée.</p>';
+        return;
+      }
+      body.innerHTML = entries.map(en => {
+        const d = new Date(en.timestamp);
+        const ds = !isNaN(d)
+          ? d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        return '<div class="nhp-entry">' +
+          '<div class="nhp-entry-head"><strong>' + escapeHtml(en.author || '?') + '</strong><span>' + ds + '</span></div>' +
+          '<div class="nhp-entry-text">' + escapeHtml(en.after) + '</div>' +
+        '</div>';
+      }).join('');
+    });
   }
 
   function openEditNoteModal(note) {
@@ -10928,6 +11085,26 @@
   // ── BOUTONS ───────────────────────────────────────────────────────────
   function bindButtons() {
     document.getElementById('mainChart').addEventListener('mouseleave', () => {
+      const el = document.getElementById('chartCustomTooltip');
+      if (el) el.classList.remove('visible');
+    });
+    // Filet de sécurité : la légende Chart.js est dessinée à l'intérieur du
+    // même <canvas>, donc mouseleave n'y suffit pas (le curseur reste
+    // "dans" le canvas en survolant la légende, le tooltip peut y rester
+    // affiché même après être sorti visuellement du graphique). On vérifie
+    // en continu que le curseur est bien dans le canvas ou la bulle elle-même.
+    document.addEventListener('mousemove', e => {
+      const el = document.getElementById('chartCustomTooltip');
+      if (!el || !el.classList.contains('visible')) return;
+      const canvas = document.getElementById('mainChart');
+      if (!canvas) return;
+      const cRect = canvas.getBoundingClientRect();
+      const tRect = el.getBoundingClientRect();
+      const inCanvas  = e.clientX >= cRect.left && e.clientX <= cRect.right && e.clientY >= cRect.top && e.clientY <= cRect.bottom;
+      const inTooltip = e.clientX >= tRect.left && e.clientX <= tRect.right && e.clientY >= tRect.top && e.clientY <= tRect.bottom;
+      if (!inCanvas && !inTooltip) el.classList.remove('visible');
+    });
+    document.addEventListener('mouseleave', () => {
       const el = document.getElementById('chartCustomTooltip');
       if (el) el.classList.remove('visible');
     });
