@@ -31,6 +31,7 @@
       --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
       --btn-alt: #353b48; --tap-min: 100px; --rail-w: 120px;
       --on-accent: #fff;
+      --medal-gold: #f6c445; --medal-silver: #c2ccd6; --medal-bronze: #cd8b52;
     }
     body.light {
       --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
@@ -216,6 +217,72 @@
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
     .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
+
+    /* ── LIVRE DES RECORDS — kit de lignes classées (parité PC, échelle tactile) ── */
+    .sr-list { display: flex; flex-direction: column; gap: 14px; }
+    .sr-row {
+      display: flex; align-items: center; gap: 18px;
+      padding: 18px 20px 18px 22px; border-radius: 22px;
+      background: var(--bg); border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .sr-row::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+      background: var(--sr-accent, var(--border));
+    }
+    .sr-rank {
+      flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      background: var(--btn-alt); color: var(--text-muted); border: 1px solid var(--border);
+    }
+    .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); }
+    .sr-rank.silver { background: var(--medal-silver); color: #33383d; border-color: var(--medal-silver); }
+    .sr-rank.bronze { background: var(--medal-bronze); color: #331d0c; border-color: var(--medal-bronze); }
+    .sr-avatar {
+      width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 3px solid var(--sr-accent, var(--border));
+    }
+    .sr-avatar-cluster { flex-shrink: 0; display: flex; align-items: center; }
+    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -20px; }
+    .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .sr-name { font-weight: 700; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sr-sub { font-size: 1.4rem; color: var(--text-muted); }
+    .sr-value { flex-shrink: 0; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 2.1rem; line-height: 1; }
+    .sr-value small {
+      display: block; font-size: 1.15rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 5px;
+    }
+    .sr-hero {
+      display: flex; align-items: center; gap: 20px; padding: 26px; margin-bottom: 18px;
+      border-radius: 26px;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--medal-gold) 24%, transparent),
+        color-mix(in srgb, var(--medal-gold) 6%, transparent));
+      border: 2px solid color-mix(in srgb, var(--medal-gold) 55%, var(--border));
+    }
+    .sr-hero-trophy { font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
+    .sr-hero-avatar {
+      width: 80px; height: 80px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 3px solid var(--medal-gold);
+    }
+    .sr-hero-body { flex: 1; min-width: 0; }
+    .sr-hero-label {
+      font-size: 1.15rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+      color: color-mix(in srgb, var(--medal-gold) 70%, var(--text));
+    }
+    .sr-hero-name { font-weight: 800; font-size: 1.95rem; }
+    .sr-hero-sub { font-size: 1.4rem; color: var(--text-muted); }
+    .sr-hero-pts { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; line-height: 1; }
+    .sr-hero-pts small {
+      display: block; font-size: 1.15rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 5px;
+    }
+    .sr-section {
+      font-size: 1.35rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); margin: 24px 0 12px; display: flex; gap: 10px; align-items: center;
+    }
+    .sr-section:first-child { margin-top: 0; }
     .m-hist-desc { font-size: 1.8rem; margin-top: 10px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 10px 0; font-size: 1em; }
     .m-hist-desc ul, .m-hist-desc ol { margin: 10px 0; padding-left: 44px; }
@@ -1015,22 +1082,65 @@
       '<div class="m-hist-meta">' + subtitle + '</div></div>';
   }
 
+  // ── LIVRE DES RECORDS — constructeurs string (parité avec le kit PC) ────
+  function mStatRank(rank) {
+    const medal = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+    return '<div class="sr-rank' + medal + '">' + rank + '</div>';
+  }
+  function mSrAvatar(name) {
+    const p = cachedPlayers.find(pl => pl.name === name);
+    const url = getAvatarUrl(name, p ? p.meta : '');
+    const fb  = getAvatarUrl(name, '');
+    return '<img class="sr-avatar" src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) +
+      '" onerror="this.onerror=null;this.src=\'' + fb + '\';">';
+  }
+  // cfg : { rank | badge, playerName, secondPlayer?, accent?, nameSuffix?(html), sub?(html), value?, valueLabel? }
+  function mStatRow(cfg) {
+    let head = '';
+    if (cfg.rank != null) head = mStatRank(cfg.rank);
+    else if (cfg.badge)  head = '<div class="sr-rank">' + cfg.badge + '</div>';
+    const avatars = cfg.secondPlayer
+      ? '<div class="sr-avatar-cluster">' + mSrAvatar(cfg.playerName) + mSrAvatar(cfg.secondPlayer) + '</div>'
+      : mSrAvatar(cfg.playerName);
+    const displayName = cfg.secondPlayer
+      ? escapeHtml(cfg.playerName) + ' & ' + escapeHtml(cfg.secondPlayer)
+      : escapeHtml(cfg.playerName);
+    const sub = cfg.sub ? '<div class="sr-sub">' + cfg.sub + '</div>' : '';
+    const val = cfg.value != null
+      ? '<div class="sr-value">' + cfg.value + (cfg.valueLabel ? '<small>' + cfg.valueLabel + '</small>' : '') + '</div>'
+      : '';
+    const style = cfg.accent ? ' style="--sr-accent:' + cfg.accent + ';"' : '';
+    return '<div class="sr-row"' + style + '>' + head + avatars +
+      '<div class="sr-body"><div class="sr-name">' + displayName + (cfg.nameSuffix || '') + '</div>' + sub + '</div>' +
+      val + '</div>';
+  }
+  function mStatHero(name, dateStr, points) {
+    const p = cachedPlayers.find(pl => pl.name === name);
+    const url = getAvatarUrl(name, p ? p.meta : ''), fb = getAvatarUrl(name, '');
+    return '<div class="sr-hero"><div class="sr-hero-trophy">🏆</div>' +
+      '<img class="sr-hero-avatar" src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) +
+        '" onerror="this.onerror=null;this.src=\'' + fb + '\';">' +
+      '<div class="sr-hero-body"><div class="sr-hero-label">Record absolu</div>' +
+      '<div class="sr-hero-name">' + escapeHtml(name) + '</div>' +
+      '<div class="sr-hero-sub">en une entrée · le ' + dateStr + '</div></div>' +
+      '<div class="sr-hero-pts">' + points + '<small>pts</small></div></div>';
+  }
+
   function loadRecordsStat() {
     callServer('apiGetPlayerRecords', [], res => {
       const body = document.getElementById('mRecordsBody');
       let html = '';
-      if (res.globalBest) {
-        const p = cachedPlayers.find(pl => pl.name === res.globalBest.player);
-        html += statRow(avatarImgHtml(res.globalBest.player, p ? p.meta : '', 'm-avatar sm'),
-          '🏆 Record absolu : ' + escapeHtml(res.globalBest.player),
-          res.globalBest.points + ' pts en une entrée, le ' + res.globalBest.dateStr);
+      if (res.globalBest) html += mStatHero(res.globalBest.player, res.globalBest.dateStr, res.globalBest.points);
+      if ((res.records || []).length) {
+        html += '<div class="sr-list">' + res.records.map((r, i) => mStatRow({
+          rank: i + 1, playerName: r.player, accent: playerColor(r.player),
+          sub: 'record le ' + r.bestEntryDate + ' · série ' + r.longestStreakDays + ' j',
+          value: r.bestSingleEntry, valueLabel: 'pts'
+        })).join('') + '</div>';
+      } else if (!res.globalBest) {
+        html = '<p class="m-empty">Aucune donnée.</p>';
       }
-      html += (res.records || []).map(r => {
-        const p = cachedPlayers.find(pl => pl.name === r.player);
-        return statRow(avatarImgHtml(r.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(r.player),
-          'Meilleur score : ' + r.bestSingleEntry + ' pts (' + r.bestEntryDate + ') · Série : ' + r.longestStreakDays + ' j');
-      }).join('');
-      body.outerHTML = '<div id="mRecordsBody">' + (html || '<p class="m-empty">Aucune donnée.</p>') + '</div>';
+      body.outerHTML = '<div id="mRecordsBody">' + html + '</div>';
     }, 'Chargement records');
   }
 
@@ -1061,13 +1171,19 @@
   function loadPairsStat() {
     callServer('apiGetTopPlayerCategoryPairs', [], res => {
       const body = document.getElementById('mPairsBody');
-      const html = (res.pairs || []).map(pair => {
-        const p = cachedPlayers.find(pl => pl.name === pair.player);
-        const cat = cachedCategories.find(c => c.name === pair.category);
-        return statRow(avatarImgHtml(pair.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(pair.player),
-          (cat ? cat.icon + ' ' : '') + escapeHtml(pair.category) + ' — ' + pair.count + ' fois');
-      }).join('');
-      body.outerHTML = '<div id="mPairsBody">' + (html || '<p class="m-empty">Aucune donnée.</p>') + '</div>';
+      const pairs = res.pairs || [];
+      const html = pairs.length
+        ? '<div class="sr-list">' + pairs.map((pair, i) => {
+            const cat = cachedCategories.find(c => c.name === pair.category);
+            const icon = cat && cat.icon ? cat.icon + ' ' : '';
+            return mStatRow({
+              rank: i + 1, playerName: pair.player, accent: playerColor(pair.player),
+              sub: icon + escapeHtml(pair.category),
+              value: pair.count, valueLabel: 'fois'
+            });
+          }).join('') + '</div>'
+        : '<p class="m-empty">Aucune donnée.</p>';
+      body.outerHTML = '<div id="mPairsBody">' + html + '</div>';
     }, 'Chargement duos fréquents');
   }
 
@@ -1076,28 +1192,23 @@
       const body = document.getElementById('mMentionsBody');
       let html = '';
       if ((res.mostMentioned || []).length) {
-        html += '<p style="font-weight:700; margin:0 0 8px;">📣 Les plus mentionnés</p>';
-        html += res.mostMentioned.map(m => {
-          const p = cachedPlayers.find(pl => pl.name === m.player);
-          return statRow(avatarImgHtml(m.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(m.player), m.count + ' mention(s)');
-        }).join('');
+        html += '<div class="sr-section">📣 Les plus mentionnés</div><div class="sr-list">' +
+          res.mostMentioned.map((m, i) => mStatRow({
+            rank: i + 1, playerName: m.player, accent: playerColor(m.player), value: m.count, valueLabel: 'mentions'
+          })).join('') + '</div>';
       }
       if ((res.mostMentioning || []).length) {
-        html += '<p style="font-weight:700; margin:14px 0 8px;">✍️ Ceux qui mentionnent le plus</p>';
-        html += res.mostMentioning.map(m => {
-          const p = cachedPlayers.find(pl => pl.name === m.player);
-          return statRow(avatarImgHtml(m.player, p ? p.meta : '', 'm-avatar sm'), escapeHtml(m.player), m.count + ' mention(s) écrite(s)');
-        }).join('');
+        html += '<div class="sr-section">✍️ Ceux qui mentionnent le plus</div><div class="sr-list">' +
+          res.mostMentioning.map((m, i) => mStatRow({
+            rank: i + 1, playerName: m.player, accent: playerColor(m.player), value: m.count, valueLabel: 'écrites'
+          })).join('') + '</div>';
       }
       if (res.topDuo) {
-        html += '<p style="font-weight:700; margin:14px 0 8px;">🔗 Duo le plus complice</p>';
-        const pa = cachedPlayers.find(pl => pl.name === res.topDuo.playerA);
-        const pb = cachedPlayers.find(pl => pl.name === res.topDuo.playerB);
-        html += statRow(
-          avatarImgHtml(res.topDuo.playerA, pa ? pa.meta : '', 'm-avatar sm') + avatarImgHtml(res.topDuo.playerB, pb ? pb.meta : '', 'm-avatar sm'),
-          escapeHtml(res.topDuo.playerA) + ' & ' + escapeHtml(res.topDuo.playerB),
-          res.topDuo.count + ' mention(s) croisée(s)'
-        );
+        html += '<div class="sr-section">🔗 Duo le plus complice</div><div class="sr-list">' +
+          mStatRow({
+            badge: '🤝', playerName: res.topDuo.playerA, secondPlayer: res.topDuo.playerB,
+            accent: playerColor(res.topDuo.playerA), value: res.topDuo.count, valueLabel: 'croisées'
+          }) + '</div>';
       }
       body.outerHTML = '<div id="mMentionsBody">' + (html || '<p class="m-empty">Aucune mention trouvée.</p>') + '</div>';
     }, 'Chargement mentions');
