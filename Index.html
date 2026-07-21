@@ -98,7 +98,7 @@
       position: relative;
       background: transparent; border: none;
       color: var(--text-muted); font-size: 0.88rem;
-      padding: 15px 16px; cursor: pointer;
+      padding: 15px 14px; cursor: pointer;
       border-bottom: 3px solid transparent;
       white-space: nowrap; min-height: var(--tap-min);
       font-weight: 500; transition: color 0.2s;
@@ -109,34 +109,23 @@
     .nav-btn:hover  { color: var(--text); }
     .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
     .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
-    /* Le libellé flotte au survol (bulle ancrée, hors flux) : il n'a jamais
-       d'emprise sur la largeur du bouton, donc les onglets voisins ne bougent
-       plus sous la souris pendant qu'on parcourt la barre. Seul l'onglet actif
-       le garde affiché en ligne, en repère permanent. */
-    .nav-btn-label {
-      position: absolute; left: 50%; top: 100%;
-      transform: translateX(-50%) translateY(2px);
-      background: var(--text); color: var(--bg);
-      font-size: 0.7rem; font-weight: 600; white-space: nowrap;
-      padding: 4px 9px; border-radius: 6px; margin-top: 6px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-      opacity: 0; pointer-events: none; z-index: 30;
-      transition: opacity 0.12s ease, transform 0.12s ease;
+    /* Le libellé n'est visible en ligne que pour l'onglet actif (repère permanent,
+       n'affecte jamais la largeur des autres boutons). Au survol des autres onglets,
+       le nom est donné par une bulle #navHoverTip en position fixed (voir JS) : la
+       barre défile en overflow-x:auto, qui force overflow-y:auto et rognerait tout
+       label positionné en absolute à l'intérieur du bouton. */
+    .nav-btn-label { display: none; }
+    .nav-btn.active .nav-btn-label { display: inline-block; margin-left: 7px; }
+    .nav-hover-tip {
+      position: fixed; z-index: 9999;
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+      padding: 5px 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.12s ease;
     }
-    .nav-btn-label::before {
-      content: ''; position: absolute; left: 50%; bottom: 100%;
-      transform: translateX(-50%); border: 5px solid transparent;
-      border-bottom-color: var(--text);
-    }
-    .nav-btn:hover .nav-btn-label {
-      opacity: 1; transform: translateX(-50%) translateY(6px);
-    }
-    .nav-btn.active .nav-btn-label {
-      position: static; transform: none; margin: 0 0 0 7px; padding: 0;
-      background: transparent; color: inherit; box-shadow: none;
-      opacity: 1; pointer-events: none;
-    }
-    .nav-btn.active .nav-btn-label::before { display: none; }
+    .nav-hover-tip.visible { opacity: 1; }
 
     /* ── Identité de l'app (titre + logo) ── */
     .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 4px; flex-shrink: 0; }
@@ -2603,6 +2592,7 @@
       <span class="app-brand-title" id="appBrandTitle">Tops des Tops</span>
     </div>
     <div class="nav-btn-group" id="desktopNavGroup"></div>
+    <div class="nav-hover-tip" id="navHoverTip"></div>
     <div class="nav-refresh-wrap">
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
@@ -11001,6 +10991,35 @@
     });
   }
 
+  // Bulle de nom au survol des onglets — en position fixed (hors du conteneur
+  // qui défile), donc jamais rognée, et déléguée sur le conteneur stable pour
+  // survivre aux re-rendus de renderNav().
+  function initNavHoverTip() {
+    const tip = document.getElementById('navHoverTip');
+    const group = document.getElementById('desktopNavGroup');
+    if (!tip || !group) return;
+    function place(btn) {
+      const rect = btn.getBoundingClientRect();
+      tip.textContent = btn.title || '';
+      tip.style.left = (rect.left + rect.width / 2) + 'px';
+      tip.style.top  = (rect.bottom + 8) + 'px';
+      tip.style.transform = 'translateX(-50%)';
+      tip.classList.add('visible');
+    }
+    group.addEventListener('mouseover', e => {
+      const btn = e.target.closest('.nav-btn');
+      if (!btn || btn.classList.contains('active')) return;
+      place(btn);
+    });
+    group.addEventListener('mouseout', e => {
+      const stillInBtn = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.nav-btn') === e.target.closest('.nav-btn');
+      if (stillInBtn) return;
+      tip.classList.remove('visible');
+    });
+    group.addEventListener('scroll', () => tip.classList.remove('visible'));
+    group.addEventListener('click', () => tip.classList.remove('visible'));
+  }
+
   function goToTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -11014,6 +11033,7 @@
   callServer('apiGetNavPages', [], res => {
     NAV_PAGES = res.pages;
     renderNav();
+    initNavHoverTip();
   }, 'Chargement du menu');
 
   // ── MODE D'AFFICHAGE (mobile / desktop) ────────────────────────────────
