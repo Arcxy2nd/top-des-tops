@@ -843,46 +843,52 @@ const NotesService = {
   /** Renvoie la feuille Notes, en la CRÉANT automatiquement si elle n'existe pas. */
   _sheet() {
     let sheet = ConfigService.getSheets().notes;
-    if (sheet) { this._ensureAuthorColumns(sheet); return sheet; }
+    if (sheet) { this._ensureNoteIdColumn(sheet); return sheet; }
     const ss = ConfigService.getSheets().spreadsheet;
     sheet = ss.insertSheet('Notes');
-    sheet.appendRow(['Date', 'Joueur', 'Note', 'Auteur', 'ModifiéPar', 'ModifiéLe']);
-    sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+    sheet.appendRow(['Date', 'Joueur', 'Note', 'NoteId']);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
     ConfigService.clearCache();
     return sheet;
   },
 
-  /** Migration douce : ajoute les colonnes Auteur/ModifiéPar/ModifiéLe si absentes (feuilles créées avant leur introduction). */
-  _ensureAuthorColumns(sheet) {
-    if (sheet.getRange(1, 4, 1, 1).getValues()[0][0]) return;
-    sheet.getRange(1, 4, 1, 3).setValues([['Auteur', 'ModifiéPar', 'ModifiéLe']]);
-    sheet.getRange(1, 4, 1, 3).setFontWeight('bold');
+  /** Migration douce : pose l'en-tête NoteId en colonne D si absent (feuilles créées
+   *  avant son introduction, y compris l'ancien schéma Auteur/ModifiéPar/ModifiéLe —
+   *  ces anciennes valeurs, jamais renseignées en pratique, sont simplement ignorées). */
+  _ensureNoteIdColumn(sheet) {
+    if (sheet.getRange(1, 4, 1, 1).getValue() === 'NoteId') return;
+    sheet.getRange(1, 4, 1, 1).setValue('NoteId').setFontWeight('bold');
   },
 
-  /** Toutes les notes (récentes d'abord). Lecture tolérante : pas de feuille → liste vide. */
+  /** Toutes les notes (récentes d'abord). Créé par/Modifié par ne sont pas stockés sur
+   *  la ligne : ils sont dérivés du Journal d'audit via NoteId (source unique, jamais
+   *  dupliquée) — cf. _noteAuthorsByNoteId(). Lecture tolérante : pas de feuille → liste vide. */
   getAllNotes() {
     const sheet = ConfigService.getSheets().notes;
     if (!sheet) return { notes: [] };   // pas encore de feuille (aucune note créée)
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { notes: [] };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    const authors = _noteAuthorsByNoteId();
     const out = [];
     for (let i = 0; i < data.length; i++) {
       const row    = data[i];
       const player = row[1] ? row[1].toString() : '';
       const text   = row[2] ? row[2].toString() : '';
       if (!player && !text) continue;
+      const noteId = row[3] ? row[3].toString() : '';
+      const a = noteId && authors[noteId] ? authors[noteId] : null;
       const d = new Date(row[0]);
-      const editedAt = row[5] ? new Date(row[5]) : null;
       out.push({
         timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
         player,
         text,
         rowIndex: i + 2,
-        createdBy: row[3] ? row[3].toString() : '',
-        lastEditedBy: row[4] ? row[4].toString() : '',
-        lastEditedAt: (editedAt && !isNaN(editedAt.getTime())) ? editedAt.toISOString() : null
+        noteId,
+        createdBy: a ? a.createdBy : '',
+        lastEditedBy: a ? a.lastEditedBy : '',
+        lastEditedAt: a ? a.lastEditedAt : null
       });
     }
     out.reverse();
@@ -897,10 +903,11 @@ const NotesService = {
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
 
     const sheet = this._sheet();
-    sheet.appendRow([targetDate, player, text.trim(), author || '', '', '']);
+    const noteId = _generateGroupId();
+    sheet.appendRow([targetDate, player, text.trim(), noteId]);
     return {
       rowIndex: sheet.getLastRow(), timestamp: targetDate.toISOString(), player, text: text.trim(),
-      createdBy: author || '', lastEditedBy: '', lastEditedAt: null
+      noteId, createdBy: author || '', lastEditedBy: '', lastEditedAt: null
     };
   },
 
@@ -910,13 +917,20 @@ const NotesService = {
     this._sheet().deleteRow(idx);
   },
 
-  editNote(rowIndex, newText, editor) {
+  editNote(rowIndex, newText) {
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
-    const sheet = this._sheet();
-    sheet.getRange(idx, 3).setValue(newText.trim());
-    sheet.getRange(idx, 5, 1, 2).setValues([[editor || '', new Date()]]);
+    this._sheet().getRange(idx, 3).setValue(newText.trim());
+  },
+
+  /** Lit le NoteId stocké à une ligne donnée (utilisé par les endpoints api* pour
+   *  écrire un Détail de journal stable, indépendant du numéro de ligne). */
+  noteIdAt(rowIndex) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) return '';
+    const v = this._sheet().getRange(idx, 4).getValue();
+    return v ? v.toString() : '';
   }
 };
 
@@ -1627,6 +1641,36 @@ function _noteRowSummary(rowIndex) {
   } catch (_) { return ''; }
 }
 
+/** Dérive Créé par / Dernière modification par pour chaque note à partir du Journal
+ *  d'audit (seule source de vérité — rien n'est dupliqué sur la ligne de la note).
+ *  Les entrées sont indexées par NoteId (Détail = "note:<id>"), stable même si la
+ *  note change de ligne suite à la suppression d'une autre note plus haut. */
+function _noteAuthorsByNoteId() {
+  const map = {};
+  const sheet = ConfigService.getSheets().auditLog;
+  if (!sheet) return map;
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return map;
+  const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues(); // Timestamp|Auteur|Action|Entité|Avant|Après|Détail
+  data.forEach(row => {
+    const entity = row[3], action = row[2], detail = row[6] ? row[6].toString() : '';
+    if (entity !== 'Note' || detail.indexOf('note:') !== 0) return;
+    const noteId = detail.slice(5);
+    if (!noteId) return;
+    if (!map[noteId]) map[noteId] = { createdBy: '', lastEditedBy: '', lastEditedAt: null };
+    const author = row[1] ? row[1].toString() : '';
+    if (action === 'Note ajoutée' && !map[noteId].createdBy) map[noteId].createdBy = author;
+    if (action === 'Note modifiée') {
+      // Écrit en ordre chronologique (appendRow) : la dernière ligne rencontrée
+      // pour ce NoteId est forcément la modification la plus récente.
+      map[noteId].lastEditedBy = author;
+      const d = new Date(row[0]);
+      map[noteId].lastEditedAt = isNaN(d.getTime()) ? null : d.toISOString();
+    }
+  });
+  return map;
+}
+
 function _baremeRowSummary(rowIndex) {
   try {
     const sheet = ConfigService.getSheets().bareme;
@@ -1944,9 +1988,9 @@ function apiAddNote(player, text, dateStr, author) {
       const note = NotesService.addNote(player, text, dateStr, author);
       const sheet = ConfigService.getSheets().notes;
       AuditService.log(author, 'Note ajoutée', 'Note: ' + (player || ''),
-        '', (player || '') + ' : ' + (text || '').trim(), '',
+        '', (player || '') + ' : ' + (text || '').trim(), 'note:' + note.noteId,
         { sheet: 'notes', op: 'insert', rowIndex: note.rowIndex,
-          after: sheet.getRange(note.rowIndex, 1, 1, 6).getValues()[0] });
+          after: sheet.getRange(note.rowIndex, 1, 1, 4).getValues()[0] });
       return { success: true, note };
     });
   } catch(e) { return fail(e); }
@@ -1958,23 +2002,24 @@ function apiDeleteNote(rowIndex, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 6).getValues()[0];
+      const noteId = NotesService.noteIdAt(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       NotesService.deleteNote(rowIndex);
-      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'ligne #' + rowIndex,
+      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'note:' + noteId,
         { sheet: 'notes', op: 'delete', before: beforeRow });
       return { success: true };
     });
   } catch(e) { return fail(e); }
 }
 
-function apiGetNoteHistory(rowIndex) {
+function apiGetNoteHistory(noteId) {
   try {
     const sheet = ConfigService.getSheets().auditLog;
-    if (!sheet) return { success: true, entries: [] };
+    if (!sheet || !noteId) return { success: true, entries: [] };
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, entries: [] };
     const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
-    const needle = 'ligne #' + rowIndex;
+    const needle = 'note:' + noteId;
     const entries = [];
     data.forEach(row => {
       if (row[3] !== 'Note' || row[2] !== 'Note modifiée' || row[6] !== needle) return;
@@ -1996,11 +2041,12 @@ function apiEditNote(rowIndex, newText, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 6).getValues()[0];
-      NotesService.editNote(rowIndex, newText, author);
-      const afterRow = sheet.getRange(rowIndex, 1, 1, 6).getValues()[0];
+      const noteId = NotesService.noteIdAt(rowIndex);
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
+      NotesService.editNote(rowIndex, newText);
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
-        'ligne #' + rowIndex,
+        'note:' + noteId,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       return { success: true };
     });

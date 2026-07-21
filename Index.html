@@ -777,6 +777,7 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .note-meta-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .note-meta-item.note-meta-unknown { opacity: 0.6; font-style: italic; }
     button.note-meta-edited {
       cursor: pointer;
     }
@@ -10593,11 +10594,18 @@
       editedBtn.title = 'Voir l\'historique des modifications';
       editedBtn.addEventListener('click', e => {
         e.stopPropagation();
-        openNoteHistoryPopover(e.currentTarget, note.rowIndex);
+        openNoteHistoryPopover(e.currentTarget, note.noteId);
       });
       meta.appendChild(editedBtn);
     }
-    if (!meta.children.length) meta.style.display = 'none';
+    // Note antérieure à l'introduction du suivi d'auteur (via le Journal) : aucune
+    // donnée à retrouver, mais on l'explique plutôt que de ne rien afficher.
+    if (!meta.children.length) {
+      const unknownEl = document.createElement('span');
+      unknownEl.className = 'note-meta-item note-meta-unknown';
+      unknownEl.textContent = '❔ Auteur inconnu (note antérieure)';
+      meta.appendChild(unknownEl);
+    }
 
     const actions = document.createElement('div');
     actions.className = 'note-actions';
@@ -10637,7 +10645,7 @@
     _activeNoteHistoryPopover = null;
   }
 
-  function openNoteHistoryPopover(anchorEl, rowIndex) {
+  function openNoteHistoryPopover(anchorEl, noteId) {
     closeNoteHistoryPopover();
 
     const pop = document.createElement('div');
@@ -10657,7 +10665,7 @@
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
     pop._onDocClick = onDocClick;
 
-    callServer('apiGetNoteHistory', [rowIndex], res => {
+    callServer('apiGetNoteHistory', [noteId], res => {
       if (_activeNoteHistoryPopover !== pop) return; // fermée entre-temps
       const body = pop.querySelector('.nhp-body');
       const entries = res.entries || [];

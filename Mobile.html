@@ -226,12 +226,15 @@
     }
     button.m-note-meta-edited { cursor: pointer; }
     button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    .m-note-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .m-note-meta-item.m-note-meta-unknown { opacity: 0.6; font-style: italic; }
     .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
     .m-note-history-entry:last-child { border-bottom: none; }
     .m-note-history-head {
       display: flex; justify-content: space-between; gap: 10px;
       font-size: 1.3rem; color: var(--text-muted); margin-bottom: 6px;
     }
+    .m-note-history-who { display: flex; align-items: center; gap: 5px; }
     .m-note-history-head strong { color: var(--text); }
     .m-note-history-text { font-size: 1.5rem; color: var(--text); white-space: pre-wrap; word-break: break-word; }
 
@@ -1822,20 +1825,24 @@
         const p = cachedPlayers.find(p => p.name === n.player);
         const d = n.timestamp ? new Date(n.timestamp) : null;
         const ds = d ? (String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear()) : '';
-        let noteMetaHtml = '';
-        if (n.createdBy || (n.lastEditedBy && n.lastEditedAt)) {
-          noteMetaHtml = '<div class="m-note-meta">';
-          if (n.createdBy) {
-            noteMetaHtml += '<span class="m-note-meta-item">✍️ Créé par ' + escapeHtml(n.createdBy) + '</span>';
-          }
-          if (n.lastEditedBy && n.lastEditedAt) {
-            const ed = new Date(n.lastEditedAt);
-            const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
-            noteMetaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + n.rowIndex + '">📝 Modifié par ' +
-              escapeHtml(n.lastEditedBy) + (eds ? ' le ' + eds : '') + '  ⏱</button>';
-          }
-          noteMetaHtml += '</div>';
+        let noteMetaHtml = '<div class="m-note-meta">';
+        if (n.createdBy) {
+          const cp = cachedPlayers.find(pl => pl.name === n.createdBy);
+          noteMetaHtml += '<span class="m-note-meta-item">' + avatarImgHtml(n.createdBy, cp ? cp.meta : '', 'm-note-meta-avatar') +
+            'Créé par ' + escapeHtml(n.createdBy) + '</span>';
         }
+        if (n.lastEditedBy && n.lastEditedAt) {
+          const ed = new Date(n.lastEditedAt);
+          const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
+          const ep = cachedPlayers.find(pl => pl.name === n.lastEditedBy);
+          noteMetaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + escapeHtml(n.noteId) + '">' +
+            avatarImgHtml(n.lastEditedBy, ep ? ep.meta : '', 'm-note-meta-avatar') + 'Modifié par ' +
+            escapeHtml(n.lastEditedBy) + (eds ? ' le ' + eds : '') + '  ⏱</button>';
+        }
+        if (!n.createdBy && !(n.lastEditedBy && n.lastEditedAt)) {
+          noteMetaHtml += '<span class="m-note-meta-item m-note-meta-unknown">❔ Auteur inconnu (note antérieure)</span>';
+        }
+        noteMetaHtml += '</div>';
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +
@@ -1848,9 +1855,9 @@
       }).join('');
       list.querySelectorAll('[data-history]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const rowIndex = btn.dataset.history;
+          const noteId = btn.dataset.history;
           openModal('<h2>Historique des modifications</h2><div id="mNoteHistoryBody"><p class="m-empty">Chargement…</p></div>');
-          callServer('apiGetNoteHistory', [rowIndex], histRes => {
+          callServer('apiGetNoteHistory', [noteId], histRes => {
             const body = document.getElementById('mNoteHistoryBody');
             if (!body) return;
             const entries = histRes.entries || [];
@@ -1860,8 +1867,11 @@
               const ds = !isNaN(d)
                 ? d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                 : '';
+              const ep = en.author ? cachedPlayers.find(pl => pl.name === en.author) : null;
               return '<div class="m-note-history-entry">' +
-                '<div class="m-note-history-head"><strong>' + escapeHtml(en.author || '?') + '</strong><span>' + ds + '</span></div>' +
+                '<div class="m-note-history-head"><span class="m-note-history-who">' +
+                (en.author ? avatarImgHtml(en.author, ep ? ep.meta : '', 'm-note-meta-avatar') : '') +
+                '<strong>' + escapeHtml(en.author || '?') + '</strong></span><span>' + ds + '</span></div>' +
                 '<div class="m-note-history-text">' + escapeHtml(en.after) + '</div>' +
               '</div>';
             }).join('');
