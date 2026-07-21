@@ -110,6 +110,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Ordre des onglets de la barre de navigation revu : Dashboard, Saisir un Lot, Notes, Historique, Paramètres, Guide.
 **Technique** : `Code.gs` — réordonnancement du tableau `NAV_PAGES` (source unique consommée par `Index.html` et `Mobile.html` via `apiGetNavPages()`), aucun autre changement nécessaire.
 
+### Corrigé
+**Humanisé** : Dans l'infobulle du graphique du Dashboard, un score à 0 point reste toujours grisé et discret, même si la palette de couleurs personnalisée dans Paramètres change — ce n'est pas une "performance froide" à teinter, juste une absence de données qui ne doit jamais ressortir autant qu'un vrai score.
+**Technique** : `Index.html` — `pointValueTier()` renvoie un palier dédié `pv-zero` pour `value === 0` (avant de calculer le ratio à la moyenne), stylé en dur (`color:var(--text-muted); opacity:0.65`) indépendamment des variables `--ctt-*` personnalisables. La jauge optionnelle est masquée pour ce palier (aucun ratio pertinent à afficher).
+
 ## [Non publié] - 2026-07-17
 
 ### Corrigé

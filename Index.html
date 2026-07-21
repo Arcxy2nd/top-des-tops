@@ -2222,6 +2222,7 @@
     /* Seuils dérivés de la moyenne du Top (voir pointValueTier) : froid → banal
        → chaud → incandescent, plus l'écart à la moyenne grandit. Couleurs pilotées
        par variables CSS (personnalisables via le panneau ⚙️ Style, voir JS). */
+    #chartCustomTooltip .ctt-val.pv-zero   { color: var(--text-muted); font-weight: 600; opacity: 0.65; }
     #chartCustomTooltip .ctt-val.pv-cold   { color: var(--ctt-cold, var(--text-muted)); }
     #chartCustomTooltip .ctt-val.pv-normal { color: var(--ctt-normal, var(--text)); }
     #chartCustomTooltip .ctt-val.pv-warm   { color: var(--ctt-warm, var(--warn)); }
@@ -7163,6 +7164,10 @@
   }
 
   function pointValueTier(value, sampleValues) {
+    // 0 pt reste toujours grisé, indépendamment de la palette personnalisable :
+    // ce n'est pas une performance "froide" à teinter, mais une absence de
+    // données qui ne doit jamais attirer l'œil autant qu'un vrai score.
+    if (value === 0) return 'pv-zero';
     const ratio = pointValueRatio(value, sampleValues);
     if (ratio === null) return null;
     if (ratio < 0.6) return 'pv-cold';
@@ -7364,7 +7369,7 @@
             line.appendChild(label); line.appendChild(val);
             content.appendChild(line);
 
-            if (tooltipPrefs.gauge && tier) {
+            if (tooltipPrefs.gauge && tier && tier !== 'pv-zero') {
               content.appendChild(buildTooltipGauge(tier, ratio));
             }
 
