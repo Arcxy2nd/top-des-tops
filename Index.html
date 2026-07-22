@@ -8904,7 +8904,7 @@
 
     function renderBaremeQuickBtns(entries, topName) {
       bqBtns.innerHTML = '';
-      const matching = entries.filter(e => e.top === topName && e.pts > 0);
+      const matching = entries.filter(e => e.top === topName && e.pts > 0).sort((a, b) => a.pts - b.pts);
       if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
       baremeRow.classList.add('has-entries');
       matching.forEach(entry => {

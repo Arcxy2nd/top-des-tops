@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-22
+
+### Modifié
+**Humanisé** : Dans Saisir un lot, les boutons rapides de barème (raccourcis pour appliquer un nombre de points prédéfini) s'affichent maintenant du plus petit score au plus grand, au lieu d'un ordre imprévisible.
+**Technique** : `Index.html` — `renderBaremeQuickBtns()` : les entrées filtrées sont triées par `pts` croissant avant le rendu des `.bq-btn`.
+
 ## [Non publié] - 2026-07-21
 
 ### Modifié
