@@ -768,22 +768,25 @@
     }
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .note-meta {
-      display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
-      margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
+    /* Pastilles auteur + boutons Éditer/Supprimer sur une seule ligne, pour ne pas
+       gonfler la hauteur de la carte. */
+    .note-footer {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+      margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border);
     }
+    .note-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; flex: 1 1 auto; min-width: 0; }
     .note-meta-item {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
       font-family: inherit; background: none; border: none; padding: 0;
       transition: color 0.15s;
     }
     .note-meta-item strong { color: var(--text); font-weight: 700; }
-    .note-meta-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); background: var(--btn-alt); }
+    .note-meta-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: var(--btn-alt); }
     .note-meta-chevron { font-size: 0.85em; opacity: 0.6; transition: transform 0.15s, opacity 0.15s; }
     button.note-meta-edited {
       cursor: pointer;
-      border-radius: 20px; padding: 4px 10px 4px 6px;
+      border-radius: 20px; padding: 3px 8px 3px 5px;
       background: rgba(0,0,0,0.18); border: 1px solid var(--border);
     }
     button.note-meta-edited:hover {
@@ -818,7 +821,7 @@
     .note-history-popover .nhp-entry-text {
       font-size: 0.82rem; color: var(--text); white-space: pre-wrap; word-break: break-word;
     }
-    .note-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+    .note-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }
 
     /* ── NOTES : un bloc par joueur ── */
     .note-player-block {
@@ -10610,19 +10613,21 @@
       const editedName = document.createElement('strong');
       editedName.textContent = note.lastEditedBy;
       editedBtn.appendChild(editedName);
-      if (edStr) editedBtn.appendChild(document.createTextNode(' le ' + edStr));
       const chevron = document.createElement('span');
       chevron.className = 'note-meta-chevron';
       chevron.textContent = '›';
       editedBtn.appendChild(chevron);
-      editedBtn.title = 'Voir l\'historique des modifications';
+      editedBtn.title = 'Voir l\'historique des modifications' + (edStr ? ' — dernière le ' + edStr : '');
       editedBtn.addEventListener('click', e => {
         e.stopPropagation();
         openNoteHistoryPopover(e.currentTarget, note.noteId);
       });
       meta.appendChild(editedBtn);
     }
-    if (!meta.children.length) meta.style.display = 'none';
+
+    const footer = document.createElement('div');
+    footer.className = 'note-footer';
+    if (meta.children.length) footer.appendChild(meta);
 
     const actions = document.createElement('div');
     actions.className = 'note-actions';
@@ -10648,8 +10653,9 @@
       });
     });
     actions.appendChild(editBtn); actions.appendChild(delBtn);
+    footer.appendChild(actions);
 
-    card.appendChild(headc); card.appendChild(txt); card.appendChild(meta); card.appendChild(actions);
+    card.appendChild(headc); card.appendChild(txt); card.appendChild(footer);
     return card;
   }
 

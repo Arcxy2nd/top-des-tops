@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-21
 
 ### Modifié
+**Humanisé** : La zone « Créé par / Modifié par » prenait trop de place sur une ligne à part au-dessus des boutons Éditer/Supprimer. Elle est maintenant alignée sur la même ligne que ces boutons (pastilles à gauche, actions à droite), plus compacte.
+**Technique** : `Index.html`/`Mobile.html` — `.note-meta`/`.m-note-meta` et `.note-actions`/`.m-hist-actions` fusionnés dans un conteneur `.note-footer`/`.m-note-footer` unique (`flex-wrap`, meta en `flex:1`, actions en `margin-left:auto`). Avatars réduits (20→16px desktop, 24→20px mobile), suppression de la date affichée sur la pastille « Modifié par » (déplacée dans l'attribut `title`) pour gagner en largeur.
+
+### Modifié
 **Humanisé** : Créé par / Modifié par sont de nouveau écrits directement sur la note (comme au tout début), au lieu d'être recalculés à chaque fois depuis le Journal — plus simple, plus direct, les deux pastilles s'affichent ensemble sans dépendre d'une correspondance à retrouver. Le Journal ne sert plus qu'à l'historique détaillé (le popover listant chaque modification).
 **Technique** : `Code.gs` — feuille `Notes` étendue à 7 colonnes (`Date | Joueur | Note | NoteId | CrééPar | ModifiéPar | ModifiéLe`), migration douce via `NotesService._ensureColumns()`. `addNote()` écrit `CrééPar` à la création ; `editNote(rowIndex, newText, editor)` écrit `ModifiéPar`/`ModifiéLe` directement (et backfille le `NoteId` si absent). `getAllNotes()` lit ces colonnes telles quelles, sans dérivation. Suppression de `_noteAuthorsByNoteId()`/`_computeNoteAuthorsByNoteId()` (cache + calcul depuis le journal, devenus inutiles). `apiBackfillNoteAuthors` retrouve toujours l'auteur des notes anciennes en remontant la chaîne d'éditions dans le Journal, mais écrit désormais le résultat directement dans les colonnes plutôt que de retaguer des entrées de journal. `NoteId` reste utilisé uniquement par `apiGetNoteHistory()` pour l'historique détaillé.
 

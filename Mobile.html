@@ -217,23 +217,26 @@
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
     .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
-    .m-note-meta {
-      display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    /* Pastilles auteur + boutons éditer/supprimer sur une seule ligne. */
+    .m-note-footer {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
       margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
     }
+    .m-note-meta { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; flex: 1 1 auto; min-width: 0; }
     .m-note-meta-item {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 1.35rem; font-weight: 600; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 1.25rem; font-weight: 600; color: var(--text-muted);
       font-family: inherit; background: none; border: none; padding: 0;
     }
     .m-note-meta-item strong { color: var(--text); font-weight: 700; }
     .m-note-meta-chevron { font-size: 0.9em; opacity: 0.6; }
     button.m-note-meta-edited {
-      cursor: pointer; border-radius: 20px; padding: 5px 12px 5px 6px;
+      cursor: pointer; border-radius: 20px; padding: 4px 10px 4px 5px;
       background: rgba(0,0,0,0.15); border: 1px solid var(--border);
     }
     button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .m-note-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); background: var(--btn-alt); }
+    .m-note-meta-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: var(--btn-alt); }
+    .m-note-footer .m-hist-actions { margin: 0 0 0 auto; flex-shrink: 0; }
     .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
     .m-note-history-entry:last-child { border-bottom: none; }
     .m-note-history-head {
@@ -1831,31 +1834,31 @@
         const p = cachedPlayers.find(p => p.name === n.player);
         const d = n.timestamp ? new Date(n.timestamp) : null;
         const ds = d ? (String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear()) : '';
-        let noteMetaHtml = '<div class="m-note-meta">';
+        let metaHtml = '';
         if (n.createdBy) {
           const cp = cachedPlayers.find(pl => pl.name === n.createdBy);
-          noteMetaHtml += '<span class="m-note-meta-item">' + avatarImgHtml(n.createdBy, cp ? cp.meta : '', 'm-note-meta-avatar') +
+          metaHtml += '<span class="m-note-meta-item">' + avatarImgHtml(n.createdBy, cp ? cp.meta : '', 'm-note-meta-avatar') +
             '✍️ Créé par <strong>' + escapeHtml(n.createdBy) + '</strong></span>';
         }
         if (n.lastEditedBy && n.lastEditedAt) {
           const ed = new Date(n.lastEditedAt);
           const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
           const ep = cachedPlayers.find(pl => pl.name === n.lastEditedBy);
-          noteMetaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + escapeHtml(n.noteId) + '">' +
+          metaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + escapeHtml(n.noteId) +
+            '" title="Voir l\'historique' + (eds ? ' — dernière le ' + eds : '') + '">' +
             avatarImgHtml(n.lastEditedBy, ep ? ep.meta : '', 'm-note-meta-avatar') + '📝 Modifié par <strong>' +
-            escapeHtml(n.lastEditedBy) + '</strong>' + (eds ? ' le ' + eds : '') + '<span class="m-note-meta-chevron">›</span></button>';
+            escapeHtml(n.lastEditedBy) + '</strong><span class="m-note-meta-chevron">›</span></button>';
         }
-        noteMetaHtml += '</div>';
-        if (!n.createdBy && !(n.lastEditedBy && n.lastEditedAt)) noteMetaHtml = '';
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +
           '<div class="m-hist-desc">' + renderMarkdown(n.text) + '</div>' +
-          noteMetaHtml +
+          '<div class="m-note-footer">' +
+          (metaHtml ? '<div class="m-note-meta">' + metaHtml + '</div>' : '') +
           '<div class="m-hist-actions">' +
           '<button class="small" data-edit="' + n.rowIndex + '">✏️</button>' +
           '<button class="danger small" data-del="' + n.rowIndex + '">🗑️</button>' +
-          '</div></div>';
+          '</div></div></div>';
       }).join('');
       list.querySelectorAll('[data-history]').forEach(btn => {
         btn.addEventListener('click', () => {
