@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-21
 
 ### Corrigé
+**Humanisé** : Le bouton « Rattacher » ne retrouvait que « Modifié par » sur une note créée puis modifiée — jamais « Créé par » en même temps. Il remonte maintenant toute la chaîne d'éditions d'une note (chaque modification jusqu'à la création d'origine) pour retrouver et afficher les deux pastilles ensemble dès que le fil se reconstitue entièrement.
+**Technique** : `Code.gs` — `apiBackfillNoteAuthors` : après avoir localisé la dernière modification d'une note (Après == texte actuel), son champ Avant (`"joueur : texte précédent"`) est retesté contre l'index des créations, puis, si toujours pas trouvé, contre l'index des modifications avec ce texte précédent comme nouvelle cible — et ainsi de suite (plafond de sécurité 50 sauts) jusqu'à retrouver la création d'origine ou jusqu'à ce que la chaîne casse (correspondance absente ou ambiguë, jamais devinée). Toutes les entrées de la chaîne reconstituée (création + chaque modification traversée) sont retaguées avec le même NoteId — l'historique complet redevient visible dans le popover, pas seulement la dernière modification.
+
+### Corrigé
 **Humanisé** : Le popover d'historique d'une note (ouvert en cliquant sur « Modifié par ») restait figé à l'écran pendant qu'on faisait défiler la page, au lieu de rester collé au bouton — il se recale maintenant en continu, et se ferme si le bouton sort de l'écran.
 **Technique** : `Index.html` — `openNoteHistoryPopover()` : la position (`position:fixed`, calculée une fois via `getBoundingClientRect()`) était figée à l'ouverture. Nouvelle fonction `reposition()` rappelée sur `scroll` (capture, pour les conteneurs scrollables imbriqués) et `resize`, tant que le popover est ouvert ; fermeture automatique si le bouton sort du viewport. Écouteurs nettoyés dans `closeNoteHistoryPopover()`.
 

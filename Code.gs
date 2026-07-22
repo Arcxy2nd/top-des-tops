@@ -1967,14 +1967,19 @@ function apiDeleteOrphans(author) {
 
 /**
  * Rattache un NoteId aux notes antérieures à l'introduction du suivi Créé par/Modifié
- * par (Journal), UNIQUEMENT quand une correspondance certaine et sans ambiguïté existe.
- * Deux passes, jamais de devinette (une note ambiguë — texte dupliqué — reste sans auteur) :
- *  1) Note jamais retouchée depuis sa création : texte actuel == une seule entrée
- *     "Note ajoutée" ("joueur : texte"). → Créé par ET Modifié par (aucun) retrouvés.
- *  2) Note modifiée depuis : texte actuel == une seule entrée "Note modifiée" (texte
- *     seul, sans joueur — ancien format d'avant NoteId). → Modifié par (le dernier
- *     éditeur) retrouvé ; Créé par reste inconnu (l'historique antérieur à cette dernière
- *     modification référençait l'ancien numéro de ligne, pas fiable pour remonter plus loin).
+ * par (Journal), en remontant toute la chaîne d'éditions jusqu'à la création — pour que
+ * Créé par ET Modifié par s'affichent ensemble dès que le fil se reconstitue entièrement,
+ * pas seulement pour les notes jamais retouchées. Jamais de devinette : à chaque maillon,
+ * une correspondance ambiguë (texte dupliqué) arrête la remontée à cet endroit précis —
+ * ce qui a déjà été retrouvé avant ce point reste acquis.
+ *
+ * Chaque édition journalise "Avant" = "joueur : texte précédent" et "Après" = "texte
+ * nouveau" (sans joueur — format d'avant NoteId). Partant du texte actuel d'une note :
+ * on cherche d'abord une création directe ("joueur : texte" == Après d'un "Note ajoutée").
+ * Sinon, on cherche la dernière édition (Après == texte actuel) → Modifié par obtenu ;
+ * son "Avant" donne le texte précédent, qu'on reteste en création puis en édition, et
+ * ainsi de suite en remontant, jusqu'à trouver la création (Créé par obtenu) ou jusqu'à
+ * ce que la chaîne casse (plus de correspondance unique).
  */
 function apiBackfillNoteAuthors(author) {
   try {
@@ -2003,37 +2008,53 @@ function apiBackfillNoteAuthors(author) {
 
       // Index des entrées "Note ajoutée", clé "joueur : texte" (format de l'époque).
       const byCreation = {};
-      // Index des entrées "Note modifiée", clé "texte" seul — l'ancien format ne
-      // préfixait pas le joueur dans le champ "Après" d'une édition.
+      // Index des entrées "Note modifiée", clé "texte" seul (Après ne préfixait pas
+      // le joueur), avec leur "Avant" pour pouvoir continuer à remonter la chaîne.
       const byEdit = {};
       auditData.forEach((row, i) => {
-        const action = row[2], entity = row[3] ? row[3].toString() : '', after = row[5] ? row[5].toString() : '';
+        const action = row[2], entity = row[3] ? row[3].toString() : '',
+              before = row[4] ? row[4].toString() : '', after = row[5] ? row[5].toString() : '';
         if (action === 'Note ajoutée' && entity.indexOf('Note:') === 0) {
-          (byCreation[after] = byCreation[after] || []).push(i + 2);
+          (byCreation[after] = byCreation[after] || []).push({ row: i + 2 });
         } else if (action === 'Note modifiée' && entity === 'Note') {
-          (byEdit[after] = byEdit[after] || []).push(i + 2);
+          (byEdit[after] = byEdit[after] || []).push({ row: i + 2, before });
         }
       });
 
       let matched = 0, skipped = 0;
       candidates.forEach(c => {
-        const creationHits = byCreation[c.player + ' : ' + c.text];
-        if (creationHits && creationHits.length === 1) {
-          const noteId = _generateGroupId();
-          notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
-          auditSheet.getRange(creationHits[0], 7).setValue('note:' + noteId);
-          matched++;
-          return;
+        // Lignes du journal à retagger avec le même NoteId — createdBy/lastEditedBy
+        // n'ont pas besoin d'être portés ici : une fois retaggées, elles seront
+        // relues normalement par _computeNoteAuthorsByNoteId().
+        const prefix = c.player + ' : ';
+        const taggedRows = [];
+
+        const directCreation = byCreation[prefix + c.text];
+        if (directCreation && directCreation.length === 1) {
+          taggedRows.push(directCreation[0].row);
+        } else {
+          let curText = c.text;
+          for (let hops = 0; hops < 50; hops++) {
+            const editHits = byEdit[curText];
+            if (!editHits || editHits.length !== 1) break; // introuvable ou ambigu → la chaîne s'arrête ici
+            const hit = editHits[0];
+            taggedRows.push(hit.row);
+            if (hit.before.indexOf(prefix) !== 0) break; // format inattendu → on s'arrête, prudent
+            const priorText = hit.before.slice(prefix.length);
+            const creationHit = byCreation[prefix + priorText];
+            if (creationHit && creationHit.length === 1) {
+              taggedRows.push(creationHit[0].row);
+              break; // chaîne remontée jusqu'à la création : terminé
+            }
+            curText = priorText; // encore une édition plus tôt : on continue de remonter
+          }
         }
-        const editHits = byEdit[c.text];
-        if (editHits && editHits.length === 1) {
-          const noteId = _generateGroupId();
-          notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
-          auditSheet.getRange(editHits[0], 7).setValue('note:' + noteId);
-          matched++;
-          return;
-        }
-        skipped++; // absent ou ambigu dans les deux index → pas de devinette
+
+        if (!taggedRows.length) { skipped++; return; } // rien retrouvé, aucune trace exploitable
+        const noteId = _generateGroupId();
+        notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
+        taggedRows.forEach(r => auditSheet.getRange(r, 7).setValue('note:' + noteId));
+        matched++;
       });
 
       if (matched) {
