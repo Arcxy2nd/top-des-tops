@@ -217,16 +217,23 @@
     .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
     .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
-    .m-note-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .m-note-meta-item {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 1.35rem; font-weight: 600; color: var(--text-muted);
-      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
-      border-radius: 20px; padding: 5px 12px; font-family: inherit;
+    .m-note-meta {
+      display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+      margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
     }
-    button.m-note-meta-edited { cursor: pointer; }
+    .m-note-meta-item {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 1.35rem; font-weight: 600; color: var(--text-muted);
+      font-family: inherit; background: none; border: none; padding: 0;
+    }
+    .m-note-meta-item strong { color: var(--text); font-weight: 700; }
+    .m-note-meta-chevron { font-size: 0.9em; opacity: 0.6; }
+    button.m-note-meta-edited {
+      cursor: pointer; border-radius: 20px; padding: 5px 12px 5px 6px;
+      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
+    }
     button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .m-note-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .m-note-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); background: var(--btn-alt); }
     .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
     .m-note-history-entry:last-child { border-bottom: none; }
     .m-note-history-head {
@@ -1828,15 +1835,15 @@
         if (n.createdBy) {
           const cp = cachedPlayers.find(pl => pl.name === n.createdBy);
           noteMetaHtml += '<span class="m-note-meta-item">' + avatarImgHtml(n.createdBy, cp ? cp.meta : '', 'm-note-meta-avatar') +
-            'Créé par ' + escapeHtml(n.createdBy) + '</span>';
+            '✍️ Créé par <strong>' + escapeHtml(n.createdBy) + '</strong></span>';
         }
         if (n.lastEditedBy && n.lastEditedAt) {
           const ed = new Date(n.lastEditedAt);
           const eds = !isNaN(ed) ? (String(ed.getDate()).padStart(2,'0') + '/' + String(ed.getMonth()+1).padStart(2,'0')) : '';
           const ep = cachedPlayers.find(pl => pl.name === n.lastEditedBy);
           noteMetaHtml += '<button type="button" class="m-note-meta-item m-note-meta-edited" data-history="' + escapeHtml(n.noteId) + '">' +
-            avatarImgHtml(n.lastEditedBy, ep ? ep.meta : '', 'm-note-meta-avatar') + 'Modifié par ' +
-            escapeHtml(n.lastEditedBy) + (eds ? ' le ' + eds : '') + '  ⏱</button>';
+            avatarImgHtml(n.lastEditedBy, ep ? ep.meta : '', 'm-note-meta-avatar') + '📝 Modifié par <strong>' +
+            escapeHtml(n.lastEditedBy) + '</strong>' + (eds ? ' le ' + eds : '') + '<span class="m-note-meta-chevron">›</span></button>';
         }
         noteMetaHtml += '</div>';
         if (!n.createdBy && !(n.lastEditedBy && n.lastEditedAt)) noteMetaHtml = '';

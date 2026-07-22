@@ -768,21 +768,28 @@
     }
     .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .note-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .note-meta-item {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
-      background: rgba(0,0,0,0.18); border: 1px solid var(--border);
-      border-radius: 20px; padding: 4px 12px 4px 6px; font-family: inherit;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    .note-meta {
+      display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+      margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
     }
-    .note-meta-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .note-meta-item {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      font-family: inherit; background: none; border: none; padding: 0;
+      transition: color 0.15s;
+    }
+    .note-meta-item strong { color: var(--text); font-weight: 700; }
+    .note-meta-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); background: var(--btn-alt); }
+    .note-meta-chevron { font-size: 0.85em; opacity: 0.6; transition: transform 0.15s, opacity 0.15s; }
     button.note-meta-edited {
       cursor: pointer;
+      border-radius: 20px; padding: 4px 10px 4px 6px;
+      background: rgba(0,0,0,0.18); border: 1px solid var(--border);
     }
     button.note-meta-edited:hover {
       background: var(--accent); color: var(--on-accent); border-color: var(--accent);
     }
+    button.note-meta-edited:hover .note-meta-chevron { opacity: 1; transform: translateX(2px); }
     .nhp-entry-head .note-meta-avatar { width: 20px; height: 20px; margin-right: 6px; }
     .note-history-popover {
       position: fixed; z-index: 9999; width: 300px; max-width: calc(100vw - 16px);
@@ -10586,7 +10593,10 @@
       const createdEl = document.createElement('span');
       createdEl.className = 'note-meta-item';
       createdEl.appendChild(buildNoteAuthorAvatar(note.createdBy));
-      createdEl.appendChild(document.createTextNode('Créé par ' + note.createdBy));
+      createdEl.appendChild(document.createTextNode('✍️ Créé par '));
+      const createdName = document.createElement('strong');
+      createdName.textContent = note.createdBy;
+      createdEl.appendChild(createdName);
       meta.appendChild(createdEl);
     }
     if (note.lastEditedBy && note.lastEditedAt) {
@@ -10596,7 +10606,15 @@
       editedBtn.type = 'button';
       editedBtn.className = 'note-meta-item note-meta-edited';
       editedBtn.appendChild(buildNoteAuthorAvatar(note.lastEditedBy));
-      editedBtn.appendChild(document.createTextNode('Modifié par ' + note.lastEditedBy + (edStr ? ' le ' + edStr : '') + '  ⏱'));
+      editedBtn.appendChild(document.createTextNode('📝 Modifié par '));
+      const editedName = document.createElement('strong');
+      editedName.textContent = note.lastEditedBy;
+      editedBtn.appendChild(editedName);
+      if (edStr) editedBtn.appendChild(document.createTextNode(' le ' + edStr));
+      const chevron = document.createElement('span');
+      chevron.className = 'note-meta-chevron';
+      chevron.textContent = '›';
+      editedBtn.appendChild(chevron);
       editedBtn.title = 'Voir l\'historique des modifications';
       editedBtn.addEventListener('click', e => {
         e.stopPropagation();

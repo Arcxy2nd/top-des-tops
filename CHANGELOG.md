@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-21
 
+### Modifié
+**Humanisé** : Zone « Créé par / Modifié par » d'une note retravaillée visuellement — séparée du texte par une ligne pointillée au lieu d'un simple espacement, noms en gras, avatar cerclé plus grand, et le bouton « Modifié par » se distingue clairement comme cliquable (chevron qui s'anime au survol/tap).
+**Technique** : `Index.html` — `.note-meta` : `border-top: dashed`, `padding-top`, pastilles sans fond/bordure sauf `.note-meta-edited` (seule actionnable) ; noms enveloppés en `<strong>`, `.note-meta-chevron` ajouté. `Mobile.html` — même traitement à l'échelle tactile (`.m-note-meta-*`).
+
 ### Corrigé
 **Humanisé** : Le bouton « Rattacher » ne retrouvait que « Modifié par » sur une note créée puis modifiée — jamais « Créé par » en même temps. Il remonte maintenant toute la chaîne d'éditions d'une note (chaque modification jusqu'à la création d'origine) pour retrouver et afficher les deux pastilles ensemble dès que le fil se reconstitue entièrement.
 **Technique** : `Code.gs` — `apiBackfillNoteAuthors` : après avoir localisé la dernière modification d'une note (Après == texte actuel), son champ Avant (`"joueur : texte précédent"`) est retesté contre l'index des créations, puis, si toujours pas trouvé, contre l'index des modifications avec ce texte précédent comme nouvelle cible — et ainsi de suite (plafond de sécurité 50 sauts) jusqu'à retrouver la création d'origine ou jusqu'à ce que la chaîne casse (correspondance absente ou ambiguë, jamais devinée). Toutes les entrées de la chaîne reconstituée (création + chaque modification traversée) sont retaguées avec le même NoteId — l'historique complet redevient visible dans le popover, pas seulement la dernière modification.
