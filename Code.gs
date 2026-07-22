@@ -917,11 +917,22 @@ const NotesService = {
     this._sheet().deleteRow(idx);
   },
 
+  /** Renvoie le NoteId de la ligne éditée (le génère à la volée si la note est
+   *  antérieure à l'introduction du suivi — elle devient traçable dès cette édition,
+   *  sans attendre un rattachement rétroactif). */
   editNote(rowIndex, newText) {
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
-    this._sheet().getRange(idx, 3).setValue(newText.trim());
+    const sheet = this._sheet();
+    sheet.getRange(idx, 3).setValue(newText.trim());
+    let noteId = sheet.getRange(idx, 4).getValue();
+    noteId = noteId ? noteId.toString() : '';
+    if (!noteId) {
+      noteId = _generateGroupId();
+      sheet.getRange(idx, 4).setValue(noteId);
+    }
+    return noteId;
   },
 
   /** Lit le NoteId stocké à une ligne donnée (utilisé par les endpoints api* pour
@@ -1954,6 +1965,69 @@ function apiDeleteOrphans(author) {
   } catch(e) { return fail(e); }
 }
 
+/**
+ * Rattache un NoteId aux notes antérieures à l'introduction du suivi Créé par/Modifié
+ * par (Journal), UNIQUEMENT quand une correspondance certaine et sans ambiguïté existe :
+ * texte de la note (encore inchangé depuis sa création) identique à une entrée
+ * "Note ajoutée" du journal, et une seule. Jamais de devinette — une note éditée
+ * depuis sa création, ou dont le texte est ambigu (dupliqué), reste sans auteur ;
+ * elle deviendra traçable dès sa prochaine modification (voir NotesService.editNote).
+ */
+function apiBackfillNoteAuthors(author) {
+  try {
+    requireAuthor(author);
+    return withLock(() => {
+      const notesSheet = ConfigService.getSheets().notes;
+      if (!notesSheet) return { success: true, matched: 0, skipped: 0 };
+      const lastRow = notesSheet.getLastRow();
+      if (lastRow <= 1) return { success: true, matched: 0, skipped: 0 };
+
+      const noteRows = notesSheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      const candidates = [];
+      noteRows.forEach((row, i) => {
+        const player = row[1] ? row[1].toString() : '';
+        const text   = row[2] ? row[2].toString() : '';
+        const noteId = row[3] ? row[3].toString() : '';
+        if (!noteId && (player || text)) candidates.push({ rowIndex: i + 2, player, text });
+      });
+      if (!candidates.length) return { success: true, matched: 0, skipped: 0 };
+
+      const auditSheet = ConfigService.getSheets().auditLog;
+      if (!auditSheet) return { success: true, matched: 0, skipped: candidates.length };
+      const auditLastRow = auditSheet.getLastRow();
+      if (auditLastRow <= 1) return { success: true, matched: 0, skipped: candidates.length };
+      const auditData = auditSheet.getRange(2, 1, auditLastRow - 1, 7).getValues();
+
+      // Index des entrées "Note ajoutée" par contenu exact ("joueur : texte"), avec
+      // leur ligne physique dans AuditLog pour pouvoir retagger leur Détail ensuite.
+      const byContent = {};
+      auditData.forEach((row, i) => {
+        const action = row[2], entity = row[3] ? row[3].toString() : '', after = row[5] ? row[5].toString() : '';
+        if (action !== 'Note ajoutée' || entity.indexOf('Note:') !== 0) return;
+        if (!byContent[after]) byContent[after] = [];
+        byContent[after].push(i + 2);
+      });
+
+      let matched = 0, skipped = 0;
+      candidates.forEach(c => {
+        const hits = byContent[c.player + ' : ' + c.text];
+        if (!hits || hits.length !== 1) { skipped++; return; } // absent ou ambigu → pas de devinette
+        const noteId = _generateGroupId();
+        notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
+        auditSheet.getRange(hits[0], 7).setValue('note:' + noteId); // colonne Détail
+        matched++;
+      });
+
+      if (matched) {
+        AuditService.log(author, 'Notes rattachées', 'Notes', '', '',
+          matched + ' note(s) rattachée(s), ' + skipped + ' laissée(s) sans correspondance certaine');
+      }
+      ConfigService.clearCache();
+      return { success: true, matched, skipped };
+    });
+  } catch(e) { return fail(e); }
+}
+
 function apiUpdateHistoryDescription(rowIndex, description, author) {
   try {
     requireAuthor(author);
@@ -2060,14 +2134,13 @@ function apiEditNote(rowIndex, newText, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
-      const noteId = NotesService.noteIdAt(rowIndex);
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
-      NotesService.editNote(rowIndex, newText);
+      const noteId = NotesService.editNote(rowIndex, newText); // backfille un NoteId si absent
       const afterRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
         'note:' + noteId,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
-      return { success: true };
+      return { success: true, noteId };
     });
   } catch(e) { return fail(e); }
 }

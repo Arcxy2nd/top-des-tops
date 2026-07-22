@@ -3023,6 +3023,13 @@
           </div>
           <button class="danger small" id="deleteOrphansBtn">Supprimer</button>
         </div>
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Rattacher l'auteur des notes anciennes</strong>
+            <span>Retrouve dans le Journal l'auteur des notes antérieures au suivi Créé par/Modifié par — uniquement quand la note n'a jamais été modifiée depuis (correspondance certaine, sans devinette). Les autres deviendront traçables dès leur prochaine modification.</span>
+          </div>
+          <button class="secondary small" id="backfillNoteAuthorsBtn">Rattacher</button>
+        </div>
       </div>
 
       <div class="card card-collapsible" id="toolLotsCard">
@@ -11505,6 +11512,15 @@
           loadDataHealth(); applyFilters();
         }, 'Suppression orphelins');
       });
+    });
+
+    document.getElementById('backfillNoteAuthorsBtn').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      buzz();
+      callServer('apiBackfillNoteAuthors', [_whoAmI || ''], res => {
+        showToast(`${res.matched} note(s) rattachée(s), ${res.skipped} sans correspondance certaine.`, 'success');
+        if (res.matched) loadNotes();
+      }, 'Rattachement auteurs notes');
     });
 
     initAutoPointsPanel();
