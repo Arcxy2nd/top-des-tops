@@ -1644,8 +1644,24 @@ function _noteRowSummary(rowIndex) {
 /** Dérive Créé par / Dernière modification par pour chaque note à partir du Journal
  *  d'audit (seule source de vérité — rien n'est dupliqué sur la ligne de la note).
  *  Les entrées sont indexées par NoteId (Détail = "note:<id>"), stable même si la
- *  note change de ligne suite à la suppression d'une autre note plus haut. */
+ *  note change de ligne suite à la suppression d'une autre note plus haut.
+ *  Mise en cache cross-requête (même mécanisme que getAllLogs/getFullHistoryRowsCached) :
+ *  clé versionnée sur _logsVersion(), déjà incrémenté par withLock() à chaque écriture
+ *  (ajout/édition/suppression de note incluses) — jamais servi périmé après une action. */
 function _noteAuthorsByNoteId() {
+  const cache = CacheService.getScriptCache();
+  const key   = 'note_authors_v' + _logsVersion();
+  const raw   = cache.get(key);
+  if (raw) {
+    try { return JSON.parse(raw); } catch (_) {} // entrée corrompue → recalcul
+  }
+  const map = _computeNoteAuthorsByNoteId();
+  const serial = JSON.stringify(map);
+  if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+  return map;
+}
+
+function _computeNoteAuthorsByNoteId() {
   const map = {};
   const sheet = ConfigService.getSheets().auditLog;
   if (!sheet) return map;
