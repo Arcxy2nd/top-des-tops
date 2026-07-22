@@ -10640,6 +10640,8 @@
   function closeNoteHistoryPopover() {
     if (!_activeNoteHistoryPopover) return;
     if (_activeNoteHistoryPopover._onDocClick) document.removeEventListener('click', _activeNoteHistoryPopover._onDocClick);
+    if (_activeNoteHistoryPopover._onScroll) document.removeEventListener('scroll', _activeNoteHistoryPopover._onScroll, true);
+    if (_activeNoteHistoryPopover._onResize) window.removeEventListener('resize', _activeNoteHistoryPopover._onResize);
     _activeNoteHistoryPopover.remove();
     _activeNoteHistoryPopover = null;
   }
@@ -10652,17 +10654,29 @@
     pop.innerHTML = '<div class="nhp-header">Historique des modifications</div><div class="nhp-body"><p class="nhp-empty">Chargement…</p></div>';
     document.body.appendChild(pop);
 
-    const rect = anchorEl.getBoundingClientRect();
-    pop.style.top  = (rect.bottom + 6) + 'px';
-    let left = rect.left;
-    const maxLeft = window.innerWidth - 300 - 8;
-    if (left > maxLeft) left = Math.max(8, maxLeft);
-    pop.style.left = left + 'px';
+    // position:fixed est ancré à l'écran, pas au bouton : sans repositionnement, la
+    // bulle "flotte" au lieu de suivre le bouton quand la page défile. On la recale
+    // à chaque scroll/resize tant qu'elle est ouverte, et on la ferme si le bouton
+    // sort complètement de l'écran (plus rien à pointer).
+    function reposition() {
+      const rect = anchorEl.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) { closeNoteHistoryPopover(); return; }
+      pop.style.top = (rect.bottom + 6) + 'px';
+      let left = rect.left;
+      const maxLeft = window.innerWidth - 300 - 8;
+      if (left > maxLeft) left = Math.max(8, maxLeft);
+      pop.style.left = left + 'px';
+    }
+    reposition();
 
     _activeNoteHistoryPopover = pop;
     const onDocClick = e => { if (!pop.contains(e.target) && e.target !== anchorEl) closeNoteHistoryPopover(); };
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
     pop._onDocClick = onDocClick;
+    pop._onScroll = reposition;
+    pop._onResize = reposition;
+    document.addEventListener('scroll', pop._onScroll, true);
+    window.addEventListener('resize', pop._onResize);
 
     callServer('apiGetNoteHistory', [noteId], res => {
       if (_activeNoteHistoryPopover !== pop) return; // fermée entre-temps

@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-21
 
 ### Corrigé
+**Humanisé** : Le popover d'historique d'une note (ouvert en cliquant sur « Modifié par ») restait figé à l'écran pendant qu'on faisait défiler la page, au lieu de rester collé au bouton — il se recale maintenant en continu, et se ferme si le bouton sort de l'écran.
+**Technique** : `Index.html` — `openNoteHistoryPopover()` : la position (`position:fixed`, calculée une fois via `getBoundingClientRect()`) était figée à l'ouverture. Nouvelle fonction `reposition()` rappelée sur `scroll` (capture, pour les conteneurs scrollables imbriqués) et `resize`, tant que le popover est ouvert ; fermeture automatique si le bouton sort du viewport. Écouteurs nettoyés dans `closeNoteHistoryPopover()`.
+
+### Corrigé
 **Humanisé** : Le bouton « Rattacher » ne retrouvait l'auteur que des notes jamais retouchées depuis leur création — toutes celles créées **et** modifiées depuis restaient ignorées (le texte actuel ne correspondait plus à sa version d'origine). Il cherche maintenant aussi une correspondance sur la dernière modification enregistrée.
 **Technique** : `Code.gs` — `apiBackfillNoteAuthors` passe de un à deux index sur le Journal : `byCreation` (entrées « Note ajoutée », clé `"joueur : texte"`, format historique) et `byEdit` (entrées « Note modifiée », clé `"texte"` seul — l'ancien format n'incluait pas le joueur dans le champ Après d'une édition). Une note sans NoteId est d'abord testée contre `byCreation` (note jamais modifiée : Créé par retrouvé), puis contre `byEdit` (note modifiée depuis : seul Modifié par est retrouvé — remonter plus loin dans l'historique s'appuierait sur l'ancien numéro de ligne, pas fiable). Toujours aucune correspondance acceptée si ambiguë (texte dupliqué dans plusieurs entrées).
 
