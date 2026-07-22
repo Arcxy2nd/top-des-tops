@@ -1967,11 +1967,14 @@ function apiDeleteOrphans(author) {
 
 /**
  * Rattache un NoteId aux notes antérieures à l'introduction du suivi Créé par/Modifié
- * par (Journal), UNIQUEMENT quand une correspondance certaine et sans ambiguïté existe :
- * texte de la note (encore inchangé depuis sa création) identique à une entrée
- * "Note ajoutée" du journal, et une seule. Jamais de devinette — une note éditée
- * depuis sa création, ou dont le texte est ambigu (dupliqué), reste sans auteur ;
- * elle deviendra traçable dès sa prochaine modification (voir NotesService.editNote).
+ * par (Journal), UNIQUEMENT quand une correspondance certaine et sans ambiguïté existe.
+ * Deux passes, jamais de devinette (une note ambiguë — texte dupliqué — reste sans auteur) :
+ *  1) Note jamais retouchée depuis sa création : texte actuel == une seule entrée
+ *     "Note ajoutée" ("joueur : texte"). → Créé par ET Modifié par (aucun) retrouvés.
+ *  2) Note modifiée depuis : texte actuel == une seule entrée "Note modifiée" (texte
+ *     seul, sans joueur — ancien format d'avant NoteId). → Modifié par (le dernier
+ *     éditeur) retrouvé ; Créé par reste inconnu (l'historique antérieur à cette dernière
+ *     modification référençait l'ancien numéro de ligne, pas fiable pour remonter plus loin).
  */
 function apiBackfillNoteAuthors(author) {
   try {
@@ -1998,24 +2001,39 @@ function apiBackfillNoteAuthors(author) {
       if (auditLastRow <= 1) return { success: true, matched: 0, skipped: candidates.length };
       const auditData = auditSheet.getRange(2, 1, auditLastRow - 1, 7).getValues();
 
-      // Index des entrées "Note ajoutée" par contenu exact ("joueur : texte"), avec
-      // leur ligne physique dans AuditLog pour pouvoir retagger leur Détail ensuite.
-      const byContent = {};
+      // Index des entrées "Note ajoutée", clé "joueur : texte" (format de l'époque).
+      const byCreation = {};
+      // Index des entrées "Note modifiée", clé "texte" seul — l'ancien format ne
+      // préfixait pas le joueur dans le champ "Après" d'une édition.
+      const byEdit = {};
       auditData.forEach((row, i) => {
         const action = row[2], entity = row[3] ? row[3].toString() : '', after = row[5] ? row[5].toString() : '';
-        if (action !== 'Note ajoutée' || entity.indexOf('Note:') !== 0) return;
-        if (!byContent[after]) byContent[after] = [];
-        byContent[after].push(i + 2);
+        if (action === 'Note ajoutée' && entity.indexOf('Note:') === 0) {
+          (byCreation[after] = byCreation[after] || []).push(i + 2);
+        } else if (action === 'Note modifiée' && entity === 'Note') {
+          (byEdit[after] = byEdit[after] || []).push(i + 2);
+        }
       });
 
       let matched = 0, skipped = 0;
       candidates.forEach(c => {
-        const hits = byContent[c.player + ' : ' + c.text];
-        if (!hits || hits.length !== 1) { skipped++; return; } // absent ou ambigu → pas de devinette
-        const noteId = _generateGroupId();
-        notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
-        auditSheet.getRange(hits[0], 7).setValue('note:' + noteId); // colonne Détail
-        matched++;
+        const creationHits = byCreation[c.player + ' : ' + c.text];
+        if (creationHits && creationHits.length === 1) {
+          const noteId = _generateGroupId();
+          notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
+          auditSheet.getRange(creationHits[0], 7).setValue('note:' + noteId);
+          matched++;
+          return;
+        }
+        const editHits = byEdit[c.text];
+        if (editHits && editHits.length === 1) {
+          const noteId = _generateGroupId();
+          notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
+          auditSheet.getRange(editHits[0], 7).setValue('note:' + noteId);
+          matched++;
+          return;
+        }
+        skipped++; // absent ou ambigu dans les deux index → pas de devinette
       });
 
       if (matched) {
