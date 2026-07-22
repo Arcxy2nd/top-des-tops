@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-21
 
+### Corrigé
+**Humanisé** : « Créé par » ne s'affichait jamais, même sur une note toute juste créée — retiré aussi la pastille « Auteur inconnu » ajoutée en attendant de trouver la vraie cause.
+**Technique** : `Code.gs` — bug dans `_computeNoteAuthorsByNoteId()` : le filtre exigeait `Entité === 'Note'`, mais `apiAddNote` journalise « Note ajoutée » avec `Entité: 'Note: ' + joueur` (pour un affichage plus lisible dans l'onglet Journal), jamais `'Note'` seul — `createdBy` ne matchait donc jamais. Le filtre repose maintenant uniquement sur le Détail `"note:<id>"` (déjà un identifiant unique posé par les 3 endpoints notes), sans condition sur l'Entité. `Index.html`/`Mobile.html` — pastille de repli `.note-meta-unknown`/`.m-note-meta-unknown` retirée ; la ligne méta redevient simplement masquée quand aucune donnée n'existe (notes antérieures à cette fonctionnalité).
+
 ### Modifié
 **Humanisé** : Le calcul de « Créé par / Modifié par » (qui relit le Journal d'audit) est maintenant mis en cache entre les requêtes, comme le reste des données de l'app — pas de relecture complète du journal à chaque ouverture de la page Notes.
 **Technique** : `Code.gs` — `_noteAuthorsByNoteId()` enveloppe désormais `_computeNoteAuthorsByNoteId()` (logique inchangée) avec le même cache cross-requête que `getAllLogs()`/`getFullHistoryRowsCached()` : `CacheService.getScriptCache()`, clé `note_authors_v` + `_logsVersion()` (déjà incrémenté par `withLock()` à chaque écriture, notes incluses), TTL `CONFIG.CACHE_TTL_SECONDS`.

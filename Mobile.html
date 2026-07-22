@@ -227,7 +227,6 @@
     button.m-note-meta-edited { cursor: pointer; }
     button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .m-note-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
-    .m-note-meta-item.m-note-meta-unknown { opacity: 0.6; font-style: italic; }
     .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
     .m-note-history-entry:last-child { border-bottom: none; }
     .m-note-history-head {
@@ -1839,10 +1838,8 @@
             avatarImgHtml(n.lastEditedBy, ep ? ep.meta : '', 'm-note-meta-avatar') + 'Modifié par ' +
             escapeHtml(n.lastEditedBy) + (eds ? ' le ' + eds : '') + '  ⏱</button>';
         }
-        if (!n.createdBy && !(n.lastEditedBy && n.lastEditedAt)) {
-          noteMetaHtml += '<span class="m-note-meta-item m-note-meta-unknown">❔ Auteur inconnu (note antérieure)</span>';
-        }
         noteMetaHtml += '</div>';
+        if (!n.createdBy && !(n.lastEditedBy && n.lastEditedAt)) noteMetaHtml = '';
         return '<div class="m-hist-card">' +
           '<div class="m-hist-top">' + avatarImgHtml(n.player, p ? p.meta : '', 'm-avatar sm') +
           '<strong>' + escapeHtml(n.player) + '</strong><span class="m-hist-meta" style="margin-left:auto;">' + ds + '</span></div>' +

@@ -777,7 +777,6 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .note-meta-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
-    .note-meta-item.note-meta-unknown { opacity: 0.6; font-style: italic; }
     button.note-meta-edited {
       cursor: pointer;
     }
@@ -10598,14 +10597,7 @@
       });
       meta.appendChild(editedBtn);
     }
-    // Note antérieure à l'introduction du suivi d'auteur (via le Journal) : aucune
-    // donnée à retrouver, mais on l'explique plutôt que de ne rien afficher.
-    if (!meta.children.length) {
-      const unknownEl = document.createElement('span');
-      unknownEl.className = 'note-meta-item note-meta-unknown';
-      unknownEl.textContent = '❔ Auteur inconnu (note antérieure)';
-      meta.appendChild(unknownEl);
-    }
+    if (!meta.children.length) meta.style.display = 'none';
 
     const actions = document.createElement('div');
     actions.className = 'note-actions';

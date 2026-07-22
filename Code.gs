@@ -1669,8 +1669,11 @@ function _computeNoteAuthorsByNoteId() {
   if (lastRow <= 1) return map;
   const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues(); // Timestamp|Auteur|Action|Entité|Avant|Après|Détail
   data.forEach(row => {
-    const entity = row[3], action = row[2], detail = row[6] ? row[6].toString() : '';
-    if (entity !== 'Note' || detail.indexOf('note:') !== 0) return;
+    const action = row[2], detail = row[6] ? row[6].toString() : '';
+    // Le Détail "note:<id>" suffit à lui seul à identifier une entrée liée aux notes
+    // (format unique, posé par apiAddNote/apiEditNote/apiDeleteNote) — pas de filtre
+    // sur l'Entité, dont le texte varie ("Note" ou "Note: <joueur>" selon l'action).
+    if (detail.indexOf('note:') !== 0) return;
     const noteId = detail.slice(5);
     if (!noteId) return;
     if (!map[noteId]) map[noteId] = { createdBy: '', lastEditedBy: '', lastEditedAt: null };
