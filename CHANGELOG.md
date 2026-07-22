@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-21
 
 ### Modifié
+**Humanisé** : Créé par / Modifié par sont de nouveau écrits directement sur la note (comme au tout début), au lieu d'être recalculés à chaque fois depuis le Journal — plus simple, plus direct, les deux pastilles s'affichent ensemble sans dépendre d'une correspondance à retrouver. Le Journal ne sert plus qu'à l'historique détaillé (le popover listant chaque modification).
+**Technique** : `Code.gs` — feuille `Notes` étendue à 7 colonnes (`Date | Joueur | Note | NoteId | CrééPar | ModifiéPar | ModifiéLe`), migration douce via `NotesService._ensureColumns()`. `addNote()` écrit `CrééPar` à la création ; `editNote(rowIndex, newText, editor)` écrit `ModifiéPar`/`ModifiéLe` directement (et backfille le `NoteId` si absent). `getAllNotes()` lit ces colonnes telles quelles, sans dérivation. Suppression de `_noteAuthorsByNoteId()`/`_computeNoteAuthorsByNoteId()` (cache + calcul depuis le journal, devenus inutiles). `apiBackfillNoteAuthors` retrouve toujours l'auteur des notes anciennes en remontant la chaîne d'éditions dans le Journal, mais écrit désormais le résultat directement dans les colonnes plutôt que de retaguer des entrées de journal. `NoteId` reste utilisé uniquement par `apiGetNoteHistory()` pour l'historique détaillé.
+
+### Modifié
 **Humanisé** : Zone « Créé par / Modifié par » d'une note retravaillée visuellement — séparée du texte par une ligne pointillée au lieu d'un simple espacement, noms en gras, avatar cerclé plus grand, et le bouton « Modifié par » se distingue clairement comme cliquable (chevron qui s'anime au survol/tap).
 **Technique** : `Index.html` — `.note-meta` : `border-top: dashed`, `padding-top`, pastilles sans fond/bordure sauf `.note-meta-edited` (seule actionnable) ; noms enveloppés en `<strong>`, `.note-meta-chevron` ajouté. `Mobile.html` — même traitement à l'échelle tactile (`.m-note-meta-*`).
 

@@ -843,52 +843,52 @@ const NotesService = {
   /** Renvoie la feuille Notes, en la CRÉANT automatiquement si elle n'existe pas. */
   _sheet() {
     let sheet = ConfigService.getSheets().notes;
-    if (sheet) { this._ensureNoteIdColumn(sheet); return sheet; }
+    if (sheet) { this._ensureColumns(sheet); return sheet; }
     const ss = ConfigService.getSheets().spreadsheet;
     sheet = ss.insertSheet('Notes');
-    sheet.appendRow(['Date', 'Joueur', 'Note', 'NoteId']);
-    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+    sheet.appendRow(['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']);
+    sheet.getRange(1, 1, 1, 7).setFontWeight('bold');
     ConfigService.clearCache();
     return sheet;
   },
 
-  /** Migration douce : pose l'en-tête NoteId en colonne D si absent (feuilles créées
-   *  avant son introduction, y compris l'ancien schéma Auteur/ModifiéPar/ModifiéLe —
-   *  ces anciennes valeurs, jamais renseignées en pratique, sont simplement ignorées). */
-  _ensureNoteIdColumn(sheet) {
+  /** Migration douce : pose les en-têtes NoteId/CrééPar/ModifiéPar/ModifiéLe si absents
+   *  (feuilles créées avant leur introduction, y compris les anciens schémas — leurs
+   *  valeurs, jamais renseignées en pratique, sont simplement écrasées). Créé par/
+   *  Modifié par sont stockés directement sur la ligne (pas dérivés du Journal) :
+   *  simple et fiable, écrits une fois par addNote()/editNote(), lus tels quels. Le
+   *  NoteId, lui, ne sert qu'à retrouver l'historique détaillé dans le Journal. */
+  _ensureColumns(sheet) {
     if (sheet.getRange(1, 4, 1, 1).getValue() === 'NoteId') return;
-    sheet.getRange(1, 4, 1, 1).setValue('NoteId').setFontWeight('bold');
+    sheet.getRange(1, 4, 1, 4).setValues([['NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']]);
+    sheet.getRange(1, 4, 1, 4).setFontWeight('bold');
   },
 
-  /** Toutes les notes (récentes d'abord). Créé par/Modifié par ne sont pas stockés sur
-   *  la ligne : ils sont dérivés du Journal d'audit via NoteId (source unique, jamais
-   *  dupliquée) — cf. _noteAuthorsByNoteId(). Lecture tolérante : pas de feuille → liste vide. */
+  /** Toutes les notes (récentes d'abord). Lecture tolérante : pas de feuille → liste vide. */
   getAllNotes() {
     const sheet = ConfigService.getSheets().notes;
     if (!sheet) return { notes: [] };   // pas encore de feuille (aucune note créée)
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { notes: [] };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    const authors = _noteAuthorsByNoteId();
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const out = [];
     for (let i = 0; i < data.length; i++) {
       const row    = data[i];
       const player = row[1] ? row[1].toString() : '';
       const text   = row[2] ? row[2].toString() : '';
       if (!player && !text) continue;
-      const noteId = row[3] ? row[3].toString() : '';
-      const a = noteId && authors[noteId] ? authors[noteId] : null;
       const d = new Date(row[0]);
+      const editedAt = row[6] ? new Date(row[6]) : null;
       out.push({
         timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
         player,
         text,
         rowIndex: i + 2,
-        noteId,
-        createdBy: a ? a.createdBy : '',
-        lastEditedBy: a ? a.lastEditedBy : '',
-        lastEditedAt: a ? a.lastEditedAt : null
+        noteId: row[3] ? row[3].toString() : '',
+        createdBy: row[4] ? row[4].toString() : '',
+        lastEditedBy: row[5] ? row[5].toString() : '',
+        lastEditedAt: (editedAt && !isNaN(editedAt.getTime())) ? editedAt.toISOString() : null
       });
     }
     out.reverse();
@@ -904,7 +904,7 @@ const NotesService = {
 
     const sheet = this._sheet();
     const noteId = _generateGroupId();
-    sheet.appendRow([targetDate, player, text.trim(), noteId]);
+    sheet.appendRow([targetDate, player, text.trim(), noteId, author || '', '', '']);
     return {
       rowIndex: sheet.getLastRow(), timestamp: targetDate.toISOString(), player, text: text.trim(),
       noteId, createdBy: author || '', lastEditedBy: '', lastEditedAt: null
@@ -919,8 +919,8 @@ const NotesService = {
 
   /** Renvoie le NoteId de la ligne éditée (le génère à la volée si la note est
    *  antérieure à l'introduction du suivi — elle devient traçable dès cette édition,
-   *  sans attendre un rattachement rétroactif). */
-  editNote(rowIndex, newText) {
+   *  sans attendre un rattachement rétroactif). Écrit ModifiéPar/ModifiéLe directement. */
+  editNote(rowIndex, newText, editor) {
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
@@ -932,6 +932,7 @@ const NotesService = {
       noteId = _generateGroupId();
       sheet.getRange(idx, 4).setValue(noteId);
     }
+    sheet.getRange(idx, 6, 1, 2).setValues([[editor || '', new Date()]]);
     return noteId;
   },
 
@@ -1652,55 +1653,6 @@ function _noteRowSummary(rowIndex) {
   } catch (_) { return ''; }
 }
 
-/** Dérive Créé par / Dernière modification par pour chaque note à partir du Journal
- *  d'audit (seule source de vérité — rien n'est dupliqué sur la ligne de la note).
- *  Les entrées sont indexées par NoteId (Détail = "note:<id>"), stable même si la
- *  note change de ligne suite à la suppression d'une autre note plus haut.
- *  Mise en cache cross-requête (même mécanisme que getAllLogs/getFullHistoryRowsCached) :
- *  clé versionnée sur _logsVersion(), déjà incrémenté par withLock() à chaque écriture
- *  (ajout/édition/suppression de note incluses) — jamais servi périmé après une action. */
-function _noteAuthorsByNoteId() {
-  const cache = CacheService.getScriptCache();
-  const key   = 'note_authors_v' + _logsVersion();
-  const raw   = cache.get(key);
-  if (raw) {
-    try { return JSON.parse(raw); } catch (_) {} // entrée corrompue → recalcul
-  }
-  const map = _computeNoteAuthorsByNoteId();
-  const serial = JSON.stringify(map);
-  if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
-  return map;
-}
-
-function _computeNoteAuthorsByNoteId() {
-  const map = {};
-  const sheet = ConfigService.getSheets().auditLog;
-  if (!sheet) return map;
-  const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return map;
-  const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues(); // Timestamp|Auteur|Action|Entité|Avant|Après|Détail
-  data.forEach(row => {
-    const action = row[2], detail = row[6] ? row[6].toString() : '';
-    // Le Détail "note:<id>" suffit à lui seul à identifier une entrée liée aux notes
-    // (format unique, posé par apiAddNote/apiEditNote/apiDeleteNote) — pas de filtre
-    // sur l'Entité, dont le texte varie ("Note" ou "Note: <joueur>" selon l'action).
-    if (detail.indexOf('note:') !== 0) return;
-    const noteId = detail.slice(5);
-    if (!noteId) return;
-    if (!map[noteId]) map[noteId] = { createdBy: '', lastEditedBy: '', lastEditedAt: null };
-    const author = row[1] ? row[1].toString() : '';
-    if (action === 'Note ajoutée' && !map[noteId].createdBy) map[noteId].createdBy = author;
-    if (action === 'Note modifiée') {
-      // Écrit en ordre chronologique (appendRow) : la dernière ligne rencontrée
-      // pour ce NoteId est forcément la modification la plus récente.
-      map[noteId].lastEditedBy = author;
-      const d = new Date(row[0]);
-      map[noteId].lastEditedAt = isNaN(d.getTime()) ? null : d.toISOString();
-    }
-  });
-  return map;
-}
-
 function _baremeRowSummary(rowIndex) {
   try {
     const sheet = ConfigService.getSheets().bareme;
@@ -1966,20 +1918,20 @@ function apiDeleteOrphans(author) {
 }
 
 /**
- * Rattache un NoteId aux notes antérieures à l'introduction du suivi Créé par/Modifié
- * par (Journal), en remontant toute la chaîne d'éditions jusqu'à la création — pour que
- * Créé par ET Modifié par s'affichent ensemble dès que le fil se reconstitue entièrement,
- * pas seulement pour les notes jamais retouchées. Jamais de devinette : à chaque maillon,
- * une correspondance ambiguë (texte dupliqué) arrête la remontée à cet endroit précis —
- * ce qui a déjà été retrouvé avant ce point reste acquis.
+ * Rattache Créé par (et Modifié par si retrouvable) aux notes antérieures à
+ * l'introduction du suivi, en remontant toute la chaîne d'éditions jusqu'à la
+ * création — écrit directement dans les colonnes CrééPar/ModifiéPar/ModifiéLe de
+ * la ligne (mêmes colonnes que addNote()/editNote()). Jamais de devinette : à
+ * chaque maillon, une correspondance ambiguë (texte dupliqué) arrête la remontée
+ * à cet endroit précis — ce qui a déjà été retrouvé avant ce point reste acquis.
  *
  * Chaque édition journalise "Avant" = "joueur : texte précédent" et "Après" = "texte
- * nouveau" (sans joueur — format d'avant NoteId). Partant du texte actuel d'une note :
- * on cherche d'abord une création directe ("joueur : texte" == Après d'un "Note ajoutée").
- * Sinon, on cherche la dernière édition (Après == texte actuel) → Modifié par obtenu ;
- * son "Avant" donne le texte précédent, qu'on reteste en création puis en édition, et
- * ainsi de suite en remontant, jusqu'à trouver la création (Créé par obtenu) ou jusqu'à
- * ce que la chaîne casse (plus de correspondance unique).
+ * nouveau" (sans joueur — format d'avant ce suivi). Partant du texte actuel d'une
+ * note : on cherche d'abord une création directe ("joueur : texte" == Après d'un
+ * "Note ajoutée"). Sinon, on cherche la dernière édition (Après == texte actuel) →
+ * Modifié par obtenu ; son "Avant" donne le texte précédent, qu'on reteste en
+ * création puis en édition, et ainsi de suite en remontant, jusqu'à trouver la
+ * création (Créé par obtenu) ou jusqu'à ce que la chaîne casse.
  */
 function apiBackfillNoteAuthors(author) {
   try {
@@ -1990,13 +1942,15 @@ function apiBackfillNoteAuthors(author) {
       const lastRow = notesSheet.getLastRow();
       if (lastRow <= 1) return { success: true, matched: 0, skipped: 0 };
 
-      const noteRows = notesSheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      const noteRows = notesSheet.getRange(2, 1, lastRow - 1, 7).getValues();
       const candidates = [];
       noteRows.forEach((row, i) => {
-        const player = row[1] ? row[1].toString() : '';
-        const text   = row[2] ? row[2].toString() : '';
-        const noteId = row[3] ? row[3].toString() : '';
-        if (!noteId && (player || text)) candidates.push({ rowIndex: i + 2, player, text });
+        const player    = row[1] ? row[1].toString() : '';
+        const text      = row[2] ? row[2].toString() : '';
+        const createdBy = row[4] ? row[4].toString() : '';
+        if (!createdBy && (player || text)) {
+          candidates.push({ rowIndex: i + 2, player, text, noteId: row[3] ? row[3].toString() : '' });
+        }
       });
       if (!candidates.length) return { success: true, matched: 0, skipped: 0 };
 
@@ -2009,51 +1963,46 @@ function apiBackfillNoteAuthors(author) {
       // Index des entrées "Note ajoutée", clé "joueur : texte" (format de l'époque).
       const byCreation = {};
       // Index des entrées "Note modifiée", clé "texte" seul (Après ne préfixait pas
-      // le joueur), avec leur "Avant" pour pouvoir continuer à remonter la chaîne.
+      // le joueur), avec leur auteur/horodatage et leur "Avant" pour remonter la chaîne.
       const byEdit = {};
-      auditData.forEach((row, i) => {
-        const action = row[2], entity = row[3] ? row[3].toString() : '',
-              before = row[4] ? row[4].toString() : '', after = row[5] ? row[5].toString() : '';
+      auditData.forEach(row => {
+        const rAuthor = row[1] ? row[1].toString() : '', action = row[2],
+              entity = row[3] ? row[3].toString() : '',
+              before = row[4] ? row[4].toString() : '', after = row[5] ? row[5].toString() : '',
+              timestamp = row[0];
         if (action === 'Note ajoutée' && entity.indexOf('Note:') === 0) {
-          (byCreation[after] = byCreation[after] || []).push({ row: i + 2 });
+          (byCreation[after] = byCreation[after] || []).push({ author: rAuthor });
         } else if (action === 'Note modifiée' && entity === 'Note') {
-          (byEdit[after] = byEdit[after] || []).push({ row: i + 2, before });
+          (byEdit[after] = byEdit[after] || []).push({ author: rAuthor, timestamp, before });
         }
       });
 
       let matched = 0, skipped = 0;
       candidates.forEach(c => {
-        // Lignes du journal à retagger avec le même NoteId — createdBy/lastEditedBy
-        // n'ont pas besoin d'être portés ici : une fois retaggées, elles seront
-        // relues normalement par _computeNoteAuthorsByNoteId().
         const prefix = c.player + ' : ';
-        const taggedRows = [];
+        let createdBy = '', lastEditedBy = '', lastEditedAt = null;
 
         const directCreation = byCreation[prefix + c.text];
         if (directCreation && directCreation.length === 1) {
-          taggedRows.push(directCreation[0].row);
+          createdBy = directCreation[0].author;
         } else {
           let curText = c.text;
           for (let hops = 0; hops < 50; hops++) {
             const editHits = byEdit[curText];
             if (!editHits || editHits.length !== 1) break; // introuvable ou ambigu → la chaîne s'arrête ici
             const hit = editHits[0];
-            taggedRows.push(hit.row);
+            if (!lastEditedBy) { lastEditedBy = hit.author; lastEditedAt = hit.timestamp; }
             if (hit.before.indexOf(prefix) !== 0) break; // format inattendu → on s'arrête, prudent
             const priorText = hit.before.slice(prefix.length);
             const creationHit = byCreation[prefix + priorText];
-            if (creationHit && creationHit.length === 1) {
-              taggedRows.push(creationHit[0].row);
-              break; // chaîne remontée jusqu'à la création : terminé
-            }
+            if (creationHit && creationHit.length === 1) { createdBy = creationHit[0].author; break; }
             curText = priorText; // encore une édition plus tôt : on continue de remonter
           }
         }
 
-        if (!taggedRows.length) { skipped++; return; } // rien retrouvé, aucune trace exploitable
-        const noteId = _generateGroupId();
-        notesSheet.getRange(c.rowIndex, 4).setValue(noteId);
-        taggedRows.forEach(r => auditSheet.getRange(r, 7).setValue('note:' + noteId));
+        if (!createdBy && !lastEditedBy) { skipped++; return; } // rien retrouvé, aucune trace exploitable
+        const noteId = c.noteId || _generateGroupId();
+        notesSheet.getRange(c.rowIndex, 4, 1, 4).setValues([[noteId, createdBy, lastEditedBy, lastEditedAt || '']]);
         matched++;
       });
 
@@ -2122,7 +2071,7 @@ function apiAddNote(player, text, dateStr, author) {
       AuditService.log(author, 'Note ajoutée', 'Note: ' + (player || ''),
         '', (player || '') + ' : ' + (text || '').trim(), 'note:' + note.noteId,
         { sheet: 'notes', op: 'insert', rowIndex: note.rowIndex,
-          after: sheet.getRange(note.rowIndex, 1, 1, 4).getValues()[0] });
+          after: sheet.getRange(note.rowIndex, 1, 1, 7).getValues()[0] });
       return { success: true, note };
     });
   } catch(e) { return fail(e); }
@@ -2135,7 +2084,7 @@ function apiDeleteNote(rowIndex, author) {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
       const noteId = NotesService.noteIdAt(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
       NotesService.deleteNote(rowIndex);
       AuditService.log(author, 'Note supprimée', 'Note', before, '', 'note:' + noteId,
         { sheet: 'notes', op: 'delete', before: beforeRow });
@@ -2173,9 +2122,9 @@ function apiEditNote(rowIndex, newText, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
-      const noteId = NotesService.editNote(rowIndex, newText); // backfille un NoteId si absent
-      const afterRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      const noteId = NotesService.editNote(rowIndex, newText, author); // backfille un NoteId si absent, écrit ModifiéPar/ModifiéLe
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
         'note:' + noteId,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
@@ -2853,9 +2802,9 @@ function apiApplyMentionFixes(fixes, author) {
         noteFixes.forEach(f => {
           const idx = parseInt(f.rowIndex, 10);
           if (isNaN(idx) || idx < 2) return;
-          const beforeRow = notes.getRange(idx, 1, 1, 3).getValues()[0];
-          NotesService.editNote(idx, f.after);
-          const afterRow = notes.getRange(idx, 1, 1, 3).getValues()[0];
+          const beforeRow = notes.getRange(idx, 1, 1, 7).getValues()[0];
+          NotesService.editNote(idx, f.after, author);
+          const afterRow = notes.getRange(idx, 1, 1, 7).getValues()[0];
           undoRows.push({ rowIndex: idx, before: beforeRow, after: afterRow });
           applied++;
         });
