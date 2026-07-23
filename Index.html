@@ -8290,6 +8290,7 @@
           pills.querySelectorAll('.export-pill').forEach(x => x.classList.remove('active'));
           p.classList.add('active');
           saveExportOpts(exportOpts);
+          if (key === 'format') copyBtn.style.display = (window.ClipboardItem && exportOpts.format !== 'pdf') ? 'inline-block' : 'none';
           updatePreview();
         });
         pills.appendChild(p);
@@ -8307,6 +8308,21 @@
       wrap.appendChild(chk); wrap.appendChild(document.createTextNode(label));
       return wrap;
     };
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'secondary'; copyBtn.textContent = '📋 Copier'; copyBtn.type = 'button';
+    copyBtn.style.display = (window.ClipboardItem && exportOpts.format !== 'pdf') ? 'inline-block' : 'none';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), exportOpts.avatars);
+        const canvas = buildInfographicCanvas(exportOpts, exportOpts.scale, avatarImages);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
+        showToast('Image copiée !', 'success');
+      } catch (e) {
+        showToast('Copie impossible : ' + e.message, 'error');
+      }
+    });
 
     const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une infographie';
     box.appendChild(titleEl);
@@ -8381,7 +8397,7 @@
     const dlBtn = document.createElement('button');
     dlBtn.className = 'primary'; dlBtn.textContent = '⬇️ Télécharger'; dlBtn.type = 'button';
     dlBtn.addEventListener('click', () => { generateInfographic(exportOpts); overlay.remove(); });
-    btnRow.appendChild(cancelBtn); btnRow.appendChild(dlBtn);
+    btnRow.appendChild(cancelBtn); btnRow.appendChild(copyBtn); btnRow.appendChild(dlBtn);
     box.appendChild(btnRow);
 
     overlay.appendChild(box);

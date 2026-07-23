@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-23
 
 ### Ajouté
+**Humanisé** : Un bouton « Copier » a été ajouté à côté de « Télécharger » dans la fenêtre d'export d'infographie — l'image peut être collée directement ailleurs (chat, éditeur) sans passer par le fichier téléchargé.
+**Technique** : `Index.html` — `openExportModal()` : nouveau bouton `copyBtn` utilisant `navigator.clipboard.write()` avec un `ClipboardItem` construit depuis `canvas.toBlob()`. Masqué si `window.ClipboardItem` est indisponible ou si le format sélectionné est `pdf`.
+
+### Ajouté
 **Humanisé** : L'export CSV du Dashboard indique maintenant en haut du fichier la période et les filtres actifs au moment de l'export, ainsi que la date d'export — avant, seul le tableau de chiffres était présent.
 **Technique** : `Index.html` — nouvelle fonction `buildExportContextLines()` réutilisée par `exportAsCSV()` ; le CSV est préfixé de 4 lignes commentées (`# Clé : Valeur`) avant le tableau de données.
 
