@@ -8048,11 +8048,12 @@
       }
     }
 
-    // Reserve space for stats strip, players strip, legend and footer
+    // Reserve space for stats strip, players strip, top-mover pill, legend and footer
     const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
       ? Math.round(52 * S) : 0;
     const playersH = (opts.players && currentChartData && currentChartData.labels && currentChartData.labels.length > 1)
       ? Math.round(52 * S) : 0;
+    const topMoverH = (opts.topMover && opts._topMoverResult) ? Math.round(30 * S) : 0;
     const legendH = (opts.legend && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
       ? Math.round(22 * S) : 0;
     const footH = opts.footer !== false ? Math.round(24 * S) : 0;
@@ -8060,7 +8061,7 @@
     // Chart image
     const chartCv = document.getElementById('mainChart');
     if (chartCv) {
-      const chartH = H - yOff - statsH - playersH - legendH - footH - Math.round(8 * S);
+      const chartH = H - yOff - statsH - playersH - topMoverH - legendH - footH - Math.round(8 * S);
       ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
       yOff += chartH + Math.round(6 * S);
     }
@@ -8155,6 +8156,23 @@
         });
       }
       yOff += playersH;
+    }
+
+    // Top mover pill (biggest change vs. previous equivalent period)
+    if (topMoverH) {
+      const mover = opts._topMoverResult;
+      const isUp = mover.delta >= 0;
+      const color = isUp ? '#2ed573' : '#ff4757';
+      ctx.fillStyle = color; ctx.globalAlpha = 0.15;
+      roundRect(ctx, Math.round(10 * S), yOff, W - Math.round(20 * S), topMoverH - Math.round(4 * S), Math.round(7 * S));
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = FG;
+      ctx.font = 'bold ' + Math.round(12 * S) + 'px sans-serif';
+      ctx.textAlign = 'left';
+      const arrow = isUp ? '▲' : '▼';
+      ctx.fillText(arrow + ' Plus forte progression : ' + mover.name + ' (' + (isUp ? '+' : '') + mover.delta + ' pts)', Math.round(18 * S), yOff + Math.round(19 * S));
+      yOff += topMoverH;
     }
 
     // Legend strip
@@ -8339,6 +8357,7 @@
     optsGroup.appendChild(checkOpt('Totaux par catégorie (pills)', 'stats'));
     optsGroup.appendChild(checkOpt('Totaux par joueur (pills)', 'players'));
     optsGroup.appendChild(checkOpt('Avatars des joueurs', 'avatars'));
+    optsGroup.appendChild(checkOpt('Plus forte progression', 'topMover'));
     optsGroup.appendChild(checkOpt('Pied de page (date export)', 'footer'));
     box.appendChild(optsGroup);
 
@@ -8407,6 +8426,14 @@
 
     // Live preview (always at 1x for speed) — async for avatar loading
     async function updatePreview() {
+      if (exportOpts.topMover) {
+        await new Promise(resolve => computeTopMover(currentChartData, mover => {
+          exportOpts._topMoverResult = mover;
+          resolve();
+        }));
+      } else {
+        exportOpts._topMoverResult = null;
+      }
       const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), exportOpts.avatars);
       const canvas = buildInfographicCanvas(exportOpts, 1, avatarImages);
       prevImg.src = canvas.toDataURL('image/png');
@@ -8440,6 +8467,41 @@
     a.download = 'tops-des-tops.csv'; a.click();
     URL.revokeObjectURL(a.href);
     showToast('Export CSV OK', 'success');
+  }
+
+  function computePreviousPeriodRange(startStr, endStr) {
+    if (!startStr || !endStr) return null;
+    const start = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    const spanMs = end.getTime() - start.getTime();
+    if (spanMs < 0) return null;
+    const prevEnd = new Date(start.getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - spanMs);
+    const fmt = d => d.toISOString().slice(0, 10);
+    return { start: fmt(prevStart), end: fmt(prevEnd) };
+  }
+
+  function computeTopMover(chartData, callback) {
+    const sd = document.getElementById('startDate').value;
+    const ed = document.getElementById('endDate').value;
+    const prev = computePreviousPeriodRange(sd, ed);
+    if (!prev || !chartData || !chartData.labels || !chartData.datasets) { callback(null); return; }
+    const selPlayers    = selectedPlayerChips.size   ? [...selectedPlayerChips]   : [];
+    const selCategories = selectedCategoryChips.size ? [...selectedCategoryChips] : [];
+    callServer('apiGetFilteredData', [selPlayers, selCategories, prev.start, prev.end], res => {
+      const prevData = res.chartData;
+      if (!prevData || !prevData.labels || !prevData.datasets) { callback(null); return; }
+      const totalFor = (data, player) => {
+        const idx = data.labels.indexOf(player);
+        if (idx === -1) return 0;
+        return data.datasets.reduce((sum, ds) => sum + (Number((ds.data || [])[idx]) || 0), 0);
+      };
+      const movers = chartData.labels.map(player => ({
+        name: player,
+        delta: totalFor(chartData, player) - totalFor(prevData, player)
+      })).sort((a, b) => b.delta - a.delta);
+      callback(movers.length ? movers[0] : null);
+    }, 'Comparaison période précédente');
   }
 
   function computeRankingWithGaps(chartData) {

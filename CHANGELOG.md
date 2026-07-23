@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-23
 
 ### Ajouté
+**Humanisé** : L'infographie exportée peut maintenant afficher, en option, le joueur ayant le plus progressé (ou régressé) par rapport à la période équivalente précédente.
+**Technique** : `Index.html` — nouvelle option `topMover` dans `openExportModal()` ; `computeTopMover()` compare les totaux de la période active à ceux d'une période précédente de même durée (`computePreviousPeriodRange()`, un appel `apiGetFilteredData` supplémentaire) ; le résultat (`exportOpts._topMoverResult`, non persisté) est dessiné en pill par `buildInfographicCanvas()`. Omis silencieusement si aucune période explicite n'est active.
+
+### Ajouté
 **Humanisé** : Un bouton « Copier » a été ajouté à côté de « Télécharger » dans la fenêtre d'export d'infographie — l'image peut être collée directement ailleurs (chat, éditeur) sans passer par le fichier téléchargé.
 **Technique** : `Index.html` — `openExportModal()` : nouveau bouton `copyBtn` utilisant `navigator.clipboard.write()` avec un `ClipboardItem` construit depuis `canvas.toBlob()`. Masqué si `window.ClipboardItem` est indisponible ou si le format sélectionné est `pdf`.
 
