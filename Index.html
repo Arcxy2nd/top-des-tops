@@ -8221,11 +8221,10 @@
     }
   }
 
-  function openExportModal() {
-    if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
+  const EXPORT_OPTS_STORAGE_KEY = 'exportOpts_v1';
 
-    // Modal state
-    let exportOpts = {
+  function defaultExportOpts() {
+    return {
       format:        'png',
       theme:         document.body.classList.contains('light') ? 'light' : 'dark',
       title:         true,
@@ -8239,8 +8238,36 @@
       watermarkText: 'Tops des Tops',
       filters:       true,
       footer:        true,
-      customTitle:   ''
+      customTitle:   '',
+      topMover:      false
     };
+  }
+
+  function loadStoredExportOpts() {
+    const defaults = defaultExportOpts();
+    try {
+      const raw = localStorage.getItem(EXPORT_OPTS_STORAGE_KEY);
+      if (!raw) return defaults;
+      const stored = JSON.parse(raw);
+      return Object.assign(defaults, stored);
+    } catch (e) {
+      return defaults;
+    }
+  }
+
+  function saveExportOpts(opts) {
+    try {
+      const toStore = Object.assign({}, opts);
+      delete toStore._topMoverResult;
+      localStorage.setItem(EXPORT_OPTS_STORAGE_KEY, JSON.stringify(toStore));
+    } catch (e) { /* localStorage indisponible (mode privé, quota) — réglages non persistés, sans impact fonctionnel */ }
+  }
+
+  function openExportModal() {
+    if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
+
+    // Modal state
+    let exportOpts = loadStoredExportOpts();
 
     const overlay = document.createElement('div');
     overlay.className = 'export-modal-overlay';
@@ -8262,6 +8289,7 @@
           exportOpts[key] = v;
           pills.querySelectorAll('.export-pill').forEach(x => x.classList.remove('active'));
           p.classList.add('active');
+          saveExportOpts(exportOpts);
           updatePreview();
         });
         pills.appendChild(p);
@@ -8275,7 +8303,7 @@
       const wrap = document.createElement('label');
       wrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;';
       const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = exportOpts[key];
-      chk.addEventListener('change', () => { exportOpts[key] = chk.checked; updatePreview(); });
+      chk.addEventListener('change', () => { exportOpts[key] = chk.checked; saveExportOpts(exportOpts); updatePreview(); });
       wrap.appendChild(chk); wrap.appendChild(document.createTextNode(label));
       return wrap;
     };
@@ -8314,6 +8342,7 @@
     wmInput.style.cssText = 'display:' + (exportOpts.watermark ? 'block' : 'none') + ';margin-top:2px;font-size:0.82rem;';
     wmInput.addEventListener('input', () => {
       exportOpts.watermarkText = wmInput.value.trim() || 'Tops des Tops';
+      saveExportOpts(exportOpts);
       updatePreview();
     });
     wmCheck.querySelector('input[type="checkbox"]').addEventListener('change', function() {
@@ -8369,17 +8398,45 @@
     updatePreview();
   }
 
+  function buildExportContextLines() {
+    const sd = document.getElementById('startDate').value;
+    const ed = document.getElementById('endDate').value;
+    const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
+    const activeCats = [...(selectedCategoryChips || [])];
+    const activePls  = [...(selectedPlayerChips  || [])];
+    return [
+      ['Période', periodTxt],
+      ['Joueurs filtrés', activePls.length ? activePls.join(', ') : 'Tous'],
+      ['Catégories filtrées', activeCats.length ? activeCats.join(', ') : 'Toutes'],
+      ["Date d'export", new Date().toLocaleString('fr-FR')]
+    ];
+  }
+
   function exportAsCSV() {
     if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
     const { labels, datasets } = currentChartData;
+    const contextLines = buildExportContextLines().map(([k, v]) => '# ' + k + ' : ' + v);
     const rows = [['Joueur', ...datasets.map(d => d.label)]];
     labels.forEach((l, i) => rows.push([l, ...datasets.map(d => d.data[i] || 0)]));
-    const csv = rows.map(r => r.join(',')).join('\n');
+    const csv = contextLines.concat(rows.map(r => r.join(','))).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
     a.download = 'tops-des-tops.csv'; a.click();
     URL.revokeObjectURL(a.href);
     showToast('Export CSV OK', 'success');
+  }
+
+  function computeRankingWithGaps(chartData) {
+    const totals = chartData.labels.map((player, i) => ({
+      player,
+      total: chartData.datasets.reduce((sum, ds) => sum + (Number((ds.data || [])[i]) || 0), 0)
+    })).sort((a, b) => b.total - a.total);
+    return totals.map((row, i) => ({
+      rank: i + 1,
+      player: row.player,
+      total: row.total,
+      gapToNext: i < totals.length - 1 ? row.total - totals[i + 1].total : null
+    }));
   }
 
   function exportAsExcel() {
@@ -8389,8 +8446,19 @@
       const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
       labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      const ranking = computeRankingWithGaps(currentChartData);
+      const rankingData = [['Rang', 'Joueur', 'Total', 'Écart avec le suivant']];
+      ranking.forEach(r => rankingData.push([r.rank, r.player, r.total, r.gapToNext === null ? '' : r.gapToNext]));
+      const wsRanking = XLSX.utils.aoa_to_sheet(rankingData);
+
+      const contextData = buildExportContextLines();
+      const wsContext = XLSX.utils.aoa_to_sheet(contextData);
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+      XLSX.utils.book_append_sheet(wb, wsRanking, 'Classement');
+      XLSX.utils.book_append_sheet(wb, wsContext, 'Contexte');
       XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
       showToast('Export Excel OK', 'success');
     }).catch(e => showToast('Erreur Excel : ' + e.message, 'error'));

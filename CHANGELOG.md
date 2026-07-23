@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-23
+
+### Ajouté
+**Humanisé** : L'export CSV du Dashboard indique maintenant en haut du fichier la période et les filtres actifs au moment de l'export, ainsi que la date d'export — avant, seul le tableau de chiffres était présent.
+**Technique** : `Index.html` — nouvelle fonction `buildExportContextLines()` réutilisée par `exportAsCSV()` ; le CSV est préfixé de 4 lignes commentées (`# Clé : Valeur`) avant le tableau de données.
+
+### Ajouté
+**Humanisé** : L'export Excel du Dashboard contient maintenant 2 onglets en plus du tableau habituel : un classement (rang, total, écart avec le joueur suivant) et le contexte de l'export (période, filtres, date).
+**Technique** : `Index.html` — `exportAsExcel()` ajoute les onglets `Classement` (via nouvelle fonction `computeRankingWithGaps()`) et `Contexte` (via `buildExportContextLines()`, partagée avec `exportAsCSV()`).
+
+### Modifié
+**Humanisé** : La fenêtre d'export d'infographie se souvient maintenant des derniers réglages choisis (thème, résolution, options cochées) au lieu de repartir des valeurs par défaut à chaque ouverture.
+**Technique** : `Index.html` — `openExportModal()` initialise `exportOpts` via nouvelle fonction `loadStoredExportOpts()` (localStorage, clé `exportOpts_v1`) au lieu d'un objet littéral fixe ; chaque mutation (`pillGroup`, `checkOpt`, filigrane) appelle `saveExportOpts()`. Le titre personnalisé n'est volontairement pas persisté.
+
 ## [Non publié] - 2026-07-22
 
 ### Modifié
