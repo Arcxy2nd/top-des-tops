@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-23
 
 ### Ajouté
+**Humanisé** : Un nouveau bouton « Tout exporter » télécharge en un clic un zip contenant l'infographie de chaque type de graphique compatible (Empilé, Groupé, Courbes, Radar), avec les filtres actuellement actifs.
+**Technique** : `Index.html` — nouveau bouton `#exportAllBtn` et fonction `exportAllCharts()` : parcourt `BATCH_EXPORT_CHART_TYPES`, appelle `switchChartType(type, onDone)` (paramètre `onDone` ajouté, additif, à `switchChartType`/`applyFilters`) pour attendre chaque rendu, capture chaque graphique via `buildInfographicCanvas`, puis zippe le tout avec `fflate` (chargée à la demande via `EXPORT_LIBS.zip`, même pattern que jsPDF/xlsx). Le graphique visible revient au type d'origine une fois l'export terminé.
+
+### Ajouté
 **Humanisé** : L'infographie exportée peut maintenant afficher, en option, le joueur ayant le plus progressé (ou régressé) par rapport à la période équivalente précédente.
 **Technique** : `Index.html` — nouvelle option `topMover` dans `openExportModal()` ; `computeTopMover()` compare les totaux de la période active à ceux d'une période précédente de même durée (`computePreviousPeriodRange()`, un appel `apiGetFilteredData` supplémentaire) ; le résultat (`exportOpts._topMoverResult`, non persisté) est dessiné en pill par `buildInfographicCanvas()`. Omis silencieusement si aucune période explicite n'est active.
 

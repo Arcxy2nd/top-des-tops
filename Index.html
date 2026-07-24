@@ -2783,6 +2783,7 @@
         <h2 id="chartTitle" style="margin:0;">🏆 Total global</h2>
         <div class="export-buttons">
           <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
+          <button class="export-btn" id="exportAllBtn">🗂️ Tout exporter</button>
           <button class="export-btn" data-export="csv">📊 CSV</button>
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
@@ -3602,7 +3603,8 @@
   // pour alléger le démarrage de l'application.
   const EXPORT_LIBS = {
     jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    xlsx:  'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
+    xlsx:  'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js',
+    zip:   'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'
   };
   const _scriptPromises = {};
   function loadScriptOnce(url) {
@@ -6893,7 +6895,7 @@
     _applyFiltersTimer = setTimeout(applyFilters, 250);
   }
 
-  function applyFilters() {
+  function applyFilters(onDone) {
     const selPlayers    = selectedPlayerChips.size   ? [...selectedPlayerChips]   : [];
     const selCategories = selectedCategoryChips.size ? [...selectedCategoryChips] : [];
     const startDate     = document.getElementById('startDate').value;
@@ -6910,6 +6912,7 @@
         renderTrendChart(res.trendData);
         renderChartControls('trend');
         clearTopStatsStrip();
+        if (onDone) onDone();
       }, 'Chargement courbes');
       return;
     }
@@ -6922,6 +6925,7 @@
         document.getElementById('chartWrapper').style.display  = 'block';
         renderChart(res.chartData, 'ranking');
         renderChartControls('ranking');
+        if (onDone) onDone();
       }, 'Chargement total global');
       return;
     }
@@ -6940,10 +6944,11 @@
       // Phrases card always populated from global totals
       const ranked = computeRankedTotals(res.chartData);
       if (ranked.length) renderPhrasesCard(ranked);
+      if (onDone) onDone();
     }, 'Chargement graphique');
   }
 
-  function switchChartType(type) {
+  function switchChartType(type, onDone) {
     currentChartType = type;
     document.querySelectorAll('.chart-type-btn[data-chart-type]').forEach(b => {
       b.classList.toggle('active', b.dataset.chartType === type);
@@ -6952,13 +6957,13 @@
     donutWrap.style.display = type === 'doughnut' ? 'block' : 'none';
 
     if (type === 'trend' || type === 'ranking') {
-      applyFilters();
+      applyFilters(onDone);
       return;
     }
     const isStaleData = !currentChartData || currentChartData.series ||
       (currentChartData.datasets && currentChartData.datasets.length === 1 &&
        (currentChartData.datasets[0].label === 'Total global' || currentChartData.datasets[0].label === 'Total points'));
-    if (isStaleData) { applyFilters(); return; }
+    if (isStaleData) { applyFilters(onDone); return; }
     renderChart(currentChartData, type);
     renderChartControls(type);
     if (type === 'stacked' || type === 'grouped') {
@@ -6966,6 +6971,7 @@
     } else {
       clearTopStatsStrip();
     }
+    if (onDone) onDone();
   }
 
   // ── BARRE DE TRI / OPTIONS CONTEXTUELLE ──────────────────────────────
@@ -8540,6 +8546,55 @@
       XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
       showToast('Export Excel OK', 'success');
     }).catch(e => showToast('Erreur Excel : ' + e.message, 'error'));
+  }
+
+  const BATCH_EXPORT_CHART_TYPES = ['stacked', 'grouped', 'trend', 'radar'];
+
+  function chartTypeHasData(type) {
+    if (type === 'trend') return !!(currentChartData && currentChartData.series && currentChartData.series.length);
+    return !!(currentChartData && currentChartData.labels && currentChartData.labels.length);
+  }
+
+  function exportAllCharts() {
+    const btn = document.getElementById('exportAllBtn');
+    const originalType = currentChartType;
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Export en cours…';
+
+    loadScriptOnce(EXPORT_LIBS.zip).then(async () => {
+      const opts = loadStoredExportOpts();
+      opts._topMoverResult = null; // pas de recalcul par graphique pour l'export groupé — trop coûteux en appels réseau
+      const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), opts.avatars);
+      const files = {};
+      for (const type of BATCH_EXPORT_CHART_TYPES) {
+        await new Promise(resolve => switchChartType(type, resolve));
+        if (!chartTypeHasData(type)) continue;
+        const canvas = buildInfographicCanvas(opts, opts.scale, avatarImages);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const buf = await blob.arrayBuffer();
+        files['tops-des-tops-' + type + '.png'] = new Uint8Array(buf);
+      }
+      await new Promise(resolve => switchChartType(originalType, resolve));
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      if (!Object.keys(files).length) {
+        showToast('Aucun graphique exportable.', 'error');
+        return;
+      }
+      const zipped = fflate.zipSync(files);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([zipped], { type: 'application/zip' }));
+      a.download = 'tops-des-tops-export-groupe.zip';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Export groupé OK', 'success');
+    }).catch(e => {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      switchChartType(originalType, () => {});
+      showToast('Erreur export groupé : ' + e.message, 'error');
+    });
   }
 
   // ── SAISIE LOT ───────────────────────────────────────────────────────
@@ -12850,6 +12905,7 @@
 
   function bindExportButtons() {
     document.getElementById('exportInfographicBtn').addEventListener('click', openExportModal);
+    document.getElementById('exportAllBtn').addEventListener('click', exportAllCharts);
     document.querySelectorAll('.export-btn[data-export]').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.dataset.export;
