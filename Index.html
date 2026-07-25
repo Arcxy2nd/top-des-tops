@@ -911,16 +911,34 @@
     .d-cal-nav:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .d-cal-dow { text-align: center; font-size: 0.62rem; font-weight: 700; color: var(--text-muted); padding-bottom: 2px; }
+    /* Les cases héritent sinon du min-height/padding global des boutons (44px) :
+       plus larges que leur colonne, elles débordaient hors du cadre du calendrier. */
     .d-cal-day {
-      aspect-ratio: 1; border: 1px solid transparent; background: transparent;
+      width: 100%; min-width: 0; height: 32px; min-height: 0; padding: 0;
+      border: 1px solid transparent; background: transparent;
       color: var(--text); font-family: inherit; font-size: 0.75rem; cursor: pointer;
-      border-radius: 6px; padding: 0; transition: background 0.1s;
+      border-radius: 6px; transition: background 0.1s;
+      display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     }
     .d-cal-day:hover { background: var(--btn-alt); }
-    .d-cal-day.is-today { border-color: var(--border); font-weight: 700; }
+    .d-cal-day.is-today { border-color: var(--accent); font-weight: 700; }
     .d-cal-day.in-range { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+    /* Survol pendant la sélection : aperçu de la période avant le 2e clic */
+    .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
     .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; text-align: center; }
+    /* Saisie manuelle Du / Au sous le calendrier */
+    .d-cal-manual { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+    .d-cal-manual label { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; }
+    .d-cal-manual input[type="date"] {
+      flex: 1; min-width: 0; padding: 4px 6px; font-size: 0.72rem; min-height: 30px;
+    }
+    .d-cal-today {
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); cursor: pointer; height: 28px; min-height: 0; padding: 0 8px;
+      font-size: 0.68rem; font-weight: 700;
+    }
+    .d-cal-today:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     /* Choix « comment poser le score » en langage clair (le jargon disparaît) */
     .fill-choice {
       display: flex; flex-direction: column; gap: 4px; margin: 0;
@@ -5945,6 +5963,11 @@
     const wrap = document.createElement('div');
     wrap.className = 'd-cal';
     const view = { y: 0, m: 0 };
+    // Jour d'ancrage du 1er clic : tant qu'on n'a pas cliqué le 2e jour, la période
+    // vaut [ancre, ancre] (1 jour) — jamais une fin vide, sinon la répartition
+    // retombait silencieusement sur une seule date.
+    let anchor = null;
+    let hoverDs = null;
 
     const syncViewToStart = () => {
       const base = startInput.value || toDateStr(new Date());
@@ -5953,20 +5976,29 @@
     };
     syncViewToStart();
 
+    const commit = () => { render(); if (typeof onChange === 'function') onChange(); };
+
     function pick(ds) {
-      const s = startInput.value, e = endInput.value;
-      if (!s || (s && e)) { startInput.value = ds; endInput.value = ''; }
-      else if (ds >= s) { endInput.value = ds; }
-      else { startInput.value = ds; }
-      render();
-      if (typeof onChange === 'function') onChange();
+      if (anchor === null) {
+        anchor = ds;
+        startInput.value = ds; endInput.value = ds;
+      } else {
+        startInput.value = ds < anchor ? ds : anchor;
+        endInput.value   = ds < anchor ? anchor : ds;
+        anchor = null;
+      }
+      hoverDs = null;
+      commit();
     }
 
     function render() {
       wrap.innerHTML = '';
       const s = startInput.value, e = endInput.value;
+      // Bornes affichées : pendant une sélection en cours, on montre l'aperçu ancre↔survol.
+      const lo = anchor && hoverDs ? (hoverDs < anchor ? hoverDs : anchor) : s;
+      const hi = anchor && hoverDs ? (hoverDs < anchor ? anchor : hoverDs) : e;
 
-      // En-tête : ‹ mois année ›
+      // En-tête : ‹ mois année › + retour au mois courant
       const head = document.createElement('div');
       head.className = 'd-cal-head';
       const prev = document.createElement('button');
@@ -5977,7 +6009,13 @@
       const next = document.createElement('button');
       next.type = 'button'; next.className = 'd-cal-nav'; next.textContent = '›'; next.title = 'Mois suivant';
       next.addEventListener('click', () => { if (++view.m > 11) { view.m = 0; view.y++; } render(); });
-      head.appendChild(prev); head.appendChild(title); head.appendChild(next);
+      const todayBtn = document.createElement('button');
+      todayBtn.type = 'button'; todayBtn.className = 'd-cal-today'; todayBtn.textContent = "Auj.";
+      todayBtn.title = "Revenir au mois en cours";
+      todayBtn.addEventListener('click', () => {
+        const t = new Date(); view.y = t.getFullYear(); view.m = t.getMonth(); render();
+      });
+      head.appendChild(prev); head.appendChild(title); head.appendChild(todayBtn); head.appendChild(next);
       wrap.appendChild(head);
 
       // Grille : entête jours (Lu…Di) puis cases
@@ -5996,24 +6034,55 @@
         const cell = document.createElement('button');
         cell.type = 'button'; cell.className = 'd-cal-day'; cell.textContent = String(d);
         if (ds === todayStr) cell.classList.add('is-today');
-        if (s && e && ds >= s && ds <= e) cell.classList.add('in-range');
-        if (ds === s || (ds === e && e)) cell.classList.add('is-end');
+        if (lo && hi && ds >= lo && ds <= hi) cell.classList.add(anchor ? 'is-preview' : 'in-range');
+        if (ds === lo || ds === hi) cell.classList.add('is-end');
         cell.addEventListener('click', () => pick(ds));
+        cell.addEventListener('mouseenter', () => { if (anchor) { hoverDs = ds; render(); } });
         grid.appendChild(cell);
       }
+      grid.addEventListener('mouseleave', () => { if (anchor && hoverDs) { hoverDs = null; render(); } });
       wrap.appendChild(grid);
 
       // Indice + résumé
       const hint = document.createElement('div');
       hint.className = 'd-cal-hint';
-      const nd = daysBetweenInclusive(s, e);
-      hint.textContent = (s && e)
-        ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
-        : (s ? 'Cliquez le dernier jour de la période' : 'Cliquez le 1er jour');
+      const nd = daysBetweenInclusive(lo, hi);
+      hint.textContent = anchor
+        ? 'Cliquez le dernier jour (ou changez de mois) — ' + nd + ' jour' + (nd > 1 ? 's' : '')
+        : (s && e
+          ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
+          : 'Cliquez le 1er jour de la période');
       wrap.appendChild(hint);
+
+      // Saisie manuelle : les deux dates restent modifiables au clavier / au sélecteur natif.
+      const manual = document.createElement('div');
+      manual.className = 'd-cal-manual';
+      const mkField = (labelText, srcInput, isEnd) => {
+        const lab = document.createElement('label'); lab.textContent = labelText;
+        const inp = document.createElement('input');
+        inp.type = 'date'; inp.value = srcInput.value || '';
+        inp.addEventListener('change', () => {
+          if (!inp.value) { inp.value = srcInput.value; return; }
+          startInput.value = startInput.value || inp.value;
+          endInput.value   = endInput.value   || inp.value;
+          srcInput.value = inp.value;
+          // Borne saisie à l'envers : l'autre borne suit (période d'1 jour) — la
+          // date que l'utilisateur vient de taper est toujours celle qui est gardée.
+          if (startInput.value > endInput.value) {
+            if (isEnd) startInput.value = inp.value; else endInput.value = inp.value;
+          }
+          anchor = null; hoverDs = null;
+          if (!isEnd) syncViewToStart();
+          commit();
+        });
+        manual.appendChild(lab); manual.appendChild(inp);
+      };
+      mkField('Du', startInput, false);
+      mkField('Au', endInput, true);
+      wrap.appendChild(manual);
     }
 
-    wrap.refresh = () => { syncViewToStart(); render(); };
+    wrap.refresh = () => { anchor = null; hoverDs = null; syncViewToStart(); render(); };
     render();
     return wrap;
   }
@@ -6023,8 +6092,13 @@
     const t = new Date();
     const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
     const mk = (yy, mm, dd) => toDateStr(new Date(yy, mm, dd));
+    const monday = getMondayOfWeek(t);
+    const lastMonday = new Date(monday); lastMonday.setDate(lastMonday.getDate() - 7);
+    const lastSunday = new Date(monday); lastSunday.setDate(lastSunday.getDate() - 1);
     return [
       { label: '7 derniers jours',  from: mk(y, m, d - 6),  to: mk(y, m, d) },
+      { label: 'Semaine en cours',  from: toDateStr(monday), to: mk(y, m, d) },
+      { label: 'Semaine préc.',     from: toDateStr(lastMonday), to: toDateStr(lastSunday) },
       { label: '30 derniers jours', from: mk(y, m, d - 29), to: mk(y, m, d) },
       { label: 'Ce mois',           from: mk(y, m, 1),      to: mk(y, m, d) },
       { label: 'Mois précédent',    from: mk(y, m - 1, 1),  to: mk(y, m, 0) },
@@ -8951,6 +9025,23 @@
       periodShortcuts.appendChild(b);
     });
 
+    // Durées calées sur le jour de début choisi : « à partir du 3, sur 7 jours ».
+    const durationShortcuts = document.createElement('div');
+    durationShortcuts.className = 'row-shortcuts';
+    [['+3 j', 3], ['+7 j', 7], ['+14 j', 14], ['+1 mois', 30]].forEach(([label, n]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = label;
+      b.title = 'Période de ' + n + ' jours à partir du jour de début';
+      b.addEventListener('click', () => {
+        const base = startInput.value || toDateStr(new Date());
+        const dt = new Date(base + 'T12:00:00');
+        dt.setDate(dt.getDate() + n - 1);
+        endInput.value = toDateStr(dt);
+        cal.refresh(); updateDatePreview();
+      });
+      durationShortcuts.appendChild(b);
+    });
+
     const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => updateDatePreview());
 
     const fillPreview = document.createElement('div');
@@ -8958,6 +9049,7 @@
 
     periodPanel.appendChild(cal);
     periodPanel.appendChild(periodShortcuts);
+    periodPanel.appendChild(durationShortcuts);
     periodPanel.appendChild(fillToggle);
     periodPanel.appendChild(fillPreview);
 
@@ -8968,8 +9060,18 @@
       const jour = ' jour' + (n > 1 ? 's' : '');
       const pt = pts + ' pt' + (pts > 1 ? 's' : '');
       if (fillToggle.dataset.fill === 'distribute') {
-        const per = n ? Math.round((pts / n) * 10) / 10 : pts;
-        fillPreview.textContent = pt + ' ÷ ' + n + jour + ' ≈ ' + per + ' / jour';
+        // Le serveur ne reçoit que des entiers : on montre le découpage réel
+        // (base + reste réparti sur les premiers jours), pas une moyenne trompeuse.
+        const base = n ? Math.floor(pts / n) : pts, rem = n ? pts % n : 0;
+        if (n <= 1) {
+          fillPreview.textContent = pt + ' sur 1 seul jour (période à élargir pour répartir)';
+        } else if (base === 0) {
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' → 1 pt sur ' + rem + ' jour' + (rem > 1 ? 's' : '') + ', 0 sur les autres';
+        } else if (rem === 0) {
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + base + ' pt' + (base > 1 ? 's' : '') + ' / jour';
+        } else {
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + (base + 1) + ' pts sur ' + rem + ' jour' + (rem > 1 ? 's' : '') + ', ' + base + ' sur les ' + (n - rem) + ' autres';
+        }
       } else {
         fillPreview.textContent = pt + ' chaque jour × ' + n + jour + ' = ' + (pts * n) + ' au total';
       }
@@ -9497,7 +9599,9 @@
       if (pSel && cSel && customPtsEl && dStart) {
         items.push({
           dateStart:   dStart.value || '',
-          dateEnd:     (isRange && dEnd) ? dEnd.value : '',
+          // Filet : en mode période, une fin vide vaut « un seul jour » explicite —
+          // jamais un retour silencieux au mode date simple.
+          dateEnd:     (isRange && dEnd) ? (dEnd.value || dStart.value) : '',
           fill:        fillTg ? fillTg.dataset.fill : 'repeat',
           days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
           player:      pSel.value,

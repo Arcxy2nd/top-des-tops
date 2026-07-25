@@ -4,6 +4,26 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-26
+
+### Corrigé
+**Humanisé** : Répartir un total sur une période fonctionne enfin. Avant, si on ne cliquait qu'une seule date dans le mini-calendrier, la fin de période restait vide et tous les points atterrissaient sur un seul jour, sans prévenir. Maintenant le premier clic crée une période d'un jour, le second l'étend — la fin n'est jamais vide.
+**Technique** : `Index.html` — `createMiniCalendar()` : sélection par ancre (`anchor`) au lieu du couple start/end vide ; le 1er clic pose `start = end = jour cliqué`, le 2e étend (ordre inversé géré). Filet supplémentaire dans `submitBulk()` : en mode période, `dateEnd` vide retombe sur `dateStart` au lieu de ramener silencieusement la ligne en mode date simple.
+
+**Humanisé** : Les jours du mini-calendrier débordaient hors de son cadre et paraissaient décalés — c'est corrigé.
+**Technique** : `Index.html` — `.d-cal-day` héritait du `min-height: var(--tap-min)` (44px) global des boutons, plus large que sa colonne de grille : `min-height: 0`, hauteur fixe 32px, `width: 100%` et `box-sizing: border-box`.
+
+### Ajouté
+**Humanisé** : Le mini-calendrier gagne la saisie manuelle des deux dates (champs « Du » et « Au »), un aperçu de la période au survol avant le second clic, un bouton « Auj. » pour revenir au mois en cours, et le jour du jour est désormais mis en évidence.
+**Technique** : `Index.html` — `createMiniCalendar()` : bloc `.d-cal-manual` (deux `input[type=date]` synchronisés, borne à l'envers → l'autre borne suit), survol `.is-preview`, bouton `.d-cal-today`, `.d-cal-day.is-today` en couleur d'accent.
+
+**Humanisé** : Nouveaux raccourcis de période dans la saisie d'un lot : durées à partir du jour de début (+3 j, +7 j, +14 j, +1 mois), plus « Semaine en cours » et « Semaine préc. » dans les plages prédéfinies.
+**Technique** : `Index.html` — nouvelle rangée `durationShortcuts` dans le panneau « Une période » ; deux entrées ajoutées à `rangePresetItems()` (partagée avec le Dashboard).
+
+### Modifié
+**Humanisé** : L'aperçu du mode « Un total à répartir » annonce le découpage réel jour par jour (ex. « 10 pts ÷ 3 jours = 4 pts sur 1 jour, 3 sur les 2 autres ») au lieu d'une moyenne à virgule qui ne correspondait pas à ce qui était enregistré.
+**Technique** : `Index.html` — `updateDatePreview()` reproduit le calcul entier de `submitBulk()` (`base` + `rem`) et signale les cas limites (période d'1 jour, points insuffisants).
+
 ## [Non publié] - 2026-07-23
 
 ### Ajouté
