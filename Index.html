@@ -1726,71 +1726,88 @@
       cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .tools-quick-nav button:hover { color: var(--text); border-color: var(--accent); }
-    .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .stats-hub-head h2 { margin: 0; }
-    .stats-hub-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .stats-hub-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .stats-hub-tab {
-      padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
-      background: var(--btn-alt); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;
-      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+      padding: 6px 16px; border-radius: 9999px; border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04); color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     }
-    .stats-hub-tab:hover { color: var(--text); border-color: var(--accent); }
-    .stats-hub-tab.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    body.light .stats-hub-tab { background: rgba(0, 0, 0, 0.04); }
+    .stats-hub-tab:hover { color: var(--text); border-color: var(--border-hover); transform: translateY(-1px); }
+    .stats-hub-tab.active {
+      background: var(--accent); border-color: transparent; color: #ffffff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
     .stats-hub-pane { display: none; }
     .stats-hub-pane.active { display: block; }
 
-    /* ── LIVRE DES RECORDS — kit de lignes classées (Records · Duo · Mentions) ──
-       Signature visuelle commune à ces panes : un médaillon de rang (or/argent/
-       bronze pour le podium), un avatar cerclé de la couleur du joueur, et une
-       valeur chiffrée alignée à droite. Remplace les lignes .tool-action génériques. */
-    .sr-list { display: flex; flex-direction: column; gap: 8px; }
+    /* ── LIVRE DES RECORDS — kit de lignes classées (Records · Duo · Mentions) ── */
+    .sr-list { display: flex; flex-direction: column; gap: 10px; }
     .sr-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 12px 10px 14px; border-radius: 10px;
-      background: rgba(0,0,0,0.14); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px; border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
       position: relative; overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    body.light .sr-row { background: rgba(0,0,0,0.03); }
+    body.light .sr-row { background: rgba(0, 0, 0, 0.03); }
+    .sr-row:hover {
+      background: var(--card-hover);
+      border-color: var(--border-hover);
+      transform: translateX(4px);
+    }
     /* Liseré vertical à la couleur du joueur/Top */
     .sr-row::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
       background: var(--sr-accent, var(--border));
     }
     .sr-rank {
-      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums;
       background: var(--btn-alt); color: var(--text-muted); border: 1px solid var(--border);
     }
-    .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); }
+    .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); box-shadow: 0 0 10px rgba(255,215,0,0.4); }
     .sr-rank.silver { background: var(--medal-silver); color: #33383d; border-color: var(--medal-silver); }
     .sr-rank.bronze { background: var(--medal-bronze); color: #331d0c; border-color: var(--medal-bronze); }
     .sr-avatar {
-      width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
       border: 2px solid var(--sr-accent, var(--border));
     }
     /* Cluster de deux avatars superposés (lignes « duo ») */
     .sr-avatar-cluster { flex-shrink: 0; display: flex; align-items: center; }
-    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -12px; }
+    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -14px; }
     .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .sr-name { font-weight: 700; font-size: 0.92rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .sr-name { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .sr-sub { font-size: 0.77rem; color: var(--text-muted); }
     .sr-value {
       flex-shrink: 0; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums;
-      font-size: 1.15rem; color: var(--text); line-height: 1;
+      font-size: 1.18rem; color: var(--text); line-height: 1;
     }
     .sr-value small {
-      display: block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.04em; color: var(--text-muted); margin-top: 3px;
     }
     /* Hero : le record absolu, mis en avant en tête du pane Records */
     .sr-hero {
-      display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 14px;
-      border-radius: 12px;
+      display: flex; align-items: center; gap: 16px; padding: 20px 22px; margin-bottom: 18px;
+      border-radius: 20px;
       background: linear-gradient(135deg,
-        color-mix(in srgb, var(--medal-gold) 24%, transparent),
-        color-mix(in srgb, var(--medal-gold) 6%, transparent));
-      border: 1.5px solid color-mix(in srgb, var(--medal-gold) 55%, var(--border));
+        color-mix(in srgb, var(--medal-gold) 28%, transparent),
+        color-mix(in srgb, var(--medal-gold) 8%, transparent));
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid color-mix(in srgb, var(--medal-gold) 60%, var(--border));
+      box-shadow: 0 8px 24px rgba(255, 215, 0, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sr-hero:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(255, 215, 0, 0.25);
     }
     .sr-hero-trophy { font-size: 2rem; line-height: 1; flex-shrink: 0; }
     .sr-hero-avatar {
@@ -2395,15 +2412,22 @@
       pointer-events: none;
       z-index: 200;
       background: var(--card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 10px 14px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
       font-size: 0.82rem;
       min-width: 140px;
       max-width: 240px;
       transition: opacity 0.12s ease;
       opacity: 0;
+    }
+    body.light #chartCustomTooltip {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(0, 0, 0, 0.12);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
     }
     #chartCustomTooltip.visible { opacity: 1; }
     #chartCustomTooltip .ctt-title {
@@ -13419,11 +13443,40 @@
     function switchStatsHubPane(pane) {
       document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(b =>
         b.classList.toggle('active', b.dataset.pane === pane));
-      document.querySelectorAll('#statsHubCard .stats-hub-pane').forEach(p =>
-        p.classList.toggle('active', p.dataset.pane === pane));
+
+      const targetPane = document.querySelector('#statsHubCard .stats-hub-pane[data-pane="' + pane + '"]');
+      const currentActive = document.querySelector('#statsHubCard .stats-hub-pane.active');
+
+      if (window.gsap && currentActive && currentActive !== targetPane) {
+        gsap.to(currentActive, {
+          opacity: 0, y: -6, duration: 0.12, ease: 'power2.in',
+          onComplete: () => {
+            currentActive.classList.remove('active');
+            if (targetPane) {
+              targetPane.classList.add('active');
+              gsap.fromTo(targetPane,
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }
+              );
+              const rows = targetPane.querySelectorAll('.sr-row, .sr-hero');
+              if (rows.length) {
+                gsap.fromTo(rows,
+                  { opacity: 0, y: 10 },
+                  { opacity: 1, y: 0, duration: 0.22, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
+                );
+              }
+            }
+            if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
+            if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
+          }
+        });
+      } else {
+        document.querySelectorAll('#statsHubCard .stats-hub-pane').forEach(p =>
+          p.classList.toggle('active', p.dataset.pane === pane));
+        if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
+        if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
+      }
       try { localStorage.setItem(STATS_HUB_TAB_KEY, pane); } catch {}
-      if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
-      if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
     }
     document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(btn =>
       btn.addEventListener('click', () => switchStatsHubPane(btn.dataset.pane)));

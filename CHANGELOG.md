@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Ajouté
+**Humanisé** : Refonte de la section Statistiques (onglets pilules glassmorphic, transitions GSAP fluides, cartes de records enrichies) et perfectionnement intégral du Mode Clair (palette Slate lumineuse, contrastes renforcés, infobulles dépolies claires).
+**Technique** : `Index.html` & `Mobile.html` — mise à jour des tokens `body.light`, styles `#statsHubTabs`, `.sr-row`, `.sr-hero`, `#chartCustomTooltip` et animation GSAP dans `switchStatsHubPane()`.
+
 ### Supprimé
 **Humanisé** : Retrait définitif des boutons d'options Lissage / Comparer N-1, des mini-KPIs et du mode "Parts %" pour alléger l'interface du graphique principal.
 **Technique** : `Index.html` — suppression de `#chartKpisBar`, des toggles `chartToggleSma` et `chartToggleN1`, de la fonction `updateChartKpis` et du bouton `parts`.
