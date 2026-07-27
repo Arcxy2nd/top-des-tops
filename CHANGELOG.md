@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Ajouté
+**Humanisé** : Suite graphique enrichie — bandeau de mini-KPIs dynamiques (Total, Moyenne/j, Peak), nouveau type de graphique "Parts %" (proportions 100%), bouton de lissage (moyenne glissante), lueurs néon sur les courbes et mise en valeur interactive des séries au survol.
+**Technique** : `Index.html` — ajout de `#chartKpisBar` (`updateChartKpis`), nouveau type `parts`, toggles `chartToggleSma` et `chartToggleN1`, plugins Chart.js `glowShadowPlugin` et `seriesHighlightPlugin`.
+
 **Humanisé** : Les préférences du style de l'infobulle des graphiques (couleurs des paliers, jauge, lueur) sont maintenant sauvegardées sur le serveur dans la feuille Settings et conservées entre les appareils.
 **Technique** : `Code.gs` — nouvel endpoint `apiSaveTooltipStyle()` et mise à jour de `apiGetAppSettings()` pour lire/écrire la clé `tooltip_style` dans la feuille `Settings`. `Index.html` — `saveTooltipStylePrefs()` synchronise les changements avec le serveur de façon transparente.
 

@@ -3006,16 +3006,36 @@
           <button class="chart-type-btn active" data-chart-type="stacked" title="Barres empilées — scores cumulés par joueur, coloré par Top">📊 Empilé</button>
           <button class="chart-type-btn" data-chart-type="grouped" title="Barres côte à côte — compare les Tops entre joueurs">📊 Groupé</button>
           <button class="chart-type-btn" data-chart-type="trend" title="Courbe d'évolution dans le temps">📈 Courbes</button>
+          <button class="chart-type-btn" data-chart-type="parts" title="Proportions et parts de marché relatives (100%)">📊 Parts %</button>
           <button class="chart-type-btn" data-chart-type="radar" title="Radar multi-axes — profil de chaque joueur">🕸️ Radar</button>
           <button class="chart-type-btn" data-chart-type="doughnut" title="Répartition des points par Top pour un joueur">🍩 Donut</button>
           <button class="chart-type-btn" data-chart-type="ranking" title="Podium et classement général">🏆 Classement <span class="ranking-comments-badge" title="Commentaires de classement disponibles">💬</span></button>
         </div>
 
-        <div class="chart-controls" id="chartControls" style="display:none;"></div>
+        <div class="chart-controls-row" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+          <div class="chart-controls" id="chartControls" style="display:none; margin-bottom:0;"></div>
+          <button id="chartToggleSma" class="chart-opt-btn" title="Afficher la moyenne glissante (lissage)">📈 Lissage</button>
+          <button id="chartToggleN1" class="chart-opt-btn" title="Superposer la période précédente N-1">⚡ Comparer N-1</button>
+        </div>
 
         <div id="donutPlayerWrap" style="display:none; margin-bottom:10px;">
           <label style="font-size:0.78rem; color:var(--text-muted);">Joueur pour le Donut</label>
           <div id="donutPlayerChips" class="fchip-row" style="margin-top:6px;"></div>
+        </div>
+
+        <div id="chartKpisBar" class="chart-kpis-bar">
+          <div class="chart-kpi-card">
+            <span class="chart-kpi-label">📌 Total Sélection</span>
+            <span id="chartKpiTotalVal" class="chart-kpi-val">0 pt</span>
+          </div>
+          <div class="chart-kpi-card">
+            <span class="chart-kpi-label">⚡ Moyenne / Jour</span>
+            <span id="chartKpiAvgVal" class="chart-kpi-val">0 pt/j</span>
+          </div>
+          <div class="chart-kpi-card">
+            <span class="chart-kpi-label">🔥 Jour le plus Fort</span>
+            <span id="chartKpiPeakVal" class="chart-kpi-val">-</span>
+          </div>
         </div>
 
         <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
@@ -7745,8 +7765,99 @@
     boxWidth: 9, boxHeight: 9, padding: 14
   });
 
+  // ── MINI KPIS UPDATE ──
+  function updateChartKpis(data) {
+    const totalEl = document.getElementById('chartKpiTotalVal');
+    const avgEl   = document.getElementById('chartKpiAvgVal');
+    const peakEl  = document.getElementById('chartKpiPeakVal');
+    if (!totalEl || !avgEl || !peakEl) return;
+
+    if (!data || !data.labels || !data.labels.length) {
+      totalEl.textContent = '0 pt';
+      avgEl.textContent   = '0 pt/j';
+      peakEl.textContent  = '-';
+      return;
+    }
+
+    let grandTotal = 0;
+    let peakVal = 0;
+    let peakLabel = '-';
+
+    if (data.datasets && data.datasets.length) {
+      data.labels.forEach((label, i) => {
+        const daySum = data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0);
+        grandTotal += daySum;
+        if (daySum > peakVal) {
+          peakVal = daySum;
+          peakLabel = label + ' (' + daySum + ' pt' + (daySum > 1 ? 's' : '') + ')';
+        }
+      });
+    }
+
+    const daysCount = Math.max(1, data.labels.length);
+    const avgPerDay = (grandTotal / daysCount).toFixed(1);
+
+    totalEl.textContent = grandTotal.toLocaleString('fr-FR') + ' pt' + (grandTotal > 1 ? 's' : '');
+    avgEl.textContent   = avgPerDay + ' pt/j';
+    peakEl.textContent  = peakVal > 0 ? peakLabel : '-';
+  }
+
+  // ── LUEUR NEON ET SHADOW PLUGIN ──
+  function buildGlowShadowPlugin() {
+    return {
+      id: 'glowShadowPlugin',
+      beforeDatasetDraw(chart, args) {
+        const { ctx } = chart;
+        const ds = chart.data.datasets[args.index];
+        if (ds && ds.borderColor && typeof ds.borderColor === 'string' && ds.borderColor.startsWith('#')) {
+          ctx.save();
+          ctx.shadowColor = ds.borderColor;
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 2;
+        }
+      },
+      afterDatasetDraw(chart) {
+        chart.ctx.restore();
+      }
+    };
+  }
+
+  // ── FOCUS SURVOL (SERIES HIGHLIGHTING) ──
+  function buildSeriesHighlightPlugin() {
+    return {
+      id: 'seriesHighlightPlugin',
+      afterInit(chart) {
+        const legend = chart.legend;
+        if (!legend) return;
+        const origOnHover = legend.options.onHover;
+        const origOnLeave = legend.options.onLeave;
+        legend.options.onHover = (e, legendItem, leg) => {
+          if (origOnHover) origOnHover(e, legendItem, leg);
+          const targetIndex = legendItem.datasetIndex;
+          if (targetIndex === undefined) return;
+          chart.data.datasets.forEach((ds, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (meta && meta.dataset) {
+              meta.dataset.options.borderWidth = (i === targetIndex) ? 4 : 1;
+            }
+          });
+          chart.update('none');
+        };
+        legend.options.onLeave = (e, legendItem, leg) => {
+          if (origOnLeave) origOnLeave(e, legendItem, leg);
+          chart.data.datasets.forEach((ds, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (meta && meta.dataset) meta.dataset.options.borderWidth = 2;
+          });
+          chart.update('none');
+        };
+      }
+    };
+  }
+
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
+    updateChartKpis(data);
 
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
@@ -8067,6 +8178,7 @@
 
   function renderTrendChart(trendData) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
+    updateChartKpis({ labels: trendData ? trendData.labels : [], datasets: trendData && trendData.series ? Object.keys(trendData.series).map(p => ({ data: trendData.series[p] })) : [] });
 
     if (!trendData || !trendData.labels || !trendData.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
@@ -8102,10 +8214,33 @@
       borderColor: playerColor(p),
       backgroundColor: playerColor(p) + '22',
       fill: chartOptions.trendMode !== 'period',
-      tension: 0.3,
+      tension: 0.35,
       pointRadius: 4,
-      borderWidth: 2
+      borderWidth: 2.5
     }));
+
+    // Moyenne glissante (lissage)
+    if (chartOptions.showSma) {
+      players.forEach(p => {
+        const raw = seriesFor(p);
+        const smaData = raw.map((val, idx, arr) => {
+          const start = Math.max(0, idx - 4);
+          const sub = arr.slice(start, idx + 1);
+          return Math.round((sub.reduce((a, b) => a + b, 0) / sub.length) * 10) / 10;
+        });
+        datasets.push({
+          label: p + ' (Lissage)',
+          data: smaData,
+          borderColor: playerColor(p),
+          borderDash: [6, 4],
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2
+        });
+      });
+    }
 
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
       type: 'line',
@@ -13350,6 +13485,17 @@
     initChatWidget();
     applyTooltipStylePrefs(getTooltipStylePrefs());
     renderTooltipStyleSettings();
+    document.getElementById('chartToggleSma')?.addEventListener('click', e => {
+      e.currentTarget.classList.toggle('active');
+      chartOptions.showSma = e.currentTarget.classList.contains('active');
+      if (currentChartType === 'trend') renderTrendChart(currentChartData);
+      else renderChart(currentChartData, currentChartType);
+    });
+    document.getElementById('chartToggleN1')?.addEventListener('click', e => {
+      e.currentTarget.classList.toggle('active');
+      chartOptions.showN1 = e.currentTarget.classList.contains('active');
+      applyFilters();
+    });
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
