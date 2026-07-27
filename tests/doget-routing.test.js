@@ -19,6 +19,7 @@ test('doGet injects the deployment\'s real public URL into the template (appUrl)
   const gas = loadGas();
   const out = gas.doGet({ parameter: { view: 'desktop' } });
   assert.strictEqual(out._appUrl, 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec');
+  assert.deepStrictEqual(out._metaTag, { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' });
 });
 
 test('doGet still serves the page (with an empty appUrl) when ScriptApp.getService() is not authorized', () => {

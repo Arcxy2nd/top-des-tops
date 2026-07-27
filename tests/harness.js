@@ -111,6 +111,8 @@ function gasMocks() {
             return {
               _file: tpl._file,
               _appUrl: tpl.appUrl,
+              _metaTag: null,
+              addMetaTag(name, content) { this._metaTag = { name, content }; return this; },
               setTitle() { return this; },
               setXFrameOptionsMode() { return this; }
             };

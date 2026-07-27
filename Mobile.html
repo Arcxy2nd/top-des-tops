@@ -13,16 +13,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
   <style>
-    /* ── ÉCHELLE GLOBALE ×~2.2 ────────────────────────────────────────────── */
+    /* ── DESIGN SYSTEM MOBILE FLUIDE & NATIVE SCALE ───────────────────────── */
     :root {
       --bg: #07090e; 
-      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(255, 71, 87, 0.12), transparent 70%);
+      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(255, 71, 87, 0.15), transparent 70%);
       --card: rgba(20, 25, 34, 0.85); 
       --card-solid: #141922;
       --border: rgba(255, 255, 255, 0.09);
       --border-hover: rgba(255, 255, 255, 0.22);
       --accent: #ff4757; 
       --accent-hover: #ff6b81;
+      --accent-glow: rgba(255, 71, 87, 0.25);
       --text: #f1f5f9; 
       --text-muted: #94a3b8;
       --success: #2ed573; 
@@ -31,8 +32,8 @@
       --info: #7c8cff; 
       --clean: #17a2b8;
       --btn-alt: rgba(255, 255, 255, 0.07); 
-      --tap-min: 100px; 
-      --rail-w: 120px;
+      --tap-min: 44px; 
+      --rail-w: 54px;
       --on-accent: #fff;
       --medal-gold: #ffd700; 
       --medal-silver: #cbd5e1; 
@@ -63,7 +64,8 @@
       background-image: var(--bg-gradient);
       background-attachment: fixed;
       color: var(--text);
-      font-size: 1.9rem;
+      font-size: 0.92rem;
+      line-height: 1.45;
       margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(var(--rail-w) + env(safe-area-inset-left));
       transition: background 0.3s ease, color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
@@ -73,12 +75,12 @@
     button:active { transform: scale(0.96); }
     .card {
       position: relative;
-      background: var(--card); padding: 34px;
+      background: var(--card); padding: 18px;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-radius: 28px; border: 1px solid var(--border);
+      border-radius: 18px; border: 1px solid var(--border);
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
-      margin-bottom: 30px;
+      margin-bottom: 18px;
       max-width: 100%; overflow: hidden;
     }
     .card::before {
@@ -94,14 +96,14 @@
       mask-composite: exclude;
       pointer-events: none;
     }
-    h2 { margin: 0 0 26px 0; font-size: clamp(2.2rem, 2.05rem + 0.3vw, 2.4rem); color: var(--text); letter-spacing: -0.02em; }
-    h3 { font-size: clamp(1.8rem, 1.7rem + 0.2vw, 2rem); color: var(--text-muted); margin: 0 0 22px 0; }
+    h2 { margin: 0 0 14px 0; font-size: 1.25rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    h3 { font-size: 1.02rem; font-weight: 600; color: var(--text-muted); margin: 0 0 10px 0; }
     select, input[type="text"], input[type="url"], input[type="date"],
     input[type="number"], input[type="password"], textarea {
-      padding: 26px 30px; border-radius: 22px;
+      padding: 10px 14px; border-radius: 12px;
       border: 1px solid var(--border);
       background: rgba(0,0,0,0.2); color: var(--text);
-      font-size: 1.8rem;
+      font-size: 0.92rem;
       outline: none; width: 100%; min-height: var(--tap-min);
       touch-action: manipulation; font-family: inherit;
       transition: all 0.2s ease;
@@ -111,26 +113,26 @@
     body.light input[type="password"], body.light textarea {
       background: rgba(255,255,255,0.7);
     }
-    select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+    select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
     button {
-      padding: 26px 40px; border-radius: 22px;
+      padding: 10px 18px; border-radius: 12px;
       border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text);
-      font-size: 1.9rem; font-weight: 600;
+      font-size: 0.92rem; font-weight: 600;
       cursor: pointer; min-height: var(--tap-min);
-      display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     }
-    button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 6px 20px var(--accent-glow); }
-    button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); box-shadow: 0 6px 20px rgba(255,71,87,0.3); }
-    button.small   { padding: 18px 26px; font-size: 1.7rem; min-height: 76px; }
+    button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 4px 14px var(--accent-glow); }
+    button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); box-shadow: 0 4px 14px rgba(255,71,87,0.3); }
+    button.small   { padding: 6px 12px; font-size: 0.82rem; min-height: 36px; border-radius: 10px; }
     button:disabled { opacity: 0.55; cursor: default; transform: none !important; box-shadow: none !important; }
-    .m-container { max-width: 900px; margin: 0 auto; padding: 26px max(26px, env(safe-area-inset-left)) 26px max(26px, env(safe-area-inset-right)); overflow-x: hidden; }
-    .m-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .m-avatar.sm { width: 52px; height: 52px; }
-    .m-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; row-gap: 14px; }
+    .m-container { max-width: 900px; margin: 0 auto; padding: 14px max(14px, env(safe-area-inset-left)) 14px max(14px, env(safe-area-inset-right)); overflow-x: hidden; }
+    .m-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .m-avatar.sm { width: 28px; height: 28px; }
+    .m-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; row-gap: 10px; }
     .m-tab { display: none; }
     .m-tab.active { display: block; }
-    .m-empty { text-align: center; color: var(--text-muted); padding: 50px 18px; font-size: 1.9rem; }
+    .m-empty { text-align: center; color: var(--text-muted); padding: 28px 12px; font-size: 0.95rem; }
 
     /* ── RAIL LATÉRAL GLASSMORPHIC ── */
     .m-side-nav {
@@ -143,62 +145,86 @@
       padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .m-side-nav.expanded { width: 76vw; max-width: 560px; box-shadow: 10px 0 35px rgba(0,0,0,0.5); }
+    .m-side-nav.expanded { width: 240px; max-width: 80vw; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
     .m-side-toggle {
-      background: none; border: none; color: var(--text); font-size: 2.8rem;
-      width: var(--rail-w); flex-shrink: 0; padding: 22px 0; min-height: auto; border-radius: 0;
+      background: none; border: none; color: var(--text); font-size: 1.4rem;
+      width: var(--rail-w); flex-shrink: 0; padding: 12px 0; min-height: auto; border-radius: 0;
     }
-    .m-side-nav.expanded { width: 76vw; max-width: 560px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
-    .m-side-toggle {
-      background: none; border: none; color: var(--text); font-size: 2.8rem;
-      width: var(--rail-w); flex-shrink: 0; padding: 22px 0; min-height: auto; border-radius: 0;
-    }
-    .m-side-brand { display: flex; align-items: center; gap: 18px; padding: 4px 34px 30px; flex-shrink: 0; }
+    .m-side-brand { display: flex; align-items: center; gap: 12px; padding: 4px 16px 16px; flex-shrink: 0; }
     .m-side-title {
-      font-weight: 800; font-size: 2.1rem; color: var(--accent);
+      font-weight: 800; font-size: 1.1rem; color: var(--accent);
       white-space: nowrap; opacity: 0; transition: opacity 0.15s;
     }
     .m-side-nav.expanded .m-side-title { opacity: 1; }
     .m-side-links { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
-    .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 8px; }
+    .m-side-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 6px; }
     .m-nav-btn, .m-side-item {
-      display: flex; align-items: center; gap: 30px; width: 100%;
+      display: flex; align-items: center; gap: 14px; width: 100%;
       background: transparent; border: none; border-radius: 0; text-decoration: none;
-      color: var(--text-muted); font-size: 1.9rem; font-weight: 600;
-      padding: 28px 34px; min-height: 100px; white-space: nowrap; justify-content: flex-start;
+      color: var(--text-muted); font-size: 0.95rem; font-weight: 600;
+      padding: 12px 16px; min-height: 46px; white-space: nowrap; justify-content: flex-start;
       box-sizing: border-box;
     }
     .m-nav-btn.active { color: var(--accent); background: rgba(255,71,87,0.08); }
-    .m-nav-icon { font-size: 2.75rem; position: relative; width: 52px; text-align: center; flex-shrink: 0; }
+    .m-nav-icon { font-size: 1.35rem; position: relative; width: 24px; text-align: center; flex-shrink: 0; }
     .m-side-label { opacity: 0; transition: opacity 0.15s; overflow: hidden; text-overflow: ellipsis; }
     .m-side-nav.expanded .m-side-label { opacity: 1; }
     .m-nav-count {
-      position: absolute; top: -8px; right: -16px;
-      background: var(--accent); color: var(--on-accent); border-radius: 16px;
-      font-size: 1.2rem; font-weight: 700; padding: 2px 9px; min-width: 30px;
+      position: absolute; top: -4px; right: -8px;
+      background: var(--accent); color: var(--on-accent); border-radius: 10px;
+      font-size: 0.68rem; font-weight: 700; padding: 1px 5px; min-width: 16px;
     }
     .m-side-overlay {
       display: none; position: fixed; inset: 0; z-index: 99; background: rgba(0,0,0,0.4);
     }
     .m-side-nav.expanded ~ .m-side-overlay { display: block; }
 
-    /* ── MODAL / TOAST (repris à l'identique, plomberie stable) ── */
+    /* ── CONTRÔLE SEGMENTÉ PAR PILULES ── */
+    .m-segmented-control {
+      display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      padding: 4px; background: rgba(0,0,0,0.18); border: 1px solid var(--border);
+      border-radius: 14px; margin-bottom: 16px; scrollbar-width: none;
+    }
+    .m-segmented-control::-webkit-scrollbar { display: none; }
+    .m-seg-btn {
+      flex: 1; min-width: max-content; padding: 8px 14px; font-size: 0.85rem; font-weight: 600;
+      border: none; border-radius: 10px; background: transparent; color: var(--text-muted);
+      min-height: 36px; transition: all 0.2s ease; white-space: nowrap; cursor: pointer;
+    }
+    .m-seg-btn.active {
+      background: var(--card-solid); color: var(--text); font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25); border: 1px solid var(--border);
+    }
+    body.light .m-segmented-control { background: rgba(0,0,0,0.04); }
+    body.light .m-seg-btn.active { background: #ffffff; color: var(--text); }
+
+    /* ── CARTE ET BANDEAU DES MINI KPIS DASHBOARD ── */
+    .m-quick-kpis {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px;
+    }
+    .m-kpi-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    }
+    .m-kpi-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em; }
+    .m-kpi-val { font-size: 1.1rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .m-kpi-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* ── MODAL / TOAST ── */
     #mModalBackdrop {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
       z-index: 200; align-items: flex-end; justify-content: center;
     }
     #mModalBox {
-      background: var(--card); border-radius: 34px 34px 0 0; padding: 38px;
+      background: var(--card); border-radius: 24px 24px 0 0; padding: 22px;
       width: 100%; max-width: 900px; max-height: 88vh; overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-    /* bottom: la barre du bas a été remplacée par le rail latéral (voir plus bas) —
-       plus besoin de réserver de la place au-dessus d'une barre qui n'existe plus,
-       précieux surtout en paysage où la hauteur est déjà comptée. */
-    #mToastContainer { position: fixed; bottom: calc(34px + env(safe-area-inset-bottom)); left: 26px; right: 26px; z-index: 300; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+    #mToastContainer { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom)); left: 14px; right: 14px; z-index: 300; display: flex; flex-direction: column; gap: 10px; align-items: center; }
     .m-toast {
-      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-      padding: 22px 34px; font-size: 1.9rem; box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px 18px; font-size: 0.88rem; box-shadow: 0 6px 20px rgba(0,0,0,0.3);
       animation: mFadeIn 0.2s ease; max-width: 100%;
     }
     .m-toast.success { border-color: var(--success); color: var(--success); }
@@ -207,248 +233,242 @@
     /* ── ACCORDION (Dashboard filtres / Guide) ── */
     .m-accordion-head {
       display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer; font-weight: 700; font-size: 2rem;
+      cursor: pointer; font-weight: 700; font-size: 1.05rem;
     }
-    .m-accordion-body { display: none; padding-top: 22px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .m-accordion-body { display: none; padding-top: 14px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .m-accordion.open .m-accordion-body { display: block; }
     .m-accordion.open .m-accordion-arrow { transform: rotate(180deg); }
     .m-accordion-arrow { transition: transform 0.2s; }
 
     /* ── GUIDE (grille de cards → vue détail) ── */
-    .m-guide-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .m-guide-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
     .m-guide-tile {
-      display: flex; align-items: center; gap: 24px; width: 100%;
-      background: var(--card); border: 1px solid var(--border); border-left: 8px solid var(--accent);
-      border-radius: 20px; padding: 28px 30px; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      background: var(--card); border: 1px solid var(--border); border-left: 5px solid var(--accent);
+      border-radius: 14px; padding: 14px 16px; cursor: pointer; text-align: left;
       font: inherit; color: inherit;
     }
-    .m-guide-tile-icon { font-size: 4.6rem; line-height: 1; flex-shrink: 0; }
-    .m-guide-tile-title { font-size: 2.1rem; font-weight: 700; color: var(--text); }
-    .m-guide-detail { border-left: 8px solid var(--accent); border-radius: 0 20px 20px 0; padding: 4px 0 4px 30px; }
+    .m-guide-tile-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+    .m-guide-tile-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .m-guide-detail { border-left: 5px solid var(--accent); border-radius: 0 14px 14px 0; padding: 2px 0 2px 18px; }
     .m-guide-back {
-      display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px;
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 16px;
-      padding: 16px 26px; font-size: 1.8rem; font-weight: 700; color: var(--text); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 14px; font-size: 0.88rem; font-weight: 700; color: var(--text); cursor: pointer;
     }
-    .m-guide-detail h3 { margin: 0 0 18px; font-size: 2.3rem; }
-    .m-guide-detail-body { font-size: 1.9rem; line-height: 1.7; color: var(--text-muted); }
-    .m-guide-detail-body p { margin: 0 0 18px; }
+    .m-guide-detail h3 { margin: 0 0 10px; font-size: 1.15rem; }
+    .m-guide-detail-body { font-size: 0.92rem; line-height: 1.5; color: var(--text-muted); }
+    .m-guide-detail-body p { margin: 0 0 12px; }
     .m-guide-detail-body strong { color: var(--text); }
 
     /* ── CHIPS (filtres joueurs/catégories) ── */
-    .m-chip-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+    .m-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .m-chip {
-      display: flex; align-items: center; gap: 11px;
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 34px;
-      padding: 11px 22px 11px 11px; font-size: 1.7rem; cursor: pointer;
-      min-height: 60px;
+      display: flex; align-items: center; gap: 7px;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 20px;
+      padding: 6px 12px 6px 7px; font-size: 0.85rem; cursor: pointer;
+      min-height: 36px;
     }
-    .m-chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+    .m-chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; background: rgba(255,71,87,0.08); }
 
     /* ── HISTORY CARDS ── */
-    .m-hist-card { border: 1px solid var(--border); border-radius: 26px; padding: 26px; margin-bottom: 18px; background: var(--bg); overflow: hidden; max-width: 100%; }
-    /* flex-wrap : sur un écran étroit, joueur + top + points ne tiennent pas toujours
-       sur une ligne (long nom de joueur ou de top) — sans ça la ligne dépassait la
-       carte et forçait un scroll horizontal de toute la page. */
-    .m-hist-range-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .m-hist-card { border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 12px; background: var(--card-solid); overflow: hidden; max-width: 100%; }
+    .m-hist-range-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .m-hist-range-btn {
-      padding: 10px 20px; border-radius: 40px; border: 1px solid var(--border);
-      background: var(--btn-alt); color: var(--text-muted); font-size: 1.6rem; font-weight: 600;
+      padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 0.82rem; font-weight: 600;
       min-height: var(--tap-min); cursor: pointer;
     }
     .m-hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-    .m-hist-top { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; flex-wrap: wrap; row-gap: 10px; }
-    .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-    .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; }
-    .m-hist-meta { font-size: 1.65rem; color: var(--text-muted); }
-    /* Pastilles auteur + boutons éditer/supprimer sur une seule ligne. */
+    .m-hist-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; row-gap: 6px; }
+    .m-hist-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; font-size: 0.95rem; }
+    .m-hist-pts { margin-left: auto; font-weight: 800; color: var(--accent); white-space: nowrap; font-size: 1rem; }
+    .m-hist-meta { font-size: 0.82rem; color: var(--text-muted); }
     .m-note-footer {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
-      margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+      margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
     }
-    .m-note-meta { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; flex: 1 1 auto; min-width: 0; }
+    .m-note-meta { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; flex: 1 1 auto; min-width: 0; }
     .m-note-meta-item {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 1.25rem; font-weight: 600; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
       font-family: inherit; background: none; border: none; padding: 0;
     }
     .m-note-meta-item strong { color: var(--text); font-weight: 700; }
-    .m-note-meta-chevron { font-size: 0.9em; opacity: 0.6; }
-    button.m-note-meta-edited {
-      cursor: pointer; border-radius: 20px; padding: 4px 10px 4px 5px;
-      background: rgba(0,0,0,0.15); border: 1px solid var(--border);
-    }
-    button.m-note-meta-edited:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .m-note-meta-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: var(--btn-alt); }
+    .m-note-meta-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: var(--btn-alt); }
     .m-note-footer .m-hist-actions { margin: 0 0 0 auto; flex-shrink: 0; }
-    .m-note-history-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .m-note-history-entry { padding: 8px 0; border-bottom: 1px solid var(--border); }
     .m-note-history-entry:last-child { border-bottom: none; }
     .m-note-history-head {
-      display: flex; justify-content: space-between; gap: 10px;
-      font-size: 1.3rem; color: var(--text-muted); margin-bottom: 6px;
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px;
     }
-    .m-note-history-who { display: flex; align-items: center; gap: 5px; }
+    .m-note-history-who { display: flex; align-items: center; gap: 4px; }
     .m-note-history-head strong { color: var(--text); }
-    .m-note-history-text { font-size: 1.5rem; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    .m-note-history-text { font-size: 0.88rem; color: var(--text); white-space: pre-wrap; word-break: break-word; }
 
-    /* ── LIVRE DES RECORDS — kit de lignes classées (parité PC, échelle tactile) ── */
-    .sr-list { display: flex; flex-direction: column; gap: 14px; }
+    /* ── LIVRE DES RECORDS ── */
+    .sr-list { display: flex; flex-direction: column; gap: 8px; }
     .sr-row {
-      display: flex; align-items: center; gap: 18px;
-      padding: 18px 20px 18px 22px; border-radius: 22px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 14px;
       background: var(--bg); border: 1px solid var(--border);
       position: relative; overflow: hidden;
     }
     .sr-row::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
       background: var(--sr-accent, var(--border));
     }
     .sr-rank {
-      flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%;
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums;
       background: var(--btn-alt); color: var(--text-muted); border: 1px solid var(--border);
     }
     .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); }
     .sr-rank.silver { background: var(--medal-silver); color: #33383d; border-color: var(--medal-silver); }
     .sr-rank.bronze { background: var(--medal-bronze); color: #331d0c; border-color: var(--medal-bronze); }
     .sr-avatar {
-      width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-      border: 3px solid var(--sr-accent, var(--border));
+      width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--sr-accent, var(--border));
     }
     .sr-avatar-cluster { flex-shrink: 0; display: flex; align-items: center; }
-    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -20px; }
-    .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .sr-name { font-weight: 700; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .sr-sub { font-size: 1.4rem; color: var(--text-muted); }
-    .sr-value { flex-shrink: 0; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 2.1rem; line-height: 1; }
+    .sr-avatar-cluster .sr-avatar:last-child { margin-left: -10px; }
+    .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .sr-name { font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .sr-sub { font-size: 0.78rem; color: var(--text-muted); }
+    .sr-value { flex-shrink: 0; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1rem; line-height: 1; }
     .sr-value small {
-      display: block; font-size: 1.15rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 5px;
+      display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 2px;
     }
     .sr-hero {
-      display: flex; align-items: center; gap: 20px; padding: 26px; margin-bottom: 18px;
-      border-radius: 26px;
+      display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 12px;
+      border-radius: 16px;
       background: linear-gradient(135deg,
-        color-mix(in srgb, var(--medal-gold) 24%, transparent),
-        color-mix(in srgb, var(--medal-gold) 6%, transparent));
-      border: 2px solid color-mix(in srgb, var(--medal-gold) 55%, var(--border));
+        color-mix(in srgb, var(--medal-gold) 20%, transparent),
+        color-mix(in srgb, var(--medal-gold) 5%, transparent));
+      border: 1.5px solid color-mix(in srgb, var(--medal-gold) 55%, var(--border));
     }
-    .sr-hero-trophy { font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
+    .sr-hero-trophy { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
     .sr-hero-avatar {
-      width: 80px; height: 80px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-      border: 3px solid var(--medal-gold);
+      width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--medal-gold);
     }
     .sr-hero-body { flex: 1; min-width: 0; }
     .sr-hero-label {
-      font-size: 1.15rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
       color: color-mix(in srgb, var(--medal-gold) 70%, var(--text));
     }
-    .sr-hero-name { font-weight: 800; font-size: 1.95rem; }
-    .sr-hero-sub { font-size: 1.4rem; color: var(--text-muted); }
-    .sr-hero-pts { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; line-height: 1; }
+    .sr-hero-name { font-weight: 800; font-size: 1rem; }
+    .sr-hero-sub { font-size: 0.78rem; color: var(--text-muted); }
+    .sr-hero-pts { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; line-height: 1; }
     .sr-hero-pts small {
-      display: block; font-size: 1.15rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 5px;
+      display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-muted); margin-top: 2px;
     }
     .sr-section {
-      font-size: 1.35rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-      color: var(--text-muted); margin: 24px 0 12px; display: flex; gap: 10px; align-items: center;
+      font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); margin: 14px 0 8px; display: flex; gap: 6px; align-items: center;
     }
     .sr-section:first-child { margin-top: 0; }
-    .m-hist-desc { font-size: 1.8rem; margin-top: 10px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 10px 0; font-size: 1em; }
-    .m-hist-desc ul, .m-hist-desc ol { margin: 10px 0; padding-left: 44px; }
+    .m-hist-desc { font-size: 0.88rem; margin-top: 6px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .m-hist-desc h1, .m-hist-desc h2, .m-hist-desc h3 { margin: 6px 0; font-size: 1em; }
+    .m-hist-desc ul, .m-hist-desc ol { margin: 6px 0; padding-left: 20px; }
     .m-hist-desc .md-code-block {
-      background: rgba(0,0,0,0.25); padding: 14px 18px; border-radius: 14px;
-      overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 1.75rem;
+      background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 0.82rem;
     }
-    /* Sous-onglets en scroll horizontal (Historique/Paramètres) — générés en JS avec
-       overflow-x:auto inline ; on complète ici l'inertie tactile iOS sans toucher au JS. */
     #mHistSubNav, #mSettingsSubNav { -webkit-overflow-scrolling: touch; }
-    .m-hist-desc code { background: rgba(0,0,0,0.25); padding: 3px 11px; border-radius: 9px; }
+    .m-hist-desc code { background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px; }
     .mention {
-      display: inline-flex; align-items: center; gap: 9px; padding: 3px 18px 3px 9px;
-      border-radius: 44px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px 2px 5px;
+      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
-      color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
+      color: var(--text); font-weight: 600; font-size: 0.82em; cursor: pointer; white-space: nowrap;
     }
-    .mention img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+    .mention img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
     .category-mention {
-      display: inline-flex; align-items: center; gap: 5px; padding: 3px 18px;
-      border-radius: 44px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
+      display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px;
+      border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
-      color: var(--text); font-weight: 600; font-size: 0.85em; white-space: nowrap;
+      color: var(--text); font-weight: 600; font-size: 0.82em; white-space: nowrap;
     }
-    .m-hist-actions { display: flex; gap: 14px; margin-top: 18px; }
+    .m-hist-actions { display: flex; gap: 8px; margin-top: 10px; }
 
-    /* ── TCHAT FLOTTANT (bouton déplaçable, accessible depuis tous les onglets) ── */
+    /* ── TCHAT FLOTTANT ── */
     .m-chat-fab {
-      position: fixed; right: 34px; bottom: calc(34px + env(safe-area-inset-bottom)); z-index: 9500;
-      width: 100px; height: 100px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--accent); color: var(--on-accent); font-size: 2.6rem; min-height: unset;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 9500;
+      width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--accent); color: var(--on-accent); font-size: 1.35rem; min-height: unset;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
       touch-action: none; user-select: none; padding: 0;
     }
     .m-chat-fab-badge {
-      position: absolute; top: -6px; right: -6px; min-width: 34px; height: 34px; padding: 0 6px;
-      border-radius: 18px; background: var(--error); color: var(--on-accent); font-size: 1.15rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center; border: 3px solid var(--bg);
+      position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 4px;
+      border-radius: 10px; background: var(--error); color: var(--on-accent); font-size: 0.68rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
     }
     .m-chat-panel {
-      position: fixed; right: 20px; bottom: 148px; z-index: 9499;
-      width: min(640px, calc(100vw - 40px)); max-height: min(72vh, 900px);
+      position: fixed; right: 14px; bottom: 80px; z-index: 9499;
+      width: min(480px, calc(100vw - 28px)); max-height: min(72vh, 600px);
       display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border);
-      border-radius: 26px; box-shadow: 0 10px 32px rgba(0,0,0,0.45); overflow: hidden;
+      border-radius: 18px; box-shadow: 0 10px 32px rgba(0,0,0,0.45); overflow: hidden;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     }
     .m-chat-panel-header {
-      display: flex; align-items: center; justify-content: space-between; padding: 18px 24px;
-      font-weight: 700; font-size: 1.9rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;
+      font-weight: 700; font-size: 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .m-chat-messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 22px; padding: 18px 22px; }
-    .m-chat-msg { display: flex; gap: 16px; }
+    .m-chat-messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+    .m-chat-msg { display: flex; gap: 10px; }
     .m-chat-msg.pending { opacity: 0.55; }
-    .m-chat-msg-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .m-chat-msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .m-chat-msg-body-col { flex: 1; min-width: 0; }
-    .m-chat-msg-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-    .m-chat-msg-author { font-weight: 700; font-size: 1.7rem; }
-    .m-chat-msg-time { font-size: 1.35rem; color: var(--text-muted); }
-    .m-chat-msg-actions { margin-left: auto; display: flex; gap: 10px; }
-    .m-chat-msg-actions button { background: none; border: none; min-height: unset; padding: 4px 8px; font-size: 1.6rem; color: var(--text-muted); }
+    .m-chat-msg-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .m-chat-msg-author { font-weight: 700; font-size: 0.88rem; }
+    .m-chat-msg-time { font-size: 0.72rem; color: var(--text-muted); }
+    .m-chat-msg-actions { margin-left: auto; display: flex; gap: 6px; }
+    .m-chat-msg-actions button { background: none; border: none; min-height: unset; padding: 2px 6px; font-size: 0.85rem; color: var(--text-muted); }
     .m-chat-msg-reply {
-      display: flex; align-items: center; gap: 10px; font-size: 1.4rem; color: var(--text-muted);
-      border-left: 4px solid var(--border); padding: 4px 0 4px 14px; margin: 8px 0; max-width: 100%; overflow: hidden;
+      display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted);
+      border-left: 3px solid var(--border); padding: 2px 0 2px 8px; margin: 4px 0; max-width: 100%; overflow: hidden;
     }
     .m-chat-msg-reply strong { color: var(--text); }
     .m-chat-msg-reply span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .m-chat-msg-reply.deleted { font-style: italic; }
-    .m-chat-msg-text { font-size: 1.75rem; line-height: 1.5; word-break: break-word; }
+    .m-chat-msg-text { font-size: 0.88rem; line-height: 1.4; word-break: break-word; }
     .m-chat-reply-banner {
-      display: flex; align-items: center; gap: 14px; background: var(--btn-alt);
-      border-radius: 14px; padding: 12px 18px; margin: 0 22px 14px; font-size: 1.5rem; flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px; background: var(--btn-alt);
+      border-radius: 10px; padding: 8px 12px; margin: 0 14px 10px; font-size: 0.82rem; flex-shrink: 0;
     }
-    .m-chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .m-chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .m-chat-reply-banner-snippet { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .m-chat-composer { display: flex; gap: 14px; align-items: flex-end; padding: 18px 22px; border-top: 1px solid var(--border); flex-shrink: 0; }
-    .m-chat-composer textarea { flex: 1; resize: vertical; min-height: 70px; max-height: 220px; font-size: 1.7rem; }
-    .m-chat-composer button { min-height: 70px; }
-    .m-chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 40px 0; font-size: 1.6rem; }
+    .m-chat-composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .m-chat-composer textarea { flex: 1; resize: vertical; min-height: 38px; max-height: 120px; font-size: 0.88rem; padding: 8px 12px; }
+    .m-chat-composer button { min-height: 38px; padding: 8px 14px; }
+    .m-chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px 0; font-size: 0.88rem; }
 
-    /* ── DASHBOARD CHART TOOLTIP / DRILLDOWN ── */
+    /* ── CONTENEUR GRAPHIQUE & INFOBULLE ── */
+    .m-chart-wrapper {
+      position: relative; width: 100%; height: 320px;
+      margin-top: 6px; overflow: hidden;
+    }
+    .m-chart-wrapper canvas { width: 100% !important; height: 100% !important; }
     #mChartCustomTooltip {
-      position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.1s;
-      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
-      padding: 18px 22px; font-size: 1.7rem; z-index: 20; min-width: 310px;
-      max-width: min(90vw, 460px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px 14px; font-size: 0.85rem; z-index: 20; min-width: 180px;
+      max-width: min(90vw, 320px); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     }
     #mChartCustomTooltip.visible { opacity: 1; }
-    #mChartCustomTooltip .ctt-title-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; font-weight: 700; }
-    #mChartCustomTooltip .ctt-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-    #mChartCustomTooltip .ctt-row { display: flex; align-items: center; gap: 14px; padding: 5px 0; }
-    #mChartCustomTooltip .ctt-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
-    #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); }
-    #mChartCustomTooltip .ctt-val { font-weight: 700; }
+    #mChartCustomTooltip .ctt-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 700; font-size: 0.9rem; }
+    #mChartCustomTooltip .ctt-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+    #mChartCustomTooltip .ctt-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+    #mChartCustomTooltip .ctt-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    #mChartCustomTooltip .ctt-label { flex: 1; color: var(--text-muted); font-size: 0.82rem; }
+    #mChartCustomTooltip .ctt-val { font-weight: 700; font-size: 0.85rem; }
     #mChartCustomTooltip .ctt-val.pv-cold   { color: var(--text-muted); }
     #mChartCustomTooltip .ctt-val.pv-normal { color: var(--text); }
     #mChartCustomTooltip .ctt-val.pv-warm   { color: var(--warn); }
@@ -461,72 +481,27 @@
     @media (prefers-reduced-motion: reduce) {
       #mChartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
     }
-    #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 11px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 1.55rem; color: var(--text-muted); }
+    #mChartCustomTooltip .ctt-compare { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--text-muted); }
 
-    /* ── Filet de sécurité générique : toute rangée/liste horizontale scrollable ── */
-    .m-chart-wrapper { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .m-chart-wrapper canvas { max-width: 100%; }
-    table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-    /* ── COUVERTURE ÉCRANS MOBILES ──────────────────────────────────────────
-       L'app est fluide par défaut (flex/%, pas de largeur figée), donc les
-       réglages ci-dessous ne font qu'ajuster la densité (rail latéral, cible
-       tactile, paddings) à mesure que l'écran rétrécit ou change d'orientation —
-       pas de restructuration de layout nécessaire par palier. */
-
-    /* ≤430px — coeur de la plage réelle des téléphones (iPhone SE à Pro Max,
-       Android compacts/moyens). Rail et cible tactile légèrement resserrés,
-       la valeur par défaut (--rail-w:56px, --tap-min:48px) grignotant trop de
-       largeur utile sur ces gabarits. */
+    /* ── RESPONSIVE MEDIA QUERIES ── */
     @media (max-width: 430px) {
-      :root { --rail-w: 50px; --tap-min: 46px; }
+      :root { --rail-w: 48px; --tap-min: 44px; }
       .m-container { padding-left: 10px; padding-right: 10px; }
-      .card { padding: 13px; }
+      .card { padding: 14px; }
     }
-
-    /* ≤380px — téléphones étroits (iPhone SE 1e/2e gén., petits Android). */
     @media (max-width: 380px) {
-      :root { --rail-w: 46px; --tap-min: 44px; }
-      .m-side-toggle { font-size: 1.15rem; }
+      :root { --rail-w: 44px; --tap-min: 42px; }
       .m-container { padding-left: 8px; padding-right: 8px; }
       .card { padding: 12px; }
+      .m-chart-wrapper { height: 280px; }
     }
-
-    /* ≤340px — cas extrêmes (Galaxy Fold replié, vieux téléphones). On réduit
-       encore la bande latérale et les avatars pour préserver un minimum de
-       largeur de contenu utile ; --tap-min reste à 44px, plancher tactile
-       non négociable même sur ces gabarits. */
-    @media (max-width: 340px) {
-      :root { --rail-w: 42px; }
-      .m-container { padding-left: 6px; padding-right: 6px; }
-      .card { padding: 10px; }
-      .m-avatar { width: 28px; height: 28px; }
-      button { padding: 10px 12px; font-size: 0.88rem; }
-    }
-
-    /* Paysage sur mobile (hauteur réduite, largeur abondante) — on rend aux
-       cartes la place verticale que leur padding gaspillait, pour limiter le
-       scroll sur un écran déjà court. La largeur ne pose pas de problème ici
-       (le rail latéral + le conteneur centré s'adaptent déjà). */
     @media (orientation: landscape) and (max-height: 500px) {
-      .card { padding: 22px 34px; margin-bottom: 18px; }
-      h2 { margin-bottom: 18px; }
-      h3 { margin-bottom: 14px; }
-      .m-accordion-body { padding-top: 14px; }
+      .card { padding: 12px 16px; margin-bottom: 12px; }
+      .m-chart-wrapper { height: 230px; }
+      h2 { margin-bottom: 10px; }
+      h3 { margin-bottom: 8px; }
+      .m-accordion-body { padding-top: 10px; }
       #mModalBox { max-height: 94vh; }
-    }
-
-    /* NOTE IMPORTANTE : le wrapper GAS servi à /exec n'ayant pas de balise
-       <meta name="viewport">, la largeur CSS réelle vue par cette page est
-       TOUJOURS ~980px, quel que soit le téléphone — cette media query
-       (min-width:600px) se déclenche donc systématiquement en production,
-       contrairement à celles ci-dessus (≤430/380/340px) qui, elles, ne se
-       déclenchent jamais. Les valeurs ci-dessous sont donc alignées sur
-       l'échelle agrandie (jamais plus petites que les règles de base), pour
-       ne pas écraser l'agrandissement fait plus haut. */
-    @media (min-width: 600px) {
-      .m-container { padding-left: max(40px, env(safe-area-inset-left)); padding-right: max(40px, env(safe-area-inset-right)); }
-      .card { padding: 40px; }
     }
   </style>
 </head>
@@ -1119,31 +1094,77 @@
     return { start: toDateStr(start), end };
   }
 
+  let _mLastCommentsData = null;
+
+  function loadQuickKpisMobile() {
+    const { players, categories } = currentFilterArrays();
+    const { start, end } = periodBounds(mFilterPeriod);
+    callServer('apiGetQuickStats', [players, categories, start, end], res => {
+      const container = document.getElementById('mQuickKpisBar');
+      if (!container) return;
+      if (!res || !res.leader) {
+        container.style.display = 'none';
+        return;
+      }
+      container.style.display = 'grid';
+      const leaderAvatar = mSrAvatar(res.leader);
+      container.innerHTML =
+        '<div class="m-kpi-card">' +
+          '<div class="m-kpi-label">Leader</div>' +
+          '<div class="m-kpi-val">' + leaderAvatar + '<span style="overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(res.leader) + '</span></div>' +
+          '<div class="m-kpi-sub">' + res.leaderPoints + ' pts ' + (res.gapToSecond > 0 ? '(+' + res.gapToSecond + ')' : '') + '</div>' +
+        '</div>' +
+        '<div class="m-kpi-card">' +
+          '<div class="m-kpi-label">Ce mois-ci</div>' +
+          '<div class="m-kpi-val">⚡ ' + (res.monthEntries || 0) + '</div>' +
+          '<div class="m-kpi-sub">entrées enregistrées</div>' +
+        '</div>' +
+        '<div class="m-kpi-card">' +
+          '<div class="m-kpi-label">Dernier event</div>' +
+          '<div class="m-kpi-val">📅 ' + (res.latestDate ? res.latestDate.split('-').reverse().slice(0,2).join('/') : '-') + '</div>' +
+          '<div class="m-kpi-sub">dernière activité</div>' +
+        '</div>';
+    }, 'Chargement KPIs');
+  }
+
   function renderDashboardShell() {
     const tab = document.getElementById('tab-dashboard');
     tab.innerHTML =
-      '<div class="card" id="mCommentsCard"><h2>🎭 Commentaires</h2><div id="mCommentsBody" class="m-empty">Chargement…</div></div>' +
+      '<div id="mQuickKpisBar" class="m-quick-kpis"></div>' +
+      '<div class="card" id="mCommentsCard">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+          '<h2 style="margin:0;">🎭 Commentaires</h2>' +
+          '<button class="small" id="mCommentsRefreshBtn" style="padding:4px 10px;min-height:30px;font-size:0.78rem;">🎲 Tirage</button>' +
+        '</div>' +
+        '<div id="mCommentsBody" class="m-empty">Chargement…</div>' +
+      '</div>' +
       '<div class="card m-accordion" id="mFilterAccordion">' +
-        '<div class="m-accordion-head" id="mFilterHead"><span>🔎 Filtres</span><span class="m-accordion-arrow">▾</span></div>' +
+        '<div class="m-accordion-head" id="mFilterHead"><span>🔎 Filtres croisés</span><span class="m-accordion-arrow">▾</span></div>' +
         '<div class="m-accordion-body">' +
           '<h3>Période</h3>' +
-          '<select id="mPeriodSelect">' +
-            '<option value="7d">7 jours</option><option value="month">1 mois</option>' +
-            '<option value="3m">3 mois</option><option value="6m">6 mois</option>' +
-            '<option value="1y">1 an</option><option value="all" selected>Tout</option>' +
-          '</select>' +
-          '<h3 style="margin-top:26px;">Joueurs</h3><div class="m-chip-row" id="mPlayerChips"></div>' +
-          '<h3 style="margin-top:26px;">Tops</h3><div class="m-chip-row" id="mCategoryChips"></div>' +
+          '<div class="m-segmented-control" id="mPeriodSegmented">' +
+            '<button class="m-seg-btn" data-val="7d">7j</button>' +
+            '<button class="m-seg-btn" data-val="month">1m</button>' +
+            '<button class="m-seg-btn" data-val="3m">3m</button>' +
+            '<button class="m-seg-btn" data-val="6m">6m</button>' +
+            '<button class="m-seg-btn" data-val="1y">1a</button>' +
+            '<button class="m-seg-btn active" data-val="all">Tout</button>' +
+          '</div>' +
+          '<h3 style="margin-top:12px;">Joueurs</h3><div class="m-chip-row" id="mPlayerChips"></div>' +
+          '<h3 style="margin-top:12px;">Tops</h3><div class="m-chip-row" id="mCategoryChips"></div>' +
         '</div>' +
       '</div>' +
       '<div class="card">' +
-        '<select id="mChartTypeSelect" style="margin-bottom:26px;">' +
-          '<option value="stacked">Empilé</option><option value="grouped">Groupé</option>' +
-          '<option value="line">Courbes</option><option value="radar">Radar</option>' +
-          '<option value="donut">Donut</option><option value="ranking">Classement</option>' +
-        '</select>' +
-        '<div class="m-chart-wrapper" id="mChartWrapper" style="position:relative;">' +
-          '<canvas id="mMainChart" height="570"></canvas>' +
+        '<div class="m-segmented-control" id="mChartTypeSegmented">' +
+          '<button class="m-seg-btn active" data-type="stacked">📊 Empilé</button>' +
+          '<button class="m-seg-btn" data-type="grouped">📶 Groupé</button>' +
+          '<button class="m-seg-btn" data-type="line">📈 Courbes</button>' +
+          '<button class="m-seg-btn" data-type="radar">🕸️ Radar</button>' +
+          '<button class="m-seg-btn" data-type="donut">🍩 Donut</button>' +
+          '<button class="m-seg-btn" data-type="ranking">🏆 Classement</button>' +
+        '</div>' +
+        '<div class="m-chart-wrapper" id="mChartWrapper">' +
+          '<canvas id="mMainChart"></canvas>' +
           '<div id="mChartCustomTooltip" role="tooltip"></div>' +
         '</div>' +
       '</div>' +
@@ -1161,16 +1182,31 @@
     bindStatAccordion('mWeekdayAcc', loadWeekdayStat);
     bindStatAccordion('mPairsAcc', loadPairsStat);
     bindStatAccordion('mMentionsAcc', loadMentionStats);
-    document.getElementById('mPeriodSelect').value = mFilterPeriod;
-    document.getElementById('mPeriodSelect').addEventListener('change', e => {
-      mFilterPeriod = e.target.value;
-      refreshDashboardData();
+
+    document.querySelectorAll('#mPeriodSegmented .m-seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#mPeriodSegmented .m-seg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mFilterPeriod = btn.dataset.val;
+        refreshDashboardData();
+      });
     });
-    document.getElementById('mChartTypeSelect').value = mChartType;
-    document.getElementById('mChartTypeSelect').addEventListener('change', e => {
-      mChartType = e.target.value;
-      refreshDashboardData();
+
+    document.querySelectorAll('#mChartTypeSegmented .m-seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#mChartTypeSegmented .m-seg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mChartType = btn.dataset.type;
+        refreshDashboardData();
+      });
     });
+
+    const refreshCommentsBtn = document.getElementById('mCommentsRefreshBtn');
+    if (refreshCommentsBtn) {
+      refreshCommentsBtn.addEventListener('click', () => {
+        if (_mLastCommentsData) renderComments(_mLastCommentsData);
+      });
+    }
 
     renderFilterChips();
   }
@@ -1370,6 +1406,8 @@
     const { players, categories } = currentFilterArrays();
     const { start, end } = periodBounds(mFilterPeriod);
 
+    loadQuickKpisMobile();
+
     if (mChartType === 'line') {
       callServer('apiGetTrendData', [players, categories, start, end], res => renderTrendChart(res.trendData), 'Chargement tendance');
     } else if (mChartType === 'ranking') {
@@ -1383,7 +1421,10 @@
       }, 'Chargement graphique');
     }
 
-    callServer('apiGetPlayerTotals', [players, start, end], res => renderComments(res.chartData), 'Chargement commentaires');
+    callServer('apiGetPlayerTotals', [players, start, end], res => {
+      _mLastCommentsData = res.chartData;
+      renderComments(res.chartData);
+    }, 'Chargement commentaires');
   }
 
   function destroyChart() {
@@ -1392,6 +1433,10 @@
 
   function chartTextColor() {
     return getComputedStyle(document.body).getPropertyValue('--text').trim();
+  }
+
+  function chartGridColor() {
+    return document.body.classList.contains('light') ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
   }
 
   // Écart avec le rang immédiatement supérieur/inférieur, pour le tooltip riche.
@@ -1541,7 +1586,7 @@
           const wrapper = document.getElementById('mChartWrapper');
           const wRect = wrapper.getBoundingClientRect();
           const cRect = ch.canvas.getBoundingClientRect();
-          let x = cRect.left - wRect.left + tooltip.caretX + 10;
+          let x = cRect.left - wRect.left + tooltip.caretX + 8;
           let y = cRect.top - wRect.top + tooltip.caretY - 10;
           const elW = el.offsetWidth || 160;
           const elH = el.offsetHeight || 70;
@@ -1557,8 +1602,6 @@
     };
   }
 
-  // 1er tap = tooltip natif (déjà géré par Chart.js), 2e tap sur le même élément
-  // dans les 600ms suivant le 1er = ouvre le drill-down.
   function registerChartTapDrilldown(chart, contextBuilder) {
     let lastTapKey = null, lastTapTime = 0;
     chart.options.onClick = (evt, elements) => {
@@ -1579,21 +1622,34 @@
 
   function renderBarChart(chartData, type, stacked) {
     destroyChart();
-    const ctx = document.getElementById('mMainChart').getContext('2d');
+    const canvas = document.getElementById('mMainChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const rankedTotals = chartData.labels
       .map((p, i) => ({ player: p, total: chartData.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
       .sort((a, b) => b.total - a.total);
+
+    (chartData.datasets || []).forEach(ds => {
+      ds.borderRadius = 6;
+      ds.borderSkipped = false;
+    });
+
     mDashboardChart = new Chart(ctx, {
       type: 'bar',
       data: chartData,
       options: {
         responsive: true,
-        // Légende volontairement non isolable en mode Classement (stacked === undefined,
-        // une seule barre "Total global" par joueur) — cohérent avec Index.html.
-        plugins: { legend: { labels: { color: chartTextColor() }, onClick: stacked === undefined ? undefined : isolatableLegendOnClick } },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: chartTextColor(), font: { size: 11 }, boxWidth: 12 },
+            onClick: stacked === undefined ? undefined : isolatableLegendOnClick
+          }
+        },
         scales: {
-          x: { stacked: !!stacked, ticks: { color: chartTextColor() } },
-          y: { stacked: !!stacked, ticks: { color: chartTextColor() } }
+          x: { stacked: !!stacked, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } },
+          y: { stacked: !!stacked, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } }
         }
       },
       plugins: [buildMobileTooltipPlugin({ titleIsPlayer: true, rankedTotals })]
@@ -1610,20 +1666,28 @@
 
   function renderTrendChart(trendData) {
     destroyChart();
-    const ctx = document.getElementById('mMainChart').getContext('2d');
+    const canvas = document.getElementById('mMainChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const players = Object.keys(trendData.series);
     const datasets = players.map(player => ({
       label: player, data: trendData.series[player],
       borderColor: playerColor(player), backgroundColor: playerColor(player),
-      fill: false, tension: 0.25
+      fill: false, tension: 0.35, pointRadius: 3, pointHoverRadius: 5, borderWidth: 2.5
     }));
     mDashboardChart = new Chart(ctx, {
       type: 'line',
       data: { labels: trendData.labels, datasets },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
-        scales: { x: { ticks: { color: chartTextColor() } }, y: { ticks: { color: chartTextColor() } } }
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 }, boxWidth: 12 }, onClick: isolatableLegendOnClick }
+        },
+        scales: {
+          x: { ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } },
+          y: { ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } }
+        }
       },
       plugins: [buildMobileTooltipPlugin({ rowsArePlayers: true })]
     });
@@ -1640,16 +1704,16 @@
 
   function renderRadarChart(chartData) {
     destroyChart();
-    const ctx = document.getElementById('mMainChart').getContext('2d');
-    // chartData arrive avec labels=joueurs, datasets=un par catégorie (format commun
-    // aux barres/donut) — le radar a besoin de l'inverse (axes=catégories, séries=joueurs).
+    const canvas = document.getElementById('mMainChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const radarDatasets = chartData.labels.map((player, i) => ({
       label: player,
       data: chartData.datasets.map(ds => ds.data[i] || 0),
       backgroundColor: playerColor(player) + '33',
       borderColor: playerColor(player),
       pointBackgroundColor: playerColor(player),
-      borderWidth: 2
+      borderWidth: 2, pointRadius: 3
     }));
     const radarLabels = chartData.datasets.map(d => d.label);
     mDashboardChart = new Chart(ctx, {
@@ -1657,8 +1721,11 @@
       data: { labels: radarLabels, datasets: radarDatasets },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } },
-        scales: { r: { ticks: { color: chartTextColor(), backdropColor: 'transparent' }, pointLabels: { color: chartTextColor() } } }
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 }, boxWidth: 12 }, onClick: isolatableLegendOnClick }
+        },
+        scales: { r: { ticks: { color: chartTextColor(), backdropColor: 'transparent', font: { size: 9 } }, pointLabels: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } } }
       },
       plugins: [buildMobileTooltipPlugin({ rowsArePlayers: true })]
     });
@@ -1672,7 +1739,9 @@
 
   function renderDonutChart(chartData) {
     destroyChart();
-    const ctx = document.getElementById('mMainChart').getContext('2d');
+    const canvas = document.getElementById('mMainChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const totals = chartData.labels.map((_, i) =>
       chartData.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0));
     mDashboardChart = new Chart(ctx, {

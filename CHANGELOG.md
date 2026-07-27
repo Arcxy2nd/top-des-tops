@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Corrigé
+**Humanisé** : Refonte intégrale de l'interface mobile et du graphique du Dashboard (taille native fluide sans sur-échelle, contrôles segmentés par pilules, bandeau mini-KPIs et ratio parfait sans déformation).
+**Technique** : `Code.gs` — ajout de `.addMetaTag('viewport', ...)` dans `doGet()`. `Mobile.html` — suppression de l'échelle $\times 2.2$, intégration de `#mChartTypeSegmented`, `#mPeriodSegmented`, `maintainAspectRatio: false` sur Chart.js, bandeau `#mQuickKpisBar` et design system CSS réactif.
+
 ### Ajouté
 **Humanisé** : Refonte de la section Statistiques (onglets pilules glassmorphic, transitions GSAP fluides, cartes de records enrichies) et perfectionnement intégral du Mode Clair (palette Slate lumineuse, contrastes renforcés, infobulles dépolies claires).
 **Technique** : `Index.html` & `Mobile.html` — mise à jour des tokens `body.light`, styles `#statsHubTabs`, `.sr-row`, `.sr-hero`, `#chartCustomTooltip` et animation GSAP dans `switchStatsHubPane()`.

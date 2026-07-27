@@ -1239,6 +1239,7 @@ function doGet(e) {
   catch (e) { template.appUrl = ''; }
   return template.evaluate()
     .setTitle('Tops des Tops')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
