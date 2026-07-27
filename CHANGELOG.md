@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Modifié
+**Humanisé** : Parité absolue et refonte du graphique mobile avec la version PC : affichage des emojis sur les barres et catégories, totaux au sommet des barres, score total au centre du graphique Donut avec sélecteur de joueur, classement détaillé par catégorie, barre d'options contextuelle (Totaux, Log, Détaillé) et jauges de progression visuelles dans les infobulles tactiles.
+**Technique** : `Mobile.html` — intégration de `catDisplay()`, `buildEmojiOverlayPlugin()`, `totalsPlugin`, `donutCenterPlugin`, `buildTooltipGauge()`, `renderChartOptionsBar()`, `renderDonutPlayerChips()` et support du mode `ranking` détaillé avec tri et drill-down.
+
 **Humanisé** : Embellissement et renforcement visuel du sélecteur d'identité lorsqu'aucune n'est choisie (halo respirant néon, badge d'alerte lumineux sur l'avatar et secousse/onde de choc accentuée lors d'une action bloquée sur desktop et mobile).
 **Technique** : `Index.html` & `Mobile.html` — ajout de la classe `.unselected` gérée dans `renderWhoAmI()` / `renderIdentityBtn()`, keyframes `@keyframes wai-unselected-breath` et badge dot `@keyframes wai-dot-pulse`, réécriture de `@keyframes wai-pulse` pour secousse + onde de choc 0.75s x 2, et gestion de la classe `.pulse` sur mobile dans `requireIdentity()`.
 

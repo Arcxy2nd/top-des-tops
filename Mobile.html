@@ -564,10 +564,14 @@
     #mChartCustomTooltip .ctt-val.pv-warm   { color: var(--warn); }
     #mChartCustomTooltip .ctt-val.pv-hot    { color: var(--error); text-shadow: 0 0 6px rgba(255,71,87,0.5); }
     #mChartCustomTooltip .ctt-val.pv-blaze  { color: #ffb347; animation: mCtt-blaze-pulse 1.1s ease-in-out infinite; }
-    @keyframes mCtt-blaze-pulse {
-      0%, 100% { text-shadow: 0 0 6px rgba(255,71,87,0.6), 0 0 2px rgba(255,165,0,0.6); }
-      50%      { text-shadow: 0 0 14px rgba(255,71,87,0.95), 0 0 8px rgba(255,165,0,0.9); }
+    #mChartCustomTooltip .ctt-gauge {
+      display: block; width: 100%; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.12); margin-top: 3px; overflow: hidden;
     }
+    #mChartCustomTooltip .ctt-gauge-fill {
+      display: block; height: 100%; border-radius: 2px; transition: width 0.3s ease;
+    }
+    body.light #mChartCustomTooltip .ctt-gauge { background: rgba(0,0,0,0.08); }
     @media (prefers-reduced-motion: reduce) {
       #mChartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
     }
@@ -1616,15 +1620,19 @@
     chart.update();
   }
 
-  // Classe une valeur de points selon son écart à la moyenne de son propre Top,
-  // moyenne recalculée à chaque survol sur l'échantillon réellement affiché.
-  function pointValueTier(value, sampleValues) {
+  function pointValueRatio(value, sampleValues) {
     if (!(value > 0)) return null;
     const valid = (sampleValues || []).filter(v => typeof v === 'number' && !isNaN(v));
     if (valid.length < 2) return null;
     const avg = valid.reduce((s, v) => s + v, 0) / valid.length;
     if (!(avg > 0)) return null;
-    const ratio = value / avg;
+    return value / avg;
+  }
+
+  function pointValueTier(value, sampleValues) {
+    if (value === 0) return 'pv-zero';
+    const ratio = pointValueRatio(value, sampleValues);
+    if (ratio === null) return null;
     if (ratio < 0.6) return 'pv-cold';
     if (ratio < 1.4) return 'pv-normal';
     if (ratio < 2.2) return 'pv-warm';
@@ -1684,15 +1692,25 @@
               indicator.className = 'ctt-dot';
               indicator.style.background = color;
             }
+            const content = document.createElement('div');
+            content.style.cssText = 'flex:1; min-width:0;';
+            const line = document.createElement('div');
+            line.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px;';
             const label = document.createElement('span');
             label.className = 'ctt-label';
             label.textContent = dsLabel;
             const val = document.createElement('span');
             val.className = 'ctt-val';
+            const ratio = pointValueRatio(dp.raw, dp.dataset.data);
             const tier = pointValueTier(dp.raw, dp.dataset.data);
             if (tier) val.classList.add(tier);
             val.textContent = dp.formattedValue + ' pts';
-            row.appendChild(indicator); row.appendChild(label); row.appendChild(val);
+            line.appendChild(label); line.appendChild(val);
+            content.appendChild(line);
+            if (tier && tier !== 'pv-zero') {
+              content.appendChild(buildTooltipGauge(tier, ratio));
+            }
+            row.appendChild(indicator); row.appendChild(content);
             el.appendChild(row);
           });
 
@@ -1754,52 +1772,319 @@
     };
   }
 
+  // ── HELPERS CATEGORIES & EMOJIS (parité Index.html) ──
+  function catIcon(name) {
+    const cat = cachedCategories.find(c => c.name === name);
+    return cat && cat.icon ? cat.icon : '';
+  }
+  function catDisplay(name) {
+    const icon = catIcon(name);
+    return icon ? (icon + ' ' + name) : name;
+  }
+
+  // ── PLUGINS CHART.JS POUR MOBILE (emojis, totaux, donut center) ──
+  function buildEmojiOverlayPlugin() {
+    return {
+      id: 'emojiOverlay',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const type = chart.config.type;
+        ctx.save();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+
+        if (type === 'bar') {
+          const isHorizontal = chart.options.indexAxis === 'y';
+          chart.data.datasets.forEach((ds, di) => {
+            const icon = ds._catName ? catIcon(ds._catName) : '';
+            if (!icon) return;
+            const meta = chart.getDatasetMeta(di);
+            if (meta.hidden) return;
+            meta.data.forEach(bar => {
+              if (bar.base == null) return;
+              if (isHorizontal) {
+                const w = Math.abs(bar.x - bar.base);
+                if (w < 20) return;
+                const fontSize = Math.min(Math.floor(w * 0.35), 14);
+                ctx.font = fontSize + 'px sans-serif';
+                ctx.fillText(icon, (bar.x + bar.base) / 2, bar.y);
+              } else {
+                const h = Math.abs(bar.base - bar.y);
+                if (h < 18) return;
+                const fontSize = Math.min(Math.floor(h * 0.55), 14);
+                ctx.font = fontSize + 'px sans-serif';
+                ctx.fillText(icon, bar.x, (bar.y + bar.base) / 2);
+              }
+            });
+          });
+        }
+
+        if (type === 'doughnut') {
+          const ds = chart.data.datasets[0];
+          const catNames = ds ? (ds._catNames || []) : [];
+          const meta = chart.getDatasetMeta(0);
+          ctx.font = '14px sans-serif';
+          meta.data.forEach((arc, i) => {
+            const icon = catNames[i] ? catIcon(catNames[i]) : '';
+            if (!icon) return;
+            const angle = arc.endAngle - arc.startAngle;
+            if (angle < 0.35) return;
+            const midAngle = (arc.startAngle + arc.endAngle) / 2;
+            const r = (arc.innerRadius + arc.outerRadius) / 2;
+            ctx.fillText(icon, arc.x + Math.cos(midAngle) * r, arc.y + Math.sin(midAngle) * r);
+          });
+        }
+        ctx.restore();
+      }
+    };
+  }
+
+  const totalsPlugin = {
+    id: 'barTotals',
+    afterDatasetsDraw(chart) {
+      if (!mChartShowTotals) return;
+      const { ctx } = chart;
+      const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
+      ctx.save();
+      ctx.fillStyle = chartTextColor();
+      ctx.font = '700 0.72rem sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      const isHorizontal = chart.options.indexAxis === 'y';
+      chart.data.labels.forEach((lbl, i) => {
+        const total = chart.data.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
+        if (total <= 0) return;
+        if (isHorizontal) {
+          let maxX = 0, sumY = 0, cnt = 0;
+          metas.forEach(meta => {
+            const el = meta.data[i];
+            if (!el) return;
+            maxX = Math.max(maxX, el.x);
+            sumY += el.y; cnt++;
+          });
+          if (cnt > 0) ctx.fillText(String(total), maxX + 14, sumY / cnt + 4);
+        } else {
+          let sumX = 0, cnt = 0, minY = Infinity;
+          metas.forEach(meta => {
+            const el = meta.data[i];
+            if (!el) return;
+            sumX += el.x; cnt++; minY = Math.min(minY, el.y);
+          });
+          if (cnt > 0) ctx.fillText(String(total), sumX / cnt, minY - 4);
+        }
+      });
+      ctx.restore();
+    }
+  };
+
+  const donutCenterPlugin = {
+    id: 'donutCenter',
+    afterDraw(chart) {
+      const { ctx, chartArea } = chart;
+      const ds = chart.data.datasets[0];
+      const total = ds ? ds.data.reduce((s, v) => s + (Number(v) || 0), 0) : 0;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      ctx.save();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = chartTextColor();
+      ctx.font = '700 1.4rem sans-serif';
+      ctx.fillText(String(total), cx, cy - 6);
+      ctx.font = '0.72rem sans-serif';
+      ctx.fillStyle = 'var(--text-muted)';
+      ctx.fillText('total pts', cx, cy + 14);
+      ctx.restore();
+    }
+  };
+
+  function buildTooltipGauge(tier, ratio) {
+    const wrap = document.createElement('span');
+    wrap.className = 'ctt-gauge';
+    const fill = document.createElement('span');
+    fill.className = 'ctt-gauge-fill';
+    const pct = Math.max(4, Math.min(100, (ratio || 0) / 3.2 * 100));
+    fill.style.width = pct + '%';
+    fill.style.background = 'var(--ctt-' + tier.replace('pv-', '') + ', var(--accent))';
+    wrap.appendChild(fill);
+    return wrap;
+  }
+
+  function renderChartOptionsBar() {
+    const bar = document.getElementById('mChartOptionsBar');
+    if (!bar) return;
+    bar.innerHTML = '';
+
+    if (mChartType === 'stacked' || mChartType === 'grouped' || mChartType === 'ranking') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'm-seg-btn' + (mChartShowTotals ? ' active' : '');
+      btn.style.cssText = 'padding:4px 10px; font-size:0.78rem; min-height:30px; border-radius:10px; border:1px solid var(--border);';
+      btn.textContent = '🔢 Totaux';
+      btn.addEventListener('click', () => {
+        mChartShowTotals = !mChartShowTotals;
+        renderChartOptionsBar();
+        refreshDashboardData();
+      });
+      bar.appendChild(btn);
+    }
+
+    if (mChartType === 'stacked' || mChartType === 'grouped') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'm-seg-btn' + (mChartLogScale ? ' active' : '');
+      btn.style.cssText = 'padding:4px 10px; font-size:0.78rem; min-height:30px; border-radius:10px; border:1px solid var(--border);';
+      btn.textContent = '📊 Échelle Log';
+      btn.addEventListener('click', () => {
+        mChartLogScale = !mChartLogScale;
+        renderChartOptionsBar();
+        refreshDashboardData();
+      });
+      bar.appendChild(btn);
+    }
+
+    if (mChartType === 'ranking') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'm-seg-btn' + (mChartDetailed ? ' active' : '');
+      btn.style.cssText = 'padding:4px 10px; font-size:0.78rem; min-height:30px; border-radius:10px; border:1px solid var(--border);';
+      btn.textContent = '📋 Détaillé par top';
+      btn.addEventListener('click', () => {
+        mChartDetailed = !mChartDetailed;
+        renderChartOptionsBar();
+        refreshDashboardData();
+      });
+      bar.appendChild(btn);
+    }
+
+    bar.style.display = bar.children.length ? 'flex' : 'none';
+  }
+
+  function renderDonutPlayerChips() {
+    const container = document.getElementById('mDonutPlayerChips');
+    if (!container) return;
+    if (mChartType !== 'donut') {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = 'flex';
+    container.innerHTML = cachedPlayers.map(p =>
+      '<div class="m-chip' + (mDonutPlayer === p.name ? ' active' : '') + '" data-player="' + escapeHtml(p.name) + '">' +
+      avatarImgHtml(p.name, p.meta, 'm-avatar sm') + escapeHtml(p.name) + '</div>'
+    ).join('');
+    container.querySelectorAll('.m-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        mDonutPlayer = chip.dataset.player;
+        renderDonutPlayerChips();
+        refreshDashboardData();
+      });
+    });
+  }
+
   function renderBarChart(chartData, type, stacked) {
     destroyChart();
+    renderChartOptionsBar();
+    renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+
+    if (mChartType === 'ranking') {
+      const rows = chartData.labels.map((p, i) => ({
+        player: p,
+        index: i,
+        total: chartData.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+      })).sort((a, b) => b.total - a.total);
+
+      let datasets;
+      if (mChartDetailed && chartData.datasets.length > 1) {
+        datasets = chartData.datasets.map(ds => ({
+          label: catDisplay(ds.label),
+          _catName: ds.label,
+          data: rows.map(r => ds.data[r.index] || 0),
+          backgroundColor: categoryColor(ds.label),
+          borderRadius: 4
+        }));
+      } else {
+        datasets = [{
+          label: 'Total points',
+          data: rows.map(r => r.total),
+          backgroundColor: rows.map(r => playerColor(r.player)),
+          borderRadius: 6
+        }];
+      }
+
+      mDashboardChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: rows.map(r => r.player), datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: mChartDetailed, position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } }, onClick: isolatableLegendOnClick }
+          },
+          scales: {
+            x: { stacked: mChartDetailed, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } },
+            y: { stacked: mChartDetailed, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } }
+          }
+        },
+        plugins: [totalsPlugin, buildEmojiOverlayPlugin(), buildMobileTooltipPlugin({ titleIsPlayer: true, rankedTotals: rows })]
+      });
+
+      registerChartTapDrilldown(mDashboardChart, el => {
+        const row = rows[el.index];
+        const ctxCategories = mChartDetailed ? [datasets[el.datasetIndex]._catName] : null;
+        const { start, end } = periodBounds(mFilterPeriod);
+        return { players: [row.player], categories: ctxCategories, startDate: start, endDate: end, title: row.player + (ctxCategories ? ' · ' + catDisplay(ctxCategories[0]) : '') };
+      });
+      return;
+    }
+
+    // Graphique empilé / groupé classique
+    const decoratedDatasets = chartData.datasets.map(ds => ({
+      ...ds,
+      label: catDisplay(ds.label),
+      _catName: ds.label,
+      borderRadius: 4,
+      borderSkipped: false
+    }));
+
     const rankedTotals = chartData.labels
       .map((p, i) => ({ player: p, total: chartData.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
       .sort((a, b) => b.total - a.total);
 
-    (chartData.datasets || []).forEach(ds => {
-      ds.borderRadius = 6;
-      ds.borderSkipped = false;
-    });
+    const yScale = mChartLogScale
+      ? { type: 'logarithmic', stacked: !!stacked, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } }
+      : { stacked: !!stacked, beginAtZero: true, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } };
 
     mDashboardChart = new Chart(ctx, {
       type: 'bar',
-      data: chartData,
+      data: { labels: chartData.labels, datasets: decoratedDatasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: chartTextColor(), font: { size: 11 }, boxWidth: 12 },
-            onClick: stacked === undefined ? undefined : isolatableLegendOnClick
-          }
+          legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 }, boxWidth: 12 }, onClick: isolatableLegendOnClick }
         },
         scales: {
           x: { stacked: !!stacked, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } },
-          y: { stacked: !!stacked, ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { color: chartGridColor() } }
+          y: yScale
         }
       },
-      plugins: [buildMobileTooltipPlugin({ titleIsPlayer: true, rankedTotals })]
+      plugins: [totalsPlugin, buildEmojiOverlayPlugin(), buildMobileTooltipPlugin({ titleIsPlayer: true, rankedTotals })]
     });
+
     registerChartTapDrilldown(mDashboardChart, el => {
       const player = chartData.labels[el.index];
-      const category = stacked === undefined ? null : chartData.datasets[el.datasetIndex].label;
+      const category = decoratedDatasets[el.datasetIndex]._catName;
       const { start, end } = periodBounds(mFilterPeriod);
-      return { players: [player], categories: category ? [category] : null,
-        startDate: start, endDate: end,
-        title: player + (category ? ' · ' + category : '') };
+      return { players: [player], categories: category ? [category] : null, startDate: start, endDate: end, title: player + (category ? ' · ' + catDisplay(category) : '') };
     });
   }
 
   function renderTrendChart(trendData) {
     destroyChart();
+    renderChartOptionsBar();
+    renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1838,6 +2123,8 @@
 
   function renderRadarChart(chartData) {
     destroyChart();
+    renderChartOptionsBar();
+    renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1849,7 +2136,8 @@
       pointBackgroundColor: playerColor(player),
       borderWidth: 2, pointRadius: 3
     }));
-    const radarLabels = chartData.datasets.map(d => d.label);
+    const radarLabels = chartData.datasets.map(d => catDisplay(d.label));
+    const origCatNames = chartData.datasets.map(d => d.label);
     mDashboardChart = new Chart(ctx, {
       type: 'radar',
       data: { labels: radarLabels, datasets: radarDatasets },
@@ -1865,35 +2153,52 @@
     });
     registerChartTapDrilldown(mDashboardChart, el => {
       const player = radarDatasets[el.datasetIndex].label;
-      const category = radarLabels[el.index];
+      const category = origCatNames[el.index];
       const { start, end } = periodBounds(mFilterPeriod);
-      return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + category };
+      return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + catDisplay(category) };
     });
   }
 
   function renderDonutChart(chartData) {
     destroyChart();
+    renderChartOptionsBar();
+    renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const totals = chartData.labels.map((_, i) =>
-      chartData.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0));
+
+    if (!mDonutPlayer && cachedPlayers.length) mDonutPlayer = cachedPlayers[0].name;
+
+    const player = mDonutPlayer;
+    const pIndex = chartData.labels.indexOf(player);
+    let segLabels = chartData.datasets.map(d => d.label);
+    let segValues = chartData.datasets.map(ds => pIndex >= 0 ? (ds.data[pIndex] || 0) : 0);
+    const segColors = segLabels.map(l => categoryColor(l));
+
     mDashboardChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: chartData.labels,
-        datasets: [{ data: totals, backgroundColor: chartData.labels.map(playerColor) }]
+        labels: segLabels.map(catDisplay),
+        datasets: [{
+          data: segValues,
+          backgroundColor: segColors,
+          _catNames: segLabels
+        }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { color: chartTextColor() }, onClick: isolatableLegendOnClick } }
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } }, onClick: isolatableLegendOnClick }
+        }
       },
-      plugins: [buildMobileTooltipPlugin({ sliceLabelIsPlayer: true })]
+      plugins: [donutCenterPlugin, buildEmojiOverlayPlugin(), buildMobileTooltipPlugin({ rowsArePlayers: false })]
     });
+
     registerChartTapDrilldown(mDashboardChart, el => {
-      const player = chartData.labels[el.index];
+      const category = segLabels[el.index];
       const { start, end } = periodBounds(mFilterPeriod);
-      return { players: [player], categories: null, startDate: start, endDate: end, title: player };
+      return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + catDisplay(category) };
     });
   }
 
