@@ -405,8 +405,8 @@
 
     /* ── TCHAT FLOTTANT ── */
     .m-chat-fab {
-      position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 9500;
-      width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--border);
+      position: fixed; right: 16px; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 9500;
+      width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border);
       background: var(--accent); color: var(--on-accent); font-size: 1.35rem; min-height: unset;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
       touch-action: none; user-select: none; padding: 0;
@@ -417,8 +417,8 @@
       display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
     }
     .m-chat-panel {
-      position: fixed; right: 14px; bottom: 80px; z-index: 9499;
-      width: min(480px, calc(100vw - 28px)); max-height: min(72vh, 600px);
+      position: fixed; right: 14px; bottom: calc(130px + env(safe-area-inset-bottom)); z-index: 9499;
+      width: min(480px, calc(100vw - 28px)); max-height: min(65vh, 550px);
       display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border);
       border-radius: 18px; box-shadow: 0 10px 32px rgba(0,0,0,0.45); overflow: hidden;
       backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
@@ -976,7 +976,8 @@
     const saved = localStorage.getItem('topsdestops_theme');
     if (saved === 'light') document.body.classList.add('light');
     const btn = document.getElementById('mThemeToggle');
-    const icon = btn.querySelector('.m-nav-icon');
+    if (!btn) return;
+    const icon = btn.querySelector('.m-nav-icon') || btn;
     icon.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
     btn.addEventListener('click', () => {
       document.body.classList.toggle('light');
@@ -3200,10 +3201,10 @@
     const DRAG_THRESHOLD = 10;
 
     function setPos(left, top) {
-      const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
-      const maxTop  = window.innerHeight - fab.offsetHeight - 8;
-      left = Math.max(8, Math.min(left, maxLeft));
-      top  = Math.max(8, Math.min(top,  maxTop));
+      const maxLeft = window.innerWidth  - fab.offsetWidth  - 10;
+      const maxTop  = window.innerHeight - fab.offsetHeight - 68;
+      left = Math.max(10, Math.min(left, maxLeft));
+      top  = Math.max(56, Math.min(top,  maxTop));
       fab.style.left = left + 'px';
       fab.style.top  = top  + 'px';
       fab.style.right = 'auto';
@@ -3326,7 +3327,7 @@
     window.addEventListener('touchmove', handleTouchOrMove, { passive: true });
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  function initAppMobile() {
     initTheme();
     initSpotlightCardsMobile();
     setupBottomNav();
@@ -3339,7 +3340,13 @@
         initChatWidgetMobile();
       });
     }, 'Chargement du menu');
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppMobile);
+  } else {
+    initAppMobile();
+  }
 </script>
 </body>
 </html>

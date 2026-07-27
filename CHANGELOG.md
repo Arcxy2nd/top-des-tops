@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Corrigé
+**Humanisé** : Correction du déclenchement du script sur l'application web mobile (chargement immédiat si le DOM est déjà prêt, correction du bouton de thème sans erreur JS), et repositionnement du bouton de tchat flottant 💬 au-dessus de la barre de navigation inférieure sans superposition.
+**Technique** : `Mobile.html` — remplacement de `window.addEventListener('DOMContentLoaded')` par une exécution conditionnelle `document.readyState`, sécurisation d'icon fallback dans `initTheme()`, et calage de la position CSS `.m-chat-fab` (`bottom: calc(72px + env(...))`) et bornes `setPos()` pour libérer l'accès aux boutons de la barre inférieure.
+
 ### Modifié
 **Humanisé** : Refonte intégrale de l'architecture mobile avec suppression de la barre latérale au profit d'une Navigation Inférieure (Bottom Nav) et d'un En-tête Supérieur (Top Header) fixes. Zone de contenu portée à 100% de la largeur de l'écran, graphiques réactifs pleine largeur, formulaires optimisés au pouce et parité fonctionnelle absolue avec la version PC.
 **Technique** : `Mobile.html` — remplacement de `.m-side-nav` par `.m-header` (`52px`) et `.m-bottom-nav` (`58px + safe-area`), conteneur `.m-container` réaligné sur la largeur écran (`max-width: 640px`), ajustement de `setupBottomNav()`, `goToTab()`, `renderIdentityBtn()` et repositionnement du widget tchat flottant (`#mChatFab`).
