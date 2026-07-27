@@ -61,3 +61,13 @@ test('apiSaveAppSettings persists title and logo, then apiGetAppSettings reflect
   assert.strictEqual(res.appTitle, 'Les Champions');
   assert.strictEqual(res.logoUrl, 'https://example.com/logo.png');
 });
+
+test('apiSaveTooltipStyle persists tooltip preferences to Settings sheet', () => {
+  const gas = loadGas();
+  withSettingsSheets(gas, null);
+  const prefs = { colors: { cold: '#123456', normal: '#234567', warm: '#345678', hot: '#456789', blaze: '#567890' }, gauge: true, effects: false };
+  const saveRes = gas.apiSaveTooltipStyle(JSON.stringify(prefs), 'Alice');
+  assert.strictEqual(saveRes.success, true);
+  const res = gas.apiGetAppSettings();
+  assert.deepEqual(res.tooltipStyle, prefs);
+});

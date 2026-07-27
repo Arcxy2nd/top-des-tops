@@ -1255,10 +1255,15 @@ function apiGetSettings() {
 function apiGetAppSettings() {
   try {
     const all = SettingsSheetService.getAll();
+    let tooltipStyle = null;
+    if (all.tooltip_style) {
+      try { tooltipStyle = JSON.parse(all.tooltip_style); } catch (_) {}
+    }
     return {
-      success:  true,
-      appTitle: all.app_title || 'Tops des Tops',
-      logoUrl:  all.logo_url  || ''
+      success:      true,
+      appTitle:     all.app_title || 'Tops des Tops',
+      logoUrl:      all.logo_url  || '',
+      tooltipStyle: tooltipStyle
     };
   } catch(e) { return fail(e); }
 }
@@ -1270,6 +1275,18 @@ function apiSaveAppSettings(title, logoUrl, author) {
       SettingsSheetService.setValue('app_title', (title || '').trim());
       SettingsSheetService.setValue('logo_url', (logoUrl || '').trim());
       AuditService.log(author, 'Identité app modifiée', 'Settings', '', (title || '').trim(), '');
+      ConfigService.clearCache();
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiSaveTooltipStyle(prefsJson, author) {
+  try {
+    requireAuthor(author);
+    return withLock(() => {
+      SettingsSheetService.setValue('tooltip_style', (prefsJson || '').trim());
+      AuditService.log(author, 'Style infobulle modifié', 'Settings', '', 'Mise à jour infobulles', '');
       ConfigService.clearCache();
       return { success: true };
     });

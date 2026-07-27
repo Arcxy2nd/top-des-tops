@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Ajouté
+**Humanisé** : Les préférences du style de l'infobulle des graphiques (couleurs des paliers, jauge, lueur) sont maintenant sauvegardées sur le serveur dans la feuille Settings et conservées entre les appareils.
+**Technique** : `Code.gs` — nouvel endpoint `apiSaveTooltipStyle()` et mise à jour de `apiGetAppSettings()` pour lire/écrire la clé `tooltip_style` dans la feuille `Settings`. `Index.html` — `saveTooltipStylePrefs()` synchronise les changements avec le serveur de façon transparente.
+
 ### Corrigé
 **Humanisé** : Refonte visuelle complète du panneau Filtres croisés — suppression du fond sombre lourd et des blocs rectangulaires au profit de pilules fluides et translucides (glassmorphism).
 **Technique** : `Index.html` — `.filter-panel` passe en glassmorphism translucide (`rgba(15,20,29,0.65)`, `backdrop-filter: blur(20px)`), `.fchip` et `.date-shortcut` deviennent des pilules arrondies avec bordures subtiles (`border-radius: 9999px`), survol dynamique et halo lumineux sur l'état actif.

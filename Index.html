@@ -4219,6 +4219,10 @@
       try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(_appSettings)); } catch (e) { /* best-effort */ }
       applyAppBranding();
       populateAppSettingsForm();
+      if (res.tooltipStyle) {
+        saveTooltipStylePrefs(res.tooltipStyle, true);
+        renderTooltipStyleSettings();
+      }
       if (onDone) onDone();
     }, 'Chargement identité app', () => { if (onDone) onDone(); });
   }
@@ -7487,9 +7491,16 @@
     } catch { return JSON.parse(JSON.stringify(DEFAULT_TOOLTIP_PREFS)); }
   }
 
-  function saveTooltipStylePrefs(prefs) {
+  let _tooltipSaveTimer = null;
+  function saveTooltipStylePrefs(prefs, skipServer) {
     localStorage.setItem(TOOLTIP_PREFS_KEY, JSON.stringify(prefs));
     applyTooltipStylePrefs(prefs);
+    if (!skipServer) {
+      if (_tooltipSaveTimer) clearTimeout(_tooltipSaveTimer);
+      _tooltipSaveTimer = setTimeout(() => {
+        callServer('apiSaveTooltipStyle', [JSON.stringify(prefs), _whoAmI || 'Système'], () => {}, null, () => {});
+      }, 400);
+    }
   }
 
   function applyTooltipStylePrefs(prefs) {
