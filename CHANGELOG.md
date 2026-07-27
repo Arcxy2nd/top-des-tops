@@ -11,6 +11,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Technique** : `Code.gs` — intégration de `CacheService` avec versioning dynamique (`_settingsVersion`, `_chatVersion`, `_baremeVersion`, `_phrasesVersion`, `_notesVersion`, `_logsVersion`) sur `SettingsService`, `ChatService`, `BaremeService`, `PhrasesService`, `NotesService` et les endpoints de sous-statistiques (`apiGetPlayerRecords`, `apiGetTrends`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs`). `Index.html` & `Mobile.html` — refonte de `scheduleChatPoll()` / `mScheduleChatPoll()` avec écouteur `visibilitychange` (arrêt complet quand l'onglet est inactif, cadence portée à 20s fermé / 4s ouvert).
 
 ### Modifié
+**Humanisé** : Personnalisation du texte du bandeau d'invitation vers la version mobile sur desktop.
+**Technique** : `Index.html` — modification du libellé du conteneur `#mobileCtaBanner` (`.mobile-cta-text`).
+
 **Humanisé** : Ajout d'une règle d'hygiène dans la documentation interdisant le sondage en boucle (polling) pour préserver le quota de requêtes.
 **Technique** : `context.md` — section §8 enrichie avec la règle d'interdiction de polling répété lors des suivis de déploiement GitHub Actions.
 
