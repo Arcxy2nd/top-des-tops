@@ -2287,16 +2287,25 @@
       '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('');
     const catOptions = cachedCategories.map(c =>
       '<option value="' + escapeHtml(c.name) + '">' + (c.icon || '') + ' ' + escapeHtml(c.name) + '</option>').join('');
-    return '<div class="card" id="row_' + id + '" style="margin-bottom:22px;">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted);">Joueur</label>' +
-      '<select class="m-row-player">' + playerOptions + '</select>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Top</label>' +
-      '<select class="m-row-cat">' + catOptions + '</select>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
-      '<input type="number" class="m-row-pts" value="1" min="1">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Description (optionnel)</label>' +
-      '<input type="text" class="m-row-desc" placeholder="Description">' +
-      '<button class="danger small m-row-remove" style="margin-top:22px; width:100%;">🗑️ Retirer cette ligne</button>' +
+    return '<div class="card" id="row_' + id + '" style="margin-bottom:16px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+        '<span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Ligne #' + id + '</span>' +
+        '<button class="danger small m-row-remove" style="padding:2px 8px; font-size:0.75rem; min-height:26px;">🗑️ Supprimer</button>' +
+      '</div>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Joueur</label>' +
+      '<select class="m-row-player" style="margin-bottom:12px;">' + playerOptions + '</select>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Top / Catégorie</label>' +
+      '<select class="m-row-cat" style="margin-bottom:12px;">' + catOptions + '</select>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Points</label>' +
+      '<div style="display:flex; gap:6px; align-items:center; margin-bottom:12px;">' +
+        '<button type="button" class="small m-step-btn" data-step="-5" style="min-height:36px; padding:0 10px;">-5</button>' +
+        '<button type="button" class="small m-step-btn" data-step="-1" style="min-height:36px; padding:0 10px;">-1</button>' +
+        '<input type="number" class="m-row-pts" value="1" min="1" style="flex:1; text-align:center; font-weight:700; font-size:1rem; height:36px; min-height:36px;">' +
+        '<button type="button" class="small m-step-btn" data-step="+1" style="min-height:36px; padding:0 10px;">+1</button>' +
+        '<button type="button" class="small m-step-btn" data-step="+5" style="min-height:36px; padding:0 10px;">+5</button>' +
+      '</div>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Description (optionnel)</label>' +
+      '<input type="text" class="m-row-desc" placeholder="Raison, contexte, détails…">' +
       '</div>';
   }
 
@@ -2306,20 +2315,44 @@
     container.insertAdjacentHTML('beforeend', injectRowHtml(mInjectRowCounter));
     const row = document.getElementById('row_' + mInjectRowCounter);
     row.querySelector('.m-row-remove').addEventListener('click', () => { row.remove(); });
+    const ptsInput = row.querySelector('.m-row-pts');
+    row.querySelectorAll('.m-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const step = parseInt(btn.dataset.step, 10);
+        const cur = parseInt(ptsInput.value, 10) || 1;
+        ptsInput.value = Math.max(1, cur + step);
+      });
+    });
   }
 
   function renderInjectShell() {
     const tab = document.getElementById('tab-inject');
+    const todayStr = toDateStr(new Date());
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = toDateStr(yesterday);
+
     tab.innerHTML =
       '<div class="card">' +
         '<h2>✍️ Saisir un Lot</h2>' +
-        '<label style="font-size:1.75rem; color:var(--text-muted);">Date</label>' +
-        '<input type="date" id="mInjectDate" value="' + toDateStr(new Date()) + '">' +
+        '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:6px;">Date de l\'événement</label>' +
+        '<div style="display:flex; gap:6px; margin-bottom:10px;">' +
+          '<button type="button" class="small m-date-shortcut active" data-date="' + todayStr + '" style="flex:1; min-height:34px; padding:0 8px;">Aujourd\'hui</button>' +
+          '<button type="button" class="small m-date-shortcut" data-date="' + yesterdayStr + '" style="flex:1; min-height:34px; padding:0 8px;">Hier</button>' +
+        '</div>' +
+        '<input type="date" id="mInjectDate" value="' + todayStr + '">' +
       '</div>' +
       '<div id="mInjectRows"></div>' +
-      '<button id="mInjectAddRow" class="secondary" style="width:100%; margin-bottom:22px;">＋ Ajouter une ligne</button>' +
+      '<button id="mInjectAddRow" class="secondary" style="width:100%; margin-bottom:14px;">＋ Ajouter une ligne</button>' +
       '<button id="mInjectSubmit" class="primary" style="width:100%;">✅ Enregistrer le lot</button>';
 
+    const dateInput = document.getElementById('mInjectDate');
+    document.querySelectorAll('.m-date-shortcut').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.m-date-shortcut').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        dateInput.value = btn.dataset.date;
+      });
+    });
     document.getElementById('mInjectAddRow').addEventListener('click', addInjectRow);
     document.getElementById('mInjectSubmit').addEventListener('click', submitInjectPlan);
     addInjectRow();
@@ -2366,15 +2399,17 @@
   function renderNotesShell() {
     const tab = document.getElementById('tab-notes');
     const playerButtons = cachedPlayers.map(p =>
-      '<button class="m-note-player-btn" data-name="' + escapeHtml(p.name) + '" style="flex-direction:column; height:auto; padding:22px 14px;">' +
-      avatarImgHtml(p.name, p.meta, 'm-avatar') + '<span style="font-size:1.6rem; margin-top:22px;">' + escapeHtml(p.name) + '</span></button>'
+      '<button class="m-note-player-btn" data-name="' + escapeHtml(p.name) + '" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--btn-alt); cursor:pointer;">' +
+      avatarImgHtml(p.name, p.meta, 'm-avatar sm') + '<span style="font-size:0.82rem; font-weight:600;">' + escapeHtml(p.name) + '</span></button>'
     ).join('');
     tab.innerHTML =
       '<div class="card">' +
         '<h2>📝 Note rapide</h2>' +
-        '<div class="m-row" style="flex-wrap:wrap; gap:18px;" id="mNotePlayerRow">' + playerButtons + '</div>' +
-        '<textarea id="mNoteText" rows="3" placeholder="Écris ta note…" style="margin-top:22px;"></textarea>' +
-        '<button id="mNoteSubmit" class="primary" style="width:100%; margin-top:22px;">📩 Envoyer</button>' +
+        '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:8px;">Destinataire</label>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;" id="mNotePlayerRow">' + playerButtons + '</div>' +
+        '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:6px;">Contenu de la note</label>' +
+        '<textarea id="mNoteText" rows="3" placeholder="Écris ta note…" style="margin-bottom:12px;"></textarea>' +
+        '<button id="mNoteSubmit" class="primary" style="width:100%;">📩 Envoyer la note</button>' +
       '</div>' +
       '<div class="card"><h2>Historique des notes</h2><div id="mNotesList"></div></div>';
 
@@ -2382,8 +2417,12 @@
     tab.querySelectorAll('.m-note-player-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         selectedPlayer = btn.dataset.name;
-        tab.querySelectorAll('.m-note-player-btn').forEach(b => b.style.outline = '');
-        btn.style.outline = '2px solid var(--accent)';
+        tab.querySelectorAll('.m-note-player-btn').forEach(b => {
+          b.style.borderColor = 'var(--border)';
+          b.style.background = 'var(--btn-alt)';
+        });
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'color-mix(in srgb, var(--accent) 18%, var(--btn-alt))';
       });
     });
     autoGrowTextarea(document.getElementById('mNoteText'));

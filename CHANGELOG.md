@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Modifié
+**Humanisé** : Refonte et nettoyage ergonomique des formulaires de Saisie et de Notes sur mobile : suppression des tailles de texte disproportionnées, ajout de boutons pas-à-pas de points (-5, -1, +1, +5) et de raccourcis de date (Aujourd'hui, Hier).
+**Technique** : `Mobile.html` — refonte de `injectRowHtml()`, `renderInjectShell()` et `renderNotesShell()`, harmonisation des labels à `0.78rem` uppercase et boutons tactiles `m-step-btn` / `m-date-shortcut`.
+
 **Humanisé** : Parité absolue et refonte du graphique mobile avec la version PC : affichage des emojis sur les barres et catégories, totaux au sommet des barres, score total au centre du graphique Donut avec sélecteur de joueur, classement détaillé par catégorie, barre d'options contextuelle (Totaux, Log, Détaillé) et jauges de progression visuelles dans les infobulles tactiles.
 **Technique** : `Mobile.html` — intégration de `catDisplay()`, `buildEmojiOverlayPlugin()`, `totalsPlugin`, `donutCenterPlugin`, `buildTooltipGauge()`, `renderChartOptionsBar()`, `renderDonutPlayerChips()` et support du mode `ranking` détaillé avec tri et drill-down.
 
