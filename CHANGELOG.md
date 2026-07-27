@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Corrigé
+**Humanisé** : La barre supérieure de navigation et le bandeau de statistiques rapides ne défilent plus à la verticale lors du survol à la molette.
+**Technique** : `Index.html` — `.navbar` passe à `overflow: visible`, `.quick-stats-bar` et `.nav-btn-group` ont désormais `overflow-y: hidden` explicite pour bloquer les défilements verticaux parasites.
+
 ### Ajouté
 **Humanisé** : Refonte visuelle et interactive complète de l'interface — intégration du défilement doux (Lenis), d'un moteur d'animations réactives (GSAP 3), de cartes interactives à lumière dynamique (Spotlight Cards) et d'une esthétique glassmorphism moderne.
 **Technique** : `Index.html` et `Mobile.html` — ajouts des CDN GSAP 3 et Lenis Scroll ; refonte du système de tokens CSS (`:root`, `body.light`) avec arrières-plans à mesh gradient, glassmorphism (`backdrop-filter: blur()`), bordures lumineuses et effets de survol magnétiques ; intégration du tracker de curseur `--mouse-x`/`--mouse-y` (`initSpotlightCards()`) ; transition d'onglets animée par GSAP keyframes (`goToTab()`).
