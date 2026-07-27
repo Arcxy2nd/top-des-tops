@@ -1145,15 +1145,64 @@
     }, 'Chargement identité app');
   }
 
-  // ── ENTITÉS (joueurs / catégories) ──
+  // ── ENTITÉS (joueurs / catégories) & CACHE BOOTSTRAP ──
+  const SETTINGS_CACHE_KEY = 'tdt_settings';
+  const MOBILE_BOOTSTRAP_CACHE_KEY = 'tdt_mobile_bootstrap_cache';
   let cachedPlayers    = [];
   let cachedCategories = [];
+  let _mCachedActivePreset = null;
+  let _mCachedPhrases = null;
+
+  function updateInjectRowOptions() {
+    const pOpts = cachedPlayers.length
+      ? cachedPlayers.map(p => '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('')
+      : '<option value="">Chargement...</option>';
+    const cOpts = cachedCategories.length
+      ? cachedCategories.map(c => '<option value="' + escapeHtml(c.name) + '">' + (c.icon || '') + ' ' + escapeHtml(c.name) + '</option>').join('')
+      : '<option value="">Chargement...</option>';
+    document.querySelectorAll('.m-row-player').forEach(sel => {
+      const val = sel.value;
+      sel.innerHTML = pOpts;
+      if (val && Array.from(sel.options).some(o => o.value === val)) sel.value = val;
+    });
+    document.querySelectorAll('.m-row-cat').forEach(sel => {
+      const val = sel.value;
+      sel.innerHTML = cOpts;
+      if (val && Array.from(sel.options).some(o => o.value === val)) sel.value = val;
+    });
+  }
+
+  function updateNotePlayerButtons() {
+    const row = document.getElementById('mNotePlayerRow');
+    if (!row) return;
+    const playerButtons = cachedPlayers.map(p =>
+      '<button class="m-note-player-btn" data-name="' + escapeHtml(p.name) + '" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--btn-alt); cursor:pointer;">' +
+      avatarImgHtml(p.name, p.meta, 'm-avatar sm') + '<span style="font-size:0.82rem; font-weight:600;">' + escapeHtml(p.name) + '</span></button>'
+    ).join('');
+    row.innerHTML = playerButtons || '<p class="m-empty">Aucun joueur.</p>';
+    if (typeof bindNotePlayerButtons === 'function') bindNotePlayerButtons();
+  }
 
   function loadEntities(onDone) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
+      if (cached && cached.players && cached.categories) {
+        cachedPlayers    = cached.players;
+        cachedCategories = cached.categories;
+        renderIdentityBtn();
+      }
+    } catch (e) {}
+
     callServer('apiGetSettings', [], res => {
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+      } catch (e) {}
       renderIdentityBtn();
+      updateInjectRowOptions();
+      updateNotePlayerButtons();
+      renderFilterChips();
       if (onDone) onDone();
     }, 'Chargement joueurs/catégories');
   }
@@ -1202,7 +1251,9 @@
       targetTab.classList.add('active');
     }
 
-    if (tabId === 'tab-dashboard') loadDashboard();
+    if (tabId === 'tab-dashboard') {
+      if (!document.getElementById('mMainChart')) loadDashboard();
+    }
     if (tabId === 'tab-inject')    initInjectTab();
     if (tabId === 'tab-settings')  initSettingsTab();
     if (tabId === 'tab-notes'   && !_mNotesLoadedOnce)   loadNotesTab();
@@ -1418,6 +1469,7 @@
   function loadRecordsStat() {
     callServer('apiGetPlayerRecords', [], res => {
       const body = document.getElementById('mRecordsBody');
+      if (!body) return;
       let html = '';
       if (res.globalBest) html += mStatHero(res.globalBest.player, res.globalBest.dateStr, res.globalBest.points);
       if ((res.records || []).length) {
@@ -1429,37 +1481,40 @@
       } else if (!res.globalBest) {
         html = '<p class="m-empty">Aucune donnée.</p>';
       }
-      body.outerHTML = '<div id="mRecordsBody">' + html + '</div>';
+      body.innerHTML = html;
     }, 'Chargement records');
   }
 
   function loadTrendsStat() {
     callServer('apiGetTrends', [], res => {
       const body = document.getElementById('mTrendsBody');
+      if (!body) return;
       const rows = (res.categoryTrends || []).slice().sort((a, b) => b.changePct - a.changePct);
       const html = rows.map(r => {
         const color = r.changePct >= 0 ? 'var(--success)' : 'var(--error)';
         return statRow('', escapeHtml(r.category),
           '<span style="color:' + color + ';">' + (r.changePct >= 0 ? '+' : '') + r.changePct + '%</span> · ' + r.before + ' → ' + r.after + ' entrées');
       }).join('');
-      body.outerHTML = '<div id="mTrendsBody">' + (html || '<p class="m-empty">Pas assez de données.</p>') + '</div>';
+      body.innerHTML = html || '<p class="m-empty">Pas assez de données.</p>';
     }, 'Chargement tendances');
   }
 
   function loadWeekdayStat() {
     callServer('apiGetActiveWeekday', [], res => {
       const body = document.getElementById('mWeekdayBody');
-      if (!res.topWeekday) { body.outerHTML = '<div id="mWeekdayBody"><p class="m-empty">Pas assez de données.</p></div>'; return; }
+      if (!body) return;
+      if (!res.topWeekday) { body.innerHTML = '<p class="m-empty">Pas assez de données.</p>'; return; }
       const html = '<p style="font-weight:700; margin:0 0 8px;">' + escapeHtml(res.topWeekday) + '</p>' +
         (res.byWeekday || []).map(w =>
           '<div class="m-hist-meta">' + escapeHtml(w.weekday) + ' — ' + w.count + ' entrée(s)</div>').join('');
-      body.outerHTML = '<div id="mWeekdayBody">' + html + '</div>';
+      body.innerHTML = html;
     }, 'Chargement jour actif');
   }
 
   function loadPairsStat() {
     callServer('apiGetTopPlayerCategoryPairs', [], res => {
       const body = document.getElementById('mPairsBody');
+      if (!body) return;
       const pairs = res.pairs || [];
       const html = pairs.length
         ? '<div class="sr-list">' + pairs.map((pair, i) => {
@@ -1472,13 +1527,14 @@
             });
           }).join('') + '</div>'
         : '<p class="m-empty">Aucune donnée.</p>';
-      body.outerHTML = '<div id="mPairsBody">' + html + '</div>';
+      body.innerHTML = html;
     }, 'Chargement duos fréquents');
   }
 
   function loadMentionStats() {
     callServer('apiGetMentionStats', [], res => {
       const body = document.getElementById('mMentionsBody');
+      if (!body) return;
       let html = '';
       if ((res.mostMentioned || []).length) {
         html += '<div class="sr-section">📣 Les plus mentionnés</div><div class="sr-list">' +
@@ -1499,7 +1555,7 @@
             accent: playerColor(res.topDuo.playerA), value: res.topDuo.count, valueLabel: 'croisées'
           }) + '</div>';
       }
-      body.outerHTML = '<div id="mMentionsBody">' + (html || '<p class="m-empty">Aucune mention trouvée.</p>') + '</div>';
+      body.innerHTML = html || '<p class="m-empty">Aucune mention trouvée.</p>';
     }, 'Chargement mentions');
   }
 
@@ -2255,21 +2311,31 @@
     const pooled = assignCommentPools(ranked);
     const withComment = pooled.filter(e => e.pool !== 'mid').slice(0, 3);
 
-    callServer('apiGetActivePhrasePreset', [], presetRes => {
-      callServer('apiGetPhrases', [], phraseRes => {
-        const preset = presetRes.preset;
-        const phrases = phraseRes.phrases;
-        const lines = withComment.map(entry => {
-          const pool = phrases.filter(p => p.preset === preset && p.pool === entry.pool);
-          const source = pool.length ? pool.map(p => p.text) : FACTORY_PHRASES[entry.pool];
-          const text = source[Math.floor(Math.random() * source.length)];
-          return '<div class="m-row" style="margin-bottom:18px;">' +
-            avatarImgHtml(entry.player, (cachedPlayers.find(p => p.name === entry.player) || {}).meta, 'm-avatar sm') +
-            '<span>' + escapeHtml(substituteCommentVars(text, entry, ranked)) + '</span></div>';
-        });
-        body.innerHTML = lines.join('') || '<p class="m-empty">Aucun commentaire disponible.</p>';
-      }, 'Chargement phrases');
-    }, 'Chargement preset actif');
+    const _doRender = (preset, phrases) => {
+      const b = document.getElementById('mCommentsBody');
+      if (!b) return;
+      const lines = withComment.map(entry => {
+        const pool = phrases.filter(p => p.preset === preset && p.pool === entry.pool);
+        const source = pool.length ? pool.map(p => p.text) : FACTORY_PHRASES[entry.pool];
+        const text = source[Math.floor(Math.random() * source.length)];
+        return '<div class="m-row" style="margin-bottom:18px;">' +
+          avatarImgHtml(entry.player, (cachedPlayers.find(p => p.name === entry.player) || {}).meta, 'm-avatar sm') +
+          '<span>' + escapeHtml(substituteCommentVars(text, entry, ranked)) + '</span></div>';
+      });
+      b.innerHTML = lines.join('') || '<p class="m-empty">Aucun commentaire disponible.</p>';
+    };
+
+    if (_mCachedActivePreset && _mCachedPhrases) {
+      _doRender(_mCachedActivePreset, _mCachedPhrases);
+    } else {
+      callServer('apiGetActivePhrasePreset', [], presetRes => {
+        _mCachedActivePreset = presetRes.preset;
+        callServer('apiGetPhrases', [], phraseRes => {
+          _mCachedPhrases = phraseRes.phrases;
+          _doRender(_mCachedActivePreset, _mCachedPhrases);
+        }, 'Chargement phrases');
+      }, 'Chargement preset actif');
+    }
   }
 
   function loadDashboard() {
@@ -2283,10 +2349,12 @@
   let mInjectRowCounter = 0;
 
   function injectRowHtml(id) {
-    const playerOptions = cachedPlayers.map(p =>
-      '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('');
-    const catOptions = cachedCategories.map(c =>
-      '<option value="' + escapeHtml(c.name) + '">' + (c.icon || '') + ' ' + escapeHtml(c.name) + '</option>').join('');
+    const playerOptions = cachedPlayers.length
+      ? cachedPlayers.map(p => '<option value="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</option>').join('')
+      : '<option value="">Chargement...</option>';
+    const catOptions = cachedCategories.length
+      ? cachedCategories.map(c => '<option value="' + escapeHtml(c.name) + '">' + (c.icon || '') + ' ' + escapeHtml(c.name) + '</option>').join('')
+      : '<option value="">Chargement...</option>';
     return '<div class="card" id="row_' + id + '" style="margin-bottom:16px;">' +
       '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
         '<span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Ligne #' + id + '</span>' +
@@ -3832,20 +3900,120 @@
     window.addEventListener('touchmove', handleTouchOrMove, { passive: true });
   }
 
+  function applyBootstrapData(data) {
+    if (data.navPages && data.navPages.length) NAV_PAGES = data.navPages;
+    if (data.players)    cachedPlayers    = data.players;
+    if (data.categories) cachedCategories = data.categories;
+    if (data.activePreset) _mCachedActivePreset = data.activePreset;
+    if (data.phrases)      _mCachedPhrases      = data.phrases;
+
+    if (data.appTitle) {
+      document.title = data.appTitle;
+      const tEl = document.getElementById('mHeaderTitle');
+      if (tEl) tEl.textContent = data.appTitle;
+    }
+    if (data.logoUrl != null) {
+      const logo = document.getElementById('mBrandLogo');
+      if (logo) {
+        if (data.logoUrl) {
+          logo.src = data.logoUrl;
+          logo.onerror = () => { logo.style.display = 'none'; };
+          logo.style.display = '';
+        } else {
+          logo.style.display = 'none';
+        }
+      }
+    }
+
+    renderIdentityBtn();
+
+    if (data.notesCount != null) {
+      const el = document.getElementById('notesCount');
+      if (el) el.textContent = data.notesCount ? String(data.notesCount) : '';
+    }
+
+    renderFilterChips();
+    updateInjectRowOptions();
+    updateNotePlayerButtons();
+
+    const dashboardActive = document.querySelector('.m-bnav-btn[data-tab="tab-dashboard"]');
+    if (!dashboardActive || dashboardActive.classList.contains('active')) {
+      if (!document.getElementById('mMainChart')) {
+        renderDashboardShell();
+      }
+      if (data.quickStats) {
+        const container = document.getElementById('mQuickKpisBar');
+        if (container && data.quickStats.leader) {
+          container.style.display = 'grid';
+          container.innerHTML =
+            '<div class="m-kpi-card">' +
+              '<div class="m-kpi-label">Leader</div>' +
+              '<div class="m-kpi-val">' + mSrAvatar(data.quickStats.leader) + '<span style="overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(data.quickStats.leader) + '</span></div>' +
+              '<div class="m-kpi-sub">' + data.quickStats.leaderPoints + ' pts ' + (data.quickStats.gapToSecond > 0 ? '(+' + data.quickStats.gapToSecond + ')' : '') + '</div>' +
+            '</div>' +
+            '<div class="m-kpi-card">' +
+              '<div class="m-kpi-label">Ce mois-ci</div>' +
+              '<div class="m-kpi-val">⚡ ' + (data.quickStats.monthEntries || 0) + '</div>' +
+              '<div class="m-kpi-sub">entrées enregistrées</div>' +
+              '</div>' +
+            '<div class="m-kpi-card">' +
+              '<div class="m-kpi-label">Dernier event</div>' +
+              '<div class="m-kpi-val">📅 ' + (data.quickStats.latestDate ? data.quickStats.latestDate.split('-').reverse().slice(0,2).join('/') : '-') + '</div>' +
+              '<div class="m-kpi-sub">dernière activité</div>' +
+            '</div>';
+        }
+      }
+      if (data.chartData) {
+        if (mChartType === 'stacked') renderBarChart(data.chartData, 'bar', true);
+        else if (mChartType === 'grouped') renderBarChart(data.chartData, 'bar', false);
+        else if (mChartType === 'radar') renderRadarChart(data.chartData);
+        else if (mChartType === 'donut') renderDonutChart(data.chartData);
+      }
+      if (data.playerTotals) {
+        _mLastCommentsData = data.playerTotals;
+        renderComments(data.playerTotals);
+      }
+    }
+  }
+
   function initAppMobile() {
     initTheme();
     renderIdentityBtn();
     initSpotlightCardsMobile();
     setupBottomNav();
-    loadAppBranding();
-    callServer('apiGetNavPages', [], res => {
-      NAV_PAGES = res.pages;
-      loadEntities(() => {
-        goToTab('tab-dashboard');
-        loadNotesCountBadge();
-        initChatWidgetMobile();
-      });
-    }, 'Chargement du menu');
+
+    let paintedFromCache = false;
+    try {
+      const raw = localStorage.getItem(MOBILE_BOOTSTRAP_CACHE_KEY);
+      if (raw) {
+        const cache = JSON.parse(raw);
+        if (cache && cache.players && cache.categories) {
+          applyBootstrapData(cache);
+          paintedFromCache = true;
+        }
+      }
+    } catch (e) {}
+
+    if (!paintedFromCache) {
+      renderDashboardShell();
+    }
+
+    callServer('apiGetMobileBootstrap', [], res => {
+      if (res && res.success) {
+        try { localStorage.setItem(MOBILE_BOOTSTRAP_CACHE_KEY, JSON.stringify(res)); } catch (e) {}
+        applyBootstrapData(res);
+      }
+      initChatWidgetMobile();
+    }, 'Initialisation mobile', () => {
+      if (!paintedFromCache) {
+        loadAppBranding();
+        loadEntities(() => {
+          goToTab('tab-dashboard');
+          loadNotesCountBadge();
+          initChatWidgetMobile();
+        });
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

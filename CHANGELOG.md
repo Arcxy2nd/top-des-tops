@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Corrigé
+**Humanisé** : Chargement instantané et correction des bugs d'affichage sur l'interface mobile (suppression du délai d'attente au démarrage, options de saisie et destinataires toujours présents, accordéons de statistiques stables sans blocage).
+**Technique** : `Code.gs` — création de `apiGetMobileBootstrap()` regroupant en 1 seul aller-retour réseau l'intégralité des données d'initialisation mobile. `Mobile.html` — implémentation d'un rendu immédiat depuis `localStorage` (`MOBILE_BOOTSTRAP_CACHE_KEY`), mise à jour réactive des sélecteurs de Saisie (`updateInjectRowOptions`) et destinataires de Notes (`updateNotePlayerButtons`), mise en cache des commentaires et remplacement de `outerHTML` par `innerHTML` sécurisé dans les accordéons de statistiques (`loadRecordsStat`, `loadTrendsStat`, `loadWeekdayStat`, `loadPairsStat`, `loadMentionStats`).
+
 ### Ajouté
 **Humanisé** : Mise en place d'un système d'optimisation globale des performances et de préservation du quota Google Apps Script (cache serveur réactif, sous-statistiques du Dashboard en cache rapide et sondage de tchat adaptatif en arrière-plan).
 **Technique** : `Code.gs` — intégration de `CacheService` avec versioning dynamique (`_settingsVersion`, `_chatVersion`, `_baremeVersion`, `_phrasesVersion`, `_notesVersion`, `_logsVersion`) sur `SettingsService`, `ChatService`, `BaremeService`, `PhrasesService`, `NotesService` et les endpoints de sous-statistiques (`apiGetPlayerRecords`, `apiGetTrends`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs`). `Index.html` & `Mobile.html` — refonte de `scheduleChatPoll()` / `mScheduleChatPoll()` avec écouteur `visibilitychange` (arrêt complet quand l'onglet est inactif, cadence portée à 20s fermé / 4s ouvert).

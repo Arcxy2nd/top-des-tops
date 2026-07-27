@@ -1351,6 +1351,37 @@ function apiGetAppSettings() {
   } catch(e) { return fail(e); }
 }
 
+function apiGetMobileBootstrap() {
+  try {
+    const navPages = apiGetNavPages();
+    const settings = apiGetSettings();
+    const appSettings = apiGetAppSettings();
+    const quickStats = apiGetQuickStats();
+    const filteredData = apiGetFilteredData([], [], null, null);
+    const playerTotals = apiGetPlayerTotals([], null, null);
+    const activePreset = apiGetActivePhrasePreset();
+    const phrases = apiGetPhrases();
+    const allNotes = apiGetAllNotes();
+
+    return {
+      success: true,
+      navPages: (navPages && navPages.pages) ? navPages.pages : [],
+      players: (settings && settings.players) ? settings.players : [],
+      categories: (settings && settings.categories) ? settings.categories : [],
+      appTitle: (appSettings && appSettings.appTitle) ? appSettings.appTitle : 'Tops des Tops',
+      logoUrl: (appSettings && appSettings.logoUrl) ? appSettings.logoUrl : '',
+      tooltipStyle: (appSettings && appSettings.tooltipStyle) ? appSettings.tooltipStyle : null,
+      quickStats: quickStats || null,
+      chartData: (filteredData && filteredData.chartData) ? filteredData.chartData : null,
+      playerTotals: (playerTotals && playerTotals.chartData) ? playerTotals.chartData : null,
+      activePreset: (activePreset && activePreset.preset) ? activePreset.preset : '__default__',
+      phrases: (phrases && phrases.phrases) ? phrases.phrases : [],
+      notesCount: (allNotes && allNotes.notes) ? allNotes.notes.length : 0
+    };
+  } catch(e) { return fail(e); }
+}
+
+
 function apiSaveAppSettings(title, logoUrl, author) {
   try {
     requireAuthor(author);
