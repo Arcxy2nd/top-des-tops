@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Corrigé
+**Humanisé** : Refonte visuelle complète du panneau Filtres croisés — suppression du fond sombre lourd et des blocs rectangulaires au profit de pilules fluides et translucides (glassmorphism).
+**Technique** : `Index.html` — `.filter-panel` passe en glassmorphism translucide (`rgba(15,20,29,0.65)`, `backdrop-filter: blur(20px)`), `.fchip` et `.date-shortcut` deviennent des pilules arrondies avec bordures subtiles (`border-radius: 9999px`), survol dynamique et halo lumineux sur l'état actif.
+
 **Humanisé** : La barre supérieure de navigation et le bandeau de statistiques rapides ne défilent plus à la verticale lors du survol à la molette.
 **Technique** : `Index.html` — `.navbar` passe à `overflow: visible`, `.quick-stats-bar` et `.nav-btn-group` ont désormais `overflow-y: hidden` explicite pour bloquer les défilements verticaux parasites.
 
