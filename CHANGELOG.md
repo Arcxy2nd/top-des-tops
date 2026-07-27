@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Modifié
+**Humanisé** : Retrait complet du défilement doux Lenis Scroll sur desktop et mobile — retour au défilement natif fluide et réactif de la plateforme.
+**Technique** : `Index.html` et `Mobile.html` — suppression de la bibliothèque CDN Lenis, des instances de scroll et des écouteurs `requestAnimationFrame` associés.
+
 ### Ajouté
 **Humanisé** : Refonte visuelle et interactive complète de l'interface mobile (`Mobile.html`) — défilement Lenis tactile, animations GSAP keyframe sur les onglets ("hyperframes"), cartes glassmorphic réactives au toucher (Spotlight cards) et boutons magnétiques.
 **Technique** : `Mobile.html` — ajout du CDN Lenis Scroll, intégration `initLenisMobile()` et `initSpotlightCardsMobile()`, rehaussement du thème CSS avec gradients de fond et flou de fond (`backdrop-filter: blur(20px/24px)`), transitions d'onglets animées par GSAP keyframes (`goToTab()`).
