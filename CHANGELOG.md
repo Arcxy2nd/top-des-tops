@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Modifié
+**Humanisé** : Refonte intégrale de l'architecture mobile avec suppression de la barre latérale au profit d'une Navigation Inférieure (Bottom Nav) et d'un En-tête Supérieur (Top Header) fixes. Zone de contenu portée à 100% de la largeur de l'écran, graphiques réactifs pleine largeur, formulaires optimisés au pouce et parité fonctionnelle absolue avec la version PC.
+**Technique** : `Mobile.html` — remplacement de `.m-side-nav` par `.m-header` (`52px`) et `.m-bottom-nav` (`58px + safe-area`), conteneur `.m-container` réaligné sur la largeur écran (`max-width: 640px`), ajustement de `setupBottomNav()`, `goToTab()`, `renderIdentityBtn()` et repositionnement du widget tchat flottant (`#mChatFab`).
+
 ### Corrigé
 **Humanisé** : Refonte intégrale de l'interface mobile et du graphique du Dashboard (taille native fluide sans sur-échelle, contrôles segmentés par pilules, bandeau mini-KPIs et ratio parfait sans déformation).
 **Technique** : `Code.gs` — ajout de `.addMetaTag('viewport', ...)` dans `doGet()`. `Mobile.html` — suppression de l'échelle $\times 2.2$, intégration de `#mChartTypeSegmented`, `#mPeriodSegmented`, `maintainAspectRatio: false` sur Chart.js, bandeau `#mQuickKpisBar` et design system CSS réactif.
