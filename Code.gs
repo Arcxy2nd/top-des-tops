@@ -187,6 +187,15 @@ function _bumpPhrasesVersion() {
   p.setProperty('phrases_version', String(next));
 }
 
+function _notesVersion() {
+  return PropertiesService.getScriptProperties().getProperty('notes_version') || '0';
+}
+function _bumpNotesVersion() {
+  const p = PropertiesService.getScriptProperties();
+  const next = (parseInt(p.getProperty('notes_version') || '0', 10) + 1) % 1000000000;
+  p.setProperty('notes_version', String(next));
+}
+
 // ─── AUDIT SERVICE ─────────────────────────────────────────────────────────────
 const AuditService = (() => {
   /** Auto-creates the AuditLog sheet if absent (same lazy pattern as Notes/Bareme). */
@@ -916,6 +925,12 @@ const NotesService = {
 
   /** Toutes les notes (récentes d'abord). Lecture tolérante : pas de feuille → liste vide. */
   getAllNotes() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'notes_all_v' + _notesVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const sheet = ConfigService.getSheets().notes;
     if (!sheet) return { notes: [] };   // pas encore de feuille (aucune note créée)
     const lastRow = sheet.getLastRow();
@@ -942,7 +957,10 @@ const NotesService = {
       });
     }
     out.reverse();
-    return { notes: out };
+    const result = { notes: out };
+    const serial = JSON.stringify(result);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return result;
   },
 
   addNote(player, text, dateStr, author) {
@@ -955,6 +973,7 @@ const NotesService = {
     const sheet = this._sheet();
     const noteId = _generateGroupId();
     sheet.appendRow([targetDate, player, text.trim(), noteId, author || '', '', '']);
+    _bumpNotesVersion();
     return {
       rowIndex: sheet.getLastRow(), timestamp: targetDate.toISOString(), player, text: text.trim(),
       noteId, createdBy: author || '', lastEditedBy: '', lastEditedAt: null
@@ -965,6 +984,7 @@ const NotesService = {
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     this._sheet().deleteRow(idx);
+    _bumpNotesVersion();
   },
 
   /** Renvoie le NoteId de la ligne éditée (le génère à la volée si la note est
@@ -983,6 +1003,7 @@ const NotesService = {
       sheet.getRange(idx, 4).setValue(noteId);
     }
     sheet.getRange(idx, 6, 1, 2).setValues([[editor || '', new Date()]]);
+    _bumpNotesVersion();
     return noteId;
   },
 

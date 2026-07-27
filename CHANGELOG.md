@@ -8,7 +8,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ### Ajouté
 **Humanisé** : Mise en place d'un système d'optimisation globale des performances et de préservation du quota Google Apps Script (cache serveur réactif et sondage de tchat adaptatif en arrière-plan).
-**Technique** : `Code.gs` — intégration de `CacheService` avec versioning dynamique (`_settingsVersion`, `_chatVersion`, `_baremeVersion`, `_phrasesVersion`) sur `SettingsService`, `ChatService`, `BaremeService` et `PhrasesService`. `Index.html` & `Mobile.html` — refonte de `scheduleChatPoll()` / `mScheduleChatPoll()` avec écouteur `visibilitychange` (arrêt complet quand l'onglet est inactif, cadence portée à 20s fermé / 4s ouvert).
+**Technique** : `Code.gs` — intégration de `CacheService` avec versioning dynamique (`_settingsVersion`, `_chatVersion`, `_baremeVersion`, `_phrasesVersion`, `_notesVersion`) sur `SettingsService`, `ChatService`, `BaremeService`, `PhrasesService` et `NotesService`. `Index.html` & `Mobile.html` — refonte de `scheduleChatPoll()` / `mScheduleChatPoll()` avec écouteur `visibilitychange` (arrêt complet quand l'onglet est inactif, cadence portée à 20s fermé / 4s ouvert).
 
 ### Modifié
 **Humanisé** : Ajout d'une règle d'hygiène dans la documentation interdisant le sondage en boucle (polling) pour préserver le quota de requêtes.
