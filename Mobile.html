@@ -655,7 +655,7 @@
     <img class="m-avatar" id="mIdentityPwdAvatar" src="" alt="" style="width:120px; height:120px; margin:0 auto 22px;">
     <h2 id="mIdentityPwdName">—</h2>
     <input type="password" id="mIdentityPwdInput" placeholder="Mot de passe" style="margin-bottom:18px;">
-    <div id="mIdentityPwdError" style="display:none; color:var(--error); font-size:1.75rem; margin-bottom:18px;">Mot de passe incorrect.</div>
+    <div id="mIdentityPwdError" style="display:none; color:var(--error); font-size:0.85rem; font-weight:600; margin-bottom:10px;">Mot de passe incorrect.</div>
     <div class="m-row" style="justify-content:center; gap:22px;">
       <button class="small" id="mIdentityPwdCancel">Annuler</button>
       <button class="primary small" id="mIdentityPwdSubmit">Valider</button>
@@ -2834,17 +2834,17 @@
       '<option value="' + escapeHtml(c.name) + '"' + (c.name === log.category ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>').join('');
     openModal(
       '<h2>Modifier l\'entrée</h2>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted);">Date</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Date</label>' +
       '<input type="date" id="mEditDate" value="' + toDateStr(new Date(log.timestamp)) + '">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Joueur</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Joueur</label>' +
       '<select id="mEditPlayer">' + playerOptions + '</select>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Top</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Top</label>' +
       '<select id="mEditCat">' + catOptions + '</select>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Points</label>' +
       '<input type="number" id="mEditPts" value="' + log.points + '" min="1">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Description</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Description</label>' +
       '<input type="text" id="mEditDesc" value="' + escapeHtml(log.description || '') + '">' +
-      '<button class="primary" style="width:100%; margin-top:26px;" id="mEditSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:18px;" id="mEditSave">Enregistrer</button>'
     );
     document.getElementById('mEditSave').addEventListener('click', () => {
       const fields = {
@@ -2984,15 +2984,15 @@
     const isPlayer = type === 'Players';
     openModal(
       '<h2>' + (item ? 'Modifier' : 'Ajouter') + ' — ' + (isPlayer ? 'Joueur' : 'Top') + '</h2>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted);">Nom</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Nom</label>' +
       '<input type="text" id="mEntityName" value="' + (item ? escapeHtml(item.name) : '') + '">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">' +
         (isPlayer ? 'URL avatar (optionnel)' : 'Description (optionnel)') + '</label>' +
       '<input type="text" id="mEntityMeta" value="' + (item ? escapeHtml(item.meta || '') : '') + '">' +
       (isPlayer ? '' :
-        '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Emoji</label>' +
+        '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Emoji</label>' +
         '<input type="text" id="mEntityIcon" value="' + (item ? escapeHtml(item.icon || '') : '') + '" maxlength="4">') +
-      '<button class="primary" style="width:100%; margin-top:26px;" id="mEntitySave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:18px;" id="mEntitySave">Enregistrer</button>'
     );
     document.getElementById('mEntitySave').addEventListener('click', () => {
       const name = document.getElementById('mEntityName').value.trim();
@@ -3008,23 +3008,53 @@
     });
   }
 
-  // ── Barème ──
+  // ── Barème (Parité 100% PC : groupé par catégorie avec badges et piliers de points) ──
   function renderBaremeSettings() {
     const body = document.getElementById('mSettingsBody');
-    body.innerHTML = '<div class="card"><h2>⚖️ Barème</h2><div id="mBaremeList" class="m-empty">Chargement…</div>' +
-      '<button class="secondary" id="mBaremeAdd" style="width:100%; margin-top:22px;">＋ Ajouter une règle</button></div>';
+    body.innerHTML = '<div class="card">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">' +
+        '<h2 style="margin:0;">⚖️ Barème des Tops</h2>' +
+        '<button class="secondary small" id="mBaremeAdd" style="padding:4px 10px; font-size:0.78rem; min-height:30px;">＋ Règle</button>' +
+      '</div>' +
+      '<div id="mBaremeList">Chargement…</div>' +
+      '</div>';
 
     callServer('apiGetBareme', [], res => {
       mBaremeEntries = res.entries;
       const list = document.getElementById('mBaremeList');
-      list.innerHTML = mBaremeEntries.map(entry =>
-        '<div class="m-row" style="border-bottom:1px solid var(--border); padding:22px 0;" data-row="' + entry.rowIndex + '">' +
-        '<span style="flex:1;">' + escapeHtml(entry.top) + ' — ' + escapeHtml(entry.action) + '</span>' +
-        '<strong>' + entry.pts + ' pts</strong>' +
-        '<button class="small" data-edit>✏️</button>' +
-        '<button class="danger small" data-del>🗑️</button>' +
-        '</div>'
-      ).join('') || '<p class="m-empty">Aucune règle.</p>';
+      if (!mBaremeEntries || !mBaremeEntries.length) {
+        list.innerHTML = '<p class="m-empty">Aucune règle enregistrée.</p>';
+        return;
+      }
+
+      let html = '';
+      cachedCategories.forEach(cat => {
+        const catEntries = mBaremeEntries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
+        const col = categoryColor(cat.name);
+        const icon = cat.icon ? cat.icon + ' ' : '';
+
+        html += '<div style="margin-bottom:16px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card);">';
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:color-mix(in srgb, ' + col + ' 15%, var(--card)); border-bottom:1px solid var(--border);">';
+        html += '<strong style="font-size:0.9rem; color:var(--text);">' + icon + escapeHtml(cat.name) + '</strong>';
+        html += '<span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); background:var(--bg); padding:2px 8px; border-radius:10px; border:1px solid var(--border);">' + catEntries.length + ' règle' + (catEntries.length !== 1 ? 's' : '') + '</span>';
+        html += '</div>';
+
+        if (!catEntries.length) {
+          html += '<div style="padding:12px 14px; font-size:0.82rem; color:var(--text-muted); font-style:italic;">Aucune règle pour ce top.</div>';
+        } else {
+          catEntries.forEach(entry => {
+            html += '<div class="m-row" style="padding:10px 14px; border-bottom:1px solid var(--border); border-left:3px solid ' + col + '; background:var(--card);" data-row="' + entry.rowIndex + '">';
+            html += '<span style="display:inline-block; font-size:0.75rem; font-weight:800; color:#fff; background:' + col + '; padding:2px 8px; border-radius:6px; margin-right:8px;">' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts</span>';
+            html += '<span style="flex:1; font-size:0.85rem; color:var(--text);">' + escapeHtml(entry.action) + '</span>';
+            html += '<button class="small" data-edit style="min-height:28px; padding:2px 8px; margin-left:4px;">✏️</button>';
+            html += '<button class="danger small" data-del style="min-height:28px; padding:2px 8px; margin-left:4px;">🗑️</button>';
+            html += '</div>';
+          });
+        }
+        html += '</div>';
+      });
+
+      list.innerHTML = html;
 
       list.querySelectorAll('[data-del]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -3056,16 +3086,16 @@
 
   function openBaremeFormModal(entry) {
     const catOptions = cachedCategories.map(c =>
-      '<option value="' + escapeHtml(c.name) + '"' + (entry && entry.top === c.name ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>').join('');
+      '<option value="' + escapeHtml(c.name) + '"' + (entry && entry.top === c.name ? ' selected' : '') + '>' + (c.icon ? c.icon + ' ' : '') + escapeHtml(c.name) + '</option>').join('');
     openModal(
       '<h2>' + (entry ? 'Modifier' : 'Ajouter') + ' une règle</h2>' +
-      (entry ? '<p>' + escapeHtml(entry.top) + '</p>' :
-        '<label style="font-size:1.65rem; color:var(--text-muted);">Top</label><select id="mBaremeTop">' + catOptions + '</select>') +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Action</label>' +
-      '<input type="text" id="mBaremeAction" value="' + (entry ? escapeHtml(entry.action) : '') + '">' +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Points</label>' +
+      (entry ? '<p style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">' + catDisplay(entry.top) + '</p>' :
+        '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Top / Catégorie</label><select id="mBaremeTop" style="margin-bottom:12px;">' + catOptions + '</select>') +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Action</label>' +
+      '<input type="text" id="mBaremeAction" value="' + (entry ? escapeHtml(entry.action) : '') + '" placeholder="Nom de la règle / action…">' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-top:12px; margin-bottom:4px;">Points (ex: 1, 2, -1…)</label>' +
       '<input type="number" id="mBaremePts" value="' + (entry ? entry.pts : 1) + '">' +
-      '<button class="primary" style="width:100%; margin-top:26px;" id="mBaremeSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:18px;" id="mBaremeSave">Enregistrer</button>'
     );
     document.getElementById('mBaremeSave').addEventListener('click', () => {
       const action = document.getElementById('mBaremeAction').value.trim();
@@ -3088,15 +3118,15 @@
   function renderPhrasesSettings() {
     const body = document.getElementById('mSettingsBody');
     body.innerHTML = '<div class="card"><h2>🎭 Phrases</h2>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted);">Preset actif</label>' +
-      '<select id="mPresetSelect"></select>' +
-      '<div class="m-row" style="gap:18px; margin-top:18px;">' +
-        '<button class="secondary small" id="mPresetNew" style="flex:1;">＋ Nouveau</button>' +
-        '<button class="secondary small" id="mPresetRename" style="flex:1;">✏️ Renommer</button>' +
-        '<button class="danger small" id="mPresetDelete" style="flex:1;">🗑️ Supprimer</button>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Preset actif</label>' +
+      '<select id="mPresetSelect" style="margin-bottom:12px;"></select>' +
+      '<div class="m-row" style="gap:8px; margin-bottom:14px;">' +
+        '<button class="secondary small" id="mPresetNew" style="flex:1; min-height:32px;">＋ Nouveau</button>' +
+        '<button class="secondary small" id="mPresetRename" style="flex:1; min-height:32px;">✏️ Renommer</button>' +
+        '<button class="danger small" id="mPresetDelete" style="flex:1; min-height:32px;">🗑️ Supprimer</button>' +
       '</div>' +
-      '<div id="mPhrasesList" style="margin-top:22px;" class="m-empty">Chargement…</div>' +
-      '<button class="secondary" id="mPhraseAdd" style="width:100%; margin-top:22px;">＋ Ajouter une phrase</button>' +
+      '<div id="mPhrasesList" class="m-empty">Chargement…</div>' +
+      '<button class="secondary" id="mPhraseAdd" style="width:100%; margin-top:14px;">＋ Ajouter une phrase</button>' +
       '</div>';
 
     callServer('apiGetActivePhrasePreset', [], activeRes => {
@@ -3169,9 +3199,9 @@
   function openPresetNameModal(title, initialValue, onSave) {
     openModal(
       '<h2>' + title + '</h2>' +
-      '<label style="font-size:1.65rem; color:var(--text-muted);">Nom du preset</label>' +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Nom du preset</label>' +
       '<input type="text" id="mPresetNameInput" value="' + escapeHtml(initialValue) + '">' +
-      '<button class="primary" style="width:100%; margin-top:26px;" id="mPresetNameSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:18px;" id="mPresetNameSave">Enregistrer</button>'
     );
     setTimeout(() => document.getElementById('mPresetNameInput').focus(), 60);
     document.getElementById('mPresetNameSave').addEventListener('click', () => {
@@ -3186,11 +3216,11 @@
     const list = document.getElementById('mPhrasesList');
     const entries = mPhrasesAll.filter(p => p.preset === mActivePreset);
     list.innerHTML = entries.map(p =>
-      '<div class="m-row" style="border-bottom:1px solid var(--border); padding:22px 0;" data-row="' + p.rowIndex + '">' +
-      '<span style="font-size:1.55rem; color:var(--text-muted); min-width:96px;">[' + escapeHtml(p.pool) + ']</span>' +
-      '<span style="flex:1;">' + escapeHtml(p.text) + '</span>' +
-      '<button class="small" data-edit>✏️</button>' +
-      '<button class="danger small" data-del>🗑️</button>' +
+      '<div class="m-row" style="border-bottom:1px solid var(--border); padding:10px 0;" data-row="' + p.rowIndex + '">' +
+      '<span style="font-size:0.75rem; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 15%, transparent); padding:2px 8px; border-radius:6px; margin-right:8px;">[' + escapeHtml(p.pool) + ']</span>' +
+      '<span style="flex:1; font-size:0.85rem; color:var(--text);">' + escapeHtml(p.text) + '</span>' +
+      '<button class="small" data-edit style="min-height:28px; padding:2px 8px; margin-left:4px;">✏️</button>' +
+      '<button class="danger small" data-del style="min-height:28px; padding:2px 8px; margin-left:4px;">🗑️</button>' +
       '</div>'
     ).join('') || '<p class="m-empty">Aucune phrase dans ce preset.</p>';
 
@@ -3222,10 +3252,10 @@
       '<option value="' + p + '"' + (entry && entry.pool === p ? ' selected' : '') + '>' + p + '</option>').join('');
     openModal(
       '<h2>' + (entry ? 'Modifier' : 'Ajouter') + ' une phrase</h2>' +
-      (entry ? '' : '<label style="font-size:1.65rem; color:var(--text-muted);">Pool</label><select id="mPhrasePool">' + poolOptions + '</select>') +
-      '<label style="font-size:1.65rem; color:var(--text-muted); margin-top:18px; display:block;">Texte (variables : {player} {pts} {gap} {behind} {rank})</label>' +
+      (entry ? '' : '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Pool</label><select id="mPhrasePool" style="margin-bottom:12px;">' + poolOptions + '</select>') +
+      '<label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:4px;">Texte (variables : {player} {pts} {gap} {behind} {rank})</label>' +
       '<textarea id="mPhraseText" rows="3">' + (entry ? escapeHtml(entry.text) : '') + '</textarea>' +
-      '<button class="primary" style="width:100%; margin-top:26px;" id="mPhraseSave">Enregistrer</button>'
+      '<button class="primary" style="width:100%; margin-top:18px;" id="mPhraseSave">Enregistrer</button>'
     );
     autoGrowTextarea(document.getElementById('mPhraseText'));
     document.getElementById('mPhraseSave').addEventListener('click', () => {

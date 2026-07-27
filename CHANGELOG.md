@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Modifié
+**Humanisé** : Correction complète de l'affichage du Barème et des modaux sur mobile : restructuration du barème par Top/Catégorie avec badges de couleur et pastilles de points (parité PC), suppression des tailles de texte surdimensionnées (28px) sur tous les modaux et formulaires d'édition.
+**Technique** : `Mobile.html` — refonte de `renderBaremeSettings()`, `openBaremeFormModal()`, `openHistoryEditModal()`, `openEntityFormModal()`, `openPhraseFormModal()` et suppression de toutes les règles inlines `1.65rem` / `1.75rem`.
+
 **Humanisé** : Refonte et nettoyage ergonomique des formulaires de Saisie et de Notes sur mobile : suppression des tailles de texte disproportionnées, ajout de boutons pas-à-pas de points (-5, -1, +1, +5) et de raccourcis de date (Aujourd'hui, Hier).
 **Technique** : `Mobile.html` — refonte de `injectRowHtml()`, `renderInjectShell()` et `renderNotesShell()`, harmonisation des labels à `0.78rem` uppercase et boutons tactiles `m-step-btn` / `m-date-shortcut`.
 
