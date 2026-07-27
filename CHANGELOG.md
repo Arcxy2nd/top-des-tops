@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Modifié
+**Humanisé** : Embellissement et renforcement visuel du sélecteur d'identité lorsqu'aucune n'est choisie (halo respirant néon, badge d'alerte lumineux sur l'avatar et secousse/onde de choc accentuée lors d'une action bloquée sur desktop et mobile).
+**Technique** : `Index.html` & `Mobile.html` — ajout de la classe `.unselected` gérée dans `renderWhoAmI()` / `renderIdentityBtn()`, keyframes `@keyframes wai-unselected-breath` et badge dot `@keyframes wai-dot-pulse`, réécriture de `@keyframes wai-pulse` pour secousse + onde de choc 0.75s x 2, et gestion de la classe `.pulse` sur mobile dans `requireIdentity()`.
+
 ### Ajouté
 **Humanisé** : Ajout d'une barre de progression lumineuse en haut de l'écran mobile et d'un spinner réseau dans l'en-tête pour indiquer visuellement chaque chargement de données ou requête serveur.
 **Technique** : `Mobile.html` — création du composant `.m-progress-bar` et de `.m-spinner` dans l'en-tête, intégration de la comptabilisation des requêtes actives `_mActiveRequests` (`mShowLoader()` / `mHideLoader()`) dans `callServer()`.

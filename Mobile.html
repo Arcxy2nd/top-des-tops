@@ -175,9 +175,70 @@
     .m-header-user {
       display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px;
       background: var(--btn-alt); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s ease; color: var(--text);
+      cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      color: var(--text); position: relative;
     }
     .m-header-user:active { transform: scale(0.95); }
+
+    /* État non sélectionné mobile : halo néon respirant et badge d'attention */
+    .m-header-user.unselected {
+      border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, var(--btn-alt));
+      animation: wai-unselected-breath 2.2s ease-in-out infinite;
+    }
+    .m-header-user.unselected::after {
+      content: '';
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--card);
+      box-shadow: 0 0 8px var(--accent);
+      animation: wai-dot-pulse 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes wai-unselected-breath {
+      0%, 100% {
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent),
+                    0 0 10px color-mix(in srgb, var(--accent) 25%, transparent);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 70%, transparent),
+                    0 0 18px color-mix(in srgb, var(--accent) 50%, transparent);
+        transform: scale(1.03);
+      }
+    }
+
+    @keyframes wai-dot-pulse {
+      0% { transform: scale(0.85); opacity: 0.8; }
+      100% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 12px var(--accent); }
+    }
+
+    /* Animation d'attention intense mobile */
+    @keyframes wai-pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 90%, transparent), 0 0 0 0 var(--accent);
+      }
+      15% {
+        transform: scale(1.14) translateX(-4px);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 80%, transparent), 0 0 24px var(--accent);
+      }
+      30% { transform: scale(1.08) translateX(4px); }
+      45% { transform: scale(1.12) translateX(-3px); }
+      60% { transform: scale(1.05) translateX(2px); }
+      75% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 14px rgba(255, 71, 87, 0), 0 0 28px color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+      }
+    }
+    .m-header-user.pulse { animation: wai-pulse 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97) 2 !important; }
     .m-icon-btn {
       width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text); display: flex; align-items: center; justify-content: center;
@@ -921,6 +982,13 @@
   function requireIdentity() {
     if (_whoAmI) return true;
     showToast('Sélectionne ton identité avant d\'agir.', 'error');
+    const btn = document.getElementById('mIdentityBtn');
+    if (btn) {
+      btn.classList.remove('pulse');
+      void btn.offsetWidth;
+      btn.classList.add('pulse');
+      setTimeout(() => btn.classList.remove('pulse'), 1500);
+    }
     openIdentitySheet();
     return false;
   }
@@ -937,6 +1005,7 @@
       _whoAmI = null;
       localStorage.removeItem(WHO_AM_I_KEY);
     }
+    const btn    = document.getElementById('mIdentityBtn');
     const avatar = document.getElementById('mIdentityAvatar');
     const name   = document.getElementById('mIdentityName');
     const p = cachedPlayers.find(p => p.name === _whoAmI);
@@ -944,9 +1013,11 @@
       avatar.src = getAvatarUrl(p.name, p.meta);
       avatar.onerror = () => { avatar.src = getAvatarUrl(p.name, ''); };
       name.textContent = p.name;
+      if (btn) btn.classList.remove('unselected');
     } else {
       avatar.src = getAvatarUrl('?', '');
       name.textContent = 'Qui ?';
+      if (btn) btn.classList.add('unselected');
     }
   }
 
@@ -3377,6 +3448,7 @@
 
   function initAppMobile() {
     initTheme();
+    renderIdentityBtn();
     initSpotlightCardsMobile();
     setupBottomNav();
     loadAppBranding();
