@@ -47,6 +47,10 @@ function makeSheet(grid) {
           }
           return this;
         },
+        getValue() {
+          const v = (grid[r - 1] || [])[c - 1];
+          return v === undefined ? '' : v;
+        },
         setValue(v) {
           const ri = r - 1;
           if (!grid[ri]) grid[ri] = [];

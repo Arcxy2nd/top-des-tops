@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-27
+
+### Ajouté
+**Humanisé** : Refonte visuelle et interactive complète de l'interface — intégration du défilement doux (Lenis), d'un moteur d'animations réactives (GSAP 3), de cartes interactives à lumière dynamique (Spotlight Cards) et d'une esthétique glassmorphism moderne.
+**Technique** : `Index.html` et `Mobile.html` — ajouts des CDN GSAP 3 et Lenis Scroll ; refonte du système de tokens CSS (`:root`, `body.light`) avec arrières-plans à mesh gradient, glassmorphism (`backdrop-filter: blur()`), bordures lumineuses et effets de survol magnétiques ; intégration du tracker de curseur `--mouse-x`/`--mouse-y` (`initSpotlightCards()`) ; transition d'onglets animée par GSAP keyframes (`goToTab()`).
+
 ## [Non publié] - 2026-07-26
 
 ### Corrigé

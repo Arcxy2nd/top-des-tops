@@ -7,8 +7,8 @@ test('NAV_PAGES has exactly the 6 documented tabs, in order', () => {
   const gas = loadGas();
   const ids = [...gas.NAV_PAGES.map(p => p.id)];
   assert.deepStrictEqual(ids, [
-    'tab-dashboard', 'tab-inject', 'tab-settings',
-    'tab-notes', 'tab-history', 'tab-guide'
+    'tab-dashboard', 'tab-inject', 'tab-notes',
+    'tab-history', 'tab-settings', 'tab-guide'
   ]);
 });
 

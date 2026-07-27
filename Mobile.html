@@ -10,35 +10,48 @@
   <meta name="theme-color" content="#f0f2f5" media="(prefers-color-scheme: light)">
   <title>Tops des Tops</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
   <style>
-    /* ── ÉCHELLE GLOBALE ×~2.2 ──────────────────────────────────────────────
-       Le wrapper GAS servi à /exec n'a aucune balise viewport (comportement
-       de plateforme non corrigeable depuis ce fichier) : tout téléphone
-       traite la page comme large de ~980px CSS puis la réduit visuellement
-       à l'échelle (~0.4 sur un iPhone 14 Pro). Toutes les tailles ci-dessous
-       sont donc volontairement ~2 à 2.5× les valeurs "mobile normales" pour
-       que le rendu final, une fois réduit par le téléphone, retombe à une
-       taille confortable. Les media queries ≤430/380/340px ne se déclenchent
-       donc jamais en pratique (gardées telles quelles, inoffensives) ; celle
-       à min-width:600px, elle, se déclenche TOUJOURS (~980px réel) et est
-       ajustée en conséquence plus bas. */
+    /* ── ÉCHELLE GLOBALE ×~2.2 ────────────────────────────────────────────── */
     :root {
-      --bg: #0b0c10; --card: #1f2833; --border: #2a313d;
-      --accent: #ff4757; --accent-hover: #ff6b81;
-      --text: #e0e6ed; --text-muted: #9aa5be;
-      --success: #2ed573; --error: #ff4757;
-      --warn: #ffa502; --info: #7c8cff; --clean: #17a2b8;
-      --btn-alt: #353b48; --tap-min: 100px; --rail-w: 120px;
+      --bg: #07090e; 
+      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(255, 71, 87, 0.12), transparent 70%);
+      --card: rgba(20, 25, 34, 0.85); 
+      --card-solid: #141922;
+      --border: rgba(255, 255, 255, 0.09);
+      --border-hover: rgba(255, 255, 255, 0.22);
+      --accent: #ff4757; 
+      --accent-hover: #ff6b81;
+      --text: #f1f5f9; 
+      --text-muted: #94a3b8;
+      --success: #2ed573; 
+      --error: #ff4757;
+      --warn: #ffa502; 
+      --info: #7c8cff; 
+      --clean: #17a2b8;
+      --btn-alt: rgba(255, 255, 255, 0.07); 
+      --tap-min: 100px; 
+      --rail-w: 120px;
       --on-accent: #fff;
-      --medal-gold: #f6c445; --medal-silver: #c2ccd6; --medal-bronze: #cd8b52;
+      --medal-gold: #ffd700; 
+      --medal-silver: #cbd5e1; 
+      --medal-bronze: #d97706;
     }
     body.light {
-      --bg: #f0f2f5; --card: #ffffff; --border: #d1d5db;
-      --accent: #e53e3e; --accent-hover: #c53030;
-      --text: #1a202c; --text-muted: #4a5568;
-      --warn: #d97706; --info: #4f5fd6; --clean: #0e7490;
-      --btn-alt: #e2e8f0;
+      --bg: #f8fafc;
+      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(229, 62, 62, 0.08), transparent 70%);
+      --card: rgba(255, 255, 255, 0.88); 
+      --card-solid: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #e53e3e; 
+      --accent-hover: #c53030;
+      --text: #0f172a; 
+      --text-muted: #64748b;
+      --warn: #d97706; 
+      --info: #4f5fd6; 
+      --clean: #0e7490;
+      --btn-alt: rgba(0, 0, 0, 0.05);
     }
     *, *::before, *::after { box-sizing: border-box; }
     body {

@@ -481,11 +481,12 @@ test('apiDeleteNote / undo restores the deleted note', () => {
   const audit = makeAuditSheetV9();
   const notes = makeSheet([['Date','Joueur','Note'], [new Date('2026-01-01'), 'Bob', 'hello']]);
   injectSheets(gas, {
-    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
-    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    spreadsheet: { insertSheet: () => audit, getSheetByName: (n) => n === 'Notes' ? notes : (n === 'AuditLog' ? audit : null) },
+    history: makeSheet([]), players: makeSheet([['Name'], ['Alice']]), categories: makeSheet([]),
     notes, bareme: null, phrases: null, auditLog: audit
   });
-  gas.apiDeleteNote(2, 'Alice');
+  const res = gas.apiDeleteNote(2, 'Alice');
+  assert.strictEqual(res.success, true);
   assert.strictEqual(notes._grid.length, 1);
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(notes._grid.length, 2);
@@ -497,11 +498,12 @@ test('apiEditNote / undo restores the previous text', () => {
   const audit = makeAuditSheetV9();
   const notes = makeSheet([['Date','Joueur','Note'], [new Date('2026-01-01'), 'Bob', 'old']]);
   injectSheets(gas, {
-    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
-    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    spreadsheet: { insertSheet: () => audit, getSheetByName: (n) => n === 'Notes' ? notes : (n === 'AuditLog' ? audit : null) },
+    history: makeSheet([]), players: makeSheet([['Name'], ['Alice']]), categories: makeSheet([]),
     notes, bareme: null, phrases: null, auditLog: audit
   });
-  gas.apiEditNote(2, 'new', 'Alice');
+  const res = gas.apiEditNote(2, 'new', 'Alice');
+  assert.strictEqual(res.success, true);
   assert.strictEqual(notes._grid[1][2], 'new');
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(notes._grid[1][2], 'old');
