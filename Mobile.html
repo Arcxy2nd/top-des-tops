@@ -137,6 +137,28 @@
     .m-empty { text-align: center; color: var(--text-muted); padding: 28px 12px; font-size: 0.95rem; }
 
     /* ── TOP HEADER FIXE & BOTTOM NAV BAR ── */
+    .m-progress-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 10001;
+      background: linear-gradient(90deg, var(--accent), #ffa502, #2ed573, var(--accent));
+      background-size: 200% 100%;
+      animation: mProgressAnimate 1.2s infinite linear;
+      opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+    }
+    .m-progress-bar.active { opacity: 1; }
+    @keyframes mProgressAnimate {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 200% 0%; }
+    }
+    .m-spinner {
+      width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: mSpinnerRotate 0.6s infinite linear; flex-shrink: 0;
+    }
+    body.light .m-spinner { border-color: rgba(0,0,0,0.15); border-top-color: var(--accent); }
+    @keyframes mSpinnerRotate {
+      to { transform: rotate(360deg); }
+    }
+
     .m-header {
       position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 9000;
       background: var(--card-solid);
@@ -514,10 +536,13 @@
 </head>
 <body>
 
+<div class="m-progress-bar" id="mProgressBar"></div>
+
 <header class="m-header" id="mHeader">
   <div class="m-header-brand">
     <img class="m-avatar sm" id="mBrandLogo" src="" alt="" style="display:none;">
     <span id="mHeaderTitle">Tops des Tops</span>
+    <div class="m-spinner" id="mHeaderSpinner" style="display:none;"></div>
   </div>
   <div class="m-header-actions">
     <div class="m-header-user" id="mIdentityBtn" title="Changer d'utilisateur">
@@ -779,9 +804,31 @@
     return () => { btn.disabled = false; btn.innerHTML = btn.dataset.original || original; };
   }
 
+  let _mActiveRequests = 0;
+
+  function mShowLoader() {
+    _mActiveRequests++;
+    const pb = document.getElementById('mProgressBar');
+    const sp = document.getElementById('mHeaderSpinner');
+    if (pb) pb.classList.add('active');
+    if (sp) sp.style.display = 'inline-block';
+  }
+
+  function mHideLoader() {
+    _mActiveRequests = Math.max(0, _mActiveRequests - 1);
+    if (_mActiveRequests === 0) {
+      const pb = document.getElementById('mProgressBar');
+      const sp = document.getElementById('mHeaderSpinner');
+      if (pb) pb.classList.remove('active');
+      if (sp) sp.style.display = 'none';
+    }
+  }
+
   function callServer(fn, params, onSuccess, errorLabel, onError) {
+    mShowLoader();
     let runner = google.script.run
       .withSuccessHandler(res => {
+        mHideLoader();
         if (res && res.success === false) {
           showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
@@ -790,6 +837,7 @@
         }
       })
       .withFailureHandler(err => {
+        mHideLoader();
         showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
         if (onError) onError(err);
       });

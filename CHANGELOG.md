@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Ajouté
+**Humanisé** : Ajout d'une barre de progression lumineuse en haut de l'écran mobile et d'un spinner réseau dans l'en-tête pour indiquer visuellement chaque chargement de données ou requête serveur.
+**Technique** : `Mobile.html` — création du composant `.m-progress-bar` et de `.m-spinner` dans l'en-tête, intégration de la comptabilisation des requêtes actives `_mActiveRequests` (`mShowLoader()` / `mHideLoader()`) dans `callServer()`.
+
 ### Corrigé
 **Humanisé** : Correction du déclenchement du script sur l'application web mobile (chargement immédiat si le DOM est déjà prêt, correction du bouton de thème sans erreur JS), et repositionnement du bouton de tchat flottant 💬 au-dessus de la barre de navigation inférieure sans superposition.
 **Technique** : `Mobile.html` — remplacement de `window.addEventListener('DOMContentLoaded')` par une exécution conditionnelle `document.readyState`, sécurisation d'icon fallback dans `initTheme()`, et calage de la position CSS `.m-chat-fab` (`bottom: calc(72px + env(...))`) et bornes `setPos()` pour libérer l'accès aux boutons de la barre inférieure.
