@@ -2665,6 +2665,12 @@ function apiGetInactivePlayers() {
 
 function apiGetPlayerRecords() {
   try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'records_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const rows = StorageService.getFullHistoryRowsCached();
     const byPlayer = {};
     rows.forEach(r => (byPlayer[r.player] = byPlayer[r.player] || []).push(r));
@@ -2691,12 +2697,21 @@ function apiGetPlayerRecords() {
       return { player, bestSingleEntry: best.points, bestEntryDate: dayKey(best.date), longestStreakDays: longestStreak };
     });
 
-    return { success: true, records, globalBest };
+    const res = { success: true, records, globalBest };
+    const serial = JSON.stringify(res);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return res;
   } catch(e) { return fail(e); }
 }
 
 function apiGetTrends() {
   try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'trends_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const rows = StorageService.getFullHistoryRowsCached();
     const now = new Date();
     const cutoff1 = new Date(now.getTime() - 30 * 86400000);
@@ -2732,12 +2747,21 @@ function apiGetTrends() {
       return { player, historicalAvg: Math.round(historicalAvg), recentAvg: Math.round(recentAvg), changePct };
     }).filter(Boolean).sort((a, b) => b.changePct - a.changePct);
 
-    return { success: true, categoryTrends, playerTrends };
+    const res = { success: true, categoryTrends, playerTrends };
+    const serial = JSON.stringify(res);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return res;
   } catch(e) { return fail(e); }
 }
 
 function apiGetActiveWeekday() {
   try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'weekday_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const rows = StorageService.getFullHistoryRowsCached();
     const counts = [0, 0, 0, 0, 0, 0, 0]; // index = Date.getDay(), 0 = dimanche
     rows.forEach(r => { counts[r.date.getDay()]++; });
@@ -2747,12 +2771,21 @@ function apiGetActiveWeekday() {
     let topIndex = 0;
     for (let i = 1; i < counts.length; i++) if (counts[i] > counts[topIndex]) topIndex = i;
 
-    return { success: true, byWeekday, topWeekday: rows.length ? labels[topIndex] : null };
+    const res = { success: true, byWeekday, topWeekday: rows.length ? labels[topIndex] : null };
+    const serial = JSON.stringify(res);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return res;
   } catch(e) { return fail(e); }
 }
 
 function apiGetTopPlayerCategoryPairs() {
   try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'pairs_v' + _logsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const rows = StorageService.getFullHistoryRowsCached();
     const counts = {};
     rows.forEach(r => {
@@ -2767,7 +2800,10 @@ function apiGetTopPlayerCategoryPairs() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    return { success: true, pairs };
+    const res = { success: true, pairs };
+    const serial = JSON.stringify(res);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return res;
   } catch(e) { return fail(e); }
 }
 
