@@ -151,6 +151,42 @@ function _bumpLogsVersion() {
   p.setProperty('logs_version', String(next));
 }
 
+function _settingsVersion() {
+  return PropertiesService.getScriptProperties().getProperty('settings_version') || '0';
+}
+function _bumpSettingsVersion() {
+  const p = PropertiesService.getScriptProperties();
+  const next = (parseInt(p.getProperty('settings_version') || '0', 10) + 1) % 1000000000;
+  p.setProperty('settings_version', String(next));
+}
+
+function _chatVersion() {
+  return PropertiesService.getScriptProperties().getProperty('chat_version') || '0';
+}
+function _bumpChatVersion() {
+  const p = PropertiesService.getScriptProperties();
+  const next = (parseInt(p.getProperty('chat_version') || '0', 10) + 1) % 1000000000;
+  p.setProperty('chat_version', String(next));
+}
+
+function _baremeVersion() {
+  return PropertiesService.getScriptProperties().getProperty('bareme_version') || '0';
+}
+function _bumpBaremeVersion() {
+  const p = PropertiesService.getScriptProperties();
+  const next = (parseInt(p.getProperty('bareme_version') || '0', 10) + 1) % 1000000000;
+  p.setProperty('bareme_version', String(next));
+}
+
+function _phrasesVersion() {
+  return PropertiesService.getScriptProperties().getProperty('phrases_version') || '0';
+}
+function _bumpPhrasesVersion() {
+  const p = PropertiesService.getScriptProperties();
+  const next = (parseInt(p.getProperty('phrases_version') || '0', 10) + 1) % 1000000000;
+  p.setProperty('phrases_version', String(next));
+}
+
 // ─── AUDIT SERVICE ─────────────────────────────────────────────────────────────
 const AuditService = (() => {
   /** Auto-creates the AuditLog sheet if absent (same lazy pattern as Notes/Bareme). */
@@ -328,9 +364,16 @@ const SettingsService = {
   VALID_ACTIONS: ['ADD', 'DELETE', 'RENAME'],
 
   getEntities(type) {
+    const cache = CacheService.getScriptCache();
+    const key   = 'ent_' + type.toLowerCase() + '_v' + _settingsVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    if (!sheet) return [];
     const data  = sheet.getDataRange().getValues();
-    return data.filter(r => r[0]).map(r => {
+    const result = data.filter(r => r[0]).map(r => {
       if (type === 'Players') {
         // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client)
         return {
@@ -350,6 +393,9 @@ const SettingsService = {
         };
       }
     });
+    const serial = JSON.stringify(result);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return result;
   },
 
   addEntity(type, name, meta, icon) {
@@ -360,6 +406,7 @@ const SettingsService = {
     } else {
       sheet.appendRow([name, meta || "", icon || "", ""]);
     }
+    _bumpSettingsVersion();
   },
 
   setEntityColor(type, name, color) {
@@ -372,6 +419,7 @@ const SettingsService = {
     if (idx === -1) throw new Error(`${name} introuvable.`);
     const colIndex = type === 'Players' ? 3 : 4;
     sheet.getRange(idx + 1, colIndex).setValue(color || "");
+    _bumpSettingsVersion();
   },
 
   deleteEntity(type, name) {
@@ -382,6 +430,7 @@ const SettingsService = {
       if (data[i][0] === name) { sheet.deleteRow(i + 1); deleted = true; }
     }
     if (!deleted) throw new Error(`${name} introuvable.`);
+    _bumpSettingsVersion();
   },
 
   renameEntity(type, oldName, newName, newMeta, newIcon) {
@@ -400,6 +449,7 @@ const SettingsService = {
       const existingColor = data[idx][3] ? data[idx][3].toString() : "";
       sheet.getRange(idx + 1, 1, 1, 4).setValues([[newName, newMeta || "", newIcon || "", existingColor]]);
     }
+    _bumpSettingsVersion();
 
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
@@ -969,6 +1019,12 @@ const ChatService = {
    *  réponse est résolu ici, côté serveur, pour survivre même si l'original est
    *  supprimé entre-temps (replyToDeleted). */
   getAllMessages() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'chat_msgs_v' + _chatVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const sheet = ConfigService.getSheets().chat;
     if (!sheet) return { messages: [] };
     const lastRow = sheet.getLastRow();
@@ -1002,7 +1058,10 @@ const ChatService = {
       msg.replyToText    = original ? original.text   : '';
       msg.replyToDeleted = !original;
     });
-    return { messages: rows.slice(-ChatService.MAX_MESSAGES) };
+    const result = { messages: rows.slice(-ChatService.MAX_MESSAGES) };
+    const serial = JSON.stringify(result);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return result;
   },
 
   postMessage(author, text, replyToId) {
@@ -1015,6 +1074,7 @@ const ChatService = {
     const id = Utilities.getUuid();
     const now = new Date();
     sheet.appendRow([id, now, author, trimmed, replyToId || '']);
+    _bumpChatVersion();
     return { id, rowIndex: sheet.getLastRow(), timestamp: now.toISOString(), author, text: trimmed, replyToId: replyToId || '' };
   },
 
@@ -1030,6 +1090,7 @@ const ChatService = {
         const rowAuthor = data[i][2] ? data[i][2].toString() : '';
         if (rowAuthor !== author) throw new Error("Tu ne peux supprimer que tes propres messages.");
         sheet.deleteRow(i + 2);
+        _bumpChatVersion();
         return { deletedRow: data[i] };
       }
     }
@@ -1347,10 +1408,16 @@ const BaremeService = {
 
   /** Returns all entries with 1-based row indices (row 1 = header). */
   getEntries() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'bareme_entries_v' + _baremeVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
-    return data.slice(1)
+    const result = data.slice(1)
       .filter(r => r[0] !== "" && r[0] !== undefined)
       .map((r, i) => ({
         rowIndex: i + 2,
@@ -1358,12 +1425,16 @@ const BaremeService = {
         action:   r[1] ? r[1].toString() : "",
         pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0
       }));
+    const serial = JSON.stringify(result);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return result;
   },
 
   addEntry(top, action, pts) {
     if (!top   || !top.trim())    throw new Error("Top manquant.");
     if (!action || !action.trim()) throw new Error("Action vide.");
     this._getOrCreateSheet().appendRow([top.trim(), action.trim(), Number(pts) || 0]);
+    _bumpBaremeVersion();
   },
 
   updateEntry(rowIndex, action, pts) {
@@ -1371,12 +1442,14 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     sheet.getRange(rowIndex, 2, 1, 2).setValues([[action.trim(), Number(pts) || 0]]);
+    _bumpBaremeVersion();
   },
 
   deleteEntry(rowIndex) {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     sheet.deleteRow(rowIndex);
+    _bumpBaremeVersion();
   }
 };
 
@@ -1400,10 +1473,16 @@ const PhrasesService = {
   },
 
   getAll() {
+    const cache = CacheService.getScriptCache();
+    const key   = 'phrases_all_v' + _phrasesVersion();
+    const raw   = cache.get(key);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
-    return data.slice(1)
+    const result = data.slice(1)
       .filter(r => r[0] !== '' && r[2] !== '')
       .map((r, i) => ({
         rowIndex: i + 2,
@@ -1411,12 +1490,16 @@ const PhrasesService = {
         pool:     r[1].toString(),
         text:     r[2].toString()
       }));
+    const serial = JSON.stringify(result);
+    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    return result;
   },
 
   addPhrase(preset, pool, text) {
     if (!preset || !pool || !text || !text.trim()) throw new Error("Champs manquants.");
     if (!this._isValidPool(pool)) throw new Error("Pool invalide : " + pool);
     this._getOrCreateSheet().appendRow([preset.trim(), pool, text.trim()]);
+    _bumpPhrasesVersion();
   },
 
   saveBatch(entries) {
@@ -1427,6 +1510,7 @@ const PhrasesService = {
     });
     const sheet = this._getOrCreateSheet();
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 3).setValues(rows);
+    _bumpPhrasesVersion();
   },
 
   updatePhrase(rowIndex, text) {
@@ -1436,6 +1520,7 @@ const PhrasesService = {
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
     sheet.getRange(idx, 3).setValue(text.trim());
+    _bumpPhrasesVersion();
   },
 
   deletePhrase(rowIndex) {
@@ -1444,6 +1529,7 @@ const PhrasesService = {
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
     sheet.deleteRow(idx);
+    _bumpPhrasesVersion();
   },
 
   deletePreset(presetName) {
@@ -1456,6 +1542,7 @@ const PhrasesService = {
     for (let i = data.length - 1; i >= 0; i--) {
       if (data[i][0].toString() === presetName) sheet.deleteRow(i + 2);
     }
+    _bumpPhrasesVersion();
   }
 };
 

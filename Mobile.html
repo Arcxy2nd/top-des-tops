@@ -3628,12 +3628,24 @@
     }, 'Chargement du tchat');
   }
 
-  // Sondage adaptatif : rapide quand le panneau est ouvert (conversation en
-  // cours), lent quand il est fermé (juste le badge de non-lus à tenir à jour).
+  // Sondage adaptatif & pause quand l'onglet est inactif :
+  // - Panneau ouvert : 4s
+  // - Panneau fermé : 20s
+  // - Onglet masqué/arrière-plan : Pause complète (sauvegarde quota GAS)
   function mScheduleChatPoll() {
-    if (_mChatPollTimer) clearInterval(_mChatPollTimer);
-    _mChatPollTimer = setInterval(mPollChat, _mChatPanelOpen ? 2000 : 8000);
+    if (_mChatPollTimer) { clearInterval(_mChatPollTimer); _mChatPollTimer = null; }
+    if (document.hidden) return;
+    _mChatPollTimer = setInterval(mPollChat, _mChatPanelOpen ? 4000 : 20000);
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      mPollChat();
+      mScheduleChatPoll();
+    } else {
+      if (_mChatPollTimer) { clearInterval(_mChatPollTimer); _mChatPollTimer = null; }
+    }
+  });
 
   let _mChatPollInFlight = false;
   function mPollChat() {
