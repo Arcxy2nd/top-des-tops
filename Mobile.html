@@ -11,6 +11,7 @@
   <title>Tops des Tops</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 
   <style>
     /* ── ÉCHELLE GLOBALE ×~2.2 ────────────────────────────────────────────── */
@@ -56,66 +57,94 @@
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text);
+      background: var(--bg);
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text);
       font-size: 1.9rem;
       margin: 0; padding: 0 0 env(safe-area-inset-bottom) calc(var(--rail-w) + env(safe-area-inset-left));
-      transition: background 0.2s, color 0.2s;
+      transition: background 0.3s ease, color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
       overflow-x: hidden;
     }
-    button { touch-action: manipulation; }
+    button { touch-action: manipulation; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+    button:active { transform: scale(0.96); }
     .card {
+      position: relative;
       background: var(--card); padding: 34px;
-      border-radius: 26px; border: 1px solid var(--border);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 28px; border: 1px solid var(--border);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
       margin-bottom: 30px;
-      max-width: 100%; overflow-x: hidden;
+      max-width: 100%; overflow: hidden;
     }
-    h2 { margin: 0 0 26px 0; font-size: clamp(2.2rem, 2.05rem + 0.3vw, 2.4rem); color: var(--text); }
+    .card::before {
+      content: "";
+      position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
+      background: radial-gradient(
+        450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        var(--border-hover),
+        transparent 45%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    h2 { margin: 0 0 26px 0; font-size: clamp(2.2rem, 2.05rem + 0.3vw, 2.4rem); color: var(--text); letter-spacing: -0.02em; }
     h3 { font-size: clamp(1.8rem, 1.7rem + 0.2vw, 2rem); color: var(--text-muted); margin: 0 0 22px 0; }
     select, input[type="text"], input[type="url"], input[type="date"],
     input[type="number"], input[type="password"], textarea {
-      padding: 26px 30px; border-radius: 20px;
+      padding: 26px 30px; border-radius: 22px;
       border: 1px solid var(--border);
-      background: var(--bg); color: var(--text);
+      background: rgba(0,0,0,0.2); color: var(--text);
       font-size: 1.8rem;
       outline: none; width: 100%; min-height: var(--tap-min);
       touch-action: manipulation; font-family: inherit;
+      transition: all 0.2s ease;
     }
-    select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+    body.light select, body.light input[type="text"], body.light input[type="url"],
+    body.light input[type="date"], body.light input[type="number"],
+    body.light input[type="password"], body.light textarea {
+      background: rgba(255,255,255,0.7);
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
     button {
-      padding: 26px 40px; border-radius: 20px;
+      padding: 26px 40px; border-radius: 22px;
       border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text);
       font-size: 1.9rem; font-weight: 600;
       cursor: pointer; min-height: var(--tap-min);
       display: inline-flex; align-items: center; justify-content: center; gap: 14px;
     }
-    button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); }
+    button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 6px 20px var(--accent-glow); }
+    button.danger  { background: var(--error); color: var(--on-accent); border-color: var(--error); box-shadow: 0 6px 20px rgba(255,71,87,0.3); }
     button.small   { padding: 18px 26px; font-size: 1.7rem; min-height: 76px; }
-    button:disabled { opacity: 0.55; cursor: default; }
+    button:disabled { opacity: 0.55; cursor: default; transform: none !important; box-shadow: none !important; }
     .m-container { max-width: 900px; margin: 0 auto; padding: 26px max(26px, env(safe-area-inset-left)) 26px max(26px, env(safe-area-inset-right)); overflow-x: hidden; }
-    .m-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
+    .m-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .m-avatar.sm { width: 52px; height: 52px; }
     .m-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; row-gap: 14px; }
     .m-tab { display: none; }
-    .m-tab.active { display: block; animation: mFadeIn 0.2s ease; }
-    @keyframes mFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .m-tab.active { display: block; }
     .m-empty { text-align: center; color: var(--text-muted); padding: 50px 18px; font-size: 1.9rem; }
 
-    /* ── RAIL LATÉRAL (remplace l'ancienne bande supérieure + barre du bas) ──
-       Repliée : bande étroite d'icônes, toujours visible, cote à cote avec le
-       contenu (qui lui laisse la place via le padding-left du body).
-       Dépliée : s'élargit et affiche les libellés, en survol par-dessus le
-       contenu (position fixed, z-index élevé, overlay derrière pour capter
-       les taps "en dehors" et se replier). */
+    /* ── RAIL LATÉRAL GLASSMORPHIC ── */
     .m-side-nav {
       position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
-      width: var(--rail-w); background: var(--card); border-right: 1px solid var(--border);
+      width: var(--rail-w); background: var(--card);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-right: 1px solid var(--border);
       display: flex; flex-direction: column; overflow: hidden;
       padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
-      transition: width 0.2s ease;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .m-side-nav.expanded { width: 76vw; max-width: 560px; box-shadow: 10px 0 35px rgba(0,0,0,0.5); }
+    .m-side-toggle {
+      background: none; border: none; color: var(--text); font-size: 2.8rem;
+      width: var(--rail-w); flex-shrink: 0; padding: 22px 0; min-height: auto; border-radius: 0;
     }
     .m-side-nav.expanded { width: 76vw; max-width: 560px; box-shadow: 8px 0 28px rgba(0,0,0,0.4); }
     .m-side-toggle {
@@ -1024,10 +1053,40 @@
   function collapseSideNav() { document.getElementById('mSideNav').classList.remove('expanded'); }
 
   function goToTab(tabId) {
-    document.querySelectorAll('.m-tab[id^="tab-"]').forEach(el => el.classList.remove('active'));
+    const targetTab = document.getElementById(tabId);
+    if (!targetTab) return;
+    const currentActive = document.querySelector('.m-tab.active');
+
     document.querySelectorAll('.m-nav-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.m-nav-btn[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
+
+    if (window.gsap && currentActive && currentActive !== targetTab) {
+      gsap.to(currentActive, {
+        opacity: 0,
+        y: -10,
+        duration: 0.15,
+        ease: 'power2.in',
+        onComplete: () => {
+          currentActive.classList.remove('active');
+          targetTab.classList.add('active');
+          gsap.fromTo(targetTab,
+            { opacity: 0, y: 15, scale: 0.99 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: 'power2.out' }
+          );
+          const cards = targetTab.querySelectorAll('.card, .m-guide-tile, .m-hist-card');
+          if (cards.length > 0) {
+            gsap.fromTo(cards,
+              { opacity: 0, y: 12 },
+              { opacity: 1, y: 0, duration: 0.25, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
+            );
+          }
+        }
+      });
+    } else {
+      document.querySelectorAll('.m-tab[id^="tab-"]').forEach(el => el.classList.remove('active'));
+      targetTab.classList.add('active');
+    }
+
     if (tabId === 'tab-dashboard') loadDashboard();
     if (tabId === 'tab-inject')    initInjectTab();
     if (tabId === 'tab-settings')  initSettingsTab();
@@ -3170,8 +3229,45 @@
     if (t) hideMobileChartTooltipIfOutside(t.clientX, t.clientY);
   }, { passive: true });
 
+  let _mLenisInstance = null;
+  function initLenisMobile() {
+    if (typeof Lenis === 'undefined') return;
+    try {
+      _mLenisInstance = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        touchMultiplier: 2,
+      });
+      function raf(time) {
+        if (_mLenisInstance) _mLenisInstance.raf(time);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+    } catch(e) { console.warn('Mobile Lenis init warning:', e); }
+  }
+
+  function initSpotlightCardsMobile() {
+    const handleTouchOrMove = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      if (!touch) return;
+      const cards = document.querySelectorAll('.card, .m-guide-tile, .m-hist-card, .m-chip');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    };
+    window.addEventListener('mousemove', handleTouchOrMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchOrMove, { passive: true });
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initLenisMobile();
+    initSpotlightCardsMobile();
     loadAppBranding();
     callServer('apiGetNavPages', [], res => {
       NAV_PAGES = res.pages;

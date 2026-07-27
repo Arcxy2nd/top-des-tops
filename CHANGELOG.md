@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Ajouté
+**Humanisé** : Refonte visuelle et interactive complète de l'interface mobile (`Mobile.html`) — défilement Lenis tactile, animations GSAP keyframe sur les onglets ("hyperframes"), cartes glassmorphic réactives au toucher (Spotlight cards) et boutons magnétiques.
+**Technique** : `Mobile.html` — ajout du CDN Lenis Scroll, intégration `initLenisMobile()` et `initSpotlightCardsMobile()`, rehaussement du thème CSS avec gradients de fond et flou de fond (`backdrop-filter: blur(20px/24px)`), transitions d'onglets animées par GSAP keyframes (`goToTab()`).
+
 **Humanisé** : Suite graphique enrichie — bandeau de mini-KPIs dynamiques (Total, Moyenne/j, Peak), nouveau type de graphique "Parts %" (proportions 100%), bouton de lissage (moyenne glissante), lueurs néon sur les courbes et mise en valeur interactive des séries au survol.
 **Technique** : `Index.html` — ajout de `#chartKpisBar` (`updateChartKpis`), nouveau type `parts`, toggles `chartToggleSma` et `chartToggleN1`, plugins Chart.js `glowShadowPlugin` et `seriesHighlightPlugin`.
 
