@@ -7,6 +7,9 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-27
 
 ### Modifié
+**Humanisé** : Ajout d'une règle d'hygiène dans la documentation interdisant le sondage en boucle (polling) pour préserver le quota de requêtes.
+**Technique** : `context.md` — section §8 enrichie avec la règle d'interdiction de polling répété lors des suivis de déploiement GitHub Actions.
+
 **Humanisé** : Correction complète de l'affichage du Barème et des modaux sur mobile : restructuration du barème par Top/Catégorie avec badges de couleur et pastilles de points (parité PC), suppression des tailles de texte surdimensionnées (28px) sur tous les modaux et formulaires d'édition.
 **Technique** : `Mobile.html` — refonte de `renderBaremeSettings()`, `openBaremeFormModal()`, `openHistoryEditModal()`, `openEntityFormModal()`, `openPhraseFormModal()` et suppression de toutes les règles inlines `1.65rem` / `1.75rem`.
 

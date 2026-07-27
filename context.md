@@ -301,6 +301,10 @@ Toute modification livrée doit être commit **et poussée** (`git push`) — pa
 
 **Deux comptes GitHub actifs sur la machine** (`Arcxy2nd` et `zebi-wouldik`) — avant tout `pull`/`push`/`commit` distant, vérifier le compte actif (`gh auth status`) et basculer sur `Arcxy2nd` si besoin (`gh auth switch --user Arcxy2nd`).
 
+### Pas de sondage en boucle (anti-polling / quota)
+
+Lors de la vérification de l'avancement des tâches en arrière-plan ou des déploiements GitHub Actions (`gh run list`), **ne jamais sonder en boucle répétée (polling)** via des appels d'outils successifs rapprochés. Cela consomme inutilement le quota de requêtes. Attendre le délai nécessaire en une fois ou rendre la main.
+
 ---
 
 ## §9 — SKILLS — USAGE OBLIGATOIRE
