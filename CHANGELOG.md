@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-27
 
+### Supprimé
+**Humanisé** : Retrait définitif des boutons d'options Lissage / Comparer N-1, des mini-KPIs et du mode "Parts %" pour alléger l'interface du graphique principal.
+**Technique** : `Index.html` — suppression de `#chartKpisBar`, des toggles `chartToggleSma` et `chartToggleN1`, de la fonction `updateChartKpis` et du bouton `parts`.
+
 ### Modifié
 **Humanisé** : Retrait complet du défilement doux Lenis Scroll sur desktop et mobile — retour au défilement natif fluide et réactif de la plateforme.
 **Technique** : `Index.html` et `Mobile.html` — suppression de la bibliothèque CDN Lenis, des instances de scroll et des écouteurs `requestAnimationFrame` associés.
