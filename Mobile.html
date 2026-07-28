@@ -1399,6 +1399,13 @@
 
   function renderDashboardShell() {
     const tab = document.getElementById('tab-dashboard');
+    if (!tab) return;
+    if (tab.querySelector('#mChartWrapper')) {
+      renderFilterChips();
+      renderChartOptionsBar();
+      renderDonutPlayerChips();
+      return;
+    }
     tab.innerHTML =
       '<div id="mQuickKpisBar" class="m-quick-kpis"></div>' +
       '<div class="card" id="mCommentsCard">' +
@@ -1433,6 +1440,8 @@
           '<button class="m-seg-btn" data-type="donut">🍩 Donut</button>' +
           '<button class="m-seg-btn" data-type="ranking">🏆 Classement</button>' +
         '</div>' +
+        '<div id="mChartOptionsBar" style="display:none; gap:6px; margin:10px 0; flex-wrap:wrap;"></div>' +
+        '<div id="mDonutPlayerChips" class="m-chip-row" style="display:none; margin:10px 0;"></div>' +
         '<div class="m-chart-wrapper" id="mChartWrapper">' +
           '<canvas id="mMainChart"></canvas>' +
           '<div id="mChartCustomTooltip" role="tooltip"></div>' +
@@ -1467,6 +1476,8 @@
         document.querySelectorAll('#mChartTypeSegmented .m-seg-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         mChartType = btn.dataset.type;
+        renderChartOptionsBar();
+        renderDonutPlayerChips();
         refreshDashboardData();
       });
     });
@@ -1479,6 +1490,8 @@
     }
 
     renderFilterChips();
+    renderChartOptionsBar();
+    renderDonutPlayerChips();
   }
 
   // ── Cards statistiques repliables (Records/Tendances/Jour actif/Duo) ──
@@ -1744,11 +1757,21 @@
     loadQuickKpisMobile();
 
     if (mChartType === 'line') {
-      callServer('apiGetTrendData', [players, categories, start, end], res => renderTrendChart(res.trendData), 'Chargement tendance');
+      callServer('apiGetTrendData', [players, categories, start, end], res => {
+        if (res && res.trendData) renderTrendChart(res.trendData);
+        else showChartEmptyState('Aucune donnée temporelle sur cette période.');
+      }, 'Chargement tendance');
     } else if (mChartType === 'ranking') {
-      callServer('apiGetPlayerTotals', [players, start, end], res => renderBarChart(res.chartData, 'bar'), 'Chargement classement');
+      callServer('apiGetPlayerTotals', [players, start, end], res => {
+        if (res && res.chartData) renderBarChart(res.chartData, 'bar');
+        else showChartEmptyState('Aucune donnée de classement sur cette période.');
+      }, 'Chargement classement');
     } else {
       callServer('apiGetFilteredData', [players, categories, start, end], res => {
+        if (!res || !res.chartData) {
+          showChartEmptyState('Aucune donnée sur cette période.');
+          return;
+        }
         if (mChartType === 'stacked') renderBarChart(res.chartData, 'bar', true);
         else if (mChartType === 'grouped') renderBarChart(res.chartData, 'bar', false);
         else if (mChartType === 'radar') renderRadarChart(res.chartData);
@@ -1757,8 +1780,10 @@
     }
 
     callServer('apiGetPlayerTotals', [players, start, end], res => {
-      _mLastCommentsData = res.chartData;
-      renderComments(res.chartData);
+      if (res && res.chartData) {
+        _mLastCommentsData = res.chartData;
+        renderComments(res.chartData);
+      }
     }, 'Chargement commentaires');
   }
 
@@ -2179,6 +2204,8 @@
   function getOrCreateChartCanvas() {
     const wrapper = document.getElementById('mChartWrapper');
     if (!wrapper) return null;
+    const emptyEl = wrapper.querySelector('.m-empty');
+    if (emptyEl) emptyEl.remove();
     let canvas = document.getElementById('mMainChart');
     if (!canvas) {
       wrapper.innerHTML = '<canvas id="mMainChart"></canvas><div id="mChartCustomTooltip" role="tooltip"></div>';
@@ -2192,8 +2219,16 @@
   function showChartEmptyState(msg) {
     const wrapper = document.getElementById('mChartWrapper');
     if (wrapper) {
-      wrapper.innerHTML = '<canvas id="mMainChart" style="display:none;"></canvas>' +
-        '<div class="m-empty" style="padding:50px 0; text-align:center;">📊 ' + (msg || 'Aucune donnée sur cette période.') + '</div>';
+      const canvas = document.getElementById('mMainChart');
+      if (canvas) canvas.style.display = 'none';
+      let emptyEl = wrapper.querySelector('.m-empty');
+      if (!emptyEl) {
+        emptyEl = document.createElement('div');
+        emptyEl.className = 'm-empty';
+        emptyEl.style.cssText = 'padding:50px 0; text-align:center;';
+        wrapper.appendChild(emptyEl);
+      }
+      emptyEl.textContent = '📊 ' + (msg || 'Aucune donnée sur cette période.');
     }
   }
 
