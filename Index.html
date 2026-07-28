@@ -140,47 +140,38 @@
       align-items: center; padding: 6px 12px;
     }
     .nav-btn-group {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center;
       flex: 1 1 auto; min-width: 0;
       overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-      padding: 4px 0;
     }
     .nav-btn-group::-webkit-scrollbar { display: none; }
     .nav-btn {
       position: relative;
-      background: transparent; border: 1px solid transparent;
-      color: var(--text-muted); font-size: 0.86rem;
-      padding: 8px 14px; cursor: pointer;
-      border-radius: var(--radius-full);
-      white-space: nowrap; min-height: 38px;
+      background: transparent; border: none;
+      color: var(--text-muted); font-size: 0.88rem;
+      padding: 14px 16px; cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap; min-height: var(--tap-min);
       font-weight: 600; 
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: color 0.2s, flex-grow 0.3s ease, border-color 0.2s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      flex: 0 0 auto;
+      display: flex; align-items: center; justify-content: center;
+      flex: 1 1 0; min-width: max-content;
     }
-    .nav-btn:hover {
-      color: var(--text);
-      background: var(--btn-alt);
-      border-color: var(--border);
-    }
+    .nav-btn:hover { color: var(--text); }
     .nav-btn.active {
-      color: var(--accent);
-      background: rgba(255, 71, 87, 0.12);
-      border-color: rgba(255, 71, 87, 0.35);
+      color: var(--accent); 
+      border-bottom-color: var(--accent); 
       font-weight: 700;
-      box-shadow: 0 2px 10px rgba(255, 71, 87, 0.15);
+      flex-grow: 2.6;
     }
-    body.light .nav-btn.active {
-      background: rgba(229, 62, 62, 0.1);
-      border-color: rgba(229, 62, 62, 0.3);
-    }
-    .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
+    .nav-btn-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
     .nav-btn-label {
-      display: inline-block; opacity: 1; max-width: none; overflow: visible;
-      margin-left: 0; font-size: 0.86rem;
+      display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
+      transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
     }
+    .nav-btn.active .nav-btn-label { max-width: 160px; opacity: 1; margin-left: 8px; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card-solid); color: var(--text);
@@ -190,7 +181,7 @@
       opacity: 0; pointer-events: none;
       transition: opacity 0.12s ease;
     }
-    .nav-hover-tip.visible { opacity: 0 !important; }
+    .nav-hover-tip.visible { opacity: 1; }
 
     /* ── Identité de l'app (titre + logo) ── */
     .app-brand { display: flex; align-items: center; gap: 10px; padding: 0 14px 0 6px; flex-shrink: 0; }
@@ -2278,50 +2269,65 @@
     .btn-submit-lot:hover { opacity: 0.86; }
     .btn-submit-lot:active { transform: scale(0.97); }
 
-    /* ── BARÈME RAPIDE PAR TOP ── */
+    /* ── BARÈME RAPIDE PAR TOP (MENU APPARENT DE SAISIE) ── */
     .bareme-quick-row {
-      display: none; /* hidden when no entries for current top */
-      flex-direction: column; gap: 4px;
-      padding: 4px 0 2px;
+      display: none;
+      flex-direction: column; gap: 6px;
+      padding: 6px 0 4px;
+      margin-top: 4px;
+      border-top: 1px dashed var(--border);
     }
     .bareme-quick-row.has-entries { display: flex; }
     .bareme-quick-header {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 6px;
       cursor: pointer; user-select: none;
-      background: var(--card);
+      background: var(--btn-alt);
       border: 1px solid var(--border);
-      border-radius: 6px; padding: 3px 9px;
-      font-family: inherit; font-size: 0.72rem;
-      font-weight: 600; color: var(--text-muted);
-      transition: background 0.13s, border-color 0.13s, color 0.13s;
+      border-radius: var(--radius-full); padding: 4px 11px;
+      font-family: inherit; font-size: 0.75rem;
+      font-weight: 700; color: var(--accent);
+      transition: all 0.15s ease;
       align-self: flex-start;
     }
-    .bareme-quick-header:hover { background: var(--btn-alt); border-color: var(--row-accent, var(--border)); color: var(--text); }
+    .bareme-quick-header:hover {
+      background: var(--card-hover); border-color: var(--accent);
+    }
     .bareme-quick-header .bq-chevron {
-      font-size: 0.6rem; display: inline-block;
-      transition: transform 0.15s;
+      font-size: 0.65rem; display: inline-block;
+      transition: transform 0.2s ease;
     }
     .bareme-quick-header.open .bq-chevron { transform: rotate(90deg); }
     .bareme-quick-btns {
-      display: none; flex-wrap: wrap; gap: 5px; padding: 2px 0;
+      display: none; flex-wrap: wrap; gap: 6px; padding: 4px 0;
     }
     .bareme-quick-btns.open { display: flex; }
     .bq-btn {
-      background: transparent;
+      background: var(--card);
       border: 1.5px solid var(--row-accent, var(--border));
-      border-radius: 6px; padding: 5px 10px;
-      font-size: 0.75rem; cursor: pointer; color: var(--row-accent, var(--text));
-      font-family: inherit; transition: background 0.13s, border-color 0.13s, color 0.13s;
+      border-radius: 8px; padding: 6px 11px;
+      font-size: 0.8rem; cursor: pointer; color: var(--text);
+      font-family: inherit; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       white-space: normal; word-break: break-word;
-      display: flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
-    .bq-btn:hover { background: var(--row-accent, var(--btn-alt)); color: var(--on-accent); border-color: var(--row-accent, var(--border)); }
-    .bq-btn .bq-action { flex: 1; }
+    .bq-btn:hover {
+      background: var(--row-accent, var(--accent));
+      color: #ffffff;
+      border-color: var(--row-accent, var(--accent));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .bq-btn:hover .bq-pts {
+      background: rgba(255,255,255,0.25);
+      color: #ffffff;
+    }
+    .bq-btn .bq-action { flex: 1; font-weight: 500; }
     .bq-btn .bq-pts {
-      font-weight: 700; font-variant-numeric: tabular-nums;
-      font-size: 0.8rem; flex-shrink: 0;
-      background: rgba(128,128,128,0.12); border-radius: 4px;
-      padding: 0 4px;
+      font-weight: 800; font-variant-numeric: tabular-nums;
+      font-size: 0.78rem; flex-shrink: 0;
+      background: rgba(128,128,128,0.15); border-radius: 6px;
+      padding: 2px 7px; color: var(--accent);
     }
 
     /* ── HISTORIQUE RAPIDE PAR JOUEUR+TOP ── */
@@ -9673,15 +9679,15 @@
 
     function renderBaremeQuickBtns(entries, topName) {
       bqBtns.innerHTML = '';
-      const matching = entries.filter(e => e.top === topName && e.pts > 0).sort((a, b) => a.pts - b.pts);
+      const matching = entries.filter(e => e.top === topName).sort((a, b) => b.pts - a.pts);
       if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
       baremeRow.classList.add('has-entries');
       matching.forEach(entry => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'bq-btn';
-        btn.title = entry.action + ' : ' + entry.pts + ' pts';
-        btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + entry.pts + '</span>';
+        btn.title = entry.action + ' : ' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts';
+        btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts</span>';
         btn.addEventListener('click', () => applyBaremePts(entry.pts, entry.action));
         bqBtns.appendChild(btn);
       });

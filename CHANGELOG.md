@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Modifié
-**Humanisé** : Refonte complète du menu de navigation principal et du bouton Barème : affichage permanent et lisible du texte de tous les onglets sur PC avec pilules glassmorphismes actives, et suppression de la rotation à 180° inesthétique du bouton Barème au survol.
-**Technique** : `Index.html` — (1) Remplacement des accordéons masquant les libellés texte (`.nav-btn-label`) par un style pilule fixe et réactif (`.nav-btn.active` avec fond accentué). (2) Découplage de `#baremeBtn` de la classe `.nav-refresh-btn` au profit de `.nav-bareme-btn` avec icône `⚖️` et texte `Barème`, sans transformation `rotate(180deg)`.
+**Humanisé** : Refonte du menu apparent du barème et du bouton Barème : boutons de règles de points de la saisie plus lisibles et dynamiques avec badges de points colorés (positives et négatives), et suppression de la rotation à 180° du bouton Barème au survol.
+**Technique** : `Index.html` — (1) Rétablissement du comportement original des onglets de navigation (.nav-btn). (2) Refonte du CSS et JS de `.bareme-quick-row` / `.bq-btn` pour afficher des pilules de règles interactives avec badges de points dans le formulaire de saisie de lot. (3) Remplacement de `#baremeBtn` par `.nav-bareme-btn` avec icône `⚖️` et texte `Barème` sans transformation `rotate(180deg)`.
 
 ### Ajouté
 **Humanisé** : Ajout d'un bouton d'accès rapide au Barème des Tops dans l'en-tête mobile permettant de consulter les règles de points en 1 tap.
