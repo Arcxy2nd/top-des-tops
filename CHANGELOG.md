@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Corrigé
-**Humanisé** : L'interface mobile ne restait plus bloquée sur un écran vide au chargement — le Dashboard s'affiche immédiatement avec ses graphiques, KPIs et commentaires au lieu de tourner à l'infini.
-**Technique** : Trois problèmes corrigés : (1) `Mobile.html` — le tab `#tab-dashboard` n'avait jamais la classe `.active` (ajoutée dès `initAppMobile()`). (2) Le fallback d'erreur du bootstrap utilisait `goToTab()` qui ne déclenchait pas `loadDashboard()` car `#mMainChart` existait déjà — remplacé par un appel direct à `refreshDashboardData()`. (3) `Code.gs` — `apiGetMobileBootstrap()` allégé : retrait des 3 appels lourds (`apiGetQuickStats`, `apiGetFilteredData`, `apiGetPlayerTotals`) qui lisaient chacun tout le sheet History et provoquaient un dépassement du timeout GAS 30s. Les données graphiques sont maintenant chargées côté client via des appels individuels rapides.
+**Humanisé** : Correction intégrale de l'interface mobile : fermeture du sélecteur d'identité rétablie (le bouton "Fermer" n'est plus masqué par la barre de navigation), renommage de la carte en "🏆 Podium", affichage de vrais graphiques interactifs pour les Tendances et le Jour le plus actif, et suppression des chargements redondants au démarrage.
+**Technique** : `Mobile.html` — (1) Élévation du `z-index` de `#mIdentitySheet` à `10000` (au-dessus de la navigation inférieure `9000`), ajout d'un `padding-bottom` de sécurité et fermeture au clic sur le fond. (2) Renommage du titre de carte `🎭 Commentaires` en `🏆 Podium` pour parité avec la version PC. (3) Intégration de vrais graphiques Chart.js dans `loadTrendsStat()` (barres horizontales de variation %) et `loadWeekdayStat()` (barres des jours de la semaine avec surbrillance du jour actif). (4) Ajout de gardes anti-`null` dans `renderBarChart`, `renderTrendChart`, `renderRadarChart` et `renderDonutChart` pour éviter toute exception JS bloquante. (5) Optimisation des appels réseau au démarrage via le fanion `_mDashboardDataLoaded` pour éliminer les rafraîchissements en doublon.
 
 ## [Non publié] - 2026-07-27
 
