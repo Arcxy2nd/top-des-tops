@@ -1291,20 +1291,22 @@
 
     /* ── BARÈME DRAWER (desktop : latéral droit) ── */
     .bareme-drawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 360px; max-width: 100vw;
+      position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 100vw;
       background: var(--card); border-left: 1px solid var(--border);
       z-index: 1600; display: flex; flex-direction: column;
       transform: translateX(105%);
-      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
-      box-shadow: -8px 0 32px rgba(0,0,0,0.45);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -12px 0 40px rgba(0,0,0,0.5);
       padding-top: env(safe-area-inset-top);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
     .bareme-drawer.open { transform: translateX(0); }
 
     /* Mobile : bottom sheet */
     @media (max-width: 640px) {
       .bareme-drawer {
-        top: auto; left: 0; right: 0; width: 100%; max-height: 80vh;
+        top: auto; left: 0; right: 0; width: 100%; max-height: 85vh;
         border-left: none; border-top: 1px solid var(--border);
         border-radius: 20px 20px 0 0;
         transform: translateY(105%);
@@ -1321,15 +1323,54 @@
     }
 
     .bareme-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 16px 18px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 16px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: rgba(0,0,0,0.1);
     }
-    .bareme-header h2 { margin: 0; font-size: 1rem; flex: 1; }
+    .bareme-header-title { display: flex; align-items: center; gap: 10px; }
+    .bareme-header h2 { margin: 0; font-size: 1.05rem; font-weight: 800; }
+    .bareme-header-badge {
+      font-size: 0.72rem; font-weight: 700; color: var(--accent);
+      background: rgba(255, 71, 87, 0.12); border: 1px solid rgba(255, 71, 87, 0.3);
+      padding: 2px 8px; border-radius: 12px;
+    }
     .bareme-header-btns { display: flex; gap: 6px; }
 
+    .bareme-toolbar {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+      background: rgba(0,0,0,0.05);
+    }
+    .bareme-search-wrap input {
+      width: 100%; padding: 8px 14px; border-radius: var(--radius-full);
+      border: 1px solid var(--border); background: var(--btn-alt);
+      color: var(--text); font-size: 0.85rem; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .bareme-search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.15);
+    }
+    .bareme-filter-chips {
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch; padding: 2px 0;
+    }
+    .bareme-filter-chips::-webkit-scrollbar { display: none; }
+    .bareme-chip {
+      padding: 4px 10px; border-radius: var(--radius-full);
+      font-size: 0.76rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--card); color: var(--text-muted);
+      white-space: nowrap; flex-shrink: 0; transition: all 0.15s ease;
+    }
+    .bareme-chip:hover { color: var(--text); background: var(--btn-alt); }
+    .bareme-chip.active {
+      background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent);
+      box-shadow: 0 2px 8px rgba(255, 71, 87, 0.25);
+    }
+
     .bareme-body {
-      flex: 1; overflow-y: auto; padding: 14px;
-      display: flex; flex-direction: column; gap: 9px;
+      flex: 1; overflow-y: auto; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 14px;
       scrollbar-width: thin;
     }
 
@@ -1373,28 +1414,48 @@
     .bsect-empty { padding: 9px 14px; font-style: italic; font-size: 0.8rem; color: var(--text-muted); }
 
     /* ── BARÈME DRAWER ENTRIES ── */
-    .bd-sect { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+    .bd-sect {
+      border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+      background: var(--card); box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: border-color 0.2s;
+    }
     .bd-head {
       display: flex; align-items: center; gap: 9px;
-      padding: 11px 14px;
-      background: rgba(0,0,0,0.18);
+      padding: 10px 14px;
+      background: color-mix(in srgb, var(--bd-col, var(--accent)) 12%, var(--card));
+      border-bottom: 1px solid var(--border);
       border-left: 4px solid var(--bd-col, var(--accent));
-      font-weight: 700; font-size: 0.87rem;
+      font-weight: 700; font-size: 0.88rem; color: var(--text);
     }
-    .bd-name { flex: 1; }
+    .bd-name { flex: 1; display: flex; align-items: center; gap: 6px; }
     .bd-count {
-      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
-      background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      background: var(--bg); padding: 2px 8px; border-radius: 20px;
+      border: 1px solid var(--border);
     }
-    .bd-entry { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--border); transition: background 0.1s; }
-    .bd-entry:hover { background: rgba(255,255,255,0.03); }
+    .bd-entries { display: flex; flex-direction: column; }
+    .bd-entry {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      border-top: 1px solid var(--border); cursor: pointer;
+      transition: all 0.15s ease; position: relative;
+    }
+    .bd-entry:first-child { border-top: none; }
+    .bd-entry:hover {
+      background: color-mix(in srgb, var(--bd-col, var(--accent)) 8%, var(--card));
+      padding-left: 17px;
+    }
     .bd-badge {
-      flex-shrink: 0; min-width: 58px; text-align: center;
-      color: var(--on-accent); font-size: 0.78rem; font-weight: 800;
-      border-radius: 20px; padding: 4px 10px; letter-spacing: 0.03em;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      flex-shrink: 0; min-width: 64px; text-align: center;
+      color: #ffffff; font-size: 0.78rem; font-weight: 800;
+      border-radius: var(--radius-full); padding: 4px 10px; letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
-    .bd-txt { flex: 1; font-size: 0.87rem; line-height: 1.4; word-break: break-word; }
+    .bd-txt { flex: 1; font-size: 0.87rem; line-height: 1.4; color: var(--text); word-break: break-word; }
+    .bd-copy-hint {
+      font-size: 0.7rem; color: var(--text-muted); opacity: 0;
+      transition: opacity 0.15s ease; flex-shrink: 0;
+    }
+    .bd-entry:hover .bd-copy-hint { opacity: 1; }
     .bd-none { padding: 9px 14px; font-style: italic; font-size: 0.79rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
     .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 32px 16px; font-size: 0.88rem; }
@@ -3838,11 +3899,20 @@
 <div class="bareme-backdrop" id="baremeBackdrop"></div>
 <aside class="bareme-drawer" id="baremeDrawer" aria-label="Barème des Tops">
   <div class="bareme-header">
-    <h2>⚖️ Barème des Tops</h2>
+    <div class="bareme-header-title">
+      <h2>⚖️ Barème des Tops</h2>
+      <span class="bareme-header-badge" id="baremeTotalBadge">0 règle</span>
+    </div>
     <div class="bareme-header-btns">
-      <button class="secondary small" id="baremeRefreshBtn" title="Rafraîchir les stats">🔄</button>
+      <button class="secondary small" id="baremeRefreshBtn" title="Rafraîchir les règles">🔄</button>
       <button class="secondary small" id="baremeCloseBtn" title="Fermer (Échap)">✕</button>
     </div>
+  </div>
+  <div class="bareme-toolbar">
+    <div class="bareme-search-wrap">
+      <input type="text" id="baremeSearchInput" placeholder="🔍 Rechercher une règle..." autocomplete="off" />
+    </div>
+    <div class="bareme-filter-chips" id="baremeFilterChips"></div>
   </div>
   <div class="bareme-body" id="baremeBody"></div>
 </aside>
@@ -13927,6 +13997,7 @@
 
   // ── BARÈME ───────────────────────────────────────────────────────────
   let baremeEntries = null; // cache: array of {rowIndex, action, pts}
+  let baremeActiveFilterCat = 'all';
 
   function openBareme() {
     document.getElementById('baremeDrawer').classList.add('open');
@@ -13951,22 +14022,68 @@
     }, 'Barème');
   }
 
-  // Read-only drawer — grouped by Top, sorted by pts descending
+  // Drawer enrichi — filtrage par recherche, chips catégories et copie en 1 clic
   function renderBaremeDrawer(entries) {
     const body = document.getElementById('baremeBody');
+    const badge = document.getElementById('baremeTotalBadge');
+    const filterContainer = document.getElementById('baremeFilterChips');
+    const searchInput = document.getElementById('baremeSearchInput');
+
+    if (!entries) entries = baremeEntries || [];
+    if (badge) badge.textContent = entries.length + ' règle' + (entries.length > 1 ? 's' : '');
+
+    // Génération des puces de filtre par catégorie
+    if (filterContainer && cachedCategories.length) {
+      filterContainer.innerHTML = '';
+      const allChip = document.createElement('button');
+      allChip.type = 'button';
+      allChip.className = 'bareme-chip' + (baremeActiveFilterCat === 'all' ? ' active' : '');
+      allChip.textContent = 'Tous (' + entries.length + ')';
+      allChip.addEventListener('click', () => {
+        baremeActiveFilterCat = 'all';
+        renderBaremeDrawer(entries);
+      });
+      filterContainer.appendChild(allChip);
+
+      cachedCategories.forEach(cat => {
+        const catCount = entries.filter(e => e.top === cat.name).length;
+        if (!catCount) return;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'bareme-chip' + (baremeActiveFilterCat === cat.name ? ' active' : '');
+        chip.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name + ' (' + catCount + ')';
+        chip.addEventListener('click', () => {
+          baremeActiveFilterCat = cat.name;
+          renderBaremeDrawer(entries);
+        });
+        filterContainer.appendChild(chip);
+      });
+    }
+
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
     body.innerHTML = '';
+
     if (!cachedCategories.length) {
       body.innerHTML = '<p class="bareme-empty">Aucun Top configuré.</p>';
       return;
     }
+
     let hasAny = false;
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
+      if (baremeActiveFilterCat !== 'all' && baremeActiveFilterCat !== cat.name) return;
+
+      let catEntries = entries.filter(e => e.top === cat.name);
+      if (query) {
+        catEntries = catEntries.filter(e => e.action.toLowerCase().includes(query) || cat.name.toLowerCase().includes(query));
+      }
+      catEntries.sort((a, b) => b.pts - a.pts);
       if (!catEntries.length) return;
       hasAny = true;
+
       const col  = categoryColor(cat.name);
       const sect = document.createElement('div');
       sect.className = 'bd-sect';
+      sect.style.setProperty('--bd-col', col);
 
       const head = document.createElement('div');
       head.className = 'bd-head';
@@ -13980,23 +14097,47 @@
       head.appendChild(name); head.appendChild(count);
       sect.appendChild(head);
 
+      const entriesWrap = document.createElement('div');
+      entriesWrap.className = 'bd-entries';
+
       catEntries.forEach(e => {
         const row = document.createElement('div');
         row.className = 'bd-entry';
-        row.style.borderLeft = '3px solid ' + tint(col, 0.5);
-        row.style.background = tint(col, 0.05);
-        const badge = document.createElement('span');
-        badge.className = 'bd-badge';
-        badge.style.background = col;
-        badge.textContent = e.pts + ' pt' + (Math.abs(e.pts) !== 1 ? 's' : '');
+        row.title = 'Cliquer pour copier la règle';
+
+        const badgeEl = document.createElement('span');
+        badgeEl.className = 'bd-badge';
+        badgeEl.style.background = col;
+        badgeEl.textContent = (e.pts > 0 ? '+' : '') + e.pts + ' pt' + (Math.abs(e.pts) !== 1 ? 's' : '');
+
         const txt = document.createElement('span');
-        txt.className = 'bd-txt'; txt.textContent = e.action;
-        row.appendChild(badge); row.appendChild(txt);
-        sect.appendChild(row);
+        txt.className = 'bd-txt';
+        txt.textContent = e.action;
+
+        const hint = document.createElement('span');
+        hint.className = 'bd-copy-hint';
+        hint.textContent = '📋 Copier';
+
+        row.appendChild(badgeEl);
+        row.appendChild(txt);
+        row.appendChild(hint);
+
+        row.addEventListener('click', () => {
+          if (navigator.clipboard) navigator.clipboard.writeText(e.action);
+          showToast('Copié : ' + e.action, 'success');
+        });
+
+        entriesWrap.appendChild(row);
       });
+      sect.appendChild(entriesWrap);
       body.appendChild(sect);
     });
-    if (!hasAny) body.innerHTML = '<p class="bareme-empty">Aucune règle définie.<br>Configurez le barème dans ⚙️ Paramètres.</p>';
+
+    if (!hasAny) {
+      body.innerHTML = '<p class="bareme-empty">' +
+        (query ? 'Aucune règle ne correspond à la recherche.' : 'Aucune règle définie.<br>Configurez le barème dans ⚙️ Paramètres.') +
+      '</p>';
+    }
   }
 
   const openCloseBareme = () => {
@@ -14008,6 +14149,12 @@
   document.getElementById('baremeRefreshBtn').addEventListener('click', () => {
     baremeEntries = null; loadBareme();
   });
+  const searchInputEl = document.getElementById('baremeSearchInput');
+  if (searchInputEl) {
+    searchInputEl.addEventListener('input', () => {
+      if (baremeEntries) renderBaremeDrawer(baremeEntries);
+    });
+  }
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeBareme();
     if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {

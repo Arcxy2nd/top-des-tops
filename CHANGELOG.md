@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Modifié
-**Humanisé** : Refonte du menu apparent du barème et du bouton Barème : boutons de règles de points de la saisie plus lisibles et dynamiques avec badges de points colorés (positives et négatives), et suppression de la rotation à 180° du bouton Barème au survol.
-**Technique** : `Index.html` — (1) Rétablissement du comportement original des onglets de navigation (.nav-btn). (2) Refonte du CSS et JS de `.bareme-quick-row` / `.bq-btn` pour afficher des pilules de règles interactives avec badges de points dans le formulaire de saisie de lot. (3) Remplacement de `#baremeBtn` par `.nav-bareme-btn` avec icône `⚖️` et texte `Barème` sans transformation `rotate(180deg)`.
+**Humanisé** : Refonte complète du volet Barème et du menu de règles : ajout d'une barre de recherche en direct, puces de filtrage rapide par Top/Catégorie, copie d'une règle en 1 clic au survol, et design des cartes modernisé.
+**Technique** : `Index.html` — (1) Élargissement du tiroir `.bareme-drawer` (420px) avec flou glassmorphism. (2) Ajout de la barre d'outils `.bareme-toolbar` (recherche interactive `baremeSearchInput` + filtres `.bareme-filter-chips`). (3) Copie de règle vers le presse-papier lors d'un clic sur une ligne `.bd-entry`. (4) Rétablissement des onglets de navigation (.nav-btn) à leur état d'origine.
 
 ### Ajouté
 **Humanisé** : Ajout d'un bouton d'accès rapide au Barème des Tops dans l'en-tête mobile permettant de consulter les règles de points en 1 tap.
