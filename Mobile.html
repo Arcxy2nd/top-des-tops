@@ -1864,113 +1864,118 @@
 
   function buildMobileTooltipPlugin(opts) {
     opts = opts || {};
-    const el = document.getElementById('mChartCustomTooltip');
-    if (!el) return {};
     return {
       id: 'mCustomTooltip',
       afterInit(chart) {
         chart.options.plugins.tooltip.enabled = false;
         chart.options.plugins.tooltip.external = (ctx) => {
-          const { chart: ch, tooltip } = ctx;
-          if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
-          el.innerHTML = '';
+          try {
+            const el = document.getElementById('mChartCustomTooltip');
+            if (!el) return;
+            const { chart: ch, tooltip } = ctx;
+            if (!tooltip || tooltip.opacity === 0) { el.classList.remove('visible'); return; }
+            el.innerHTML = '';
 
-          if (tooltip.title && tooltip.title.length) {
-            const titleText = tooltip.title[0];
-            const wrap = document.createElement('div');
-            wrap.className = 'ctt-title-row';
-            if (opts.titleIsPlayer) {
-              const p = cachedPlayers.find(pl => pl.name === titleText);
-              const img = document.createElement('img');
-              img.className = 'ctt-avatar';
-              img.src = getAvatarUrl(titleText, p ? p.meta : '');
-              img.onerror = () => img.remove();
-              wrap.appendChild(img);
+            if (tooltip.title && tooltip.title.length) {
+              const titleText = tooltip.title[0];
+              const wrap = document.createElement('div');
+              wrap.className = 'ctt-title-row';
+              if (opts.titleIsPlayer) {
+                const p = cachedPlayers.find(pl => pl.name === titleText);
+                const img = document.createElement('img');
+                img.className = 'ctt-avatar';
+                img.src = getAvatarUrl(titleText, p ? p.meta : '');
+                img.onerror = () => img.remove();
+                wrap.appendChild(img);
+              }
+              const t = document.createElement('span');
+              t.textContent = titleText;
+              if (opts.titleIsPlayer) t.style.color = playerColor(titleText);
+              wrap.appendChild(t);
+              el.appendChild(wrap);
             }
-            const t = document.createElement('span');
-            t.textContent = titleText;
-            if (opts.titleIsPlayer) t.style.color = playerColor(titleText);
-            wrap.appendChild(t);
-            el.appendChild(wrap);
-          }
 
-          tooltip.dataPoints.forEach(dp => {
-            const dsLabel = opts.sliceLabelIsPlayer ? (dp.label || '') : (dp.dataset.label || '');
-            const color = Array.isArray(dp.dataset.backgroundColor)
-              ? dp.dataset.backgroundColor[dp.dataIndex]
-              : (dp.dataset.borderColor || dp.dataset.backgroundColor || 'var(--accent)');
-            const row = document.createElement('div');
-            row.className = 'ctt-row';
-            const isPlayerRow = (opts.rowsArePlayers || opts.sliceLabelIsPlayer) && cachedPlayers.some(pl => pl.name === dsLabel);
-            let indicator;
-            if (isPlayerRow) {
-              const p = cachedPlayers.find(pl => pl.name === dsLabel);
-              indicator = document.createElement('img');
-              indicator.className = 'ctt-avatar';
-              indicator.src = getAvatarUrl(dsLabel, p ? p.meta : '');
-              indicator.onerror = () => indicator.remove();
-            } else {
-              indicator = document.createElement('span');
-              indicator.className = 'ctt-dot';
-              indicator.style.background = color;
+            if (tooltip.dataPoints && tooltip.dataPoints.length) {
+              tooltip.dataPoints.forEach(dp => {
+                const dsLabel = opts.sliceLabelIsPlayer ? (dp.label || '') : (dp.dataset.label || '');
+                const color = Array.isArray(dp.dataset.backgroundColor)
+                  ? dp.dataset.backgroundColor[dp.dataIndex]
+                  : (dp.dataset.borderColor || dp.dataset.backgroundColor || 'var(--accent)');
+                const row = document.createElement('div');
+                row.className = 'ctt-row';
+                const isPlayerRow = (opts.rowsArePlayers || opts.sliceLabelIsPlayer) && cachedPlayers.some(pl => pl.name === dsLabel);
+                let indicator;
+                if (isPlayerRow) {
+                  const p = cachedPlayers.find(pl => pl.name === dsLabel);
+                  indicator = document.createElement('img');
+                  indicator.className = 'ctt-avatar';
+                  indicator.src = getAvatarUrl(dsLabel, p ? p.meta : '');
+                  indicator.onerror = () => indicator.remove();
+                } else {
+                  indicator = document.createElement('span');
+                  indicator.className = 'ctt-dot';
+                  indicator.style.background = color;
+                }
+                const content = document.createElement('div');
+                content.style.cssText = 'flex:1; min-width:0;';
+                const line = document.createElement('div');
+                line.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px;';
+                const label = document.createElement('span');
+                label.className = 'ctt-label';
+                label.textContent = dsLabel;
+                const val = document.createElement('span');
+                val.className = 'ctt-val';
+                const ratio = pointValueRatio(dp.raw, dp.dataset.data);
+                const tier = pointValueTier(dp.raw, dp.dataset.data);
+                if (tier) val.classList.add(tier);
+                val.textContent = (dp.formattedValue || dp.raw || 0) + ' pts';
+                line.appendChild(label); line.appendChild(val);
+                content.appendChild(line);
+                if (tier && tier !== 'pv-zero') {
+                  content.appendChild(buildTooltipGauge(tier, ratio));
+                }
+                row.appendChild(indicator); row.appendChild(content);
+                el.appendChild(row);
+              });
             }
-            const content = document.createElement('div');
-            content.style.cssText = 'flex:1; min-width:0;';
-            const line = document.createElement('div');
-            line.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px;';
-            const label = document.createElement('span');
-            label.className = 'ctt-label';
-            label.textContent = dsLabel;
-            const val = document.createElement('span');
-            val.className = 'ctt-val';
-            const ratio = pointValueRatio(dp.raw, dp.dataset.data);
-            const tier = pointValueTier(dp.raw, dp.dataset.data);
-            if (tier) val.classList.add(tier);
-            val.textContent = dp.formattedValue + ' pts';
-            line.appendChild(label); line.appendChild(val);
-            content.appendChild(line);
-            if (tier && tier !== 'pv-zero') {
-              content.appendChild(buildTooltipGauge(tier, ratio));
-            }
-            row.appendChild(indicator); row.appendChild(content);
-            el.appendChild(row);
-          });
 
-          if (opts.titleIsPlayer && opts.rankedTotals) {
-            const cmp = mComparisonText(opts.rankedTotals, tooltip.title[0]);
-            if (cmp) {
-              const cmpEl = document.createElement('div');
-              cmpEl.className = 'ctt-compare';
-              const cmpText = document.createElement('span');
-              cmpText.textContent = cmp.text;
-              cmpEl.appendChild(cmpText);
-              const np = cachedPlayers.find(pl => pl.name === cmp.neighbor);
-              const cmpAvatar = document.createElement('img');
-              cmpAvatar.className = 'ctt-avatar';
-              cmpAvatar.src = getAvatarUrl(cmp.neighbor, np ? np.meta : '');
-              cmpAvatar.onerror = () => cmpAvatar.remove();
-              cmpEl.appendChild(cmpAvatar);
-              const cmpName = document.createElement('span');
-              cmpName.textContent = cmp.neighbor;
-              cmpEl.appendChild(cmpName);
-              el.appendChild(cmpEl);
+            if (opts.titleIsPlayer && opts.rankedTotals && tooltip.title && tooltip.title[0]) {
+              const cmp = mComparisonText(opts.rankedTotals, tooltip.title[0]);
+              if (cmp) {
+                const cmpEl = document.createElement('div');
+                cmpEl.className = 'ctt-compare';
+                const cmpText = document.createElement('span');
+                cmpText.textContent = cmp.text;
+                cmpEl.appendChild(cmpText);
+                const np = cachedPlayers.find(pl => pl.name === cmp.neighbor);
+                const cmpAvatar = document.createElement('img');
+                cmpAvatar.className = 'ctt-avatar';
+                cmpAvatar.src = getAvatarUrl(cmp.neighbor, np ? np.meta : '');
+                cmpAvatar.onerror = () => cmpAvatar.remove();
+                cmpEl.appendChild(cmpAvatar);
+                const cmpName = document.createElement('span');
+                cmpName.textContent = cmp.neighbor;
+                cmpEl.appendChild(cmpName);
+                el.appendChild(cmpEl);
+              }
             }
-          }
 
-          const wrapper = document.getElementById('mChartWrapper');
-          const wRect = wrapper.getBoundingClientRect();
-          const cRect = ch.canvas.getBoundingClientRect();
-          let x = cRect.left - wRect.left + tooltip.caretX + 8;
-          let y = cRect.top - wRect.top + tooltip.caretY - 10;
-          const elW = el.offsetWidth || 160;
-          const elH = el.offsetHeight || 70;
-          if (x + elW > wRect.width - 6) x = wRect.width - elW - 6;
-          if (x < 0) x = 4;
-          if (y + elH > wRect.height - 6) y = wRect.height - elH - 6;
-          if (y < 0) y = 4;
-          el.style.left = x + 'px';
-          el.style.top = y + 'px';
-          el.classList.add('visible');
+            const wrapper = document.getElementById('mChartWrapper');
+            if (!wrapper) return;
+            const wRect = wrapper.getBoundingClientRect();
+            const cRect = ch.canvas.getBoundingClientRect();
+            let x = cRect.left - wRect.left + tooltip.caretX + 8;
+            let y = cRect.top - wRect.top + tooltip.caretY - 10;
+            const elW = el.offsetWidth || 160;
+            const elH = el.offsetHeight || 70;
+            if (x + elW > wRect.width - 6) x = wRect.width - elW - 6;
+            if (x < 0) x = 4;
+            if (y + elH > wRect.height - 6) y = wRect.height - elH - 6;
+            if (y < 0) y = 4;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.classList.add('visible');
+          } catch (_) {}
         };
       }
     };
@@ -2009,54 +2014,62 @@
     return {
       id: 'emojiOverlay',
       afterDatasetsDraw(chart) {
-        const { ctx } = chart;
-        const type = chart.config.type;
-        ctx.save();
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(0,0,0,0)';
+        try {
+          const { ctx } = chart;
+          const type = chart.config.type;
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(0,0,0,0)';
 
-        if (type === 'bar') {
-          const isHorizontal = chart.options.indexAxis === 'y';
-          chart.data.datasets.forEach((ds, di) => {
-            const icon = ds._catName ? catIcon(ds._catName) : '';
-            if (!icon) return;
-            const meta = chart.getDatasetMeta(di);
-            if (meta.hidden) return;
-            meta.data.forEach(bar => {
-              if (bar.base == null) return;
-              if (isHorizontal) {
-                const w = Math.abs(bar.x - bar.base);
-                if (w < 20) return;
-                const fontSize = Math.min(Math.floor(w * 0.35), 14);
-                ctx.font = fontSize + 'px sans-serif';
-                ctx.fillText(icon, (bar.x + bar.base) / 2, bar.y);
-              } else {
-                const h = Math.abs(bar.base - bar.y);
-                if (h < 18) return;
-                const fontSize = Math.min(Math.floor(h * 0.55), 14);
-                ctx.font = fontSize + 'px sans-serif';
-                ctx.fillText(icon, bar.x, (bar.y + bar.base) / 2);
-              }
+          if (type === 'bar') {
+            const isHorizontal = chart.options.indexAxis === 'y';
+            chart.data.datasets.forEach((ds, di) => {
+              const icon = ds._catName ? catIcon(ds._catName) : '';
+              if (!icon) return;
+              const meta = chart.getDatasetMeta(di);
+              if (!meta || meta.hidden || !meta.data) return;
+              meta.data.forEach(bar => {
+                if (bar.base == null || bar.x == null || bar.y == null) return;
+                if (isNaN(bar.x) || isNaN(bar.y) || isNaN(bar.base)) return;
+                if (isHorizontal) {
+                  const w = Math.abs(bar.x - bar.base);
+                  if (isNaN(w) || w < 20) return;
+                  const fontSize = Math.min(Math.floor(w * 0.35), 14);
+                  if (isNaN(fontSize) || fontSize < 6) return;
+                  ctx.font = fontSize + 'px sans-serif';
+                  ctx.fillText(icon, (bar.x + bar.base) / 2, bar.y);
+                } else {
+                  const h = Math.abs(bar.base - bar.y);
+                  if (isNaN(h) || h < 18) return;
+                  const fontSize = Math.min(Math.floor(h * 0.55), 14);
+                  if (isNaN(fontSize) || fontSize < 6) return;
+                  ctx.font = fontSize + 'px sans-serif';
+                  ctx.fillText(icon, bar.x, (bar.y + bar.base) / 2);
+                }
+              });
             });
-          });
-        }
+          }
 
-        if (type === 'doughnut') {
-          const ds = chart.data.datasets[0];
-          const catNames = ds ? (ds._catNames || []) : [];
-          const meta = chart.getDatasetMeta(0);
-          ctx.font = '14px sans-serif';
-          meta.data.forEach((arc, i) => {
-            const icon = catNames[i] ? catIcon(catNames[i]) : '';
-            if (!icon) return;
-            const angle = arc.endAngle - arc.startAngle;
-            if (angle < 0.35) return;
-            const midAngle = (arc.startAngle + arc.endAngle) / 2;
-            const r = (arc.innerRadius + arc.outerRadius) / 2;
-            ctx.fillText(icon, arc.x + Math.cos(midAngle) * r, arc.y + Math.sin(midAngle) * r);
-          });
-        }
-        ctx.restore();
+          if (type === 'doughnut') {
+            const ds = chart.data.datasets[0];
+            const catNames = ds ? (ds._catNames || []) : [];
+            const meta = chart.getDatasetMeta(0);
+            if (meta && meta.data) {
+              ctx.font = '14px sans-serif';
+              meta.data.forEach((arc, i) => {
+                const icon = catNames[i] ? catIcon(catNames[i]) : '';
+                if (!icon || !arc) return;
+                const angle = arc.endAngle - arc.startAngle;
+                if (isNaN(angle) || angle < 0.35) return;
+                const midAngle = (arc.startAngle + arc.endAngle) / 2;
+                const r = (arc.innerRadius + arc.outerRadius) / 2;
+                if (isNaN(midAngle) || isNaN(r)) return;
+                ctx.fillText(icon, arc.x + Math.cos(midAngle) * r, arc.y + Math.sin(midAngle) * r);
+              });
+            }
+          }
+          ctx.restore();
+        } catch (_) {}
       }
     };
   }
@@ -2065,56 +2078,64 @@
     id: 'barTotals',
     afterDatasetsDraw(chart) {
       if (!mChartShowTotals) return;
-      const { ctx } = chart;
-      const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
-      ctx.save();
-      ctx.fillStyle = chartTextColor();
-      ctx.font = '700 0.72rem sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      const isHorizontal = chart.options.indexAxis === 'y';
-      chart.data.labels.forEach((lbl, i) => {
-        const total = chart.data.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
-        if (total <= 0) return;
-        if (isHorizontal) {
-          let maxX = 0, sumY = 0, cnt = 0;
-          metas.forEach(meta => {
-            const el = meta.data[i];
-            if (!el) return;
-            maxX = Math.max(maxX, el.x);
-            sumY += el.y; cnt++;
-          });
-          if (cnt > 0) ctx.fillText(String(total), maxX + 14, sumY / cnt + 4);
-        } else {
-          let sumX = 0, cnt = 0, minY = Infinity;
-          metas.forEach(meta => {
-            const el = meta.data[i];
-            if (!el) return;
-            sumX += el.x; cnt++; minY = Math.min(minY, el.y);
-          });
-          if (cnt > 0) ctx.fillText(String(total), sumX / cnt, minY - 4);
-        }
-      });
-      ctx.restore();
+      try {
+        const { ctx } = chart;
+        const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
+        ctx.save();
+        ctx.fillStyle = chartTextColor();
+        ctx.font = '700 0.72rem sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        const isHorizontal = chart.options.indexAxis === 'y';
+        chart.data.labels.forEach((lbl, i) => {
+          const total = chart.data.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
+          if (total <= 0) return;
+          if (isHorizontal) {
+            let maxX = 0, sumY = 0, cnt = 0;
+            metas.forEach(meta => {
+              if (!meta || !meta.data) return;
+              const el = meta.data[i];
+              if (!el || el.x == null || el.y == null) return;
+              maxX = Math.max(maxX, el.x);
+              sumY += el.y; cnt++;
+            });
+            if (cnt > 0 && !isNaN(maxX) && !isNaN(sumY)) ctx.fillText(String(total), maxX + 14, sumY / cnt + 4);
+          } else {
+            let sumX = 0, cnt = 0, minY = Infinity;
+            metas.forEach(meta => {
+              if (!meta || !meta.data) return;
+              const el = meta.data[i];
+              if (!el || el.x == null || el.y == null) return;
+              sumX += el.x; cnt++; minY = Math.min(minY, el.y);
+            });
+            if (cnt > 0 && !isNaN(sumX) && !isNaN(minY) && minY !== Infinity) ctx.fillText(String(total), sumX / cnt, minY - 4);
+          }
+        });
+        ctx.restore();
+      } catch (_) {}
     }
   };
 
   const donutCenterPlugin = {
     id: 'donutCenter',
     afterDraw(chart) {
-      const { ctx, chartArea } = chart;
-      const ds = chart.data.datasets[0];
-      const total = ds ? ds.data.reduce((s, v) => s + (Number(v) || 0), 0) : 0;
-      const cx = (chartArea.left + chartArea.right) / 2;
-      const cy = (chartArea.top + chartArea.bottom) / 2;
-      ctx.save();
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = chartTextColor();
-      ctx.font = '700 1.4rem sans-serif';
-      ctx.fillText(String(total), cx, cy - 6);
-      ctx.font = '0.72rem sans-serif';
-      ctx.fillStyle = 'var(--text-muted)';
-      ctx.fillText('total pts', cx, cy + 14);
-      ctx.restore();
+      try {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const ds = chart.data.datasets[0];
+        const total = ds ? ds.data.reduce((s, v) => s + (Number(v) || 0), 0) : 0;
+        const cx = (chartArea.left + chartArea.right) / 2;
+        const cy = (chartArea.top + chartArea.bottom) / 2;
+        if (isNaN(cx) || isNaN(cy)) return;
+        ctx.save();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = chartTextColor();
+        ctx.font = '700 1.4rem sans-serif';
+        ctx.fillText(String(total), cx, cy - 6);
+        ctx.font = '0.72rem sans-serif';
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.fillText('total pts', cx, cy + 14);
+        ctx.restore();
+      } catch (_) {}
     }
   };
 
