@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Modifié
-**Humanisé** : Refonte complète du volet Barème et du menu de règles : ajout d'une barre de recherche en direct, puces de filtrage rapide par Top/Catégorie, copie d'une règle en 1 clic au survol, et design des cartes modernisé.
-**Technique** : `Index.html` — (1) Élargissement du tiroir `.bareme-drawer` (420px) avec flou glassmorphism. (2) Ajout de la barre d'outils `.bareme-toolbar` (recherche interactive `baremeSearchInput` + filtres `.bareme-filter-chips`). (3) Copie de règle vers le presse-papier lors d'un clic sur une ligne `.bd-entry`. (4) Rétablissement des onglets de navigation (.nav-btn) à leur état d'origine.
+**Humanisé** : Remplacement du sélecteur de catégorie du volet Barème par un vrai menu déroulant (select) avec comptage de règles, garantissant une navigation fluide sans masquage d'options.
+**Technique** : `Index.html` — (1) Remplacement des puces horizontales rognées par l'élément `<select id="baremeCategorySelect">` alimenté dynamiquement avec comptage. (2) Élargissement du tiroir `.bareme-drawer` (420px) avec recherche en direct `baremeSearchInput` et copie en 1 clic. (3) Rétablissement des onglets de navigation (.nav-btn) à leur état d'origine.
 
 ### Ajouté
 **Humanisé** : Ajout d'un bouton d'accès rapide au Barème des Tops dans l'en-tête mobile permettant de consulter les règles de points en 1 tap.
