@@ -70,19 +70,17 @@ Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En ca
 
 ---
 
-## Note — Message "Vous n'êtes pas autorisé à appeler ScriptApp.getProjectTriggers"
+## Note — Messages d'autorisation "ScriptApp.getProjectTriggers" ou "UrlFetchApp.fetch"
 
-Ce message peut apparaître dans l'onglet 🔧 Outils → 🤖 Points automatiques ("Exécution automatique"). Ce n'est pas un bug : c'est Google qui demande une autorisation supplémentaire, que les déploiements automatiques (via `clasp`/GitHub Actions) ne peuvent pas accorder eux-mêmes — seul un humain peut cliquer "Autoriser" dans l'éditeur.
+Ce message apparaît lorsque Google exige une re-validation des autorisations de sécurité (par exemple pour la gestion des triggers automatiques ou les requêtes externes GitHub `UrlFetchApp.fetch` du Changelog). Les déploiements automatiques (`clasp`/GitHub Actions) ne peuvent pas valider les nouveaux périmètres OAuth à la place du propriétaire du script.
 
-L'app continue de fonctionner normalement pour tout le reste ; seule la case à cocher "activer/désactiver l'exécution automatique" reste indisponible tant que l'autorisation n'a pas été donnée.
-
-**Pour corriger, une seule fois par copie du script :**
+**Pour réautoriser le script (une seule fois par copie) :**
 
 1. Ouvre le projet dans [script.google.com](https://script.google.com)
-2. Dans l'éditeur, sélectionne la fonction `apiSetAutoTrigger` dans le menu déroulant en haut *(pas `runAutoPoints` — cette fonction-là ne touche jamais aux triggers Google, elle ne déclenchera pas la demande d'autorisation)*
-3. Clique sur **"Exécuter"** *(l'exécution sans paramètre échouera ensuite avec une erreur "undefined" — normal, seul l'écran d'autorisation qui s'affiche avant compte)*
-4. Google affiche l'écran d'autorisation ("Google n'a pas validé cette application") — clique **"Paramètres avancés"** puis **"Accéder à [nom du projet] (non sécurisé)"** puis **"Autoriser"** (même écran qu'à l'Étape 4 du déploiement initial)
-5. Recharge l'app : le message disparaît, l'exécution automatique des règles de points redevient disponible
+2. Dans l'éditeur, sélectionne une fonction (ex: `apiGetChangelog` ou `apiSetAutoTrigger`) dans le menu déroulant en haut
+3. Clique sur **"Exécuter"**
+4. Google affiche l'écran d'autorisation ("Google n'a pas validé cette application") — clique **"Paramètres avancés"** puis **"Accéder à [nom du projet] (non sécurisé)"** puis **"Autoriser"**
+5. Recharge l'application Web.
 
 ---
 

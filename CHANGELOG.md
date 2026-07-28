@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-28
 
+### Corrigé
+**Humanisé** : Autorisation des requêtes HTTP externes pour le chargement dynamique du Changelog depuis GitHub.
+**Technique** : `appsscript.json` — ajout du scope OAuth `https://www.googleapis.com/auth/script.external_request` dans `oauthScopes` pour permettre à `UrlFetchApp.fetch()` de fonctionner sans erreur de permission.
+
 ### Modifié
 **Humanisé** : Correction intégrale de l'affichage du Barème : ajout d'un système d'accordéons dépliables/enroulables par Top (avec chevrons), suppression de tout rognage de texte/badges de points, et marge de défilement généreuse en bas de volet.
 **Technique** : `Index.html` & `Mobile.html` — (1) Transformation de chaque section de Top en accordéon interactif au clic avec chevron (`▼` / `▶`). (2) Correction du rognage des pastilles de points et descriptions via `min-height: max-content`, `line-height: 1.45` et `overflow: visible`. (3) Ajout d'un padding de défilement (`padding-bottom: 90px`) dans `.bareme-body` et la modale mobile pour éliminer tout masquage.
