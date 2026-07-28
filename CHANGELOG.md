@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Corrigé
-**Humanisé** : L'interface mobile ne restait plus bloquée sur un écran vide au chargement — le contenu du Dashboard s'affiche maintenant instantanément au lieu de ne montrer que les menus.
-**Technique** : `Mobile.html` — ajout de `classList.add('active')` sur `#tab-dashboard` dès `initAppMobile()`. Le tab était peuplé par `applyBootstrapData()` mais restait en `display:none` car `goToTab()` n'était appelé que dans le callback d'erreur du bootstrap.
+**Humanisé** : L'interface mobile ne restait plus bloquée sur un écran vide au chargement — le Dashboard s'affiche immédiatement avec ses graphiques, KPIs et commentaires au lieu de tourner à l'infini.
+**Technique** : Trois problèmes corrigés : (1) `Mobile.html` — le tab `#tab-dashboard` n'avait jamais la classe `.active` (ajoutée dès `initAppMobile()`). (2) Le fallback d'erreur du bootstrap utilisait `goToTab()` qui ne déclenchait pas `loadDashboard()` car `#mMainChart` existait déjà — remplacé par un appel direct à `refreshDashboardData()`. (3) `Code.gs` — `apiGetMobileBootstrap()` allégé : retrait des 3 appels lourds (`apiGetQuickStats`, `apiGetFilteredData`, `apiGetPlayerTotals`) qui lisaient chacun tout le sheet History et provoquaient un dépassement du timeout GAS 30s. Les données graphiques sont maintenant chargées côté client via des appels individuels rapides.
 
 ## [Non publié] - 2026-07-27
 
