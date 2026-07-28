@@ -2172,13 +2172,48 @@
     });
   }
 
+  function getOrCreateChartCanvas() {
+    const wrapper = document.getElementById('mChartWrapper');
+    if (!wrapper) return null;
+    let canvas = document.getElementById('mMainChart');
+    if (!canvas) {
+      wrapper.innerHTML = '<canvas id="mMainChart"></canvas><div id="mChartCustomTooltip" role="tooltip"></div>';
+      canvas = document.getElementById('mMainChart');
+    } else {
+      canvas.style.display = 'block';
+    }
+    return canvas;
+  }
+
+  function showChartEmptyState(msg) {
+    const wrapper = document.getElementById('mChartWrapper');
+    if (wrapper) {
+      wrapper.innerHTML = '<canvas id="mMainChart" style="display:none;"></canvas>' +
+        '<div class="m-empty" style="padding:50px 0; text-align:center;">📊 ' + (msg || 'Aucune donnée sur cette période.') + '</div>';
+    }
+  }
+
+  function scheduleChartResize() {
+    setTimeout(() => {
+      if (mDashboardChart) {
+        try {
+          mDashboardChart.resize();
+          mDashboardChart.update();
+        } catch (_) {}
+      }
+    }, 60);
+  }
+
   function renderBarChart(chartData, type, stacked) {
     destroyChart();
     renderChartOptionsBar();
     renderDonutPlayerChips();
-    const canvas = document.getElementById('mMainChart');
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) {
+      showChartEmptyState('Aucune donnée à afficher.');
+      return;
+    }
+    const canvas = getOrCreateChartCanvas();
     if (!canvas) return;
-    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
 
     if (mChartType === 'ranking') {
@@ -2230,6 +2265,7 @@
         const { start, end } = periodBounds(mFilterPeriod);
         return { players: [row.player], categories: ctxCategories, startDate: start, endDate: end, title: row.player + (ctxCategories ? ' · ' + catDisplay(ctxCategories[0]) : '') };
       });
+      scheduleChartResize();
       return;
     }
 
@@ -2273,15 +2309,19 @@
       const { start, end } = periodBounds(mFilterPeriod);
       return { players: [player], categories: category ? [category] : null, startDate: start, endDate: end, title: player + (category ? ' · ' + catDisplay(category) : '') };
     });
+    scheduleChartResize();
   }
 
   function renderTrendChart(trendData) {
     destroyChart();
     renderChartOptionsBar();
     renderDonutPlayerChips();
-    const canvas = document.getElementById('mMainChart');
+    if (!trendData || !trendData.series || !trendData.labels || !trendData.labels.length) {
+      showChartEmptyState('Aucune donnée temporelle sur cette période.');
+      return;
+    }
+    const canvas = getOrCreateChartCanvas();
     if (!canvas) return;
-    if (!trendData || !trendData.series || !trendData.labels) return;
     const ctx = canvas.getContext('2d');
     const players = Object.keys(trendData.series);
     const datasets = players.map(player => ({
@@ -2314,15 +2354,19 @@
       else if (gran === 'month') { startDate = label + '-01'; const d = new Date(label + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0); endDate = toDateStr(d); }
       return { players: [player], categories: mFilterCategories.size ? Array.from(mFilterCategories) : null, startDate, endDate, title: player + ' · ' + label };
     });
+    scheduleChartResize();
   }
 
   function renderRadarChart(chartData) {
     destroyChart();
     renderChartOptionsBar();
     renderDonutPlayerChips();
-    const canvas = document.getElementById('mMainChart');
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) {
+      showChartEmptyState('Aucune donnée radar sur cette période.');
+      return;
+    }
+    const canvas = getOrCreateChartCanvas();
     if (!canvas) return;
-    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
     const radarDatasets = chartData.labels.map((player, i) => ({
       label: player,
@@ -2353,15 +2397,19 @@
       const { start, end } = periodBounds(mFilterPeriod);
       return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + catDisplay(category) };
     });
+    scheduleChartResize();
   }
 
   function renderDonutChart(chartData) {
     destroyChart();
     renderChartOptionsBar();
     renderDonutPlayerChips();
-    const canvas = document.getElementById('mMainChart');
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) {
+      showChartEmptyState('Aucune donnée donut sur cette période.');
+      return;
+    }
+    const canvas = getOrCreateChartCanvas();
     if (!canvas) return;
-    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
 
     if (!mDonutPlayer && cachedPlayers.length) mDonutPlayer = cachedPlayers[0].name;
@@ -2397,6 +2445,7 @@
       const { start, end } = periodBounds(mFilterPeriod);
       return { players: [player], categories: [category], startDate: start, endDate: end, title: player + ' · ' + catDisplay(category) };
     });
+    scheduleChartResize();
   }
 
   // ── CARD COMMENTAIRES (phrases paramétriques à partir du classement courant) ──
@@ -4236,10 +4285,7 @@
       if (!document.getElementById('mMainChart')) {
         renderDashboardShell();
       }
-      if (!_mDashboardDataLoaded) {
-        _mDashboardDataLoaded = true;
-        refreshDashboardData();
-      }
+      refreshDashboardData();
     }
   }
 
