@@ -3226,3 +3226,35 @@ function apiSetActivePhrasePreset(name, author) {
     });
   } catch(e) { return fail(e); }
 }
+
+// ── Changelog ───────────────────────────────────────────────────────────────────
+
+/**
+ * Récupère le contenu de CHANGELOG.md directement depuis le dépôt GitHub.
+ * Utilise CacheService pendant 10 minutes pour optimiser le quota et le temps d'accès.
+ * Si `forceRefresh` est vrai, le cache est contourné.
+ */
+function apiGetChangelog(forceRefresh) {
+  try {
+    const cacheKey = 'github_changelog_v1';
+    const cache = CacheService.getScriptCache();
+    if (!forceRefresh) {
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    }
+    const url = 'https://raw.githubusercontent.com/Arcxy2nd/top-des-tops/main/CHANGELOG.md';
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (response.getResponseCode() === 200) {
+      const content = response.getContentText();
+      const result = { success: true, content: content, fetchedAt: new Date().toISOString() };
+      cache.put(cacheKey, JSON.stringify(result), 600); // 10 min
+      return result;
+    } else {
+      return { success: false, error: 'Impossible de charger le changelog depuis GitHub (Code HTTP ' + response.getResponseCode() + ')' };
+    }
+  } catch (e) {
+    return fail(e);
+  }
+}

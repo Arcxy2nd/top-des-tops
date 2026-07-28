@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-28
 
+### Ajouté
+**Humanisé** : Ajout d'un sous-onglet Changelog dans les Paramètres (sur PC et Mobile) permettant de consulter l'historique complet des mises à jour en direct depuis Git, avec un bouton d'actualisation et une mise en cache automatique.
+**Technique** : `Code.gs` — création de l'endpoint `apiGetChangelog()` interrogeant le dépôt GitHub avec cache 10 minutes (`CacheService`). `Index.html` & `Mobile.html` — ajout du sous-onglet `📋 Changelog` sous Paramètres, création des fonctions `renderChangelogMarkup()` / `loadChangelog()` / `renderMChangelogSettings()` pour parser et afficher dynamiquement le Markdown du changelog avec badges et catégories colorisées.
+
 ### Corrigé
 **Humanisé** : Correction intégrale de l'interface mobile : refonte complète du Podium (cartes visuelles 1er/2e/3e avec médailles 🥇 🥈 🥉, filigrane d'avatar et couleurs des joueurs comme sur PC), affichage systématique des graphiques du Dashboard à l'arrivée des données, et fermeture fluide du sélecteur d'identité.
 **Technique** : `Mobile.html` — (1) Refonte de `renderComments()` avec cartes Podium en échelons (1er au centre surélevé avec médaille d'or) et feed compact pour la 4e place et plus. (2) Déblocage du rendu des graphiques dans `applyBootstrapData()` à la réception des données serveur réelles. (3) Intégration de graphiques Chart.js dans `loadTrendsStat()` et `loadWeekdayStat()`. (4) Élévation du `z-index` de `#mIdentitySheet` à `10000` et ajout de padding de sécurité.
