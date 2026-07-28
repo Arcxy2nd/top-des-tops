@@ -43,33 +43,28 @@ EOF
   # clasp deployments prints lines like:
   #   - AKfycbyyyy @HEAD (Development)
   #   - AKfycbzzzz @3 - auto: <sha>
-  # We want the deployment ID that is NOT the @HEAD dev deployment.
-  local old_deployment_id
-  old_deployment_id=$(echo "$deployments_output" | grep '^- ' | grep -v '@HEAD' | awk '{print $2}' | tail -n1)
+  local target_deployment_id
+  target_deployment_id=$(echo "$deployments_output" | grep '^- ' | grep -v '@HEAD' | awk '{print $2}' | tail -n1)
 
-  if [ -z "${old_deployment_id:-}" ]; then
-    echo "No previous non-HEAD deployment found for '$name'. Skipping undeploy."
-  else
-    echo "Undeploying previous deployment: $old_deployment_id"
-    clasp undeploy "$old_deployment_id" || echo "WARNING: undeploy failed for '$name', continuing anyway."
-  fi
-
-  echo "== 3/4: Creating new deployment =="
+  echo "== 3/4: Updating deployment =="
   local deploy_output
-  deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION")
+  if [ -n "${target_deployment_id:-}" ]; then
+    echo "Updating existing deployment: $target_deployment_id"
+    deploy_output=$(clasp deploy -i "$target_deployment_id" -d "$DEPLOY_DESCRIPTION")
+  else
+    echo "Creating new deployment..."
+    deploy_output=$(clasp deploy -d "$DEPLOY_DESCRIPTION")
+    target_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
+  fi
   echo "$deploy_output"
 
-  # clasp deploy prints a line like: "Deployed AKfycbwwww @4"
-  local new_deployment_id
-  new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
-
-  if [ -z "${new_deployment_id:-}" ]; then
-    echo "ERROR: could not parse the new deployment ID from clasp deploy output for '$name'." >&2
+  if [ -z "${target_deployment_id:-}" ]; then
+    echo "ERROR: could not determine deployment ID for '$name'." >&2
     return 1
   fi
 
-  local new_url="https://script.google.com/macros/s/${new_deployment_id}/exec"
-  echo "New deployment URL for '$name': $new_url"
+  local new_url="https://script.google.com/macros/s/${target_deployment_id}/exec"
+  echo "Deployment URL for '$name': $new_url"
 
   echo "== 4/4: Updating short.io link =="
   local http_status
