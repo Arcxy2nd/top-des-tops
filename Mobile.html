@@ -642,15 +642,15 @@
   </button>
 </nav>
 
-<div id="mIdentitySheet" class="m-tab" style="position:fixed; inset:0; z-index:150; background:rgba(0,0,0,0.55); display:none; align-items:flex-end; justify-content:center;">
-  <div class="card" style="width:100%; max-width:900px; max-height:70vh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:34px 34px 0 0; margin:0;">
+<div id="mIdentitySheet" class="m-tab" style="position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,0.55); display:none; align-items:flex-end; justify-content:center;">
+  <div class="card" style="width:100%; max-width:900px; max-height:75vh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:34px 34px 0 0; margin:0; padding-bottom:calc(80px + env(safe-area-inset-bottom));">
     <h2>Qui suis-je ?</h2>
     <div id="mIdentityList"></div>
-    <button class="small" id="mIdentityCancel" style="margin-top:22px; width:100%;">Fermer</button>
+    <button class="small" id="mIdentityCancel" style="margin-top:22px; width:100%; min-height:44px;">Fermer</button>
   </div>
 </div>
 
-<div id="mIdentityPwdModal" style="display:none; position:fixed; inset:0; z-index:160; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+<div id="mIdentityPwdModal" style="display:none; position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
   <div class="card" style="width:92%; max-width:640px; margin:0; text-align:center; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch;">
     <img class="m-avatar" id="mIdentityPwdAvatar" src="" alt="" style="width:120px; height:120px; margin:0 auto 22px;">
     <h2 id="mIdentityPwdName">—</h2>
@@ -1056,6 +1056,9 @@
   }
   document.getElementById('mIdentityBtn').addEventListener('click', openIdentitySheet);
   document.getElementById('mIdentityCancel').addEventListener('click', closeIdentitySheet);
+  document.getElementById('mIdentitySheet').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeIdentitySheet();
+  });
 
   let _identityPwdTarget = null;
   function openIdentityPwdModal(player) {
@@ -1322,7 +1325,7 @@
       '<div id="mQuickKpisBar" class="m-quick-kpis"></div>' +
       '<div class="card" id="mCommentsCard">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
-          '<h2 style="margin:0;">🎭 Commentaires</h2>' +
+          '<h2 style="margin:0;">🏆 Podium</h2>' +
           '<button class="small" id="mCommentsRefreshBtn" style="padding:4px 10px;min-height:30px;font-size:0.78rem;">🎲 Tirage</button>' +
         '</div>' +
         '<div id="mCommentsBody" class="m-empty">Chargement…</div>' +
@@ -1485,29 +1488,85 @@
     }, 'Chargement records');
   }
 
+  let _mTrendsChartInstance = null;
   function loadTrendsStat() {
     callServer('apiGetTrends', [], res => {
       const body = document.getElementById('mTrendsBody');
       if (!body) return;
       const rows = (res.categoryTrends || []).slice().sort((a, b) => b.changePct - a.changePct);
-      const html = rows.map(r => {
-        const color = r.changePct >= 0 ? 'var(--success)' : 'var(--error)';
-        return statRow('', escapeHtml(r.category),
-          '<span style="color:' + color + ';">' + (r.changePct >= 0 ? '+' : '') + r.changePct + '%</span> · ' + r.before + ' → ' + r.after + ' entrées');
-      }).join('');
-      body.innerHTML = html || '<p class="m-empty">Pas assez de données.</p>';
+      if (!rows.length) {
+        body.innerHTML = '<p class="m-empty">Pas assez de données.</p>';
+        return;
+      }
+      body.innerHTML = '<div class="m-chart-wrapper" style="height:220px;"><canvas id="mTrendsChartCanvas"></canvas></div>';
+      const canvas = document.getElementById('mTrendsChartCanvas');
+      if (!canvas) return;
+
+      const labels = rows.map(r => r.category);
+      const values = rows.map(r => r.changePct);
+      const successCol = getComputedStyle(document.body).getPropertyValue('--success').trim() || '#2ed573';
+      const errorCol   = getComputedStyle(document.body).getPropertyValue('--error').trim() || '#ff4757';
+      const colors    = values.map(v => v >= 0 ? successCol : errorCol);
+
+      if (_mTrendsChartInstance) { _mTrendsChartInstance.destroy(); _mTrendsChartInstance = null; }
+      _mTrendsChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4 }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const r = rows[ctx.dataIndex];
+                  return (r.changePct >= 0 ? '+' : '') + r.changePct + '% (' + r.before + ' → ' + r.after + ' entrées)';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: chartTextColor(), font: { size: 10 }, callback: v => v + '%' }, grid: { color: chartGridColor() } },
+            y: { ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
     }, 'Chargement tendances');
   }
 
+  let _mWeekdayChartInstance = null;
   function loadWeekdayStat() {
     callServer('apiGetActiveWeekday', [], res => {
       const body = document.getElementById('mWeekdayBody');
       if (!body) return;
-      if (!res.topWeekday) { body.innerHTML = '<p class="m-empty">Pas assez de données.</p>'; return; }
-      const html = '<p style="font-weight:700; margin:0 0 8px;">' + escapeHtml(res.topWeekday) + '</p>' +
-        (res.byWeekday || []).map(w =>
-          '<div class="m-hist-meta">' + escapeHtml(w.weekday) + ' — ' + w.count + ' entrée(s)</div>').join('');
-      body.innerHTML = html;
+      if (!res.topWeekday || !res.byWeekday || !res.byWeekday.length) {
+        body.innerHTML = '<p class="m-empty">Pas assez de données.</p>';
+        return;
+      }
+      body.innerHTML = '<div style="font-weight:700; font-size:0.88rem; margin-bottom:8px; text-align:center;">Jour le plus actif : ' + escapeHtml(res.topWeekday) + '</div>' +
+        '<div class="m-chart-wrapper" style="height:200px;"><canvas id="mWeekdayChartCanvas"></canvas></div>';
+      const canvas = document.getElementById('mWeekdayChartCanvas');
+      if (!canvas) return;
+
+      const accentCol = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#ff4757';
+      const labels    = res.byWeekday.map(w => w.weekday);
+      const values    = res.byWeekday.map(w => w.count);
+      const colors    = res.byWeekday.map(w => w.weekday === res.topWeekday ? accentCol : 'rgba(255,71,87,0.35)');
+
+      if (_mWeekdayChartInstance) { _mWeekdayChartInstance.destroy(); _mWeekdayChartInstance = null; }
+      _mWeekdayChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: chartTextColor(), font: { size: 10 }, precision: 0 }, grid: { color: chartGridColor() } }
+          }
+        }
+      });
     }, 'Chargement jour actif');
   }
 
@@ -2041,6 +2100,7 @@
     renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
 
     if (mChartType === 'ranking') {
@@ -2143,6 +2203,7 @@
     renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
+    if (!trendData || !trendData.series || !trendData.labels) return;
     const ctx = canvas.getContext('2d');
     const players = Object.keys(trendData.series);
     const datasets = players.map(player => ({
@@ -2183,6 +2244,7 @@
     renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
     const radarDatasets = chartData.labels.map((player, i) => ({
       label: player,
@@ -2221,6 +2283,7 @@
     renderDonutPlayerChips();
     const canvas = document.getElementById('mMainChart');
     if (!canvas) return;
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.labels.length) return;
     const ctx = canvas.getContext('2d');
 
     if (!mDonutPlayer && cachedPlayers.length) mDonutPlayer = cachedPlayers[0].name;
@@ -3900,6 +3963,8 @@
     window.addEventListener('touchmove', handleTouchOrMove, { passive: true });
   }
 
+  let _mDashboardDataLoaded = false;
+
   function applyBootstrapData(data) {
     if (data.navPages && data.navPages.length) NAV_PAGES = data.navPages;
     if (data.players)    cachedPlayers    = data.players;
@@ -3941,9 +4006,10 @@
       if (!document.getElementById('mMainChart')) {
         renderDashboardShell();
       }
-      // Chart data is loaded separately via individual lightweight calls
-      // to avoid GAS 30s timeout on the bootstrap endpoint.
-      refreshDashboardData();
+      if (!_mDashboardDataLoaded) {
+        _mDashboardDataLoaded = true;
+        refreshDashboardData();
+      }
     }
   }
 
