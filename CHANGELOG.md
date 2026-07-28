@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-28
 
+### Modifié
+**Humanisé** : Rétablissement du workflow de déploiement d'origine sur GitHub Actions (création d'un nouveau déploiement à chaque push avec désactivation du déploiement précédent).
+**Technique** : `.github/scripts/deploy-gas.sh` — retrait de la réutilisation de déploiement actif (`clasp deploy -i`) et retour au pattern `clasp undeploy` de la version antérieure.
+
 ### Ajouté
 **Humanisé** : Ajout d'un sous-onglet Changelog dans les Paramètres (sur PC et Mobile) permettant de consulter l'historique complet des mises à jour en direct depuis Git, avec un bouton d'actualisation et une mise en cache automatique.
 **Technique** : `Code.gs` — création de l'endpoint `apiGetChangelog()` interrogeant le dépôt GitHub avec cache 10 minutes (`CacheService`). `Index.html` & `Mobile.html` — ajout du sous-onglet `📋 Changelog` sous Paramètres, création des fonctions `renderChangelogMarkup()` / `loadChangelog()` / `renderMChangelogSettings()` pour parser et afficher dynamiquement le Markdown du changelog avec badges et catégories colorisées.
