@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-28
+
+### Corrigé
+**Humanisé** : L'interface mobile ne restait plus bloquée sur un écran vide au chargement — le contenu du Dashboard s'affiche maintenant instantanément au lieu de ne montrer que les menus.
+**Technique** : `Mobile.html` — ajout de `classList.add('active')` sur `#tab-dashboard` dès `initAppMobile()`. Le tab était peuplé par `applyBootstrapData()` mais restait en `display:none` car `goToTab()` n'était appelé que dans le callback d'erreur du bootstrap.
+
 ## [Non publié] - 2026-07-27
 
 ### Corrigé
