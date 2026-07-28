@@ -1698,32 +1698,36 @@
 
   function renderFilterChips() {
     const pWrap = document.getElementById('mPlayerChips');
-    pWrap.innerHTML = cachedPlayers.map(p =>
-      '<div class="m-chip' + (mFilterPlayers.has(p.name) ? ' active' : '') + '" data-name="' + escapeHtml(p.name) + '">' +
-      avatarImgHtml(p.name, p.meta, 'm-avatar sm') + escapeHtml(p.name) + '</div>'
-    ).join('') || '<p class="m-empty">Aucun joueur.</p>';
-    pWrap.querySelectorAll('.m-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const name = chip.dataset.name;
-        if (mFilterPlayers.has(name)) mFilterPlayers.delete(name); else mFilterPlayers.add(name);
-        chip.classList.toggle('active');
-        refreshDashboardData();
+    if (pWrap) {
+      pWrap.innerHTML = cachedPlayers.map(p =>
+        '<div class="m-chip' + (mFilterPlayers.has(p.name) ? ' active' : '') + '" data-name="' + escapeHtml(p.name) + '">' +
+        avatarImgHtml(p.name, p.meta, 'm-avatar sm') + escapeHtml(p.name) + '</div>'
+      ).join('') || '<p class="m-empty">Aucun joueur.</p>';
+      pWrap.querySelectorAll('.m-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const name = chip.dataset.name;
+          if (mFilterPlayers.has(name)) mFilterPlayers.delete(name); else mFilterPlayers.add(name);
+          chip.classList.toggle('active');
+          refreshDashboardData();
+        });
       });
-    });
+    }
 
     const cWrap = document.getElementById('mCategoryChips');
-    cWrap.innerHTML = cachedCategories.map(c =>
-      '<div class="m-chip' + (mFilterCategories.has(c.name) ? ' active' : '') + '" data-name="' + escapeHtml(c.name) + '">' +
-      (c.icon || '🏷️') + ' ' + escapeHtml(c.name) + '</div>'
-    ).join('') || '<p class="m-empty">Aucun top.</p>';
-    cWrap.querySelectorAll('.m-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const name = chip.dataset.name;
-        if (mFilterCategories.has(name)) mFilterCategories.delete(name); else mFilterCategories.add(name);
-        chip.classList.toggle('active');
-        refreshDashboardData();
+    if (cWrap) {
+      cWrap.innerHTML = cachedCategories.map(c =>
+        '<div class="m-chip' + (mFilterCategories.has(c.name) ? ' active' : '') + '" data-name="' + escapeHtml(c.name) + '">' +
+        (c.icon || '🏷️') + ' ' + escapeHtml(c.name) + '</div>'
+      ).join('') || '<p class="m-empty">Aucun top.</p>';
+      cWrap.querySelectorAll('.m-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const name = chip.dataset.name;
+          if (mFilterCategories.has(name)) mFilterCategories.delete(name); else mFilterCategories.add(name);
+          chip.classList.toggle('active');
+          refreshDashboardData();
+        });
       });
-    });
+    }
   }
 
   function currentFilterArrays() {
@@ -4276,15 +4280,18 @@
       if (el) el.textContent = data.notesCount ? String(data.notesCount) : '';
     }
 
-    renderFilterChips();
-    updateInjectRowOptions();
-    updateNotePlayerButtons();
-
     const dashboardActive = document.querySelector('.m-bnav-btn[data-tab="tab-dashboard"]');
     if (!dashboardActive || dashboardActive.classList.contains('active')) {
       if (!document.getElementById('mMainChart')) {
         renderDashboardShell();
       }
+    }
+
+    renderFilterChips();
+    updateInjectRowOptions();
+    updateNotePlayerButtons();
+
+    if (!dashboardActive || dashboardActive.classList.contains('active')) {
       refreshDashboardData();
     }
   }
