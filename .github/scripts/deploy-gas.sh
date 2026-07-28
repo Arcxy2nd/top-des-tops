@@ -45,6 +45,9 @@ EOF
   #   - AKfycbzzzz @3 - auto: <sha>
   local target_deployment_id
   target_deployment_id=$(echo "$deployments_output" | grep '^- ' | grep -v '@HEAD' | awk '{print $2}' | tail -n1)
+  if [ -z "${target_deployment_id:-}" ]; then
+    target_deployment_id=$(echo "$deployments_output" | grep '^- ' | awk '{print $2}' | tail -n1)
+  fi
 
   echo "== 3/4: Updating deployment =="
   local deploy_output
