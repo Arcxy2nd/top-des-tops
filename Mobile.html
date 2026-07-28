@@ -572,6 +572,59 @@
       display: block; height: 100%; border-radius: 2px; transition: width 0.3s ease;
     }
     body.light #mChartCustomTooltip .ctt-gauge { background: rgba(0,0,0,0.08); }
+    /* ── PODIUM STYLES (PARITÉ AVEC LA VERSION PC) ── */
+    .phrases-podium {
+      display: flex; align-items: flex-end; gap: 8px; min-height: 140px; margin-bottom: 12px;
+    }
+    .phrase-podium-card {
+      flex: 1; border-radius: 14px; padding: 12px 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-top: 3px solid var(--phrase-color, var(--accent));
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .phrase-podium-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--phrase-color, var(--accent));
+      opacity: 0.06; pointer-events: none;
+    }
+    .phrase-podium-bg-avatar {
+      position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+      width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+      opacity: 0.08; pointer-events: none; z-index: 0;
+    }
+    .phrase-podium-card.first .phrase-podium-bg-avatar { width: 90px; height: 90px; opacity: 0.1; }
+    .phrase-podium-card.first { flex: 1.35; padding: 16px 12px; }
+    .phrase-podium-medal { font-size: 1.5rem; line-height: 1; z-index: 1; }
+    .phrase-podium-card.first .phrase-podium-medal { font-size: 1.9rem; }
+    .phrase-podium-player {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--phrase-color, var(--accent)); z-index: 1;
+    }
+    .phrase-podium-card.first .phrase-podium-player { font-size: 0.8rem; }
+    .phrase-podium-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .phrase-podium-card.first .phrase-podium-avatar { width: 28px; height: 28px; }
+    .phrase-podium-text {
+      font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; font-style: italic; z-index: 1;
+    }
+    .phrase-podium-card.first .phrase-podium-text { font-size: 0.82rem; color: var(--text); font-style: normal; }
+
+    /* Feed compact (4ème+) */
+    .phrases-feed { display: flex; flex-direction: column; gap: 6px; }
+    .phrase-feed-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+      background: var(--card); border: 1px solid var(--border);
+    }
+    .phrase-feed-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .phrase-feed-player {
+      font-size: 0.74rem; font-weight: 800; text-transform: uppercase;
+      color: var(--phrase-color, var(--accent)); flex-shrink: 0; white-space: nowrap;
+    }
+    .phrase-feed-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.35; flex: 1; }
+
     @media (prefers-reduced-motion: reduce) {
       #mChartCustomTooltip .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px rgba(255,71,87,0.85); }
     }
@@ -2365,27 +2418,82 @@
 
   function renderComments(chartData) {
     const body = document.getElementById('mCommentsBody');
-    if (!body) return; // l'onglet a pu être quitté avant la réponse serveur
+    if (!body) return;
+    if (!chartData || !chartData.datasets || !chartData.datasets[0]) {
+      body.innerHTML = '<p class="m-empty">Aucune donnée disponible.</p>';
+      return;
+    }
     const dataset = chartData.datasets[0];
-    if (!dataset) { body.innerHTML = '<p class="m-empty">Aucune donnée.</p>'; return; }
     const ranked = chartData.labels
       .map((player, i) => ({ player, points: dataset.data[i] || 0 }))
       .sort((a, b) => b.points - a.points);
     const pooled = assignCommentPools(ranked);
-    const withComment = pooled.filter(e => e.pool !== 'mid').slice(0, 3);
+    const withComment = pooled.filter(e => e.pool !== 'mid');
 
     const _doRender = (preset, phrases) => {
       const b = document.getElementById('mCommentsBody');
       if (!b) return;
-      const lines = withComment.map(entry => {
+
+      const items = withComment.map(entry => {
         const pool = phrases.filter(p => p.preset === preset && p.pool === entry.pool);
         const source = pool.length ? pool.map(p => p.text) : FACTORY_PHRASES[entry.pool];
         const text = source[Math.floor(Math.random() * source.length)];
-        return '<div class="m-row" style="margin-bottom:18px;">' +
-          avatarImgHtml(entry.player, (cachedPlayers.find(p => p.name === entry.player) || {}).meta, 'm-avatar sm') +
-          '<span>' + escapeHtml(substituteCommentVars(text, entry, ranked)) + '</span></div>';
+        return {
+          player: entry.player,
+          rank: entry.rank,
+          points: entry.points,
+          text: substituteCommentVars(text, entry, ranked)
+        };
       });
-      b.innerHTML = lines.join('') || '<p class="m-empty">Aucun commentaire disponible.</p>';
+
+      const podiumPhrases = items.filter(p => p.rank <= 3);
+      const feedPhrases   = items.filter(p => p.rank > 3);
+
+      let html = '';
+
+      if (podiumPhrases.length) {
+        const slots = [null, null, null];
+        const visualOrder = { 1: 1, 2: 0, 3: 2 };
+        podiumPhrases.forEach(p => { if (p.rank <= 3) slots[visualOrder[p.rank] ?? 0] = p; });
+
+        const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+        html += '<div class="phrases-podium">';
+        slots.filter(Boolean).forEach(p => {
+          const col    = playerColor(p.player);
+          const plData = cachedPlayers.find(pl => pl.name === p.player);
+          const isFirst = p.rank === 1 ? ' first' : '';
+          const avatarUrl = getAvatarUrl(p.player, plData ? plData.meta : '');
+
+          html += '<div class="phrase-podium-card' + isFirst + '" style="--phrase-color:' + col + ';">' +
+            '<img class="phrase-podium-bg-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" onerror="this.style.display=\'none\';">' +
+            '<div class="phrase-podium-medal">' + (medals[p.rank] || '🏅') + '</div>' +
+            '<div class="phrase-podium-player">' +
+              '<img class="phrase-podium-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" onerror="this.src=\'' + getAvatarUrl(p.player, '') + '\';">' +
+              '<span>' + escapeHtml(p.player) + '</span>' +
+            '</div>' +
+            '<div class="phrase-podium-text">' + escapeHtml(p.text) + '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
+
+      if (feedPhrases.length) {
+        html += '<div class="phrases-feed">';
+        feedPhrases.forEach(p => {
+          const col    = playerColor(p.player);
+          const plData = cachedPlayers.find(pl => pl.name === p.player);
+          const avatarUrl = getAvatarUrl(p.player, plData ? plData.meta : '');
+          html += '<div class="phrase-feed-item" style="--phrase-color:' + col + ';">' +
+            '<img class="phrase-feed-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" onerror="this.src=\'' + getAvatarUrl(p.player, '') + '\';">' +
+            '<div class="phrase-feed-player">' + escapeHtml(p.player) + '</div>' +
+            '<div class="phrase-feed-text">' + escapeHtml(p.text) + '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
+
+      b.innerHTML = html || '<p class="m-empty">Aucun commentaire disponible.</p>';
     };
 
     if (_mCachedActivePreset && _mCachedPhrases) {
