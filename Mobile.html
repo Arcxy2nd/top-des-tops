@@ -4006,14 +4006,15 @@
       }
       initChatWidgetMobile();
     }, 'Initialisation mobile', () => {
-      if (!paintedFromCache) {
-        loadAppBranding();
-        loadEntities(() => {
-          goToTab('tab-dashboard');
-          loadNotesCountBadge();
-          initChatWidgetMobile();
-        });
-      }
+      // Bootstrap failed (timeout / server error) — load data individually
+      loadAppBranding();
+      loadEntities(() => {
+        renderFilterChips();
+        if (!document.getElementById('mMainChart')) renderDashboardShell();
+        refreshDashboardData();
+        loadNotesCountBadge();
+      });
+      initChatWidgetMobile();
     });
   }
 
