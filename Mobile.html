@@ -3941,38 +3941,9 @@
       if (!document.getElementById('mMainChart')) {
         renderDashboardShell();
       }
-      if (data.quickStats) {
-        const container = document.getElementById('mQuickKpisBar');
-        if (container && data.quickStats.leader) {
-          container.style.display = 'grid';
-          container.innerHTML =
-            '<div class="m-kpi-card">' +
-              '<div class="m-kpi-label">Leader</div>' +
-              '<div class="m-kpi-val">' + mSrAvatar(data.quickStats.leader) + '<span style="overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(data.quickStats.leader) + '</span></div>' +
-              '<div class="m-kpi-sub">' + data.quickStats.leaderPoints + ' pts ' + (data.quickStats.gapToSecond > 0 ? '(+' + data.quickStats.gapToSecond + ')' : '') + '</div>' +
-            '</div>' +
-            '<div class="m-kpi-card">' +
-              '<div class="m-kpi-label">Ce mois-ci</div>' +
-              '<div class="m-kpi-val">⚡ ' + (data.quickStats.monthEntries || 0) + '</div>' +
-              '<div class="m-kpi-sub">entrées enregistrées</div>' +
-              '</div>' +
-            '<div class="m-kpi-card">' +
-              '<div class="m-kpi-label">Dernier event</div>' +
-              '<div class="m-kpi-val">📅 ' + (data.quickStats.latestDate ? data.quickStats.latestDate.split('-').reverse().slice(0,2).join('/') : '-') + '</div>' +
-              '<div class="m-kpi-sub">dernière activité</div>' +
-            '</div>';
-        }
-      }
-      if (data.chartData) {
-        if (mChartType === 'stacked') renderBarChart(data.chartData, 'bar', true);
-        else if (mChartType === 'grouped') renderBarChart(data.chartData, 'bar', false);
-        else if (mChartType === 'radar') renderRadarChart(data.chartData);
-        else if (mChartType === 'donut') renderDonutChart(data.chartData);
-      }
-      if (data.playerTotals) {
-        _mLastCommentsData = data.playerTotals;
-        renderComments(data.playerTotals);
-      }
+      // Chart data is loaded separately via individual lightweight calls
+      // to avoid GAS 30s timeout on the bootstrap endpoint.
+      refreshDashboardData();
     }
   }
 
