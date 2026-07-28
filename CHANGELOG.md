@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-28
 
 ### Corrigé
-**Humanisé** : Correction intégrale de l'interface mobile : fermeture du sélecteur d'identité rétablie (le bouton "Fermer" n'est plus masqué par la barre de navigation), renommage de la carte en "🏆 Podium", affichage de vrais graphiques interactifs pour les Tendances et le Jour le plus actif, et suppression des chargements redondants au démarrage.
-**Technique** : `Mobile.html` — (1) Élévation du `z-index` de `#mIdentitySheet` à `10000` (au-dessus de la navigation inférieure `9000`), ajout d'un `padding-bottom` de sécurité et fermeture au clic sur le fond. (2) Renommage du titre de carte `🎭 Commentaires` en `🏆 Podium` pour parité avec la version PC. (3) Intégration de vrais graphiques Chart.js dans `loadTrendsStat()` (barres horizontales de variation %) et `loadWeekdayStat()` (barres des jours de la semaine avec surbrillance du jour actif). (4) Ajout de gardes anti-`null` dans `renderBarChart`, `renderTrendChart`, `renderRadarChart` et `renderDonutChart` pour éviter toute exception JS bloquante. (5) Optimisation des appels réseau au démarrage via le fanion `_mDashboardDataLoaded` pour éliminer les rafraîchissements en doublon.
+**Humanisé** : Correction intégrale de l'interface mobile : refonte complète du Podium (cartes visuelles 1er/2e/3e avec médailles 🥇 🥈 🥉, filigrane d'avatar et couleurs des joueurs comme sur PC), affichage systématique des graphiques du Dashboard à l'arrivée des données, et fermeture fluide du sélecteur d'identité.
+**Technique** : `Mobile.html` — (1) Refonte de `renderComments()` avec cartes Podium en échelons (1er au centre surélevé avec médaille d'or) et feed compact pour la 4e place et plus. (2) Déblocage du rendu des graphiques dans `applyBootstrapData()` à la réception des données serveur réelles. (3) Intégration de graphiques Chart.js dans `loadTrendsStat()` et `loadWeekdayStat()`. (4) Élévation du `z-index` de `#mIdentitySheet` à `10000` et ajout de padding de sécurité.
 
 ## [Non publié] - 2026-07-27
 
