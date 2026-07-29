@@ -3070,7 +3070,89 @@
   }
   .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
-  /* Disposition forcée en mode compact/mobile sur tout écran */
+  /* Disposition compacte & Bottom Nav Bar sur mobile par défaut ou si activée via le bouton */
+  @media (max-width: 768px) {
+    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding: 0 10px 80px; }
+    body:not(.desktop-layout) .card { padding: 14px; }
+    body:not(.desktop-layout) h2 { font-size: 1.1rem; }
+    body:not(.desktop-layout) .chart-wrapper { height: 280px; }
+    body:not(.desktop-layout) .batch-header { display: none; }
+    body:not(.desktop-layout) .row-top { flex-wrap: wrap; }
+    body:not(.desktop-layout) .row-top .player-sel-wrap,
+    body:not(.desktop-layout) .row-top .c-sel-wrap { flex: 1 1 45%; }
+    body:not(.desktop-layout) .row-top .custom-pts-in { width: 56px; }
+    body:not(.desktop-layout) .row-bottom .pts-toggle-wrap { width: 100%; justify-content: space-between; }
+    body:not(.desktop-layout) .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+    body:not(.desktop-layout) .export-buttons { gap: 6px; justify-content: center; width: 100%; }
+    body:not(.desktop-layout) .export-btn { padding: 8px 10px; font-size: 0.75rem; flex: 1; text-align: center; }
+    body:not(.desktop-layout) .history-filters { flex-direction: column; align-items: stretch; }
+    body:not(.desktop-layout) .health-grid { grid-template-columns: 1fr 1fr; }
+    body:not(.desktop-layout) .npb-add { flex-direction: column; align-items: stretch; }
+    body:not(.desktop-layout) .npb-add input[type="text"],
+    body:not(.desktop-layout) .npb-add .npb-date-field,
+    body:not(.desktop-layout) .npb-add button { width: 100%; }
+
+    body:not(.desktop-layout) .nav-btn-group {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 62px !important;
+      background: var(--card) !important;
+      border-top: 1px solid var(--border) !important;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.3) !important;
+      z-index: 9999 !important;
+      display: flex !important;
+      justify-content: space-around !important;
+      align-items: center !important;
+      padding: 0 4px !important;
+      margin: 0 !important;
+    }
+    body:not(.desktop-layout) .nav-btn {
+      flex-direction: column !important;
+      padding: 6px 2px !important;
+      min-height: auto !important;
+      border-bottom: none !important;
+      border-top: 3px solid transparent !important;
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      gap: 2px !important;
+    }
+    body:not(.desktop-layout) .nav-btn.active {
+      border-bottom: none !important;
+      border-top-color: var(--accent) !important;
+      flex-grow: 1 !important;
+      background: rgba(255, 71, 87, 0.08) !important;
+    }
+    body:not(.desktop-layout) .nav-btn .nav-btn-icon {
+      font-size: 1.2rem !important;
+      line-height: 1 !important;
+    }
+    body:not(.desktop-layout) .nav-btn-label {
+      display: block !important;
+      max-width: 100% !important;
+      opacity: 0.75 !important;
+      font-size: 0.65rem !important;
+      margin-left: 0 !important;
+      text-align: center !important;
+      line-height: 1 !important;
+    }
+    body:not(.desktop-layout) .nav-btn.active .nav-btn-label {
+      opacity: 1 !important;
+      font-weight: 700 !important;
+      color: var(--accent) !important;
+    }
+    body:not(.desktop-layout) .chat-fab {
+      bottom: 75px !important;
+    }
+    body:not(.desktop-layout) .chat-panel {
+      bottom: 135px !important;
+      max-height: calc(100vh - 150px) !important;
+    }
+  }
+
+  /* Disposition forcée en mode compact/mobile sur grand écran */
   body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px 80px; }
   body.mobile-layout .card { padding: 14px; }
   body.mobile-layout h2 { font-size: 1.1rem; }
@@ -3095,64 +3177,63 @@
   body.mobile-layout .chart-controls { gap: 10px 14px; }
   body.mobile-layout .chart-control select { flex: 1; }
 
-  /* Transformation de la barre de navigation en Bottom Nav Bar fixe en mode mobile */
   body.mobile-layout .nav-btn-group {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 62px;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
-    z-index: 9999;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0 4px;
-    margin: 0;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 62px !important;
+    background: var(--card) !important;
+    border-top: 1px solid var(--border) !important;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.3) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    padding: 0 4px !important;
+    margin: 0 !important;
   }
   body.mobile-layout .nav-btn {
-    flex-direction: column;
-    padding: 6px 2px;
-    min-height: auto;
-    border-bottom: none;
-    border-top: 3px solid transparent;
-    flex: 1 1 0;
-    min-width: 0;
-    gap: 2px;
+    flex-direction: column !important;
+    padding: 6px 2px !important;
+    min-height: auto !important;
+    border-bottom: none !important;
+    border-top: 3px solid transparent !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    gap: 2px !important;
   }
   body.mobile-layout .nav-btn.active {
-    border-bottom: none;
-    border-top-color: var(--accent);
-    flex-grow: 1;
-    background: rgba(255, 71, 87, 0.08);
+    border-bottom: none !important;
+    border-top-color: var(--accent) !important;
+    flex-grow: 1 !important;
+    background: rgba(255, 71, 87, 0.08) !important;
   }
   body.mobile-layout .nav-btn .nav-btn-icon {
-    font-size: 1.2rem;
-    line-height: 1;
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
   }
   body.mobile-layout .nav-btn-label {
     display: block !important;
     max-width: 100% !important;
-    opacity: 0.75;
-    font-size: 0.65rem;
+    opacity: 0.75 !important;
+    font-size: 0.65rem !important;
     margin-left: 0 !important;
-    text-align: center;
-    line-height: 1;
+    text-align: center !important;
+    line-height: 1 !important;
   }
   body.mobile-layout .nav-btn.active .nav-btn-label {
-    opacity: 1;
-    font-weight: 700;
-    color: var(--accent);
+    opacity: 1 !important;
+    font-weight: 700 !important;
+    color: var(--accent) !important;
   }
   body.mobile-layout .chat-fab {
     bottom: 75px !important;
   }
   body.mobile-layout .chat-panel {
     bottom: 135px !important;
-    max-height: calc(100vh - 150px);
+    max-height: calc(100vh - 150px) !important;
   }
 
   </style>
@@ -12373,11 +12454,13 @@
     function applyLayout(isMobile) {
       if (isMobile) {
         document.body.classList.add('mobile-layout');
+        document.body.classList.remove('desktop-layout');
         if (icon) icon.textContent = '🖥️';
         if (label) label.textContent = 'PC';
         btn.title = 'Basculer en disposition PC (écran large)';
       } else {
         document.body.classList.remove('mobile-layout');
+        document.body.classList.add('desktop-layout');
         if (icon) icon.textContent = '📱';
         if (label) label.textContent = 'Mobile';
         btn.title = 'Basculer en disposition Mobile (compact)';
@@ -12389,12 +12472,16 @@
     }
 
     const saved = localStorage.getItem('tdt_forced_layout');
-    applyLayout(saved === 'mobile');
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+    const initialMobile = saved ? (saved === 'mobile') : isSmallScreen;
+    applyLayout(initialMobile);
 
     btn.addEventListener('click', () => {
-      const isMobile = !document.body.classList.contains('mobile-layout');
-      applyLayout(isMobile);
-      localStorage.setItem('tdt_forced_layout', isMobile ? 'mobile' : 'desktop');
+      const currentlyMobile = document.body.classList.contains('mobile-layout') ||
+        (isSmallScreen && !document.body.classList.contains('desktop-layout'));
+      const nextIsMobile = !currentlyMobile;
+      applyLayout(nextIsMobile);
+      localStorage.setItem('tdt_forced_layout', nextIsMobile ? 'mobile' : 'desktop');
     });
   }
 
