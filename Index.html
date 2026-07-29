@@ -3070,6 +3070,29 @@
   }
   .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
+  /* ── BANNIÈRE CTA MOBILE ── */
+  .mobile-cta-banner {
+    display: none; align-items: center; gap: 10px;
+    max-width: 1200px; margin: 12px auto 0; padding: 12px 16px;
+    background: var(--card); border: 1.5px solid var(--accent);
+    border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .mobile-cta-banner.show { display: flex; }
+  .mobile-cta-text { flex: 1; font-size: 0.85rem; color: var(--text); line-height: 1.3; font-weight: 700; }
+  .mobile-cta-link {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    background: var(--accent); color: var(--on-accent, #fff); border: none;
+    font-weight: 700; font-size: 0.85rem; border-radius: 20px; cursor: pointer;
+    padding: 10px 16px; min-height: var(--tap-min);
+    transition: background 0.2s; touch-action: manipulation;
+  }
+  .mobile-cta-link:hover { background: var(--accent-hover); }
+  .mobile-cta-close {
+    background: none; border: none; color: var(--text-muted); font-size: 1.1rem;
+    cursor: pointer; flex-shrink: 0; min-width: var(--tap-min); min-height: var(--tap-min);
+    display: flex; align-items: center; justify-content: center;
+  }
+
   /* ── BARRE DE NAVIGATION MOBILE INFÉRIEURE (Bottom Nav Bar) ── */
   .mobile-bottom-nav {
     display: none;
@@ -3350,6 +3373,12 @@
     <button type="button" class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer la disposition" title="Basculer la disposition (Mobile / PC)"><span class="lmt-icon" id="lmtIcon">📱</span><span class="lmt-label" id="lmtLabel">Mobile</span></button>
   </div>
 </nav>
+
+<div class="mobile-cta-banner" id="mobileCtaBanner">
+  <span class="mobile-cta-text">T'ES SUR TÉLÉPHONE ? CLIQUE BATARD !</span>
+  <button type="button" class="mobile-cta-link" id="mobileCtaLink">📱 Version mobile</button>
+  <button type="button" class="mobile-cta-close" id="mobileCtaClose" aria-label="Fermer">✕</button>
+</div>
 
 <div id="quickStatsBar" class="quick-stats-bar">
   <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
@@ -12570,6 +12599,38 @@
       const nextIsMobile = !currentlyMobile;
       applyLayout(nextIsMobile);
       localStorage.setItem('tdt_forced_layout', nextIsMobile ? 'mobile' : 'desktop');
+    });
+    initMobileCtaBanner();
+  }
+
+  function initMobileCtaBanner() {
+    const banner = document.getElementById('mobileCtaBanner');
+    const link = document.getElementById('mobileCtaLink');
+    const closeBtn = document.getElementById('mobileCtaClose');
+    if (!banner || !link || !closeBtn) return;
+
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+    const chosenDesktop = localStorage.getItem('tdt_forced_layout') === 'desktop';
+    const dismissed = localStorage.getItem('tdt_mobile_banner_dismissed') === '1';
+
+    if (!isSmallScreen || chosenDesktop || dismissed) return;
+
+    banner.classList.add('show');
+
+    link.addEventListener('click', () => {
+      document.body.classList.add('mobile-layout');
+      document.body.classList.remove('desktop-layout');
+      localStorage.setItem('tdt_forced_layout', 'mobile');
+      banner.classList.remove('show');
+      const icon = document.getElementById('lmtIcon');
+      const label = document.getElementById('lmtLabel');
+      if (icon) icon.textContent = '🖥️';
+      if (label) label.textContent = 'PC';
+    });
+
+    closeBtn.addEventListener('click', () => {
+      localStorage.setItem('tdt_mobile_banner_dismissed', '1');
+      banner.classList.remove('show');
     });
   }
 
