@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-29
 
 ### Modifié
-**Humanisé** : Annulation du style terminal futuriste et retour au thème visuel standard de l'application pour le graphique, tout en conservant les éléments de légende sous forme de boutons interactifs (pills/chips) lisibles et les sélecteurs du graphique.
-**Technique** : `Index.html` — (1) Suppression du conteneur `.tactical-hud-box`, de la grille matricielle et des effets néon. (2) Conservation des boutons de légende interactifs stylisés sous forme de chips (`buildLegendButtonsPlugin`). (3) Alignement du style du menu des graphiques (`.chart-type-bar`, `.chart-type-btn`, `.export-btn`) sur la charte graphique de l'application via les variables CSS (`var(--btn-alt)`, `var(--accent)`, `var(--border)`).
+**Humanisé** : Rétablissement intégral du code original et parfaitement fonctionnel du graphique du Dashboard (menu, légende, tooltips interactifs, overlay d'émojis et visualisations d'origine).
+**Technique** : `Index.html` — Restauration complète à l'état propre d'origine précédant la tentative de refonte visuelle terminal.
 
 ### Supprimé
 **Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.

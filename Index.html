@@ -628,10 +628,9 @@
       background: var(--btn-alt); border: none;
       padding: 6px 10px; border-radius: 6px;
       font-size: 0.75rem; cursor: pointer; color: var(--text);
-      min-height: 32px; transition: all 0.2s ease;
+      min-height: 32px;
     }
     .export-btn:hover { background: var(--accent); color: var(--on-accent); }
-
     .chart-wrapper { position: relative; height: 420px; width: 100%; }
 
     /* ── SKELETON ── */
@@ -3024,7 +3023,7 @@
     padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
 
-  /* ── BASCULE DE DISPOSITION (Mobile / PC) ── */
+  /* ── Bascule de disposition (Mobile / PC) ── */
   .layout-mode-toggle {
     display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
     background: var(--btn-alt); border: 1px solid var(--border); border-radius: 20px;
@@ -3034,226 +3033,8 @@
   }
   .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
-  /* ── BANNIÈRE CTA MOBILE ── */
-  .mobile-cta-banner {
-    display: none; align-items: center; gap: 10px;
-    max-width: 1200px; margin: 12px auto 0; padding: 12px 16px;
-    background: var(--card); border: 1.5px solid var(--accent);
-    border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  }
-  .mobile-cta-banner.show { display: flex; }
-  .mobile-cta-text { flex: 1; font-size: 0.85rem; color: var(--text); line-height: 1.3; font-weight: 700; }
-  .mobile-cta-link {
-    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
-    background: var(--accent); color: var(--on-accent, #fff); border: none;
-    font-weight: 700; font-size: 0.85rem; border-radius: 20px; cursor: pointer;
-    padding: 10px 16px; min-height: var(--tap-min);
-    transition: background 0.2s; touch-action: manipulation;
-  }
-  .mobile-cta-link:hover { background: var(--accent-hover); }
-  .mobile-cta-close {
-    background: none; border: none; color: var(--text-muted); font-size: 1.1rem;
-    cursor: pointer; flex-shrink: 0; min-width: var(--tap-min); min-height: var(--tap-min);
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  /* ── BARRE DE NAVIGATION MOBILE INFÉRIEURE (Bottom Nav Bar) ── */
-  .mobile-bottom-nav {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 62px;
-    background: var(--card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
-    z-index: 9999;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 4px;
-    padding-bottom: env(safe-area-inset-bottom);
-    box-sizing: border-box;
-  }
-  .mobile-bottom-nav .nav-btn {
-    flex-direction: column;
-    padding: 6px 2px;
-    min-height: auto;
-    border: none;
-    background: transparent;
-    border-top: 3px solid transparent;
-    flex: 1 1 0;
-    min-width: 0;
-    gap: 2px;
-    color: var(--text-muted);
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .mobile-bottom-nav .nav-btn.active {
-    border-top-color: var(--accent);
-    background: rgba(255, 71, 87, 0.08);
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .mobile-bottom-nav .nav-btn .nav-btn-icon {
-    font-size: 1.2rem;
-    line-height: 1;
-  }
-  .mobile-bottom-nav .nav-btn-label {
-    display: block !important;
-    max-width: 100% !important;
-    opacity: 0.75;
-    font-size: 0.65rem;
-    margin-left: 0 !important;
-    text-align: center;
-    line-height: 1;
-  }
-  .mobile-bottom-nav .nav-btn.active .nav-btn-label {
-    opacity: 1;
-    font-weight: 700;
-    color: var(--accent);
-  }
-
-  /* Adaptabilité automatique de la barre supérieure (Top Bar) en mode mobile */
-  @media (max-width: 768px) {
-    body:not(.desktop-layout) .navbar {
-      padding-top: max(4px, env(safe-area-inset-top));
-    }
-    body:not(.desktop-layout) .nav-container {
-      width: 100% !important;
-      max-width: 100% !important;
-      padding: 6px 8px !important;
-      gap: 4px !important;
-      justify-content: space-between !important;
-    }
-    body:not(.desktop-layout) .app-brand {
-      padding: 0 4px !important;
-      gap: 6px !important;
-    }
-    body:not(.desktop-layout) .app-brand-title {
-      font-size: 0.88rem !important;
-    }
-    body:not(.desktop-layout) .nav-refresh-wrap {
-      padding: 0 2px !important;
-      gap: 4px !important;
-    }
-    body:not(.desktop-layout) .nav-bareme-btn {
-      padding: 6px 10px !important;
-      font-size: 0.8rem !important;
-    }
-    body:not(.desktop-layout) .who-am-i-wrap {
-      margin: 0 2px !important;
-    }
-    body:not(.desktop-layout) .who-am-i-btn {
-      padding: 5px 8px !important;
-      font-size: 0.78rem !important;
-    }
-    body:not(.desktop-layout) .who-am-i-name {
-      max-width: 70px !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      white-space: nowrap !important;
-    }
-    body:not(.desktop-layout) .theme-toggle {
-      margin-right: 2px !important;
-      padding: 6px 8px !important;
-    }
-    body:not(.desktop-layout) .layout-mode-toggle {
-      padding: 5px 8px !important;
-      margin-right: 0 !important;
-    }
-
-    body:not(.desktop-layout) #desktopNavGroup { display: none !important; }
-    body:not(.desktop-layout) #mobileBottomNav { display: flex !important; }
-    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px !important; }
-    body:not(.desktop-layout) .card { padding: 14px; }
-    body:not(.desktop-layout) h2 { font-size: 1.1rem; }
-    body:not(.desktop-layout) .chart-wrapper { height: 280px; }
-    body:not(.desktop-layout) .batch-header { display: none; }
-    body:not(.desktop-layout) .row-top { flex-wrap: wrap; }
-    body:not(.desktop-layout) .row-top .player-sel-wrap,
-    body:not(.desktop-layout) .row-top .c-sel-wrap { flex: 1 1 45%; }
-    body:not(.desktop-layout) .row-top .custom-pts-in { width: 56px; }
-    body:not(.desktop-layout) .row-bottom .pts-toggle-wrap { width: 100%; justify-content: space-between; }
-    body:not(.desktop-layout) .settings-grid { grid-template-columns: 1fr; gap: 20px; }
-    body:not(.desktop-layout) .export-buttons { gap: 6px; justify-content: center; width: 100%; }
-    body:not(.desktop-layout) .export-btn { padding: 8px 10px; font-size: 0.75rem; flex: 1; text-align: center; }
-    body:not(.desktop-layout) .history-filters { flex-direction: column; align-items: stretch; }
-    body:not(.desktop-layout) .health-grid { grid-template-columns: 1fr 1fr; }
-    body:not(.desktop-layout) .npb-add { flex-direction: column; align-items: stretch; }
-    body:not(.desktop-layout) .npb-add input[type="text"],
-    body:not(.desktop-layout) .npb-add .npb-date-field,
-    body:not(.desktop-layout) .npb-add button { width: 100%; }
-    body:not(.desktop-layout) .chat-fab { bottom: 75px !important; }
-    body:not(.desktop-layout) .chat-panel { bottom: 135px !important; max-height: calc(100vh - 150px) !important; }
-  }
-
-  @media (max-width: 480px) {
-    body:not(.desktop-layout) .bareme-btn-label { display: none !important; }
-    body:not(.desktop-layout) .lmt-label { display: none !important; }
-    body:not(.desktop-layout) .app-brand-title { font-size: 0.82rem !important; }
-  }
-
-  /* Disposition forcée en mode compact/mobile sur grand écran */
-  body.mobile-layout .navbar {
-    padding-top: max(4px, env(safe-area-inset-top));
-  }
-  body.mobile-layout .nav-container {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 6px 8px !important;
-    gap: 4px !important;
-    justify-content: space-between !important;
-  }
-  body.mobile-layout .app-brand {
-    padding: 0 4px !important;
-    gap: 6px !important;
-  }
-  body.mobile-layout .app-brand-title {
-    font-size: 0.88rem !important;
-  }
-  body.mobile-layout .nav-refresh-wrap {
-    padding: 0 2px !important;
-    gap: 4px !important;
-  }
-  body.mobile-layout .nav-bareme-btn {
-    padding: 6px 10px !important;
-    font-size: 0.8rem !important;
-  }
-  body.mobile-layout .who-am-i-wrap {
-    margin: 0 2px !important;
-  }
-  body.mobile-layout .who-am-i-btn {
-    padding: 5px 8px !important;
-    font-size: 0.78rem !important;
-  }
-  body.mobile-layout .who-am-i-name {
-    max-width: 70px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-  body.mobile-layout .theme-toggle {
-    margin-right: 2px !important;
-    padding: 6px 8px !important;
-  }
-  body.mobile-layout .layout-mode-toggle {
-    padding: 5px 8px !important;
-    margin-right: 0 !important;
-  }
-
-  body.mobile-layout #desktopNavGroup { display: none !important; }
-  body.mobile-layout #mobileBottomNav { display: flex !important; }
-  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px !important; }
+  /* Disposition forcée en mode compact/mobile sur tout écran */
+  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px 80px; }
   body.mobile-layout .card { padding: 14px; }
   body.mobile-layout h2 { font-size: 1.1rem; }
   body.mobile-layout .chart-wrapper { height: 280px; }
@@ -3276,36 +3057,65 @@
   body.mobile-layout .npb-add button { width: 100%; }
   body.mobile-layout .chart-controls { gap: 10px 14px; }
   body.mobile-layout .chart-control select { flex: 1; }
+
+  /* Transformation de la barre de navigation en Bottom Nav Bar fixe en mode mobile */
+  body.mobile-layout .nav-btn-group {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 62px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+    z-index: 9999;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 4px;
+    margin: 0;
+  }
+  body.mobile-layout .nav-btn {
+    flex-direction: column;
+    padding: 6px 2px;
+    min-height: auto;
+    border-bottom: none;
+    border-top: 3px solid transparent;
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 2px;
+  }
   body.mobile-layout .nav-btn.active {
-    border-bottom: none !important;
-    border-top-color: var(--accent) !important;
-    flex-grow: 1 !important;
-    background: rgba(255, 71, 87, 0.08) !important;
+    border-bottom: none;
+    border-top-color: var(--accent);
+    flex-grow: 1;
+    background: rgba(255, 71, 87, 0.08);
   }
   body.mobile-layout .nav-btn .nav-btn-icon {
-    font-size: 1.2rem !important;
-    line-height: 1 !important;
+    font-size: 1.2rem;
+    line-height: 1;
   }
   body.mobile-layout .nav-btn-label {
     display: block !important;
     max-width: 100% !important;
-    opacity: 0.75 !important;
-    font-size: 0.65rem !important;
+    opacity: 0.75;
+    font-size: 0.65rem;
     margin-left: 0 !important;
-    text-align: center !important;
-    line-height: 1 !important;
+    text-align: center;
+    line-height: 1;
   }
   body.mobile-layout .nav-btn.active .nav-btn-label {
-    opacity: 1 !important;
-    font-weight: 700 !important;
-    color: var(--accent) !important;
+    opacity: 1;
+    font-weight: 700;
+    color: var(--accent);
   }
   body.mobile-layout .chat-fab {
     bottom: 75px !important;
   }
   body.mobile-layout .chat-panel {
     bottom: 135px !important;
-    max-height: calc(100vh - 150px) !important;
+    max-height: calc(100vh - 150px);
   }
 
   </style>
@@ -3337,12 +3147,6 @@
     <button type="button" class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer la disposition" title="Basculer la disposition (Mobile / PC)"><span class="lmt-icon" id="lmtIcon">📱</span><span class="lmt-label" id="lmtLabel">Mobile</span></button>
   </div>
 </nav>
-
-<div class="mobile-cta-banner" id="mobileCtaBanner">
-  <span class="mobile-cta-text">T'ES SUR TÉLÉPHONE ? CLIQUE BATARD !</span>
-  <button type="button" class="mobile-cta-link" id="mobileCtaLink">📱 Version mobile</button>
-  <button type="button" class="mobile-cta-close" id="mobileCtaClose" aria-label="Fermer">✕</button>
-</div>
 
 <div id="quickStatsBar" class="quick-stats-bar">
   <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
@@ -8186,57 +7990,6 @@
     host.appendChild(resetBtn);
   }
 
-  const CHART_LEGEND_LABELS = c => ({
-    color: c.text, font: { size: 11, family: 'system-ui, -apple-system, sans-serif', weight: 'bold' },
-    usePointStyle: true, pointStyle: 'circle',
-    boxWidth: 8, boxHeight: 8, padding: 16
-  });
-
-  function buildLegendButtonsPlugin() {
-    return {
-      id: 'legendButtons',
-      afterDatasetsDraw(chart) {
-        const { ctx } = chart;
-        const c = getChartColors();
-        if (chart.legend && chart.legend.legendHitBoxes && chart.legend.legendHitBoxes.length) {
-          ctx.save();
-          chart.legend.legendHitBoxes.forEach((box, i) => {
-            const item = chart.legend.legendItems ? chart.legend.legendItems[i] : null;
-            if (!box || !item) return;
-            const isHidden = item.hidden;
-            const dsColor = item.fillStyle || c.accent;
-            const bx = box.left - 6;
-            const by = box.top - 4;
-            const bw = box.width + 12;
-            const bh = box.height + 8;
-
-            ctx.fillStyle = isHidden ? (c.dark ? 'rgba(20, 25, 35, 0.5)' : 'rgba(235, 240, 248, 0.6)') : (c.dark ? 'rgba(25, 32, 48, 0.95)' : 'rgba(255, 255, 255, 0.95)');
-            ctx.strokeStyle = isHidden ? c.border : dsColor;
-            ctx.lineWidth = 1.5;
-            roundRect(ctx, bx, by, bw, bh, 6);
-            ctx.fill();
-            ctx.stroke();
-
-            const iconX = box.left + 4;
-            const iconY = box.top + box.height / 2;
-            ctx.fillStyle = isHidden ? c.muted : dsColor;
-            ctx.beginPath();
-            ctx.arc(iconX, iconY, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            const textX = iconX + 10;
-            ctx.fillStyle = isHidden ? c.muted : c.text;
-            ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(item.text || '', textX, iconY);
-          });
-          ctx.restore();
-        }
-      }
-    };
-  }
-
   function buildCustomTooltipPlugin(opts) {
     opts = opts || {};
     const el = document.getElementById('chartCustomTooltip');
@@ -8393,17 +8146,23 @@
     chart.update();
   }
 
+  // Styles communs de légende : points ronds espacés, texte barré sur les séries masquées.
+  const CHART_LEGEND_LABELS = c => ({
+    color: c.text, font: { size: 12 },
+    usePointStyle: true, pointStyle: 'circle',
+    boxWidth: 9, boxHeight: 9, padding: 14
+  });
+
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
 
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
-      const c = getChartColors();
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = c.muted;
+      ctx.fillStyle = 'var(--text-muted)';
       ctx.textAlign = 'center';
-      ctx.font = '13px system-ui, sans-serif';
-      ctx.fillText('Aucune donnée à afficher', ctx.canvas.width / 2, 40);
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
       return;
     }
 
@@ -8411,7 +8170,7 @@
     const baseOpts = {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
         tooltip: { mode: 'index', intersect: false }
       }
     };
@@ -8440,19 +8199,32 @@
           ctx.save();
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillStyle = c.text;
-          ctx.font = '700 1.5rem system-ui, sans-serif';
+          ctx.font = '700 1.5rem sans-serif';
           ctx.fillText(String(total), cx, cy - 6);
-          ctx.font = '0.75rem system-ui, sans-serif'; ctx.fillStyle = c.muted;
-          ctx.fillText('Total ' + player, cx, cy + 16);
+          ctx.font = '0.72rem sans-serif'; ctx.fillStyle = c.muted;
+          ctx.fillText('total', cx, cy + 16);
           ctx.restore();
         }
       };
 
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: segLabels, datasets: [{ data: segValues, backgroundColor: segColors, borderWidth: 2, borderColor: c.card }] },
-        options: { ...baseOpts, cutout: '65%' },
-        plugins: [centerPlugin, buildCustomTooltipPlugin(), buildLegendButtonsPlugin()]
+        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors, _catNames: segLabels }] },
+        options: {
+          ...baseOpts,
+          plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const category = segLabels[elements[0].index];
+            openChartDrilldown({
+              players: [player], categories: [category],
+              startDate: document.getElementById('startDate').value || null,
+              endDate: document.getElementById('endDate').value || null,
+              title: player + ' · ' + catDisplay(category)
+            });
+          }
+        },
+        plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
       });
       return;
     }
@@ -8473,10 +8245,9 @@
           ...baseOpts,
           scales: {
             r: {
-              grid: { color: 'rgba(0, 243, 255, 0.18)' },
-              angleLines: { color: 'rgba(0, 243, 255, 0.25)' },
-              pointLabels: { color: '#00f3ff', font: { family: '"Consolas", "Courier New", monospace', size: 11 } },
-              ticks: { color: '#80c0e0', backdropColor: 'transparent', font: { family: '"Consolas", "Courier New", monospace', size: 9 } }
+              grid: { color: c.grid },
+              pointLabels: { color: c.muted },
+              ticks: { color: c.muted, backdropColor: 'transparent' }
             }
           },
           onClick: (evt, elements) => {
@@ -8492,7 +8263,7 @@
             });
           }
         },
-        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendButtonsPlugin()]
+        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
       });
       return;
     }
@@ -8507,6 +8278,7 @@
       const order = sortIndices(totalsVals, chartOptions.sortBy, rows.map(r => r.player));
       const totals = order.map(i => rows[i]);
 
+      // Mode détaillé : une barre empilée par catégorie. Sinon une seule barre de total.
       let datasets;
       if (chartOptions.detailed) {
         datasets = data.datasets.map((ds, ci) => ({
@@ -8535,11 +8307,13 @@
           plugins: {
             ...baseOpts.plugins,
             tooltip: { mode: 'index', axis: 'y', intersect: false },
+            // Légende volontairement non isolable sur le Classement (une seule barre par
+            // joueur en mode simple — isoler une "série" n'a pas de sens ici).
             legend: { display: chartOptions.detailed, labels: CHART_LEGEND_LABELS(c) }
           },
           scales: {
-            x: { stacked: chartOptions.detailed, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } },
-            y: { stacked: chartOptions.detailed, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#00f3ff', font: { family: '"Consolas", "Courier New", monospace', size: 11, weight: 'bold' } } }
+            x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
+            y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
           },
           onClick: (evt, elements) => {
             if (!elements.length) return;
@@ -8557,9 +8331,10 @@
         plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin({
           titleIsPlayer: true,
           rankedTotals: totals.map(t => ({ player: t.player, total: t.total }))
-        }), buildLegendButtonsPlugin()]
+        })]
       });
 
+      // Phrases d'accroche — card dédiée, indépendante du mode détaillé
       if (!chartOptions.detailed) {
         renderPhrasesCard(totals);
       }
@@ -8578,12 +8353,13 @@
         const { ctx } = chart;
         const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
         ctx.save();
-        ctx.fillStyle = '#00f3ff';
-        ctx.font = '700 0.72rem "Consolas", "Courier New", monospace';
+        ctx.fillStyle = c.text;
+        ctx.font = '700 0.72rem sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         sorted.labels.forEach((lbl, i) => {
           const total = sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
           if (total <= 0) return;
+          // Position : centre du groupe (moyenne des x), sommet le plus haut (min y).
           let sumX = 0, cnt = 0, minY = Infinity;
           metas.forEach(meta => {
             const el = meta.data[i];
@@ -8591,16 +8367,17 @@
             sumX += el.x; cnt++; minY = Math.min(minY, el.y);
           });
           if (!cnt) return;
-          ctx.fillText('[' + String(total) + ']', sumX / cnt, minY - 4);
+          ctx.fillText(String(total), sumX / cnt, minY - 4);
         });
         ctx.restore();
       }
     };
 
     const yScale = chartOptions.logScale
-      ? { type: 'logarithmic', stacked, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } }
-      : { stacked, beginAtZero: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } };
+      ? { type: 'logarithmic', stacked, grid: { color: c.grid }, ticks: { color: c.muted } }
+      : { stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } };
 
+    // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
     const displayData = {
       labels: sorted.labels,
       datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
@@ -8613,7 +8390,7 @@
         ...baseOpts,
         layout: chartOptions.showTotals ? { padding: { top: 22 } } : {},
         scales: {
-          x: { stacked, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 }, maxRotation: 40 } },
+          x: { stacked, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
           y: yScale
         },
         onClick: (evt, elements) => {
@@ -8634,7 +8411,7 @@
         rankedTotals: sorted.labels
           .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
           .sort((a, b) => b.total - a.total)
-      }), buildLegendButtonsPlugin()]
+      })]
     });
   }
 
@@ -8744,6 +8521,7 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
+          // offset:true → les points ne sont pas collés au bord gauche (utile quand il y en a peu).
           x: { offset: true, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
           y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
@@ -8773,7 +8551,7 @@
           });
         }
       },
-      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendButtonsPlugin()]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
     });
   }
 
@@ -12367,11 +12145,8 @@
   }
 
   function renderNav() {
-    const html = NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
-    const desktopGroup = document.getElementById('desktopNavGroup');
-    const mobileGroup = document.getElementById('mobileBottomNav');
-    if (desktopGroup) desktopGroup.innerHTML = html;
-    if (mobileGroup) mobileGroup.innerHTML = html;
+    document.getElementById('desktopNavGroup').innerHTML =
+      NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
     document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => goToTab(btn.dataset.tab));
     });
@@ -12508,13 +12283,11 @@
     function applyLayout(isMobile) {
       if (isMobile) {
         document.body.classList.add('mobile-layout');
-        document.body.classList.remove('desktop-layout');
         if (icon) icon.textContent = '🖥️';
         if (label) label.textContent = 'PC';
         btn.title = 'Basculer en disposition PC (écran large)';
       } else {
         document.body.classList.remove('mobile-layout');
-        document.body.classList.add('desktop-layout');
         if (icon) icon.textContent = '📱';
         if (label) label.textContent = 'Mobile';
         btn.title = 'Basculer en disposition Mobile (compact)';
@@ -12526,48 +12299,12 @@
     }
 
     const saved = localStorage.getItem('tdt_forced_layout');
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-    const initialMobile = saved ? (saved === 'mobile') : isSmallScreen;
-    applyLayout(initialMobile);
+    applyLayout(saved === 'mobile');
 
     btn.addEventListener('click', () => {
-      const currentlyMobile = document.body.classList.contains('mobile-layout') ||
-        (isSmallScreen && !document.body.classList.contains('desktop-layout'));
-      const nextIsMobile = !currentlyMobile;
-      applyLayout(nextIsMobile);
-      localStorage.setItem('tdt_forced_layout', nextIsMobile ? 'mobile' : 'desktop');
-    });
-    initMobileCtaBanner();
-  }
-
-  function initMobileCtaBanner() {
-    const banner = document.getElementById('mobileCtaBanner');
-    const link = document.getElementById('mobileCtaLink');
-    const closeBtn = document.getElementById('mobileCtaClose');
-    if (!banner || !link || !closeBtn) return;
-
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-    const chosenDesktop = localStorage.getItem('tdt_forced_layout') === 'desktop';
-    const dismissed = localStorage.getItem('tdt_mobile_banner_dismissed') === '1';
-
-    if (!isSmallScreen || chosenDesktop || dismissed) return;
-
-    banner.classList.add('show');
-
-    link.addEventListener('click', () => {
-      document.body.classList.add('mobile-layout');
-      document.body.classList.remove('desktop-layout');
-      localStorage.setItem('tdt_forced_layout', 'mobile');
-      banner.classList.remove('show');
-      const icon = document.getElementById('lmtIcon');
-      const label = document.getElementById('lmtLabel');
-      if (icon) icon.textContent = '🖥️';
-      if (label) label.textContent = 'PC';
-    });
-
-    closeBtn.addEventListener('click', () => {
-      localStorage.setItem('tdt_mobile_banner_dismissed', '1');
-      banner.classList.remove('show');
+      const isMobile = !document.body.classList.contains('mobile-layout');
+      applyLayout(isMobile);
+      localStorage.setItem('tdt_forced_layout', isMobile ? 'mobile' : 'desktop');
     });
   }
 
@@ -14494,6 +14231,5 @@
   });
 
   </script>
-  <div class="mobile-bottom-nav" id="mobileBottomNav"></div>
 </body>
 </html>
