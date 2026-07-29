@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-29
 
 ### Modifié
-**Humanisé** : Refonte visuelle intégrale du graphique interactif du Dashboard dans un style Futurist Tactical Terminal (châssis HUD avec coins biseautés, bandeau console, grille holographique, tracés en circuit imprimé stepline et lueurs néon sur l'ensemble des 6 types de graphiques).
-**Technique** : `Index.html` — (1) Ajout du conteneur `.tactical-hud-box` autour de `#mainChart`. (2) Création du plugin Chart.js `buildTacticalTerminalPlugin` pour le rendu néon (`shadowBlur = 8`) et les micro-réticules `[+]`. (3) Adaptation des 6 types de graphiques (Empilé, Groupé, Courbes, Radar, Donut, Classement) avec la grille matricielle et la typographie monospace `Consolas`.
+**Humanisé** : Refonte visuelle intégrale du graphique interactif du Dashboard et de sa barre de menu dans un style Futurist Tactical Terminal (barres découper façon vumètres LED avec contours néon conservant les couleurs réelles des joueurs/catégories, bandeau console HUD, grille holographique et boutons tactiques).
+**Technique** : `Index.html` — (1) Rendu des barres/séries/donuts avec vumètres LED, lueurs néon et contours dans leurs couleurs d'origine. (2) Stylisation du menu des graphiques (`.chart-type-bar`, `.chart-type-btn`, `.export-btn`) en mode console monospace. (3) Préservation stricte de la palette et des couleurs dynamiques de données.
 
 ### Supprimé
 **Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.

@@ -596,25 +596,29 @@
       box-shadow: 0 4px 12px var(--accent-glow);
     }
 
-    /* ── CHART TYPE SELECTOR ── */
+    /* ── CHART TYPE SELECTOR (TACTICAL HUD STYLE) ── */
     .chart-type-bar {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
-      background: var(--btn-alt); padding: 6px; border-radius: var(--radius-md);
-      border: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+      background: rgba(4, 7, 17, 0.95); padding: 6px; border-radius: var(--radius-md);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.05);
+      font-family: "Consolas", "Courier New", monospace;
     }
     .chart-type-btn {
-      background: transparent; border: none;
-      border-radius: var(--radius-sm); padding: 8px 14px;
-      font-size: 0.82rem; cursor: pointer; color: var(--text-muted);
+      background: rgba(10, 18, 32, 0.8); border: 1px solid rgba(0, 243, 255, 0.15);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      font-size: 0.8rem; cursor: pointer; color: var(--text-muted);
       min-height: 36px; font-weight: 700;
       transition: all 0.2s ease;
       flex: 1 1 auto; text-align: center;
+      letter-spacing: 0.5px;
     }
-    .chart-type-btn:hover { color: var(--text); background: var(--card-hover); }
+    .chart-type-btn:hover { color: #00f3ff; background: rgba(0, 243, 255, 0.1); border-color: rgba(0, 243, 255, 0.4); }
     .chart-type-btn.active { 
-      background: var(--accent); 
-      color: var(--on-accent); 
-      box-shadow: 0 4px 12px var(--accent-glow);
+      background: rgba(0, 243, 255, 0.18); 
+      color: #00f3ff; 
+      border-color: #00f3ff;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
     }
 
     /* ── CHART ── */
@@ -625,11 +629,13 @@
     .chart-header h2 { flex: 1; margin: 0; }
     .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
     .export-btn {
-      background: var(--btn-alt); border: none;
-      padding: 6px 10px; border-radius: 6px;
+      background: rgba(10, 18, 32, 0.8); border: 1px solid rgba(0, 243, 255, 0.25);
+      padding: 6px 12px; border-radius: 6px;
       font-size: 0.75rem; cursor: pointer; color: var(--text);
-      min-height: 32px;
+      min-height: 32px; font-family: "Consolas", "Courier New", monospace;
+      font-weight: 700; transition: all 0.2s ease;
     }
+    .export-btn:hover { background: rgba(0, 243, 255, 0.2); color: #00f3ff; border-color: #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
     /* ── TACTICAL TERMINAL HUD ── */
     .tactical-hud-box {
       background: #040711;
@@ -8418,18 +8424,67 @@
         const { ctx } = chart;
         const type = chart.config.type;
 
-        // Overlay réticules luminescents sur les points de lignes/courbes
+        // 1. Rendus pour les barres (bar) : Vumètres LED segmentés + lueur néon dans leur vraie couleur
+        if (type === 'bar') {
+          const isHorizontal = chart.options.indexAxis === 'y';
+          chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            if (!meta || meta.hidden) return;
+            ctx.save();
+            meta.data.forEach((bar, i) => {
+              if (!bar || bar.x == null || bar.y == null) return;
+              const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : (ds.backgroundColor || '#00f3ff');
+              if (!color) return;
+
+              const x = Math.min(bar.x, bar.base);
+              const y = Math.min(bar.y, bar.base);
+              const w = Math.abs(bar.x - bar.base);
+              const h = Math.abs(bar.y - bar.base);
+
+              const bx = isHorizontal ? x : bar.x - bar.width / 2;
+              const bw = isHorizontal ? w : bar.width;
+              const by = isHorizontal ? bar.y - bar.height / 2 : y;
+              const bh = isHorizontal ? bar.height : h;
+
+              if (bw <= 0 || bh <= 0) return;
+
+              // Contour néon phosphorescent dans la couleur réelle du joueur/catégorie
+              ctx.strokeStyle = color;
+              ctx.shadowColor = color;
+              ctx.shadowBlur = 6;
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(bx, by, bw, bh);
+              ctx.shadowBlur = 0;
+
+              // Traits de découpe de type vumètre LED
+              ctx.strokeStyle = 'rgba(4, 7, 17, 0.65)';
+              ctx.lineWidth = 2;
+              if (isHorizontal) {
+                for (let px = bx + 6; px < bx + bw - 2; px += 6) {
+                  ctx.beginPath(); ctx.moveTo(px, by); ctx.lineTo(px, by + bh); ctx.stroke();
+                }
+              } else {
+                for (let py = by + 6; py < by + bh - 2; py += 6) {
+                  ctx.beginPath(); ctx.moveTo(bx, py); ctx.lineTo(bx + bw, py); ctx.stroke();
+                }
+              }
+            });
+            ctx.restore();
+          });
+        }
+
+        // 2. Rendus pour les courbes (line) : Réticules luminescents
         if (type === 'line') {
           chart.data.datasets.forEach((ds, di) => {
             const meta = chart.getDatasetMeta(di);
-            if (meta.hidden) return;
+            if (!meta || meta.hidden) return;
             ctx.save();
             ctx.strokeStyle = ds.borderColor || '#00f3ff';
             ctx.fillStyle = ds.borderColor || '#00f3ff';
             ctx.shadowColor = ds.borderColor || '#00f3ff';
             ctx.shadowBlur = 8;
             meta.data.forEach(pt => {
-              if (pt.x == null || pt.y == null) return;
+              if (!pt || pt.x == null || pt.y == null) return;
               ctx.beginPath();
               ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
               ctx.fill();
@@ -8439,6 +8494,26 @@
             });
             ctx.restore();
           });
+        }
+
+        // 3. Rendus pour le Donut (doughnut) : Contours néon par part
+        if (type === 'doughnut') {
+          const ds = chart.data.datasets[0];
+          const meta = chart.getDatasetMeta(0);
+          if (ds && meta) {
+            ctx.save();
+            meta.data.forEach((arc, i) => {
+              const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : (ds.backgroundColor || '#00f3ff');
+              ctx.strokeStyle = color;
+              ctx.shadowColor = color;
+              ctx.shadowBlur = 6;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(arc.x, arc.y, arc.outerRadius, arc.startAngle, arc.endAngle);
+              ctx.stroke();
+            });
+            ctx.restore();
+          }
         }
       }
     };
