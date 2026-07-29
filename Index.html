@@ -3034,7 +3034,7 @@
   .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
   /* Disposition forcée en mode compact/mobile sur tout écran */
-  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px; }
+  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px 80px; }
   body.mobile-layout .card { padding: 14px; }
   body.mobile-layout h2 { font-size: 1.1rem; }
   body.mobile-layout .chart-wrapper { height: 280px; }
@@ -3057,6 +3057,66 @@
   body.mobile-layout .npb-add button { width: 100%; }
   body.mobile-layout .chart-controls { gap: 10px 14px; }
   body.mobile-layout .chart-control select { flex: 1; }
+
+  /* Transformation de la barre de navigation en Bottom Nav Bar fixe en mode mobile */
+  body.mobile-layout .nav-btn-group {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 62px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+    z-index: 9999;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 4px;
+    margin: 0;
+  }
+  body.mobile-layout .nav-btn {
+    flex-direction: column;
+    padding: 6px 2px;
+    min-height: auto;
+    border-bottom: none;
+    border-top: 3px solid transparent;
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 2px;
+  }
+  body.mobile-layout .nav-btn.active {
+    border-bottom: none;
+    border-top-color: var(--accent);
+    flex-grow: 1;
+    background: rgba(255, 71, 87, 0.08);
+  }
+  body.mobile-layout .nav-btn .nav-btn-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  body.mobile-layout .nav-btn-label {
+    display: block !important;
+    max-width: 100% !important;
+    opacity: 0.75;
+    font-size: 0.65rem;
+    margin-left: 0 !important;
+    text-align: center;
+    line-height: 1;
+  }
+  body.mobile-layout .nav-btn.active .nav-btn-label {
+    opacity: 1;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  body.mobile-layout .chat-fab {
+    bottom: 75px !important;
+  }
+  body.mobile-layout .chat-panel {
+    bottom: 135px !important;
+    max-height: calc(100vh - 150px);
+  }
 
   </style>
 </head>
