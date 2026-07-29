@@ -7314,7 +7314,12 @@
   // Effectue tous les rendus qui dépendent de cachedPlayers/cachedCategories — appelée
   // à la fois pour un rendu instantané depuis le cache et pour le rendu final avec les
   // données fraîches du serveur, afin de ne pas dupliquer cette longue séquence.
-  function _paintEntitiesUI() {
+  function _paintEntitiesUI(opts) {
+    // opts = { withDataLoad: bool }
+    // withDataLoad=false → mise à jour UI légère depuis le cache (pas de requêtes réseau supplémentaires)
+    // withDataLoad=true  → déclenche aussi applyFilters/loadQuickStats après le rendu
+    const withDataLoad = !opts || opts.withDataLoad !== false;
+
     const auSel = document.getElementById('auditFilterAuthor');
     if (auSel) {
       while (auSel.options.length > 1) auSel.remove(1);
@@ -7355,11 +7360,13 @@
     renderWhoAmI();
 
     // applyFilters/loadQuickStats affichent des avatars résolus via cachedPlayers :
-    // on les déclenche seulement une fois cachedPlayers rempli, sinon le premier
-    // chargement de page rate les avatars (course avec apiGetSettings) et il
-    // faut actualiser pour les voir apparaître.
-    applyFilters();
-    loadQuickStats();
+    // on les déclenche seulement une fois cachedPlayers rempli ET après la réponse
+    // serveur réelle — le premier rendu depuis le cache ne doit PAS les relancer
+    // pour éviter le double chargement visible au démarrage.
+    if (withDataLoad) {
+      applyFilters();
+      loadQuickStats();
+    }
   }
 
   function loadEntities(onDone) {
@@ -7369,7 +7376,9 @@
       if (cached && cached.players && cached.categories) {
         cachedPlayers    = cached.players;
         cachedCategories = cached.categories;
-        _paintEntitiesUI();
+        // Rendu léger depuis le cache : pas de applyFilters/loadQuickStats
+        // pour éviter un double chargement (ils seront déclenchés après la réponse serveur)
+        _paintEntitiesUI({ withDataLoad: false });
         paintedFromCache = true;
       }
     } catch (e) { /* cache corrompu : ignorer, chargement normal */ }
@@ -7385,7 +7394,8 @@
       try {
         localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
       } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
-      _paintEntitiesUI();
+      // Rendu complet avec chargement des données (applyFilters + loadQuickStats)
+      _paintEntitiesUI({ withDataLoad: true });
       if (onDone) onDone();
 
     }, 'Chargement settings', () => {
