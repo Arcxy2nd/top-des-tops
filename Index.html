@@ -3023,6 +3023,41 @@
     padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
 
+  /* ── Bascule de disposition (Mobile / PC) ── */
+  .layout-mode-toggle {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    background: var(--btn-alt); border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text);
+    min-height: 36px; padding: 6px 12px; margin-right: 4px;
+    transition: background 0.2s, color 0.2s, border-color 0.2s; touch-action: manipulation;
+  }
+  .layout-mode-toggle:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+  /* Disposition forcée en mode compact/mobile sur tout écran */
+  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px; }
+  body.mobile-layout .card { padding: 14px; }
+  body.mobile-layout h2 { font-size: 1.1rem; }
+  body.mobile-layout .chart-wrapper { height: 280px; }
+  body.mobile-layout .fp-date-row { flex-wrap: wrap; }
+  body.mobile-layout .fchip { font-size: 0.78rem; padding: 4px 10px; }
+  body.mobile-layout .batch-header { display: none; }
+  body.mobile-layout .row-top { flex-wrap: wrap; }
+  body.mobile-layout .row-top .player-sel-wrap,
+  body.mobile-layout .row-top .c-sel-wrap { flex: 1 1 45%; }
+  body.mobile-layout .row-top .custom-pts-in { width: 56px; }
+  body.mobile-layout .row-bottom .pts-toggle-wrap { width: 100%; justify-content: space-between; }
+  body.mobile-layout .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+  body.mobile-layout .export-buttons { gap: 6px; justify-content: center; width: 100%; }
+  body.mobile-layout .export-btn { padding: 8px 10px; font-size: 0.75rem; flex: 1; text-align: center; }
+  body.mobile-layout .history-filters { flex-direction: column; align-items: stretch; }
+  body.mobile-layout .health-grid { grid-template-columns: 1fr 1fr; }
+  body.mobile-layout .npb-add { flex-direction: column; align-items: stretch; }
+  body.mobile-layout .npb-add input[type="text"],
+  body.mobile-layout .npb-add .npb-date-field,
+  body.mobile-layout .npb-add button { width: 100%; }
+  body.mobile-layout .chart-controls { gap: 10px 14px; }
+  body.mobile-layout .chart-control select { flex: 1; }
+
   </style>
 </head>
 <body>
@@ -3049,6 +3084,7 @@
       <div class="who-am-i-dropdown" id="whoAmIDropdown"></div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">🌙</button>
+    <button type="button" class="layout-mode-toggle" id="layoutModeToggle" aria-label="Basculer la disposition" title="Basculer la disposition (Mobile / PC)"><span class="lmt-icon" id="lmtIcon">📱</span><span class="lmt-label" id="lmtLabel">Mobile</span></button>
   </div>
 </nav>
 
@@ -12177,6 +12213,41 @@
     });
   }
 
+  // ── BASCULE DE DISPOSITION (Mobile / PC) ─────────────────────────────
+  function initLayoutModeToggle() {
+    const btn = document.getElementById('layoutModeToggle');
+    if (!btn) return;
+    const icon = document.getElementById('lmtIcon');
+    const label = document.getElementById('lmtLabel');
+
+    function applyLayout(isMobile) {
+      if (isMobile) {
+        document.body.classList.add('mobile-layout');
+        if (icon) icon.textContent = '🖥️';
+        if (label) label.textContent = 'PC';
+        btn.title = 'Basculer en disposition PC (écran large)';
+      } else {
+        document.body.classList.remove('mobile-layout');
+        if (icon) icon.textContent = '📱';
+        if (label) label.textContent = 'Mobile';
+        btn.title = 'Basculer en disposition Mobile (compact)';
+      }
+      if (currentChart && currentChartData) {
+        if (currentChartType === 'trend') renderTrendChart(currentChartData);
+        else renderChart(currentChartData, currentChartType);
+      }
+    }
+
+    const saved = localStorage.getItem('tdt_forced_layout');
+    applyLayout(saved === 'mobile');
+
+    btn.addEventListener('click', () => {
+      const isMobile = !document.body.classList.contains('mobile-layout');
+      applyLayout(isMobile);
+      localStorage.setItem('tdt_forced_layout', isMobile ? 'mobile' : 'desktop');
+    });
+  }
+
   // ── BOUTONS ───────────────────────────────────────────────────────────
   function bindButtons() {
     // Chart.js dessine lui-même un point/curseur actif sur le canvas pendant le
@@ -13585,6 +13656,7 @@
 
   window.onload = () => {
     initTheme();
+    initLayoutModeToggle();
     initSpotlightCards();
     initGsapEffects();
     initSettingsTabs();
