@@ -630,7 +630,44 @@
       font-size: 0.75rem; cursor: pointer; color: var(--text);
       min-height: 32px;
     }
-    .export-btn:hover { background: var(--accent); color: var(--on-accent); }
+    /* ── TACTICAL TERMINAL HUD ── */
+    .tactical-hud-box {
+      background: #040711;
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 10px;
+      padding: 10px;
+      position: relative;
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.08), inset 0 0 15px rgba(0, 243, 255, 0.03);
+      background-image: 
+        radial-gradient(rgba(0, 243, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(7, 13, 26, 0.95), rgba(4, 7, 17, 0.98));
+      background-size: 20px 20px, 100% 100%;
+    }
+    .tactical-hud-header {
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 6px; margin-bottom: 6px;
+      border-bottom: 1px dashed rgba(0, 243, 255, 0.2);
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 0.7rem; color: #00f3ff; letter-spacing: 0.5px;
+    }
+    .hud-led {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #00ff66; box-shadow: 0 0 8px #00ff66;
+      animation: hudPulse 2s infinite;
+    }
+    @keyframes hudPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .hud-coord { margin-left: auto; color: rgba(0, 243, 255, 0.5); font-size: 0.65rem; }
+
+    .hud-corner {
+      position: absolute; width: 14px; height: 14px;
+      border: 2px solid #00f3ff; pointer-events: none; z-index: 5;
+      filter: drop-shadow(0 0 4px #00f3ff);
+    }
+    .hud-corner.top-left { top: 4px; left: 4px; border-right: none; border-bottom: none; }
+    .hud-corner.top-right { top: 4px; right: 4px; border-left: none; border-bottom: none; }
+    .hud-corner.bottom-left { bottom: 4px; left: 4px; border-right: none; border-top: none; }
+    .hud-corner.bottom-right { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+
     .chart-wrapper { position: relative; height: 420px; width: 100%; }
 
     /* ── SKELETON ── */
@@ -3289,9 +3326,20 @@
         </div>
 
         <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
-        <div class="chart-wrapper" id="chartWrapper" style="display:none;">
-          <canvas id="mainChart"></canvas>
-          <div id="chartCustomTooltip" role="tooltip"></div>
+        <div class="tactical-hud-box">
+          <div class="tactical-hud-header">
+            <span class="hud-led"></span>
+            <span class="hud-title">TACTICAL.SYS // CORE_FEED // DATA_STREAM_ACTIVE</span>
+            <span class="hud-coord">LOC: 0x7F4A</span>
+          </div>
+          <div class="chart-wrapper" id="chartWrapper" style="display:none;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            <canvas id="mainChart"></canvas>
+            <div id="chartCustomTooltip" role="tooltip"></div>
+          </div>
         </div>
         <div id="topStatsStrip"></div>
       </div>
@@ -8148,10 +8196,58 @@
 
   // Styles communs de légende : points ronds espacés, texte barré sur les séries masquées.
   const CHART_LEGEND_LABELS = c => ({
-    color: c.text, font: { size: 12 },
-    usePointStyle: true, pointStyle: 'circle',
-    boxWidth: 9, boxHeight: 9, padding: 14
+    color: '#00f3ff', font: { size: 11, family: '"Consolas", "Courier New", monospace' },
+    usePointStyle: true, pointStyle: 'rectRot',
+    boxWidth: 8, boxHeight: 8, padding: 14
   });
+
+  function buildTacticalTerminalPlugin() {
+    return {
+      id: 'tacticalTerminal',
+      beforeDraw(chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+        ctx.lineWidth = 1;
+        const step = 28;
+        for (let x = chartArea.left; x <= chartArea.right; x += step) {
+          ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+        }
+        for (let y = chartArea.top; y <= chartArea.bottom; y += step) {
+          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
+        }
+        ctx.restore();
+      },
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const type = chart.config.type;
+
+        // Overlay réticules luminescents sur les points de lignes/courbes
+        if (type === 'line') {
+          chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            if (meta.hidden) return;
+            ctx.save();
+            ctx.strokeStyle = ds.borderColor || '#00f3ff';
+            ctx.fillStyle = ds.borderColor || '#00f3ff';
+            ctx.shadowColor = ds.borderColor || '#00f3ff';
+            ctx.shadowBlur = 8;
+            meta.data.forEach(pt => {
+              if (pt.x == null || pt.y == null) return;
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(pt.x - 5, pt.y); ctx.lineTo(pt.x + 5, pt.y); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(pt.x, pt.y - 5); ctx.lineTo(pt.x, pt.y + 5); ctx.stroke();
+            });
+            ctx.restore();
+          });
+        }
+      }
+    };
+  }
 
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
@@ -8159,10 +8255,10 @@
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = 'var(--text-muted)';
+      ctx.fillStyle = '#00f3ff';
       ctx.textAlign = 'center';
-      ctx.font = '14px sans-serif';
-      ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
+      ctx.font = '13px "Consolas", monospace';
+      ctx.fillText('SYS.DATA // NO_RECORDS_FOUND', ctx.canvas.width / 2, 40);
       return;
     }
 
@@ -8198,11 +8294,11 @@
           const cy = (chartArea.top + chartArea.bottom) / 2;
           ctx.save();
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillStyle = c.text;
-          ctx.font = '700 1.5rem sans-serif';
+          ctx.fillStyle = '#00f3ff';
+          ctx.font = '700 1.5rem "Consolas", monospace';
           ctx.fillText(String(total), cx, cy - 6);
-          ctx.font = '0.72rem sans-serif'; ctx.fillStyle = c.muted;
-          ctx.fillText('total', cx, cy + 16);
+          ctx.font = '0.7rem "Consolas", monospace'; ctx.fillStyle = '#80c0e0';
+          ctx.fillText('TARGET_TOTAL', cx, cy + 16);
           ctx.restore();
         }
       };
@@ -8224,7 +8320,7 @@
             });
           }
         },
-        plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin()]
+        plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin(), buildTacticalTerminalPlugin()]
       });
       return;
     }
@@ -8245,9 +8341,10 @@
           ...baseOpts,
           scales: {
             r: {
-              grid: { color: c.grid },
-              pointLabels: { color: c.muted },
-              ticks: { color: c.muted, backdropColor: 'transparent' }
+              grid: { color: 'rgba(0, 243, 255, 0.18)' },
+              angleLines: { color: 'rgba(0, 243, 255, 0.25)' },
+              pointLabels: { color: '#00f3ff', font: { family: '"Consolas", "Courier New", monospace', size: 11 } },
+              ticks: { color: '#80c0e0', backdropColor: 'transparent', font: { family: '"Consolas", "Courier New", monospace', size: 9 } }
             }
           },
           onClick: (evt, elements) => {
@@ -8263,7 +8360,7 @@
             });
           }
         },
-        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
+        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildTacticalTerminalPlugin()]
       });
       return;
     }
@@ -8278,7 +8375,6 @@
       const order = sortIndices(totalsVals, chartOptions.sortBy, rows.map(r => r.player));
       const totals = order.map(i => rows[i]);
 
-      // Mode détaillé : une barre empilée par catégorie. Sinon une seule barre de total.
       let datasets;
       if (chartOptions.detailed) {
         datasets = data.datasets.map((ds, ci) => ({
@@ -8307,13 +8403,11 @@
           plugins: {
             ...baseOpts.plugins,
             tooltip: { mode: 'index', axis: 'y', intersect: false },
-            // Légende volontairement non isolable sur le Classement (une seule barre par
-            // joueur en mode simple — isoler une "série" n'a pas de sens ici).
             legend: { display: chartOptions.detailed, labels: CHART_LEGEND_LABELS(c) }
           },
           scales: {
-            x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } },
-            y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted } }
+            x: { stacked: chartOptions.detailed, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } },
+            y: { stacked: chartOptions.detailed, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#00f3ff', font: { family: '"Consolas", "Courier New", monospace', size: 11, weight: 'bold' } } }
           },
           onClick: (evt, elements) => {
             if (!elements.length) return;
@@ -8331,10 +8425,9 @@
         plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin({
           titleIsPlayer: true,
           rankedTotals: totals.map(t => ({ player: t.player, total: t.total }))
-        })]
+        }), buildTacticalTerminalPlugin()]
       });
 
-      // Phrases d'accroche — card dédiée, indépendante du mode détaillé
       if (!chartOptions.detailed) {
         renderPhrasesCard(totals);
       }
@@ -8353,13 +8446,12 @@
         const { ctx } = chart;
         const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
         ctx.save();
-        ctx.fillStyle = c.text;
-        ctx.font = '700 0.72rem sans-serif';
+        ctx.fillStyle = '#00f3ff';
+        ctx.font = '700 0.72rem "Consolas", "Courier New", monospace';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         sorted.labels.forEach((lbl, i) => {
           const total = sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
           if (total <= 0) return;
-          // Position : centre du groupe (moyenne des x), sommet le plus haut (min y).
           let sumX = 0, cnt = 0, minY = Infinity;
           metas.forEach(meta => {
             const el = meta.data[i];
@@ -8367,17 +8459,16 @@
             sumX += el.x; cnt++; minY = Math.min(minY, el.y);
           });
           if (!cnt) return;
-          ctx.fillText(String(total), sumX / cnt, minY - 4);
+          ctx.fillText('[' + String(total) + ']', sumX / cnt, minY - 4);
         });
         ctx.restore();
       }
     };
 
     const yScale = chartOptions.logScale
-      ? { type: 'logarithmic', stacked, grid: { color: c.grid }, ticks: { color: c.muted } }
-      : { stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } };
+      ? { type: 'logarithmic', stacked, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } }
+      : { stacked, beginAtZero: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } };
 
-    // Affichage : on décore les libellés de catégorie avec leur emoji (sans toucher aux données).
     const displayData = {
       labels: sorted.labels,
       datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
@@ -8390,7 +8481,7 @@
         ...baseOpts,
         layout: chartOptions.showTotals ? { padding: { top: 22 } } : {},
         scales: {
-          x: { stacked, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40 } },
+          x: { stacked, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 }, maxRotation: 40 } },
           y: yScale
         },
         onClick: (evt, elements) => {
@@ -8411,7 +8502,7 @@
         rankedTotals: sorted.labels
           .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
           .sort((a, b) => b.total - a.total)
-      })]
+      }), buildTacticalTerminalPlugin()]
     });
   }
 
@@ -8510,9 +8601,9 @@
       borderColor: playerColor(p),
       backgroundColor: playerColor(p) + '22',
       fill: chartOptions.trendMode !== 'period',
-      tension: 0.3,
+      stepped: true,
       pointRadius: 4,
-      borderWidth: 2
+      borderWidth: 2.5
     }));
 
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
@@ -8521,9 +8612,8 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
-          // offset:true → les points ne sont pas collés au bord gauche (utile quand il y en a peu).
-          x: { offset: true, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
-          y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
+          x: { offset: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 }, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
+          y: { beginAtZero: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } }
         },
         plugins: {
           legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
@@ -8551,7 +8641,7 @@
           });
         }
       },
-      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildTacticalTerminalPlugin()]
     });
   }
 
