@@ -3136,8 +3136,55 @@
     color: var(--accent);
   }
 
-  /* Affichage unique de la Bottom Nav Bar en mode mobile */
+  /* Adaptabilité automatique de la barre supérieure (Top Bar) en mode mobile */
   @media (max-width: 768px) {
+    body:not(.desktop-layout) .navbar {
+      padding-top: max(4px, env(safe-area-inset-top));
+    }
+    body:not(.desktop-layout) .nav-container {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 6px 8px !important;
+      gap: 4px !important;
+      justify-content: space-between !important;
+    }
+    body:not(.desktop-layout) .app-brand {
+      padding: 0 4px !important;
+      gap: 6px !important;
+    }
+    body:not(.desktop-layout) .app-brand-title {
+      font-size: 0.88rem !important;
+    }
+    body:not(.desktop-layout) .nav-refresh-wrap {
+      padding: 0 2px !important;
+      gap: 4px !important;
+    }
+    body:not(.desktop-layout) .nav-bareme-btn {
+      padding: 6px 10px !important;
+      font-size: 0.8rem !important;
+    }
+    body:not(.desktop-layout) .who-am-i-wrap {
+      margin: 0 2px !important;
+    }
+    body:not(.desktop-layout) .who-am-i-btn {
+      padding: 5px 8px !important;
+      font-size: 0.78rem !important;
+    }
+    body:not(.desktop-layout) .who-am-i-name {
+      max-width: 70px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+    body:not(.desktop-layout) .theme-toggle {
+      margin-right: 2px !important;
+      padding: 6px 8px !important;
+    }
+    body:not(.desktop-layout) .layout-mode-toggle {
+      padding: 5px 8px !important;
+      margin-right: 0 !important;
+    }
+
     body:not(.desktop-layout) #desktopNavGroup { display: none !important; }
     body:not(.desktop-layout) #mobileBottomNav { display: flex !important; }
     body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px !important; }
@@ -3163,7 +3210,60 @@
     body:not(.desktop-layout) .chat-panel { bottom: 135px !important; max-height: calc(100vh - 150px) !important; }
   }
 
+  @media (max-width: 480px) {
+    body:not(.desktop-layout) .bareme-btn-label { display: none !important; }
+    body:not(.desktop-layout) .lmt-label { display: none !important; }
+    body:not(.desktop-layout) .app-brand-title { font-size: 0.82rem !important; }
+  }
+
   /* Disposition forcée en mode compact/mobile sur grand écran */
+  body.mobile-layout .navbar {
+    padding-top: max(4px, env(safe-area-inset-top));
+  }
+  body.mobile-layout .nav-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 6px 8px !important;
+    gap: 4px !important;
+    justify-content: space-between !important;
+  }
+  body.mobile-layout .app-brand {
+    padding: 0 4px !important;
+    gap: 6px !important;
+  }
+  body.mobile-layout .app-brand-title {
+    font-size: 0.88rem !important;
+  }
+  body.mobile-layout .nav-refresh-wrap {
+    padding: 0 2px !important;
+    gap: 4px !important;
+  }
+  body.mobile-layout .nav-bareme-btn {
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+  }
+  body.mobile-layout .who-am-i-wrap {
+    margin: 0 2px !important;
+  }
+  body.mobile-layout .who-am-i-btn {
+    padding: 5px 8px !important;
+    font-size: 0.78rem !important;
+  }
+  body.mobile-layout .who-am-i-name {
+    max-width: 70px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  body.mobile-layout .theme-toggle {
+    margin-right: 2px !important;
+    padding: 6px 8px !important;
+  }
+  body.mobile-layout .layout-mode-toggle {
+    padding: 5px 8px !important;
+    margin-right: 0 !important;
+  }
+
   body.mobile-layout #desktopNavGroup { display: none !important; }
   body.mobile-layout #mobileBottomNav { display: flex !important; }
   body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px !important; }
