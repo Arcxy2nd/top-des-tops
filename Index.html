@@ -8424,7 +8424,7 @@
         const { ctx } = chart;
         const type = chart.config.type;
 
-        // 1. Rendus pour les barres (bar) : Vumètres LED segmentés + lueur néon dans leur vraie couleur
+        // 1. Rendus pour les barres (bar) : Contour néon épuré et brillant dans la vraie couleur du joueur/catégorie
         if (type === 'bar') {
           const isHorizontal = chart.options.indexAxis === 'y';
           chart.data.datasets.forEach((ds, di) => {
@@ -8448,26 +8448,23 @@
 
               if (bw <= 0 || bh <= 0) return;
 
-              // Contour néon phosphorescent dans la couleur réelle du joueur/catégorie
+              // Contour néon phosphorescent élégant sans hachures zébrées
               ctx.strokeStyle = color;
               ctx.shadowColor = color;
-              ctx.shadowBlur = 6;
+              ctx.shadowBlur = 5;
               ctx.lineWidth = 1.5;
               ctx.strokeRect(bx, by, bw, bh);
               ctx.shadowBlur = 0;
 
-              // Traits de découpe de type vumètre LED
-              ctx.strokeStyle = 'rgba(4, 7, 17, 0.65)';
-              ctx.lineWidth = 2;
+              // Ligne d'accent lumineuse au sommet de la barre
+              ctx.fillStyle = '#ffffff';
+              ctx.globalAlpha = 0.4;
               if (isHorizontal) {
-                for (let px = bx + 6; px < bx + bw - 2; px += 6) {
-                  ctx.beginPath(); ctx.moveTo(px, by); ctx.lineTo(px, by + bh); ctx.stroke();
-                }
+                ctx.fillRect(bx + bw - 2, by, 2, bh);
               } else {
-                for (let py = by + 6; py < by + bh - 2; py += 6) {
-                  ctx.beginPath(); ctx.moveTo(bx, py); ctx.lineTo(bx + bw, py); ctx.stroke();
-                }
+                ctx.fillRect(bx, by, bw, 2);
               }
+              ctx.globalAlpha = 1;
             });
             ctx.restore();
           });
@@ -8516,7 +8513,7 @@
           }
         }
 
-        // 4. Boutons de légende tactiques (Pills / Chips interactifs)
+        // 4. Boutons de légende tactiques (Lisibilité parfaite + texte blanc néon au-dessus)
         if (chart.legend && chart.legend.legendHitBoxes && chart.legend.legendHitBoxes.length) {
           ctx.save();
           chart.legend.legendHitBoxes.forEach((box, i) => {
@@ -8529,7 +8526,8 @@
             const bw = box.width + 10;
             const bh = box.height + 6;
 
-            ctx.fillStyle = isHidden ? 'rgba(5, 10, 20, 0.4)' : 'rgba(10, 18, 32, 0.88)';
+            // Fond et contour du bouton
+            ctx.fillStyle = isHidden ? 'rgba(5, 10, 20, 0.6)' : 'rgba(10, 18, 32, 0.92)';
             ctx.strokeStyle = isHidden ? 'rgba(0, 243, 255, 0.2)' : dsColor;
             ctx.lineWidth = 1.5;
             if (!isHidden) {
@@ -8540,6 +8538,21 @@
             ctx.fill();
             ctx.stroke();
             ctx.shadowBlur = 0;
+
+            // Redessin du point d'icône et du texte de légende en haute lisibilité
+            const iconX = box.left + 4;
+            const iconY = box.top + box.height / 2;
+            ctx.fillStyle = isHidden ? '#406070' : dsColor;
+            ctx.beginPath();
+            ctx.arc(iconX, iconY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            const textX = iconX + 10;
+            ctx.fillStyle = isHidden ? 'rgba(128, 160, 180, 0.4)' : '#ffffff';
+            ctx.font = 'bold 11px "Consolas", "Courier New", monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.text || '', textX, iconY);
           });
           ctx.restore();
         }
