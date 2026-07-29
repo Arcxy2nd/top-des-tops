@@ -596,29 +596,25 @@
       box-shadow: 0 4px 12px var(--accent-glow);
     }
 
-    /* ── CHART TYPE SELECTOR (TACTICAL HUD STYLE) ── */
+    /* ── CHART TYPE SELECTOR ── */
     .chart-type-bar {
-      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
-      background: rgba(4, 7, 17, 0.95); padding: 6px; border-radius: var(--radius-md);
-      border: 1px solid rgba(0, 243, 255, 0.3);
-      box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.05);
-      font-family: "Consolas", "Courier New", monospace;
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+      background: var(--btn-alt); padding: 6px; border-radius: var(--radius-md);
+      border: 1px solid var(--border);
     }
     .chart-type-btn {
-      background: rgba(10, 18, 32, 0.8); border: 1px solid rgba(0, 243, 255, 0.15);
-      border-radius: var(--radius-sm); padding: 8px 12px;
-      font-size: 0.8rem; cursor: pointer; color: var(--text-muted);
+      background: transparent; border: none;
+      border-radius: var(--radius-sm); padding: 8px 14px;
+      font-size: 0.82rem; cursor: pointer; color: var(--text-muted);
       min-height: 36px; font-weight: 700;
       transition: all 0.2s ease;
       flex: 1 1 auto; text-align: center;
-      letter-spacing: 0.5px;
     }
-    .chart-type-btn:hover { color: #00f3ff; background: rgba(0, 243, 255, 0.1); border-color: rgba(0, 243, 255, 0.4); }
+    .chart-type-btn:hover { color: var(--text); background: var(--card-hover); }
     .chart-type-btn.active { 
-      background: rgba(0, 243, 255, 0.18); 
-      color: #00f3ff; 
-      border-color: #00f3ff;
-      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+      background: var(--accent); 
+      color: var(--on-accent); 
+      box-shadow: 0 4px 12px var(--accent-glow);
     }
 
     /* ── CHART ── */
@@ -629,50 +625,12 @@
     .chart-header h2 { flex: 1; margin: 0; }
     .export-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
     .export-btn {
-      background: rgba(10, 18, 32, 0.8); border: 1px solid rgba(0, 243, 255, 0.25);
-      padding: 6px 12px; border-radius: 6px;
+      background: var(--btn-alt); border: none;
+      padding: 6px 10px; border-radius: 6px;
       font-size: 0.75rem; cursor: pointer; color: var(--text);
-      min-height: 32px; font-family: "Consolas", "Courier New", monospace;
-      font-weight: 700; transition: all 0.2s ease;
+      min-height: 32px; transition: all 0.2s ease;
     }
-    .export-btn:hover { background: rgba(0, 243, 255, 0.2); color: #00f3ff; border-color: #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
-    /* ── TACTICAL TERMINAL HUD ── */
-    .tactical-hud-box {
-      background: #040711;
-      border: 1px solid rgba(0, 243, 255, 0.3);
-      border-radius: 10px;
-      padding: 10px;
-      position: relative;
-      box-shadow: 0 0 25px rgba(0, 243, 255, 0.08), inset 0 0 15px rgba(0, 243, 255, 0.03);
-      background-image: 
-        radial-gradient(rgba(0, 243, 255, 0.07) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(7, 13, 26, 0.95), rgba(4, 7, 17, 0.98));
-      background-size: 20px 20px, 100% 100%;
-    }
-    .tactical-hud-header {
-      display: flex; align-items: center; gap: 8px;
-      padding-bottom: 6px; margin-bottom: 6px;
-      border-bottom: 1px dashed rgba(0, 243, 255, 0.2);
-      font-family: "Consolas", "Courier New", monospace;
-      font-size: 0.7rem; color: #00f3ff; letter-spacing: 0.5px;
-    }
-    .hud-led {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: #00ff66; box-shadow: 0 0 8px #00ff66;
-      animation: hudPulse 2s infinite;
-    }
-    @keyframes hudPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-    .hud-coord { margin-left: auto; color: rgba(0, 243, 255, 0.5); font-size: 0.65rem; }
-
-    .hud-corner {
-      position: absolute; width: 14px; height: 14px;
-      border: 2px solid #00f3ff; pointer-events: none; z-index: 5;
-      filter: drop-shadow(0 0 4px #00f3ff);
-    }
-    .hud-corner.top-left { top: 4px; left: 4px; border-right: none; border-bottom: none; }
-    .hud-corner.top-right { top: 4px; right: 4px; border-left: none; border-bottom: none; }
-    .hud-corner.bottom-left { bottom: 4px; left: 4px; border-right: none; border-top: none; }
-    .hud-corner.bottom-right { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+    .export-btn:hover { background: var(--accent); color: var(--on-accent); }
 
     .chart-wrapper { position: relative; height: 420px; width: 100%; }
 
@@ -3527,20 +3485,9 @@
         </div>
 
         <div id="chartSkeleton" class="skeleton" style="height:420px; border-radius:8px;"></div>
-        <div class="tactical-hud-box">
-          <div class="tactical-hud-header">
-            <span class="hud-led"></span>
-            <span class="hud-title">TACTICAL.SYS // CORE_FEED // DATA_STREAM_ACTIVE</span>
-            <span class="hud-coord">LOC: 0x7F4A</span>
-          </div>
-          <div class="chart-wrapper" id="chartWrapper" style="display:none;">
-            <div class="hud-corner top-left"></div>
-            <div class="hud-corner top-right"></div>
-            <div class="hud-corner bottom-left"></div>
-            <div class="hud-corner bottom-right"></div>
-            <canvas id="mainChart"></canvas>
-            <div id="chartCustomTooltip" role="tooltip"></div>
-          </div>
+        <div class="chart-wrapper" id="chartWrapper" style="display:none;">
+          <canvas id="mainChart"></canvas>
+          <div id="chartCustomTooltip" role="tooltip"></div>
         </div>
         <div id="topStatsStrip"></div>
       </div>
@@ -8239,6 +8186,57 @@
     host.appendChild(resetBtn);
   }
 
+  const CHART_LEGEND_LABELS = c => ({
+    color: c.text, font: { size: 11, family: 'system-ui, -apple-system, sans-serif', weight: 'bold' },
+    usePointStyle: true, pointStyle: 'circle',
+    boxWidth: 8, boxHeight: 8, padding: 16
+  });
+
+  function buildLegendButtonsPlugin() {
+    return {
+      id: 'legendButtons',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const c = getChartColors();
+        if (chart.legend && chart.legend.legendHitBoxes && chart.legend.legendHitBoxes.length) {
+          ctx.save();
+          chart.legend.legendHitBoxes.forEach((box, i) => {
+            const item = chart.legend.legendItems ? chart.legend.legendItems[i] : null;
+            if (!box || !item) return;
+            const isHidden = item.hidden;
+            const dsColor = item.fillStyle || c.accent;
+            const bx = box.left - 6;
+            const by = box.top - 4;
+            const bw = box.width + 12;
+            const bh = box.height + 8;
+
+            ctx.fillStyle = isHidden ? (c.dark ? 'rgba(20, 25, 35, 0.5)' : 'rgba(235, 240, 248, 0.6)') : (c.dark ? 'rgba(25, 32, 48, 0.95)' : 'rgba(255, 255, 255, 0.95)');
+            ctx.strokeStyle = isHidden ? c.border : dsColor;
+            ctx.lineWidth = 1.5;
+            roundRect(ctx, bx, by, bw, bh, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            const iconX = box.left + 4;
+            const iconY = box.top + box.height / 2;
+            ctx.fillStyle = isHidden ? c.muted : dsColor;
+            ctx.beginPath();
+            ctx.arc(iconX, iconY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            const textX = iconX + 10;
+            ctx.fillStyle = isHidden ? c.muted : c.text;
+            ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.text || '', textX, iconY);
+          });
+          ctx.restore();
+        }
+      }
+    };
+  }
+
   function buildCustomTooltipPlugin(opts) {
     opts = opts || {};
     const el = document.getElementById('chartCustomTooltip');
@@ -8395,181 +8393,17 @@
     chart.update();
   }
 
-  // Styles communs de légende : points ronds espacés, texte barré sur les séries masquées.
-  const CHART_LEGEND_LABELS = c => ({
-    color: '#00f3ff', font: { size: 11, family: '"Consolas", "Courier New", monospace' },
-    usePointStyle: true, pointStyle: 'rectRot',
-    boxWidth: 8, boxHeight: 8, padding: 14
-  });
-
-  function buildTacticalTerminalPlugin() {
-    return {
-      id: 'tacticalTerminal',
-      beforeDraw(chart) {
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return;
-        ctx.save();
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
-        ctx.lineWidth = 1;
-        const step = 28;
-        for (let x = chartArea.left; x <= chartArea.right; x += step) {
-          ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
-        }
-        for (let y = chartArea.top; y <= chartArea.bottom; y += step) {
-          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
-        }
-        ctx.restore();
-      },
-      afterDatasetsDraw(chart) {
-        const { ctx } = chart;
-        const type = chart.config.type;
-
-        // 1. Rendus pour les barres (bar) : Contour néon épuré et brillant dans la vraie couleur du joueur/catégorie
-        if (type === 'bar') {
-          const isHorizontal = chart.options.indexAxis === 'y';
-          chart.data.datasets.forEach((ds, di) => {
-            const meta = chart.getDatasetMeta(di);
-            if (!meta || meta.hidden) return;
-            ctx.save();
-            meta.data.forEach((bar, i) => {
-              if (!bar || bar.x == null || bar.y == null) return;
-              const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : (ds.backgroundColor || '#00f3ff');
-              if (!color) return;
-
-              const x = Math.min(bar.x, bar.base);
-              const y = Math.min(bar.y, bar.base);
-              const w = Math.abs(bar.x - bar.base);
-              const h = Math.abs(bar.y - bar.base);
-
-              const bx = isHorizontal ? x : bar.x - bar.width / 2;
-              const bw = isHorizontal ? w : bar.width;
-              const by = isHorizontal ? bar.y - bar.height / 2 : y;
-              const bh = isHorizontal ? bar.height : h;
-
-              if (bw <= 0 || bh <= 0) return;
-
-              // Contour néon phosphorescent élégant sans hachures zébrées
-              ctx.strokeStyle = color;
-              ctx.shadowColor = color;
-              ctx.shadowBlur = 5;
-              ctx.lineWidth = 1.5;
-              ctx.strokeRect(bx, by, bw, bh);
-              ctx.shadowBlur = 0;
-
-              // Ligne d'accent lumineuse au sommet de la barre
-              ctx.fillStyle = '#ffffff';
-              ctx.globalAlpha = 0.4;
-              if (isHorizontal) {
-                ctx.fillRect(bx + bw - 2, by, 2, bh);
-              } else {
-                ctx.fillRect(bx, by, bw, 2);
-              }
-              ctx.globalAlpha = 1;
-            });
-            ctx.restore();
-          });
-        }
-
-        // 2. Rendus pour les courbes (line) : Réticules luminescents
-        if (type === 'line') {
-          chart.data.datasets.forEach((ds, di) => {
-            const meta = chart.getDatasetMeta(di);
-            if (!meta || meta.hidden) return;
-            ctx.save();
-            ctx.strokeStyle = ds.borderColor || '#00f3ff';
-            ctx.fillStyle = ds.borderColor || '#00f3ff';
-            ctx.shadowColor = ds.borderColor || '#00f3ff';
-            ctx.shadowBlur = 8;
-            meta.data.forEach(pt => {
-              if (!pt || pt.x == null || pt.y == null) return;
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(pt.x - 5, pt.y); ctx.lineTo(pt.x + 5, pt.y); ctx.stroke();
-              ctx.beginPath(); ctx.moveTo(pt.x, pt.y - 5); ctx.lineTo(pt.x, pt.y + 5); ctx.stroke();
-            });
-            ctx.restore();
-          });
-        }
-
-        // 3. Rendus pour le Donut (doughnut) : Contours néon par part
-        if (type === 'doughnut') {
-          const ds = chart.data.datasets[0];
-          const meta = chart.getDatasetMeta(0);
-          if (ds && meta) {
-            ctx.save();
-            meta.data.forEach((arc, i) => {
-              const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : (ds.backgroundColor || '#00f3ff');
-              ctx.strokeStyle = color;
-              ctx.shadowColor = color;
-              ctx.shadowBlur = 6;
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.arc(arc.x, arc.y, arc.outerRadius, arc.startAngle, arc.endAngle);
-              ctx.stroke();
-            });
-            ctx.restore();
-          }
-        }
-
-        // 4. Boutons de légende tactiques (Lisibilité parfaite + texte blanc néon au-dessus)
-        if (chart.legend && chart.legend.legendHitBoxes && chart.legend.legendHitBoxes.length) {
-          ctx.save();
-          chart.legend.legendHitBoxes.forEach((box, i) => {
-            const item = chart.legend.legendItems ? chart.legend.legendItems[i] : null;
-            if (!box || !item) return;
-            const isHidden = item.hidden;
-            const dsColor = item.fillStyle || '#00f3ff';
-            const bx = box.left - 5;
-            const by = box.top - 3;
-            const bw = box.width + 10;
-            const bh = box.height + 6;
-
-            // Fond et contour du bouton
-            ctx.fillStyle = isHidden ? 'rgba(5, 10, 20, 0.6)' : 'rgba(10, 18, 32, 0.92)';
-            ctx.strokeStyle = isHidden ? 'rgba(0, 243, 255, 0.2)' : dsColor;
-            ctx.lineWidth = 1.5;
-            if (!isHidden) {
-              ctx.shadowColor = dsColor;
-              ctx.shadowBlur = 6;
-            }
-            roundRect(ctx, bx, by, bw, bh, 5);
-            ctx.fill();
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Redessin du point d'icône et du texte de légende en haute lisibilité
-            const iconX = box.left + 4;
-            const iconY = box.top + box.height / 2;
-            ctx.fillStyle = isHidden ? '#406070' : dsColor;
-            ctx.beginPath();
-            ctx.arc(iconX, iconY, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            const textX = iconX + 10;
-            ctx.fillStyle = isHidden ? 'rgba(128, 160, 180, 0.4)' : '#ffffff';
-            ctx.font = 'bold 11px "Consolas", "Courier New", monospace';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(item.text || '', textX, iconY);
-          });
-          ctx.restore();
-        }
-      }
-    };
-  }
-
   function renderChart(data, type) {
     if (currentChart) { currentChart.destroy(); currentChart = null; }
 
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
+      const c = getChartColors();
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = '#00f3ff';
+      ctx.fillStyle = c.muted;
       ctx.textAlign = 'center';
-      ctx.font = '13px "Consolas", monospace';
-      ctx.fillText('SYS.DATA // NO_RECORDS_FOUND', ctx.canvas.width / 2, 40);
+      ctx.font = '13px system-ui, sans-serif';
+      ctx.fillText('Aucune donnée à afficher', ctx.canvas.width / 2, 40);
       return;
     }
 
@@ -8577,7 +8411,7 @@
     const baseOpts = {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
+        legend: { display: false },
         tooltip: { mode: 'index', intersect: false }
       }
     };
@@ -8605,32 +8439,17 @@
           const cy = (chartArea.top + chartArea.bottom) / 2;
           ctx.save();
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#00f3ff';
-          ctx.font = '700 1.5rem "Consolas", monospace';
+          ctx.fillStyle = c.text;
+          ctx.font = '700 1.5rem system-ui, sans-serif';
           ctx.fillText(String(total), cx, cy - 6);
-          ctx.font = '0.7rem "Consolas", monospace'; ctx.fillStyle = '#80c0e0';
-          ctx.fillText('TARGET_TOTAL', cx, cy + 16);
+          ctx.font = '0.75rem system-ui, sans-serif'; ctx.fillStyle = c.muted;
+          ctx.fillText('Total ' + player, cx, cy + 16);
           ctx.restore();
         }
       };
 
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors, _catNames: segLabels }] },
-        options: {
-          ...baseOpts,
-          plugins: { ...baseOpts.plugins, tooltip: { mode: 'point' } },
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const category = segLabels[elements[0].index];
-            openChartDrilldown({
-              players: [player], categories: [category],
-              startDate: document.getElementById('startDate').value || null,
-              endDate: document.getElementById('endDate').value || null,
-              title: player + ' · ' + catDisplay(category)
-            });
-          }
-        },
         plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin(), buildTacticalTerminalPlugin()]
       });
       return;
@@ -8912,9 +8731,9 @@
       borderColor: playerColor(p),
       backgroundColor: playerColor(p) + '22',
       fill: chartOptions.trendMode !== 'period',
-      stepped: true,
+      tension: 0.3,
       pointRadius: 4,
-      borderWidth: 2.5
+      borderWidth: 2
     }));
 
     currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
@@ -8923,8 +8742,8 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
-          x: { offset: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 }, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0, 243, 255, 0.12)' }, ticks: { color: '#80c0e0', font: { family: '"Consolas", "Courier New", monospace', size: 11 } } }
+          x: { offset: true, grid: { color: c.grid }, ticks: { color: c.muted, maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
+          y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted } }
         },
         plugins: {
           legend: { labels: CHART_LEGEND_LABELS(c), onClick: toggleLegendOnClick },
@@ -8952,7 +8771,7 @@
           });
         }
       },
-      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildTacticalTerminalPlugin()]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendButtonsPlugin()]
     });
   }
 

@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-29
 
 ### Modifié
-**Humanisé** : Refonte visuelle intégrale du graphique interactif du Dashboard, de ses boutons de légende et de sa barre de menu dans un style Futurist Tactical Terminal (barres vumètres LED, éléments de légende transformés en vrais boutons tactiques rétractables encadrés de contours néon dans la couleur réelle de chaque Top/joueur, et menu console monospace).
-**Technique** : `Index.html` — (1) Transformation des éléments de légende du graphique en boutons/pills tactiques avec fond sombre `rgba(10, 18, 32, 0.88)` et bordure néon dans la couleur de la série (`buildTacticalTerminalPlugin`). (2) Rendu des barres/séries avec vumètres LED et lueurs. (3) Stylisation du menu (`.chart-type-bar`, `.chart-type-btn`, `.export-btn`) en mode console.
+**Humanisé** : Annulation du style terminal futuriste et retour au thème visuel standard de l'application pour le graphique, tout en conservant les éléments de légende sous forme de boutons interactifs (pills/chips) lisibles et les sélecteurs du graphique.
+**Technique** : `Index.html` — (1) Suppression du conteneur `.tactical-hud-box`, de la grille matricielle et des effets néon. (2) Conservation des boutons de légende interactifs stylisés sous forme de chips (`buildLegendButtonsPlugin`). (3) Alignement du style du menu des graphiques (`.chart-type-bar`, `.chart-type-btn`, `.export-btn`) sur la charte graphique de l'application via les variables CSS (`var(--btn-alt)`, `var(--accent)`, `var(--border)`).
 
 ### Supprimé
 **Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.
