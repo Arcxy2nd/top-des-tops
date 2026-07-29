@@ -7,6 +7,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [Non publié] - 2026-07-29
 
 ### Modifié
+**Humanisé** : Les éléments de la légende du graphique original sont désormais entourés d'un contour sous forme de bouton pour les rendre clairement cliquables.
+**Technique** : `Index.html` — création du plugin canvas `buildLegendBorderPlugin()` qui dessine un contour pilule autour de chaque élément de la légende native Chart.js sans altérer la structure HTML ni le comportement d'origine.
+
+### Modifié
 **Humanisé** : Rétablissement intégral du code original et parfaitement fonctionnel du graphique du Dashboard (menu, légende, tooltips interactifs, overlay d'émojis et visualisations d'origine).
 **Technique** : `Index.html` — Restauration complète à l'état propre d'origine précédant la tentative de refonte visuelle terminal.
 

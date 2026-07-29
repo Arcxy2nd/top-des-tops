@@ -8406,7 +8406,7 @@
           });
         }
       },
-      plugins: [totalsPlugin, buildCustomTooltipPlugin({
+      plugins: [totalsPlugin, buildLegendBorderPlugin(), buildCustomTooltipPlugin({
         titleIsPlayer: true,
         rankedTotals: sorted.labels
           .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
@@ -8468,6 +8468,47 @@
           });
         }
 
+        ctx.restore();
+      }
+    };
+  }
+
+  function buildLegendBorderPlugin() {
+    return {
+      id: 'legendBorderOverlay',
+      afterDraw(chart) {
+        if (!chart.legend || !chart.legend.legendItems || !chart.legend.legendHitBoxes) return;
+        const hitBoxes = chart.legend.legendHitBoxes;
+        const items = chart.legend.legendItems;
+        if (!hitBoxes || !hitBoxes.length || hitBoxes.length !== items.length) return;
+
+        const { ctx } = chart;
+        ctx.save();
+        items.forEach((item, i) => {
+          const hb = hitBoxes[i];
+          if (!hb) return;
+          const padX = 6;
+          const padY = 3;
+          const x = Math.round(hb.left - padX);
+          const y = Math.round(hb.top - padY);
+          const w = Math.round(hb.width + padX * 2);
+          const h = Math.round(hb.height + padY * 2);
+          const r = Math.round(h / 2);
+
+          const isHidden = item.hidden;
+          const rawColor = item.fillStyle || item.strokeStyle || '#ff4757';
+          const color = (typeof rawColor === 'string' && rawColor.length === 9 && rawColor.endsWith('22')) ? rawColor.slice(0, 7) : rawColor;
+
+          roundRect(ctx, x, y, w, h, r);
+          ctx.fillStyle = isHidden ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)';
+          ctx.fill();
+
+          ctx.strokeStyle = typeof color === 'string' ? color : '#ff4757';
+          ctx.lineWidth = 1.2;
+          ctx.globalAlpha = isHidden ? 0.3 : 0.65;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
         ctx.restore();
       }
     };
@@ -8551,7 +8592,7 @@
           });
         }
       },
-      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendBorderPlugin()]
     });
   }
 
