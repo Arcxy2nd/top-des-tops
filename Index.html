@@ -8450,7 +8450,9 @@
 
       currentChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
         type: 'doughnut',
-        plugins: [centerPlugin, buildEmojiOverlayPlugin(), buildCustomTooltipPlugin(), buildTacticalTerminalPlugin()]
+        data: { labels: segLabels, datasets: [{ data: segValues, backgroundColor: segColors, borderWidth: 2, borderColor: c.card }] },
+        options: { ...baseOpts, cutout: '65%' },
+        plugins: [centerPlugin, buildCustomTooltipPlugin(), buildLegendButtonsPlugin()]
       });
       return;
     }
@@ -8490,7 +8492,7 @@
             });
           }
         },
-        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildTacticalTerminalPlugin()]
+        plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendButtonsPlugin()]
       });
       return;
     }
@@ -8555,7 +8557,7 @@
         plugins: [buildEmojiOverlayPlugin(), buildCustomTooltipPlugin({
           titleIsPlayer: true,
           rankedTotals: totals.map(t => ({ player: t.player, total: t.total }))
-        }), buildTacticalTerminalPlugin()]
+        }), buildLegendButtonsPlugin()]
       });
 
       if (!chartOptions.detailed) {
@@ -8632,7 +8634,7 @@
         rankedTotals: sorted.labels
           .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
           .sort((a, b) => b.total - a.total)
-      }), buildTacticalTerminalPlugin()]
+      }), buildLegendButtonsPlugin()]
     });
   }
 
