@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-29
 
+### Ajouté
+**Humanisé** : Refonte complète des exports d'infographies avec un nouveau thème visuel Cyber Terminal Futuriste (palette néon, trame holographique, coins biseautés HUD), le choix des ratios d'image (16:9 Paysage, 1:1 Carré, 9:16 Story), et la garantie de comptabilité Excel sur le CSV avec encodage UTF-8 BOM.
+**Technique** : `Index.html` — (1) Ajout du thème `cyber` et des ratios `1:1`/`9:16` dans `buildInfographicCanvas`, `defaultExportOpts` et `openExportModal`. (2) Intégration de l'habillage HUD néon (cadres biseautés, grilles, typographie monospace). (3) Ajout du préfixe UTF-8 BOM (`\uFEFF`) dans `exportAsCSV()`.
+
 ### Supprimé
 **Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.
 **Technique** : Suppression de `Mobile.html`, du bouton `#layoutModeToggle`, de la bannière `#mobileCtaBanner` et des fonctions JS associées dans `Index.html`.

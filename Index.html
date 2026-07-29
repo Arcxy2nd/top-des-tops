@@ -8643,27 +8643,41 @@
   }
 
   function buildInfographicCanvas(opts, forceScale, avatarImages) {
-    const S = forceScale !== undefined ? forceScale : opts.scale;
-    const W = Math.round(1200 * S);
-    const H = Math.round(700 * S);
+    const S = forceScale !== undefined ? forceScale : (opts.scale || 1);
+    let baseW = 1200, baseH = 675;
+    if (opts.ratio === '1:1') { baseW = 1000; baseH = 1000; }
+    else if (opts.ratio === '9:16') { baseW = 720; baseH = 1280; }
+    const W = Math.round(baseW * S);
+    const H = Math.round(baseH * S);
     const cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d');
 
-    // opts.theme est un choix explicite de l'utilisateur pour l'image exportée,
-    // indépendant du thème actuellement affiché à l'écran — getComputedStyle()
-    // ne peut donc pas être utilisé ici (il ne renvoie que le thème live du DOM).
-    // Ces valeurs doivent rester synchronisées avec les variables --bg/--card/
-    // --text/--text-muted/--accent définies dans le CSS (voir §6 de context.md).
-    const isDark = opts.theme === 'dark';
-    const BG    = isDark ? '#0b0c10' : '#f0f2f5';
-    const CARD  = isDark ? '#1f2833' : '#ffffff';
-    const FG    = isDark ? '#e0e6ed' : '#1a202c';
-    const MUTED = isDark ? '#9aa5be' : '#4a5568';
-    const ACCENT = '#ff4757';
+    const isCyber = opts.theme === 'cyber';
+    const isDark  = opts.theme === 'dark' || isCyber;
+    const BG      = isCyber ? '#05070f' : (isDark ? '#0b0c10' : '#f0f2f5');
+    const CARD    = isCyber ? '#0b1120' : (isDark ? '#1f2833' : '#ffffff');
+    const FG      = isCyber ? '#e0f7fc' : (isDark ? '#e0e6ed' : '#1a202c');
+    const MUTED   = isCyber ? '#4080a0' : (isDark ? '#9aa5be' : '#4a5568');
+    const ACCENT  = isCyber ? '#00f3ff' : '#ff4757';
+    const FONT_FAMILY = isCyber ? '"Consolas", "Courier New", monospace' : '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
+    // Fond principal
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
+
+    // Grille holographique Cyber en arrière-plan
+    if (isCyber) {
+      ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+      ctx.lineWidth = Math.max(1, Math.round(1 * S));
+      const gridSize = Math.round(40 * S);
+      for (let x = 0; x < W; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y < H; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+    }
 
     let yOff = 0;
 
@@ -8672,35 +8686,46 @@
       const hH = Math.round(64 * S);
       ctx.fillStyle = CARD;
       ctx.fillRect(0, 0, W, hH);
-      // Accent left bar
-      ctx.fillStyle = ACCENT;
-      ctx.fillRect(0, 0, Math.round(4 * S), hH);
-      // App name (conditional on watermark option)
-      ctx.fillStyle = FG;
-      ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      if (opts.watermark !== false) {
-        ctx.fillText(opts.watermarkText || 'Tops des Tops', Math.round(18 * S), Math.round(24 * S));
+
+      // Accent left bar / Cyber glow indicator
+      if (isCyber) {
+        ctx.fillStyle = '#00f3ff';
+        ctx.shadowColor = '#00f3ff';
+        ctx.shadowBlur = Math.round(8 * S);
+        ctx.fillRect(0, 0, Math.round(6 * S), hH);
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.fillStyle = ACCENT;
+        ctx.fillRect(0, 0, Math.round(4 * S), hH);
       }
+
+      // App name
+      ctx.fillStyle = FG;
+      ctx.font = 'bold ' + Math.round(18 * S) + 'px ' + FONT_FAMILY;
+      const titlePrefix = isCyber ? 'SYS.LOG // ' : '';
+      if (opts.watermark !== false) {
+        ctx.fillText(titlePrefix + (opts.watermarkText || 'Tops des Tops').toUpperCase(), Math.round(18 * S), Math.round(24 * S));
+      }
+
       // Chart label (or custom title)
       const chartTitleEl = document.getElementById('chartTitle');
       const chartLabel = opts.customTitle || (chartTitleEl ? chartTitleEl.textContent : '');
       ctx.fillStyle = MUTED;
-      ctx.font = Math.round(13 * S) + 'px sans-serif';
+      ctx.font = Math.round(13 * S) + 'px ' + FONT_FAMILY;
       ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
+
       // Right side: avatar (donut) OR period text
       const avatarR = Math.round(22 * S);
       const avatarCX = W - Math.round(34 * S);
       const avatarCY = Math.round(32 * S);
       if (opts.avatars && avatarImages && currentChartType === 'doughnut' && _donutPlayer) {
-        // Draw player avatar circle
         drawAvatarOnCanvas(ctx, avatarImages.get(_donutPlayer) || null, avatarCX, avatarCY, avatarR, S);
-        // Player name to the left of the avatar
         ctx.fillStyle = FG;
-        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        ctx.font = 'bold ' + Math.round(13 * S) + 'px ' + FONT_FAMILY;
         ctx.textAlign = 'right';
         ctx.fillText(_donutPlayer, avatarCX - avatarR - Math.round(8 * S), Math.round(28 * S));
         ctx.fillStyle = MUTED;
-        ctx.font = Math.round(11 * S) + 'px sans-serif';
+        ctx.font = Math.round(11 * S) + 'px ' + FONT_FAMILY;
         if (opts.period) {
           const sd = document.getElementById('startDate').value;
           const ed = document.getElementById('endDate').value;
@@ -8713,7 +8738,8 @@
         const ed = document.getElementById('endDate').value;
         const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
         ctx.textAlign = 'right';
-        ctx.fillText(periodTxt, W - Math.round(18 * S), Math.round(42 * S));
+        ctx.font = Math.round(11 * S) + 'px ' + FONT_FAMILY;
+        ctx.fillText((isCyber ? 'RANGE: ' : '') + periodTxt, W - Math.round(18 * S), Math.round(42 * S));
         ctx.textAlign = 'left';
       }
       yOff = hH + Math.round(8 * S);
@@ -8735,13 +8761,13 @@
         ctx.fillRect(0, yOff, Math.round(3 * S), fH);
         ctx.globalAlpha = 1;
         ctx.fillStyle = MUTED;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
-        ctx.fillText('Filtres : ' + parts.join(' | '), Math.round(12 * S), yOff + Math.round(17 * S));
+        ctx.font = Math.round(10 * S) + 'px ' + FONT_FAMILY;
+        ctx.fillText((isCyber ? 'FILTERS // ' : 'Filtres : ') + parts.join(' | '), Math.round(12 * S), yOff + Math.round(17 * S));
         yOff += fH + Math.round(4 * S);
       }
     }
 
-    // Reserve space for stats strip, players strip, top-mover pill, legend and footer
+    // Reserve space for strips
     const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
       ? Math.round(52 * S) : 0;
     const playersH = (opts.players && currentChartData && currentChartData.labels && currentChartData.labels.length > 1)
@@ -8755,7 +8781,17 @@
     const chartCv = document.getElementById('mainChart');
     if (chartCv) {
       const chartH = H - yOff - statsH - playersH - topMoverH - legendH - footH - Math.round(8 * S);
-      ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
+      
+      if (isCyber) {
+        // Ombrage néon autour de l'image du graphique
+        ctx.save();
+        ctx.shadowColor = '#00f3ff';
+        ctx.shadowBlur = Math.round(10 * S);
+        ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
+      }
       yOff += chartH + Math.round(6 * S);
     }
 
@@ -8773,26 +8809,23 @@
         const py = yOff;
         const pw = pillW - Math.round(6 * S);
         const ph = Math.round(38 * S);
-        // Pill background (tinted)
-        ctx.fillStyle = t.color;
-        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = isCyber ? '#00f3ff' : t.color;
+        ctx.globalAlpha = isCyber ? 0.08 : 0.18;
         roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
         ctx.fill();
         ctx.globalAlpha = 1;
-        // Pill border
-        ctx.strokeStyle = t.color;
+        ctx.strokeStyle = isCyber ? '#00f3ff' : t.color;
         ctx.lineWidth = Math.round(1.5 * S);
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = isCyber ? 0.8 : 0.5;
         roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
         ctx.stroke();
         ctx.globalAlpha = 1;
-        // Pill text
         ctx.fillStyle = FG;
-        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        ctx.font = 'bold ' + Math.round(13 * S) + 'px ' + FONT_FAMILY;
         ctx.textAlign = 'center';
         ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
         ctx.fillStyle = MUTED;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.font = Math.round(10 * S) + 'px ' + FONT_FAMILY;
         ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
         ctx.textAlign = 'left';
       });
@@ -8815,15 +8848,13 @@
           const py = yOff;
           const pw = pillW - Math.round(6 * S);
           const ph = Math.round(38 * S);
-          // Pill background + border
-          ctx.fillStyle = t.color; ctx.globalAlpha = 0.18;
+          ctx.fillStyle = isCyber ? '#00f3ff' : t.color; ctx.globalAlpha = isCyber ? 0.08 : 0.18;
           roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.fill();
           ctx.globalAlpha = 1;
-          ctx.strokeStyle = t.color; ctx.lineWidth = Math.round(1.5 * S); ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = isCyber ? '#00f3ff' : t.color; ctx.lineWidth = Math.round(1.5 * S); ctx.globalAlpha = isCyber ? 0.8 : 0.5;
           roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.stroke();
           ctx.globalAlpha = 1;
           if (useAvatars) {
-            // Avatar left, text right
             const avR = Math.round(13 * S);
             const avCX = px + Math.round(16 * S);
             const avCY = py + ph / 2;
@@ -8831,18 +8862,17 @@
             const textX = px + Math.round(34 * S);
             const maxChars = Math.max(4, Math.floor((pw - Math.round(38 * S)) / Math.round(7 * S)));
             const nameStr = t.name.length > maxChars ? t.name.slice(0, maxChars - 1) + '…' : t.name;
-            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(11 * S) + 'px sans-serif';
+            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(11 * S) + 'px ' + FONT_FAMILY;
             ctx.textAlign = 'left';
             ctx.fillText(t.total + ' pts', textX, py + Math.round(15 * S));
-            ctx.fillStyle = MUTED; ctx.font = Math.round(9 * S) + 'px sans-serif';
+            ctx.fillStyle = MUTED; ctx.font = Math.round(9 * S) + 'px ' + FONT_FAMILY;
             ctx.fillText(nameStr, textX, py + Math.round(28 * S));
             ctx.textAlign = 'left';
           } else {
-            // Text-only (original)
-            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(13 * S) + 'px ' + FONT_FAMILY;
             ctx.textAlign = 'center';
             ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
-            ctx.fillStyle = MUTED; ctx.font = Math.round(10 * S) + 'px sans-serif';
+            ctx.fillStyle = MUTED; ctx.font = Math.round(10 * S) + 'px ' + FONT_FAMILY;
             ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
             ctx.textAlign = 'left';
           }
@@ -8851,20 +8881,20 @@
       yOff += playersH;
     }
 
-    // Top mover pill (biggest change vs. previous equivalent period)
+    // Top mover pill
     if (topMoverH) {
       const mover = opts._topMoverResult;
       const isUp = mover.delta >= 0;
-      const color = isUp ? '#2ed573' : '#ff4757';
+      const color = isCyber ? (isUp ? '#00ff66' : '#ff4757') : (isUp ? '#2ed573' : '#ff4757');
       ctx.fillStyle = color; ctx.globalAlpha = 0.15;
       roundRect(ctx, Math.round(10 * S), yOff, W - Math.round(20 * S), topMoverH - Math.round(4 * S), Math.round(7 * S));
       ctx.fill();
       ctx.globalAlpha = 1;
       ctx.fillStyle = FG;
-      ctx.font = 'bold ' + Math.round(12 * S) + 'px sans-serif';
+      ctx.font = 'bold ' + Math.round(12 * S) + 'px ' + FONT_FAMILY;
       ctx.textAlign = 'left';
       const arrow = isUp ? '▲' : '▼';
-      ctx.fillText(arrow + ' Plus forte progression : ' + mover.name + ' (' + (isUp ? '+' : '') + mover.delta + ' pts)', Math.round(18 * S), yOff + Math.round(19 * S));
+      ctx.fillText(arrow + (isCyber ? ' TOP MOVER // ' : ' Plus forte progression : ') + mover.name + ' (' + (isUp ? '+' : '') + mover.delta + ' pts)', Math.round(18 * S), yOff + Math.round(19 * S));
       yOff += topMoverH;
     }
 
@@ -8879,10 +8909,10 @@
         const dotR = Math.round(5 * S);
         ctx.beginPath();
         ctx.arc(lx + dotR, ly + dotR, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.fillStyle = isCyber ? '#00f3ff' : color;
         ctx.fill();
         ctx.fillStyle = FG;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.font = Math.round(10 * S) + 'px ' + FONT_FAMILY;
         const name = ds.label || '';
         ctx.fillText(name.length > 14 ? name.slice(0, 13) + '…' : name, lx + dotR * 2 + Math.round(4 * S), ly + dotR + Math.round(4 * S));
       });
@@ -8892,8 +8922,8 @@
     // Footer
     if (opts.footer !== false) {
       ctx.fillStyle = MUTED;
-      ctx.font = Math.round(10 * S) + 'px sans-serif';
-      ctx.fillText('Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
+      ctx.font = Math.round(10 * S) + 'px ' + FONT_FAMILY;
+      ctx.fillText((isCyber ? 'SYSTEM EXPORT // ' : 'Tops des Tops — Exporté le ') + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
     }
 
     // Watermark
@@ -8901,12 +8931,31 @@
       ctx.save();
       ctx.translate(W / 2, H / 2);
       ctx.rotate(-Math.PI / 6);
-      ctx.font = 'bold ' + Math.round(72 * S) + 'px sans-serif';
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+      ctx.font = 'bold ' + Math.round(72 * S) + 'px ' + FONT_FAMILY;
+      ctx.fillStyle = isCyber ? 'rgba(0, 243, 255, 0.06)' : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)');
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText((opts.watermarkText || 'Tops des Tops').toUpperCase(), 0, 0);
+      ctx.fillText((opts.watermarkText || (isCyber ? '[CLASSIFIED EXPORT]' : 'Tops des Tops')).toUpperCase(), 0, 0);
       ctx.restore();
+    }
+
+    // Coins biseautés HUD Cyber
+    if (isCyber) {
+      const cLen = Math.round(24 * S);
+      const cOff = Math.round(4 * S);
+      ctx.strokeStyle = '#00f3ff';
+      ctx.lineWidth = Math.round(2 * S);
+      ctx.shadowColor = '#00f3ff';
+      ctx.shadowBlur = Math.round(6 * S);
+      // Top-Left ┌
+      ctx.beginPath(); ctx.moveTo(cOff, cOff + cLen); ctx.lineTo(cOff, cOff); ctx.lineTo(cOff + cLen, cOff); ctx.stroke();
+      // Top-Right ┐
+      ctx.beginPath(); ctx.moveTo(W - cOff - cLen, cOff); ctx.lineTo(W - cOff, cOff); ctx.lineTo(W - cOff, cOff + cLen); ctx.stroke();
+      // Bottom-Left └
+      ctx.beginPath(); ctx.moveTo(cOff, H - cOff - cLen); ctx.lineTo(cOff, H - cOff); ctx.lineTo(cOff + cLen, H - cOff); ctx.stroke();
+      // Bottom-Right ┘
+      ctx.beginPath(); ctx.moveTo(W - cOff - cLen, H - cOff); ctx.lineTo(W - cOff, H - cOff); ctx.lineTo(W - cOff, H - cOff - cLen); ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
     return cv;
@@ -8937,7 +8986,8 @@
   function defaultExportOpts() {
     return {
       format:        'png',
-      theme:         document.body.classList.contains('light') ? 'light' : 'dark',
+      theme:         'cyber',
+      ratio:         '16:9',
       title:         true,
       period:        true,
       stats:         true,
@@ -9038,7 +9088,8 @@
     const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une infographie';
     box.appendChild(titleEl);
     box.appendChild(pillGroup('Format', [{v:'png',t:'PNG'},{v:'jpeg',t:'JPEG'},{v:'pdf',t:'PDF'}], 'format'));
-    box.appendChild(pillGroup('Thème', [{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
+    box.appendChild(pillGroup('Thème', [{v:'cyber',t:'⚡ Cyber'},{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
+    box.appendChild(pillGroup('Ratio', [{v:'16:9',t:'16:9 (Paysage)'},{v:'1:1',t:'1:1 (Carré)'},{v:'9:16',t:'9:16 (Story)'}], 'ratio'));
     box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'},{v:3,t:'4K ×3'}], 'scale'));
 
     const optsGroup = document.createElement('div');
@@ -9154,7 +9205,8 @@
     const contextLines = buildExportContextLines().map(([k, v]) => '# ' + k + ' : ' + v);
     const rows = [['Joueur', ...datasets.map(d => d.label)]];
     labels.forEach((l, i) => rows.push([l, ...datasets.map(d => d.data[i] || 0)]));
-    const csv = contextLines.concat(rows.map(r => r.join(','))).join('\n');
+    const csvContent = contextLines.concat(rows.map(r => r.join(','))).join('\n');
+    const csv = '\uFEFF' + csvContent;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
     a.download = 'tops-des-tops.csv'; a.click();
