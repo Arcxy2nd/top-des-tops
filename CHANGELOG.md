@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-29
+
+### Supprimé
+**Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.
+**Technique** : Suppression de `Mobile.html`, du bouton `#layoutModeToggle`, de la bannière `#mobileCtaBanner` et des fonctions JS associées dans `Index.html`.
+
+### Modifié
+**Humanisé** : L'application s'affiche désormais sur une seule page qui s'adapte automatiquement à votre écran, que vous soyez sur ordinateur ou téléphone portable.
+**Technique** : `Code.gs` — simplification de `doGet()` pour retourner systématiquement `Index.html` ; `Index.html` — renforcement du CSS responsive et mise à jour de `context.md` et `tests/doget-routing.test.js`.
+
 ## [Non publié] - 2026-07-28
 
 ### Corrigé

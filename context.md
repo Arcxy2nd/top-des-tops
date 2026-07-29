@@ -214,9 +214,9 @@ Chaque joueur et chaque catégorie a une couleur hex définie dans le Sheet. Ces
 
 Dès qu'un nom de joueur apparaît dans l'UI (liste, tableau, graphique, filtre, commentaire, note, classement, saisie…), son avatar doit être affiché à côté. Aucune exception.
 
-### Parité mobile
+### Adaptabilité mobile (Index.html unique)
 
-Toute mise à jour de `Index.html` (nouvel écran, nouveau composant, style modifié) doit être répercutée dans `Mobile.html`. Si l'outil concerné n'existe pas côté mobile (cas des outils avancés de l'onglet Outils, volontairement réduit), ne pas assumer — demander avant de l'ajouter.
+L'application utilise un fichier HTML unique (`Index.html`) entièrement responsive. Toute mise à jour (nouvel écran, nouveau composant, style modifié) doit s'adapter proprement aux petits écrans via CSS media queries. L'onglet **Notes** (ajout rapide depuis mobile) exige une attention particulière sur écran tactile.
 
 ### Identité obligatoire pour toute édition
 

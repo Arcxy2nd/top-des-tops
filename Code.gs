@@ -1305,15 +1305,12 @@ const AnalyticsService = {
  * ?view= on every link/bookmark they use afterwards.
  */
 function doGet(e) {
-  const view = e && e.parameter ? e.parameter.view : null;
-  const file = view === 'mobile' ? 'Mobile' : 'Index';
-
   // Rendu templaté (pas createHtmlOutputFromFile) pour injecter l'adresse
   // publique exacte du déploiement courant : une URL relative écrite depuis le
   // client se résout contre l'origine du bac à sable Google (une adresse
   // interne du type n-xxxx-script.googleusercontent.com), jamais contre
   // l'adresse réelle du site — d'où les liens cassés observés en pratique.
-  const template = HtmlService.createTemplateFromFile(file);
+  const template = HtmlService.createTemplateFromFile('Index');
   // Ne doit jamais faire échouer le chargement de la page : si l'autorisation
   // du script venait à manquer pour une raison quelconque, le pire résultat
   // acceptable est un bouton de bascule inerte, pas un site qui ne charge plus.

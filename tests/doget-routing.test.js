@@ -3,16 +3,10 @@ const { test } = require('node:test');
 const assert   = require('assert');
 const { loadGas } = require('./harness.js');
 
-test('doGet with ?view=mobile serves Mobile.html', () => {
+test('doGet always serves Index.html regardless of ?view parameter', () => {
   const gas = loadGas();
-  const out = gas.doGet({ parameter: { view: 'mobile' } });
-  assert.strictEqual(out._file, 'Mobile');
-});
-
-test('doGet with ?view=desktop serves Index.html', () => {
-  const gas = loadGas();
-  const out = gas.doGet({ parameter: { view: 'desktop' } });
-  assert.strictEqual(out._file, 'Index');
+  assert.strictEqual(gas.doGet({ parameter: { view: 'mobile' } })._file, 'Index');
+  assert.strictEqual(gas.doGet({ parameter: { view: 'desktop' } })._file, 'Index');
 });
 
 test('doGet injects the deployment\'s real public URL into the template (appUrl)', () => {
