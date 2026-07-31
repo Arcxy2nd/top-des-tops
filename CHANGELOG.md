@@ -4,29 +4,37 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
-## [v2.5.0] - 2026-07-31
+## [v2.5.2] - 2026-07-31
 
 ### Corrigé
 **Humanisé** : Le changelog se charge à présent de manière fiable sans faire planter l'application même lorsque la liste des mises à jour devient très volumineuse.
 **Technique** : `Code.gs` — mise à jour de `apiGetChangelog()` avec découpage de la mise en cache (`CacheService`) par blocs de 90 Ko et sécurisation via `try/catch` pour éviter les exceptions de limite à 100 Ko. `tests/cache.test.js` & `tests/harness.js` — ajout du test unitaire et mise à jour du harnais.
 
+## [v2.5.1] - 2026-07-31
+
 ### Modifié
 **Humanisé** : La barre supérieure a été rendue plus compacte et élégante, les boutons disposent d'un design affiné et les onglets sont subtilement séparés par de fines bordures verticales.
 **Technique** : `Index.html` — densification verticale de `.nav-container` et `.nav-btn` (`padding` et `min-height` réduits), ajout de séparateurs verticaux discrets (`.nav-btn:not(:last-child)::after`), et amélioration du style visuel des boutons de la top bar (`.nav-refresh-btn`, `.nav-bareme-btn`, `.who-am-i-btn`, `.theme-toggle`, `.layout-mode-toggle`).
+
+## [v2.5.0] - 2026-07-31
 
 ### Corrigé
 **Humanisé** : La barre supérieure et le bandeau de boutons sous le titre s'adaptent désormais parfaitement à 100% de la largeur de votre écran mobile sans déborder.
 **Technique** : `Index.html` — ajustement du CSS responsive pour `.navbar`, `.nav-container`, `.quick-stats-bar` et `.qs-pill` (`flex-wrap: wrap`, padding/gap compacts, flex 100% width) en mode `mobile-layout` et media query `<= 768px`.
 
-## [v2.4.0] - 2026-07-29
+## [v2.4.2] - 2026-07-29
 
 ### Modifié
 **Humanisé** : Les éléments de la légende du graphique original sont désormais entourés d'un contour sous forme de bouton pour les rendre clairement cliquables.
 **Technique** : `Index.html` — création du plugin canvas `buildLegendBorderPlugin()` qui dessine un contour pilule autour de chaque élément de la légende native Chart.js sans altérer la structure HTML ni le comportement d'origine.
 
+## [v2.4.1] - 2026-07-29
+
 ### Modifié
 **Humanisé** : Rétablissement intégral du code original et parfaitement fonctionnel du graphique du Dashboard (menu, légende, tooltips interactifs, overlay d'émojis et visualisations d'origine).
 **Technique** : `Index.html` — Restauration complète à l'état propre d'origine précédant la tentative de refonte visuelle terminal.
+
+## [v2.4.0] - 2026-07-29
 
 ### Supprimé
 **Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.
@@ -36,23 +44,31 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : L'application s'affiche désormais sur une seule page qui s'adapte automatiquement à votre écran, que vous soyez sur ordinateur ou téléphone portable.
 **Technique** : `Code.gs` — simplification de `doGet()` pour retourner systématiquement `Index.html` ; `Index.html` — renforcement du CSS responsive et mise à jour de `context.md` et `tests/doget-routing.test.js`.
 
-## [v2.3.0] - 2026-07-28
+## [v2.3.4] - 2026-07-28
 
 ### Corrigé
 **Humanisé** : Autorisation des requêtes HTTP externes pour le chargement dynamique du Changelog depuis GitHub.
 **Technique** : `appsscript.json` — ajout du scope OAuth `https://www.googleapis.com/auth/script.external_request` dans `oauthScopes` pour permettre à `UrlFetchApp.fetch()` de fonctionner sans erreur de permission.
 
+## [v2.3.3] - 2026-07-28
+
 ### Modifié
 **Humanisé** : Correction intégrale de l'affichage du Barème : ajout d'un système d'accordéons dépliables/enroulables par Top (avec chevrons), suppression de tout rognage de texte/badges de points, et marge de défilement généreuse en bas de volet.
 **Technique** : `Index.html` & `Mobile.html` — (1) Transformation de chaque section de Top en accordéon interactif au clic avec chevron (`▼` / `▶`). (2) Correction du rognage des pastilles de points et descriptions via `min-height: max-content`, `line-height: 1.45` et `overflow: visible`. (3) Ajout d'un padding de défilement (`padding-bottom: 90px`) dans `.bareme-body` et la modale mobile pour éliminer tout masquage.
+
+## [v2.3.2] - 2026-07-28
 
 ### Ajouté
 **Humanisé** : Ajout d'un bouton d'accès rapide au Barème des Tops dans l'en-tête mobile permettant de consulter les règles de points en 1 tap.
 **Technique** : `Mobile.html` — ajout du bouton `#mBaremeQuickBtn` dans `.m-header-actions` et de la modale `openMBaremeQuickModal()`.
 
+## [v2.3.1] - 2026-07-28
+
 ### Modifié
 **Humanisé** : Rétablissement du workflow de déploiement d'origine sur GitHub Actions (création d'un nouveau déploiement à chaque push avec désactivation du déploiement précédent).
 **Technique** : `.github/scripts/deploy-gas.sh` — retrait de la réutilisation de déploiement actif (`clasp deploy -i`) et retour au pattern `clasp undeploy` de la version antérieure.
+
+## [v2.3.0] - 2026-07-28
 
 ### Ajouté
 **Humanisé** : Ajout d'un sous-onglet Changelog dans les Paramètres (sur PC et Mobile) permettant de consulter l'historique complet des mises à jour en direct depuis Git, avec un bouton d'actualisation et une mise en cache automatique.

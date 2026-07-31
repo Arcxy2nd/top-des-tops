@@ -5315,16 +5315,17 @@
   function renderChangelogMarkup(markdownText) {
     if (!markdownText) return '<div class="card" style="color:var(--text-muted); text-align:center; padding:24px;">Aucun contenu trouvé.</div>';
     
-    const sections = markdownText.split(/^##\s+/m);
-    let html = '';
+    const rawSections = markdownText.split(/^##\s+/m);
+    let introHtml = '';
+    const items = [];
     
-    sections.forEach((sec, idx) => {
+    rawSections.forEach((sec, idx) => {
       if (idx === 0) {
         const cleanIntro = sec.replace(/^#\s+Changelog\s*/i, '').trim();
         if (cleanIntro) {
-          html += '<div class="changelog-intro" style="margin-bottom:20px; color:var(--text-muted); font-size:0.9rem;">' +
-                    renderMarkdown(cleanIntro) +
-                  '</div>';
+          introHtml = '<div class="changelog-intro" style="margin-bottom:20px; color:var(--text-muted); font-size:0.9rem;">' +
+                        renderMarkdown(cleanIntro) +
+                      '</div>';
         }
         return;
       }
@@ -5335,30 +5336,70 @@
       
       const match = headerLine.match(/\[(.*?)\](?:\s*-\s*(.*))?/);
       const ver = match ? match[1] : headerLine;
-      const date = match && match[2] ? match[2] : '';
+      const date = match && match[2] ? match[2] : 'Historique';
       
-      const isUnreleased = ver.toLowerCase().includes('non publié');
-      const badgeClass = isUnreleased ? 'changelog-badge-unreleased' : 'changelog-badge-release';
-      const labelVer = isUnreleased ? '⚠️ ' + escapeHtml(ver) : '🏷️ ' + escapeHtml(ver);
+      items.push({ ver, date, bodyContent });
+    });
+
+    const dateGroups = [];
+    const dateMap = new Map();
+    
+    items.forEach(item => {
+      if (!dateMap.has(item.date)) {
+        const group = { date: item.date, versions: [] };
+        dateMap.set(item.date, group);
+        dateGroups.push(group);
+      }
+      dateMap.get(item.date).versions.push(item);
+    });
+
+    let html = introHtml;
+    
+    dateGroups.forEach(group => {
+      const isHistoricalSection = group.date === 'Historique' || group.date.toLowerCase().includes('historique');
       
-      let formattedBody = renderMarkdown(bodyContent);
-      formattedBody = formattedBody.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
-      formattedBody = formattedBody.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
-      formattedBody = formattedBody.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
-      formattedBody = formattedBody.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
+      html += '<div class="changelog-date-group" style="margin-bottom:28px;">';
       
-      formattedBody = formattedBody.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
-      formattedBody = formattedBody.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
+      if (!isHistoricalSection) {
+        html += '<div class="changelog-date-header" style="display:flex; align-items:center; justify-space-between:space-between; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border);">' +
+                  '<div style="display:flex; align-items:center; gap:8px;">' +
+                    '<span style="font-size:1.05rem; font-weight:800; color:var(--text); letter-spacing:-0.01em;">📅 ' + escapeHtml(group.date) + '</span>' +
+                  '</div>' +
+                  '<span style="font-size:0.75rem; font-weight:700; padding:2px 10px; border-radius:12px; background:var(--btn-alt); color:var(--text-muted);">' +
+                    group.versions.length + (group.versions.length > 1 ? ' versions' : ' version') +
+                  '</span>' +
+                '</div>';
+      } else {
+        html += '<div class="changelog-date-header" style="margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border);">' +
+                  '<span style="font-size:1.05rem; font-weight:800; color:var(--text);">📜 ' + escapeHtml(group.date) + '</span>' +
+                '</div>';
+      }
       
-      html += '<div class="changelog-version-card card" style="margin-bottom:18px; padding:18px; border:1px solid var(--border); border-radius:12px; background:var(--card);">' +
-                '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:14px; flex-wrap:wrap; gap:8px;">' +
-                  '<div style="display:flex; align-items:center; gap:10px;">' +
+      html += '<div class="changelog-versions-list" style="display:flex; flex-direction:column; gap:14px; padding-left:4px;">';
+      
+      group.versions.forEach(item => {
+        const isUnreleased = item.ver.toLowerCase().includes('non publié');
+        const badgeClass = isUnreleased ? 'changelog-badge-unreleased' : 'changelog-badge-release';
+        const labelVer = isUnreleased ? '⚠️ ' + escapeHtml(item.ver) : '🏷️ ' + escapeHtml(item.ver);
+        
+        let formattedBody = renderMarkdown(item.bodyContent);
+        formattedBody = formattedBody.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
+        formattedBody = formattedBody.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
+        formattedBody = formattedBody.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
+        formattedBody = formattedBody.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
+        
+        formattedBody = formattedBody.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
+        formattedBody = formattedBody.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
+        
+        html += '<div class="changelog-version-card card" style="padding:16px 18px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); transition:all 0.15s ease;">' +
+                  '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:10px; margin-bottom:12px;">' +
                     '<span class="' + badgeClass + '">' + labelVer + '</span>' +
                   '</div>' +
-                  (date ? '<span style="font-size:0.82rem; color:var(--text-muted); font-weight:600;">📅 ' + escapeHtml(date) + '</span>' : '') +
-                '</div>' +
-                '<div class="changelog-body">' + formattedBody + '</div>' +
-              '</div>';
+                  '<div class="changelog-body">' + formattedBody + '</div>' +
+                '</div>';
+      });
+      
+      html += '</div></div>';
     });
     
     return html;
