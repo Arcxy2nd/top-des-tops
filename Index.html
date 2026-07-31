@@ -3859,7 +3859,7 @@
 
     <!-- ─ Changelog (Git) ─ -->
     <div id="stab-changelog" class="settings-tab-pane">
-      <div class="card" style="margin-bottom:18px;">
+      <div class="card" style="margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div>
             <h2 style="margin:0;">📋 Changelog & Historique des versions</h2>
@@ -3873,6 +3873,62 @@
           </div>
         </div>
       </div>
+
+      <!-- ── FILTRES ET OPTIONS DU CHANGELOG ── -->
+      <div class="card" style="margin-bottom:18px; padding:14px 18px; background:var(--card); border:1px solid var(--border); border-radius:12px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          
+          <!-- Ligne 1 : Recherche, Tri & Vue -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:220px;">
+              <input type="text" id="clSearchInput" placeholder="🔍 Rechercher version, mot-clé, fix..." class="small-input" style="width:100%; border-radius:20px; padding:6px 14px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <!-- Choix de la Vue : Tous / Humanisé / Technique -->
+              <div id="clViewModeGroup" class="segmented-control" style="display:inline-flex; background:var(--bg); padding:3px; border-radius:20px; border:1px solid var(--border);">
+                <button class="cl-view-btn active" data-view="all" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:var(--card); color:var(--text);">👁️ Tous</button>
+                <button class="cl-view-btn" data-view="human" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted);">👤 Humanisé</button>
+                <button class="cl-view-btn" data-view="tech" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted);">💻 Technique</button>
+              </div>
+
+              <!-- Tri chronologique -->
+              <select id="clSortOrder" class="small-input" style="border-radius:20px; padding:5px 12px; background:var(--bg); color:var(--text); border:1px solid var(--border); font-size:0.8rem; cursor:pointer;">
+                <option value="desc">🔽 Plus récents</option>
+                <option value="asc">🔼 Plus anciens</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Ligne 2 : Filtres de catégories & Plage de versions -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px dashed var(--border); padding-top:10px;">
+            
+            <!-- Pilules de catégories -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:0.76rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-right:4px;">Catégories :</span>
+              <button class="cl-cat-chip active" data-cat="Ajouté" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(46,213,115,0.4); background:rgba(46,213,115,0.15); color:var(--success);">✨ Ajouté</button>
+              <button class="cl-cat-chip active" data-cat="Modifié" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(255,165,2,0.4); background:rgba(255,165,2,0.15); color:var(--warn);">⚡ Modifié</button>
+              <button class="cl-cat-chip active" data-cat="Corrigé" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(255,71,87,0.4); background:rgba(255,71,87,0.15); color:var(--error);">🐛 Corrigé</button>
+              <button class="cl-cat-chip active" data-cat="Supprimé" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(124,140,255,0.4); background:rgba(124,140,255,0.15); color:var(--info);">🗑️ Supprimé</button>
+            </div>
+
+            <!-- Plage de versions -->
+            <div style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--text-muted);">
+              <span style="font-weight:700; text-transform:uppercase;">Plage :</span>
+              <select id="clVersionFrom" style="border-radius:12px; padding:3px 8px; background:var(--bg); color:var(--text); border:1px solid var(--border); font-size:0.78rem;">
+                <option value="all">Toutes les versions</option>
+              </select>
+              <span>à</span>
+              <select id="clVersionTo" style="border-radius:12px; padding:3px 8px; background:var(--bg); color:var(--text); border:1px solid var(--border); font-size:0.78rem;">
+                <option value="all">Dernière version</option>
+              </select>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
       <div id="changelogContent">
         <div style="text-align:center; padding:40px 0; color:var(--text-muted);">Chargement du changelog depuis GitHub...</div>
       </div>
@@ -5305,20 +5361,117 @@
       });
     });
 
+    initChangelogFilters();
     const refreshBtn = document.getElementById('refreshChangelogBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', () => loadChangelog(true));
   }
 
-  // ── CHANGELOG DYNAMIQUE (GIT) ──────────────────────────────────────────
+  // ── CHANGELOG DYNAMIQUE (GIT) & FILTRES ────────────────────────────────
   let _changelogLoading = false;
+  let _changelogRawMarkdown = '';
+  let _clSearchQuery = '';
+  let _clSortOrder = 'desc';
+  let _clViewMode = 'all'; // 'all', 'human', 'tech'
+  let _clActiveCats = new Set(['Ajouté', 'Modifié', 'Corrigé', 'Supprimé']);
+  let _clVersionFrom = 'all';
+  let _clVersionTo = 'all';
+  let _clFiltersInitialized = false;
 
-  function renderChangelogMarkup(markdownText) {
-    if (!markdownText) return '<div class="card" style="color:var(--text-muted); text-align:center; padding:24px;">Aucun contenu trouvé.</div>';
-    
-    const rawSections = markdownText.split(/^##\s+/m);
+  function initChangelogFilters() {
+    if (_clFiltersInitialized) return;
+    _clFiltersInitialized = true;
+
+    const searchInput = document.getElementById('clSearchInput');
+    const sortSelect = document.getElementById('clSortOrder');
+    const viewGroup = document.getElementById('clViewModeGroup');
+    const verFromSelect = document.getElementById('clVersionFrom');
+    const verToSelect = document.getElementById('clVersionTo');
+    const catChips = document.querySelectorAll('.cl-cat-chip');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', e => {
+        _clSearchQuery = e.target.value.toLowerCase().trim();
+        renderChangelogView();
+      });
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', e => {
+        _clSortOrder = e.target.value;
+        renderChangelogView();
+      });
+    }
+
+    if (viewGroup) {
+      viewGroup.querySelectorAll('.cl-view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          viewGroup.querySelectorAll('.cl-view-btn').forEach(b => {
+            b.classList.toggle('active', b === btn);
+            b.style.background = (b === btn) ? 'var(--card)' : 'transparent';
+            b.style.color = (b === btn) ? 'var(--text)' : 'var(--text-muted)';
+          });
+          _clViewMode = btn.dataset.view;
+          renderChangelogView();
+        });
+      });
+    }
+
+    catChips.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.cat;
+        if (_clActiveCats.has(cat)) {
+          if (_clActiveCats.size > 1) {
+            _clActiveCats.delete(cat);
+            btn.classList.remove('active');
+            btn.style.opacity = '0.4';
+          }
+        } else {
+          _clActiveCats.add(cat);
+          btn.classList.add('active');
+          btn.style.opacity = '1';
+        }
+        renderChangelogView();
+      });
+    });
+
+    if (verFromSelect) {
+      verFromSelect.addEventListener('change', e => {
+        _clVersionFrom = e.target.value;
+        renderChangelogView();
+      });
+    }
+
+    if (verToSelect) {
+      verToSelect.addEventListener('change', e => {
+        _clVersionTo = e.target.value;
+        renderChangelogView();
+      });
+    }
+  }
+
+  function populateVersionSelects(rawItems) {
+    const verFromSelect = document.getElementById('clVersionFrom');
+    const verToSelect = document.getElementById('clVersionTo');
+    if (!verFromSelect || !verToSelect) return;
+
+    verFromSelect.innerHTML = '<option value="all">Toutes les versions</option>';
+    verToSelect.innerHTML = '<option value="all">Dernière version</option>';
+
+    const uniqueVers = rawItems.map(i => i.ver).filter((v, idx, a) => v && a.indexOf(v) === idx);
+    uniqueVers.forEach(v => {
+      verFromSelect.appendChild(new Option(v, v));
+      verToSelect.appendChild(new Option(v, v));
+    });
+  }
+
+  function renderChangelogView() {
+    const container = document.getElementById('changelogContent');
+    if (!container || !_changelogRawMarkdown) return;
+
+    const rawSections = _changelogRawMarkdown.split(/^##\s+/m);
     let introHtml = '';
-    const items = [];
-    
+    const rawItems = [];
+
     rawSections.forEach((sec, idx) => {
       if (idx === 0) {
         const cleanIntro = sec.replace(/^#\s+Changelog\s*/i, '').trim();
@@ -5329,22 +5482,91 @@
         }
         return;
       }
-      
+
       const firstLineEnd = sec.indexOf('\n');
       const headerLine = (firstLineEnd !== -1 ? sec.substring(0, firstLineEnd) : sec).trim();
       const bodyContent = (firstLineEnd !== -1 ? sec.substring(firstLineEnd + 1) : '').trim();
-      
+
       const match = headerLine.match(/\[(.*?)\](?:\s*-\s*(.*))?/);
       const ver = match ? match[1] : headerLine;
       const date = match && match[2] ? match[2] : 'Historique';
-      
-      items.push({ ver, date, bodyContent });
+
+      rawItems.push({ ver, date, bodyContent });
     });
+
+    populateVersionSelects(rawItems);
+
+    // Filter items by version range
+    let filteredItems = rawItems;
+    if (_clVersionFrom !== 'all' || _clVersionTo !== 'all') {
+      const allVers = rawItems.map(i => i.ver);
+      let fromIdx = _clVersionFrom !== 'all' ? allVers.indexOf(_clVersionFrom) : 0;
+      let toIdx = _clVersionTo !== 'all' ? allVers.indexOf(_clVersionTo) : allVers.length - 1;
+      if (fromIdx !== -1 && toIdx !== -1) {
+        const start = Math.min(fromIdx, toIdx);
+        const end = Math.max(fromIdx, toIdx);
+        filteredItems = rawItems.slice(start, end + 1);
+      }
+    }
+
+    // Filter items by category & search query
+    const processedItems = [];
+
+    filteredItems.forEach(item => {
+      const catBlocks = item.bodyContent.split(/^###\s+/m);
+      let newBodyContent = '';
+
+      catBlocks.forEach((block, bIdx) => {
+        if (bIdx === 0) {
+          if (block.trim()) newBodyContent += block + '\n\n';
+          return;
+        }
+
+        const bFirstLineEnd = block.indexOf('\n');
+        const catName = (bFirstLineEnd !== -1 ? block.substring(0, bFirstLineEnd) : block).trim();
+        const catBody = (bFirstLineEnd !== -1 ? block.substring(bFirstLineEnd + 1) : '').trim();
+
+        if (!_clActiveCats.has(catName)) return;
+
+        let filteredCatBody = catBody;
+        if (_clViewMode === 'human') {
+          filteredCatBody = filteredCatBody.split('\n').filter(line => !line.includes('**Technique**')).join('\n');
+        } else if (_clViewMode === 'tech') {
+          filteredCatBody = filteredCatBody.split('\n').filter(line => !line.includes('**Humanisé**')).join('\n');
+        }
+
+        if (filteredCatBody.trim()) {
+          newBodyContent += '### ' + catName + '\n' + filteredCatBody + '\n\n';
+        }
+      });
+
+      if (!newBodyContent.trim()) return;
+
+      if (_clSearchQuery) {
+        const fullText = (item.ver + ' ' + item.date + ' ' + newBodyContent).toLowerCase();
+        if (!fullText.includes(_clSearchQuery)) return;
+      }
+
+      processedItems.push({
+        ver: item.ver,
+        date: item.date,
+        bodyContent: newBodyContent.trim()
+      });
+    });
+
+    if (processedItems.length === 0) {
+      container.innerHTML = introHtml + '<div class="card" style="color:var(--text-muted); text-align:center; padding:32px;">🔍 Aucun résultat ne correspond aux filtres sélectionnés.</div>';
+      return;
+    }
+
+    if (_clSortOrder === 'asc') {
+      processedItems.reverse();
+    }
 
     const dateGroups = [];
     const dateMap = new Map();
-    
-    items.forEach(item => {
+
+    processedItems.forEach(item => {
       if (!dateMap.has(item.date)) {
         const group = { date: item.date, versions: [] };
         dateMap.set(item.date, group);
@@ -5354,14 +5576,14 @@
     });
 
     let html = introHtml;
-    
+
     dateGroups.forEach(group => {
       const isHistoricalSection = group.date === 'Historique' || group.date.toLowerCase().includes('historique');
-      
+
       html += '<div class="changelog-date-group" style="margin-bottom:28px;">';
-      
+
       if (!isHistoricalSection) {
-        html += '<div class="changelog-date-header" style="display:flex; align-items:center; justify-space-between:space-between; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border);">' +
+        html += '<div class="changelog-date-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border);">' +
                   '<div style="display:flex; align-items:center; gap:8px;">' +
                     '<span style="font-size:1.05rem; font-weight:800; color:var(--text); letter-spacing:-0.01em;">📅 ' + escapeHtml(group.date) + '</span>' +
                   '</div>' +
@@ -5374,23 +5596,23 @@
                   '<span style="font-size:1.05rem; font-weight:800; color:var(--text);">📜 ' + escapeHtml(group.date) + '</span>' +
                 '</div>';
       }
-      
+
       html += '<div class="changelog-versions-list" style="display:flex; flex-direction:column; gap:14px; padding-left:4px;">';
-      
+
       group.versions.forEach(item => {
         const isUnreleased = item.ver.toLowerCase().includes('non publié');
         const badgeClass = isUnreleased ? 'changelog-badge-unreleased' : 'changelog-badge-release';
         const labelVer = isUnreleased ? '⚠️ ' + escapeHtml(item.ver) : '🏷️ ' + escapeHtml(item.ver);
-        
+
         let formattedBody = renderMarkdown(item.bodyContent);
         formattedBody = formattedBody.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
         formattedBody = formattedBody.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
         formattedBody = formattedBody.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
         formattedBody = formattedBody.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
-        
+
         formattedBody = formattedBody.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
         formattedBody = formattedBody.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
-        
+
         html += '<div class="changelog-version-card card" style="padding:16px 18px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); transition:all 0.15s ease;">' +
                   '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:10px; margin-bottom:12px;">' +
                     '<span class="' + badgeClass + '">' + labelVer + '</span>' +
@@ -5398,11 +5620,11 @@
                   '<div class="changelog-body">' + formattedBody + '</div>' +
                 '</div>';
       });
-      
+
       html += '</div></div>';
     });
-    
-    return html;
+
+    container.innerHTML = html;
   }
 
   function loadChangelog(forceRefresh) {
@@ -5429,7 +5651,8 @@
         timeEl.textContent = 'Dernière synchro Git : ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
       
-      container.innerHTML = renderChangelogMarkup(res.content);
+      _changelogRawMarkdown = res.content || '';
+      renderChangelogView();
     });
   }
 

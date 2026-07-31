@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.5.3] - 2026-07-31
+
+### Ajouté
+**Humanisé** : Ajout d'une barre de contrôle interactive sur la page du Changelog (recherche instantanée par mots-clés, filtrage par type de modification ✨/⚡/🐛/🗑️, bascule d'affichage Humanisé/Technique/Tous, tri chronologique et sélection par plage de versions).
+**Technique** : `Index.html` — intégration de la barre de filtres dans `#stab-changelog`, création du moteur de rendu réactif `renderChangelogView()`, de `initChangelogFilters()` et du remplissage automatique des sélecteurs de plage `populateVersionSelects()`.
+
 ## [v2.5.2] - 2026-07-31
 
 ### Corrigé
