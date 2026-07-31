@@ -2909,7 +2909,33 @@
   .settings-tab-pane { display: none; }
   .settings-tab-pane.active { display: block; }
 
-  /* ── CHANGELOG ── */
+  /* ── CHANGELOG ENHANCED DESIGN ── */
+  .changelog-date-group {
+    position: relative;
+    padding-left: 14px;
+  }
+  .changelog-date-group::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 26px;
+    bottom: -12px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), var(--border));
+    border-radius: 2px;
+    opacity: 0.6;
+  }
+  .changelog-version-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+  }
+  .changelog-version-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 71, 87, 0.4) !important;
+  }
+  body.light .changelog-version-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
   .changelog-badge-unreleased {
     background: rgba(255, 165, 0, 0.15); color: var(--warn);
     border: 1px solid var(--warn); padding: 3px 10px;
@@ -3889,8 +3915,9 @@
           
           <!-- Ligne 1 : Recherche, Tri & Vue -->
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:220px;">
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">
               <input type="text" id="clSearchInput" placeholder="🔍 Rechercher version, mot-clé, fix..." class="small-input" style="width:100%; border-radius:20px; padding:6px 14px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
+              <span id="clResultCounter" style="font-size:0.75rem; font-weight:700; color:var(--text-muted); padding:3px 10px; border-radius:12px; background:var(--btn-alt); white-space:nowrap;"></span>
             </div>
             
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -5527,6 +5554,44 @@
            '</div>';
   }
 
+  function resetChangelogFilters() {
+    _clSearchQuery = '';
+    _clSortOrder = 'desc';
+    _clViewMode = 'all';
+    _clActiveCats = new Set(['Ajouté', 'Modifié', 'Corrigé', 'Supprimé']);
+    _clVersionFrom = 'all';
+    _clVersionTo = 'all';
+
+    const searchInput = document.getElementById('clSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    const sortSelect = document.getElementById('clSortOrder');
+    if (sortSelect) sortSelect.value = 'desc';
+
+    const verFromSelect = document.getElementById('clVersionFrom');
+    if (verFromSelect) verFromSelect.value = 'all';
+
+    const verToSelect = document.getElementById('clVersionTo');
+    if (verToSelect) verToSelect.value = 'all';
+
+    const viewGroup = document.getElementById('clViewModeGroup');
+    if (viewGroup) {
+      viewGroup.querySelectorAll('.cl-view-btn').forEach(b => {
+        const isAll = b.dataset.view === 'all';
+        b.classList.toggle('active', isAll);
+        b.style.background = isAll ? 'var(--card)' : 'transparent';
+        b.style.color = isAll ? 'var(--text)' : 'var(--text-muted)';
+      });
+    }
+
+    document.querySelectorAll('.cl-cat-chip').forEach(btn => {
+      btn.classList.add('active');
+    });
+
+    renderChangelogView();
+  }
+  window.resetChangelogFilters = resetChangelogFilters;
+
   function renderChangelogView() {
     const container = document.getElementById('changelogContent');
     if (!container || !_changelogRawMarkdown) return;
@@ -5592,8 +5657,18 @@
       });
     });
 
+    const counterEl = document.getElementById('clResultCounter');
+    if (counterEl) {
+      counterEl.textContent = processedItems.length + ' / ' + rawItems.length + (processedItems.length > 1 ? ' versions' : ' version');
+    }
+
     if (processedItems.length === 0) {
-      container.innerHTML = introHtml + '<div class="card" style="color:var(--text-muted); text-align:center; padding:32px;">🔍 Aucun résultat ne correspond aux filtres sélectionnés.</div>';
+      container.innerHTML = introHtml + '<div class="card" style="color:var(--text-muted); text-align:center; padding:36px 20px; border-radius:12px;">' +
+        '<div style="font-size:2.2rem; margin-bottom:10px;">🔍</div>' +
+        '<div style="font-weight:800; font-size:1.05rem; margin-bottom:6px; color:var(--text);">Aucun résultat trouvé</div>' +
+        '<div style="font-size:0.85rem; margin-bottom:16px;">Aucune mise à jour ne correspond à vos filtres actuels.</div>' +
+        '<button onclick="resetChangelogFilters()" class="secondary small" style="border-radius:16px; padding:6px 16px;">🔄 Réinitialiser les filtres</button>' +
+      '</div>';
       return;
     }
 

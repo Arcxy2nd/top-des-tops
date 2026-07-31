@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.5.4] - 2026-07-31
+
+### Modifié
+**Humanisé** : Refonte esthétique complète de la page Changelog (fil conducteur temporel vertical, cartes glassmorphic avec effets de survol réactifs et ombres adaptatives, compteur dynamique de versions en temps réel et bouton de réinitialisation rapide).
+**Technique** : `Index.html` — ajout de la ligne temporelle CSS `.changelog-date-group::before`, des transitions de survol sur `.changelog-version-card`, de l'indicateur `#clResultCounter`, du mode vide interactif et de `window.resetChangelogFilters()`.
+
 ## [v2.5.3] - 2026-07-31
 
 ### Ajouté
