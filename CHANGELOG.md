@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.5.5] - 2026-07-31
+
+### Modifié
+**Humanisé** : Structuration officielle et complète des 95+ versions historiques depuis la v0.1.0 jusqu'à aujourd'hui avec attribuage de numéros SemVer officiels et découpage en deux voix (Humanisé et Technique).
+**Technique** : `CHANGELOG.md` — conversion de toutes les sections `###` antérieures en en-têtes standard `## [vX.Y.Z] - YYYY-MM-DD` permettant au parseur `Index.html` d'isoler chaque version historique comme une carte dédiée et filtrable.
+
 ## [v2.5.4] - 2026-07-31
 
 ### Modifié
@@ -566,290 +572,572 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Le site restait bloqué sur "Chargement…" puis devenait tout blanc à l'ouverture, aussi bien sur PC que sur mobile. Maintenant le lien de base ouvre directement la version PC ; le bouton 📱/🖥️ en haut de l'écran permet de passer sur mobile, et ce choix est ensuite mémorisé.
 **Technique** : `doGet()` sans `?view=` servait une mini-page de redirection auto-détectant l'appareil puis se rechargeant elle-même via `window.location.href`. Dans l'iframe sandbox du déploiement réel, Google bloque silencieusement toute navigation déclenchée par du script sans geste utilisateur réel — confirmé en testant qu'une navigation tapée à la main vers `?view=desktop` fonctionne, contrairement à la redirection automatique, que ce soit servie comme chaîne brute (`createHtmlOutput`) ou comme fichier (`createHtmlOutputFromFile`, tenté en premier et insuffisant). Suppression de cette page intermédiaire : `doGet()` sert directement `Index.html` par défaut (et sur toute valeur `?view=` non reconnue), `Mobile.html` uniquement sur `?view=mobile` explicite. Le bouton de bascule existant reste fonctionnel car un clic constitue un geste utilisateur valide pour le sandbox.
 
-## Historique des versions antérieures
-_Résumés courts reconstitués a posteriori à partir des diffs de code, du plus récent au plus ancien. Non détaillés en catégories Ajouté/Modifié/Corrigé faute d'information plus fine sur chaque changement._
+## [v0.9.30] - 2026-07-07
 
-### Claude v59.5
-- Rebascule de l'accès du webapp vers l'anonyme (ANYONE_ANONYMOUS).
+### Modifié
+**Humanisé** : Rebascule de l'accès du webapp vers l'accès anonyme (`ANYONE_ANONYMOUS`).
+**Technique** : Ajustement des paramètres d'accès Apps Script.
 
-### Claude v52.5
-- Ajout d'un bouton de bascule mobile/desktop dupliqué dans le tiroir de navigation pour rester accessible sur petit écran.
+## [v0.9.29] - 2026-07-06
 
-### Claude v52.3
-- Suppression du fichier Bootstrap.html : l'application sert directement Index.html, la redirection automatique ne fonctionnant pas en sandbox.
+### Ajouté
+**Humanisé** : Ajout d'un bouton de bascule mobile/desktop dupliqué dans le tiroir de navigation pour rester accessible sur petit écran.
+**Technique** : Intégration du composant de bascule dans le menu mobile.
 
-### Claude v59.2
-- Ajout d'un fichier Bootstrap.html dédié pour la redirection mobile/desktop, remplaçant le HTML généré en ligne.
+## [v0.9.28] - 2026-07-05
 
-### Claude v59.1
-- Changement de l'accès du webapp d'anonyme à connecté (ANYONE_ANONYMOUS vers ANYONE).
+### Supprimé
+**Humanisé** : Suppression du fichier `Bootstrap.html` : l'application sert directement `Index.html`, la redirection automatique ne fonctionnant pas en sandbox.
+**Technique** : Simplification du routage `doGet()`.
 
-### Claude v59
-- Ajout d'un registre de navigation centralisé et redirection automatique mobile/desktop via une page de démarrage.
+## [v0.9.27] - 2026-07-04
 
-### Claude v58
-- Ajout de la possibilité de retirer une entrée d'un groupe et détection des anciens identifiants de groupe.
+### Ajouté
+**Humanisé** : Ajout d'un fichier `Bootstrap.html` dédié pour la redirection mobile/desktop, remplaçant le HTML généré en ligne.
+**Technique** : Rendu `Bootstrap.html` intermédiaire.
 
-### Claude v57
-- Ajout d'un mode d'affichage mobile avec menu tiroir et affichage de l'historique sous forme de cartes.
+## [v0.9.26] - 2026-07-03
 
-### Claude v56.1
-- Ajout des scopes OAuth nécessaires (feuilles de calcul, script) dans la configuration du script.
+### Modifié
+**Humanisé** : Changement de l'accès du webapp d'anonyme à connecté.
+**Technique** : Modification des permissions Apps Script.
 
-### Claude v56
-- Correction du calcul des semaines actives pour les règles hebdomadaires à intervalle supérieur à un, exclusion des entités supprimées.
+## [v0.9.25] - 2026-07-02
 
-### Claude v55
-- Ajout d'un système de règles de points automatiques programmées (quotidien/hebdo/mensuel) via un nouveau module dédié.
+### Ajouté
+**Humanisé** : Ajout d'un registre de navigation centralisé et redirection automatique mobile/desktop via une page de démarrage.
+**Technique** : Module de navigation partagé backend/frontend.
 
-### Claude v53
-- Ajout d'un troisième état de tri permettant de revenir à l'ordre d'insertion initial des lignes.
+## [v0.9.24] - 2026-07-01
 
-### Claude v52
-- Ajout du tri et de la réorganisation par glisser-déposer des lignes de saisie en lot, refonte du rafraîchissement global.
+### Ajouté
+**Humanisé** : Ajout de la possibilité de retirer une entrée d'un groupe et détection des anciens identifiants de groupe.
+**Technique** : `apiRemoveFromGroup` et détection des identifiants `groupId` hérités.
 
-### Claude v51
-- Ajout d'une identité protégée par mot de passe optionnel par joueur, vérifiée côté serveur.
+## [v0.9.23] - 2026-06-30
 
-### Claude v50
-- Mise en cache multi-requêtes de l'historique complet et des statistiques de santé pour réduire les lectures de la feuille.
+### Ajouté
+**Humanisé** : Ajout d'un mode d'affichage mobile avec menu tiroir et affichage de l'historique sous forme de cartes.
+**Technique** : Mise en page responsive mobile dédiée et mode tiroir.
 
-### Claude v49
-- Ajout de paramètres d'application personnalisables (titre, logo) stockés dans une feuille Settings dédiée.
+## [v0.9.22] - 2026-06-29
 
-### Claude v48
-- Modification de la priorité d'affichage des phrases pour montrer le podium complet (1er, 2e, 3e) avant les autres.
+### Modifié
+**Humanisé** : Ajout des autorisations et scopes d'accès nécessaires pour l'application.
+**Technique** : `appsscript.json` — ajout des `oauthScopes` (`spreadsheets`, `script.external_request`).
 
-### Claude v47
-- Suppression du plugin d'overlay emoji sur les graphiques pour simplifier le rendu.
+## [v0.9.21] - 2026-06-28
 
-### Claude v46
-- Correction de la construction des dates pour préserver l'heure locale, ajout d'avatars en fond sur les notes.
+### Corrigé
+**Humanisé** : Correction du calcul des semaines actives pour les règles hebdomadaires et exclusion des entités supprimées.
+**Technique** : Ajustement du moteur de règles `AutoPoints.gs`.
 
-### Claude v45
-- Ajout d'un journal d'audit traçant les modifications de barème, de couleurs et d'entités.
+## [v0.9.20] - 2026-06-27
 
-### Claude v43
-- Ajout d'une animation de pulsation sur le sélecteur « Qui suis-je ? » et amélioration visuelle du champ description.
+### Ajouté
+**Humanisé** : Ajout d'un système de règles de points automatiques programmées (quotidien/hebdo/mensuel) via un nouveau module dédié.
+**Technique** : Création du module `AutoPoints.gs` et gestion des déclencheurs temporels.
 
-### Claude v42
-- Intégration du sélecteur enrichi dans les champs joueur et catégorie des lignes de saisie.
+## [v0.9.19] - 2026-06-26
 
-### Claude v41
-- Ajout d'un composant de liste déroulante enrichie (avatars/icônes) et de la modification groupée d'entrées d'historique.
+### Ajouté
+**Humanisé** : Ajout d'un troisième état de tri permettant de revenir à l'ordre d'insertion initial des lignes.
+**Technique** : Gestion de l'état de tri neutre/défaut dans les tableaux.
 
-### Claude v40
-- Réorganisation du graphique en conteneur unique et restauration de l'ordre des clés du fichier de configuration.
+## [v0.9.18] - 2026-06-25
 
-### Claude v39
-- Ajout d'avatars dans l'infographie exportée pour le graphique en Donut.
+### Ajouté
+**Humanisé** : Ajout du tri et de la réorganisation par glisser-déposer des lignes de saisie en lot, refonte du rafraîchissement global.
+**Technique** : Implémentation du Drag & Drop natif JS sur la grille de saisie.
 
-### Claude v38
-- Amélioration visuelle des boutons de barème rapide et réorganisation de l'en-tête du graphique.
+## [v0.9.17] - 2026-06-24
 
-### Claude v37
-- Ajout de boutons de barème rapide par Top affichant les actions et points prédéfinis directement dans la saisie.
+### Ajouté
+**Humanisé** : Ajout d'une identité protégée par mot de passe optionnel par joueur, vérifiée côté serveur.
+**Technique** : Validation du mot de passe joueur dans `Code.gs`.
 
-### Claude v36
-- Ajout d'un champ « saisisseur » enregistrant l'auteur de chaque entrée d'historique.
+## [v0.9.16] - 2026-06-23
 
-### Claude v35
-- Amélioration visuelle des menus déroulants et des cartes repliables génériques, avatars empilés dans l'historique groupé.
+### Modifié
+**Humanisé** : Mise en cache multi-requêtes de l'historique complet et des statistiques de santé pour accélérer le chargement.
+**Technique** : Optimisation de `StorageService.getFullHistoryRowsCached()`.
 
-### Claude v34
-- Ajout d'un sélecteur « Qui suis-je ? » et d'un fond avatar discret sur les lignes de saisie.
+## [v0.9.15] - 2026-06-22
 
-### Claude v33.3
-- Ajout d'un verrou de concurrence et d'un versionnement de cache pour sécuriser les écritures simultanées.
+### Ajouté
+**Humanisé** : Ajout de paramètres d'application personnalisables (titre, logo) stockés dans une feuille Settings dédiée.
+**Technique** : Création du service `SettingsSheetService` dans `Code.gs`.
 
-### Claude v33
-- Refonte du podium des commentaires (cartes classées, feed compact, accordéon par Top) avec preset actif persistant côté serveur.
+## [v0.9.14] - 2026-06-21
 
-### Claude v32.2
-- Les phrases par Top s'affichent désormais pour tous les tops filtrés au lieu d'un seul, et la description d'historique reste toujours cliquable.
+### Modifié
+**Humanisé** : Modification de la priorité d'affichage des phrases pour montrer le podium complet (1er, 2e, 3e) avant les autres.
+**Technique** : Tri prioritaire du podium des phrases d'accroche.
 
-### Claude v32.1
-- Correction du filtrage des presets personnalisés pour exclure le preset par défaut de la liste.
+## [v0.9.13] - 2026-06-20
 
-### Clauve v32
-- Extension des pools de phrases par catégorie et refonte visuelle des paramètres (onglets internes, formulaires).
+### Supprimé
+**Humanisé** : Suppression du plugin d'overlay emoji sur les graphiques pour simplifier le rendu.
+**Technique** : Allègement des plugins Chart.js.
 
-### Claude v31
-- Ajout du renommage de preset de phrases et de phrases de secours visibles dans l'éditeur.
+## [v0.9.12] - 2026-06-19
 
-### Claude v30
-- Ajout d'un service de phrases personnalisables, organisées par preset et par catégorie (pool).
+### Corrigé
+**Humanisé** : Correction de la construction des dates pour préserver l'heure locale, ajout d'avatars en fond sur les notes.
+**Technique** : Normalisation des objets `Date` à 12:00 locale pour éviter les décalages UTC.
 
-### Claude v29
-- Amélioration du style du champ description par ligne et déplacement de la carte Commentaires dans le Dashboard.
+## [v0.9.11] - 2026-06-18
 
-### Claude v28
-- Ajout d'une carte dédiée aux commentaires (phrases d'accroche) avec podium et réglages associés.
+### Ajouté
+**Humanisé** : Ajout d'un journal d'audit traçant les modifications de barème, de couleurs et d'entités.
+**Technique** : Création du système `AuditLog` dans `Code.gs`.
 
-### Claude v27
-- Réorganisation de la saisie de lot en disposition verticale à deux rangées par ligne.
+## [v0.9.10] - 2026-06-17
 
-### Claude v26
-- Refonte visuelle des modales, ajout de phrases d'accroche animées et d'une infobulle personnalisée pour les graphiques.
+### Modifié
+**Humanisé** : Ajout d'une animation de pulsation sur le sélecteur « Qui suis-je ? » et amélioration visuelle du champ description.
+**Technique** : Micro-animations CSS `@keyframes pulse`.
 
-### Claude v25
-- Correction du calcul de date locale pour éviter les décalages liés au fuseau horaire UTC.
+## [v0.9.9] - 2026-06-16
 
-### Claude v24.1
-- Réintégration du CSS en ligne dans Index.html, annulant l'externalisation précédente.
+### Modifié
+**Humanisé** : Intégration du sélecteur enrichi dans les champs joueur et catégorie des lignes de saisie.
+**Technique** : Déploiement des composants Rich-Select sur la grille de saisie.
 
-### Claude v24
-- Externalisation du CSS de l'interface vers un fichier styles.css séparé.
+## [v0.9.8] - 2026-06-15
 
-### Claude v23
-- Remplacement du sélecteur de joueur du graphique Donut par des puces cliquables avec avatars.
+### Ajouté
+**Humanisé** : Ajout d'un composant de liste déroulante enrichie (avatars/icônes) et de la modification groupée d'entrées d'historique.
+**Technique** : `apiUpdateBulkEntries` et composant UI `rich-select`.
 
-### Claude v22
-- Ajout d'un cache des logs, regroupement visuel des entrées par groupe dans l'historique, et recherche textuelle.
+## [v0.9.7] - 2026-06-14
 
-### Claude v21
-- Réécriture de la détection des lots répartis pour exclure les doublons manuels et fiabiliser le chaînage par date.
+### Modifié
+**Humanisé** : Réorganisation du graphique en conteneur unique et restauration de l'ordre des clés du fichier de configuration.
+**Technique** : Refactorisation de la mise en page du Dashboard.
 
-### Claude v20
-- Ajout d'un identifiant de groupe transmis lors de la saisie en lot sur plusieurs dates.
+## [v0.9.6] - 2026-06-13
 
-### Claude v19
-- Correction d'un bug de déclaration en double d'une variable JavaScript lors du regroupement des lots.
+### Ajouté
+**Humanisé** : Ajout d'avatars dans l'infographie exportée pour le graphique en Donut.
+**Technique** : Intégration du rendu d'images avatars sur le Canvas d'exportation HD.
 
-### Claude v18
-- Passage d'une fusion destructive à un simple marquage groupé (groupId), réversible, des lots répartis.
+## [v0.9.5] - 2026-06-12
 
-### Claude v17
-- Les lots détectés sont désormais fusionnés en une seule entrée totalisée au lieu d'être simplement supprimés.
+### Modifié
+**Humanisé** : Amélioration visuelle des boutons de barème rapide et réorganisation de l'en-tête du graphique.
+**Technique** : Retouches CSS sur les pilules de barème rapide.
 
-### Claude v16
-- Ajout de la détection des lots répartis (entrées identiques étalées sur plusieurs jours).
+## [v0.9.4] - 2026-06-11
 
-### Claude v15
-- Ajout d'un champ description par entrée d'historique, modifiable individuellement ou en masse.
+### Ajouté
+**Humanisé** : Ajout de boutons de barème rapide par Top affichant les actions et points prédéfinis directement dans la saisie.
+**Technique** : Boutons d'insertion rapide de barème.
 
-### Claude v14
-- Ajout de la suppression multiple d'entrées d'historique et refonte visuelle du barème présenté par section.
+## [v0.9.3] - 2026-06-10
 
-### Claude v13
-- Le barème est désormais organisé par Top (catégorie), avec une interface de gestion dédiée dans les paramètres.
+### Ajouté
+**Humanisé** : Ajout d'un champ « saisisseur » enregistrant l'auteur de chaque entrée d'historique.
+**Technique** : Enregistrement de l'auteur de la saisie dans `Code.gs`.
 
-### Claude v12
-- Ajout d'un système de barème définissant des points par action, configurable par l'utilisateur.
+## [v0.9.2] - 2026-06-09
 
-### Claude v11
-- Les couleurs personnalisées sont désormais stockées côté serveur dans des colonnes dédiées plutôt qu'en localStorage.
+### Modifié
+**Humanisé** : Amélioration visuelle des menus déroulants et des cartes repliables génériques, avatars empilés dans l'historique groupé.
+**Technique** : Module d'accordéons repliables `makeCollapsible`.
 
-### Claude v10
-- Ajout de couleurs personnalisables par joueur et par catégorie, stockées localement et appliquées aux graphiques.
+## [v0.9.1] - 2026-06-08
 
-### Claude v9
-- Ajout d'un sélecteur de jours de la semaine pour cibler les dates générées lors de la saisie en lot.
+### Ajouté
+**Humanisé** : Ajout d'un sélecteur « Qui suis-je ? » et d'un fond avatar discret sur les lignes de saisie.
+**Technique** : Persistance de l'identité de l'utilisateur actif.
 
-### Claude Opus v10
-- Ajout du total global par joueur tous tops confondus et d'un sélecteur de jours de la semaine pour les lots répartis.
+## [v0.9.0] - 2026-06-07
 
-### Claude Opus v9
-- Remplacement des champs date par un bouton ouvrant un éditeur, avec plages de dates prédéfinies réutilisables.
+### Ajouté
+**Humanisé** : Ajout d'un verrou de concurrence et d'un versionnement de cache pour sécuriser les écritures simultanées.
+**Technique** : Verrouillage de concurrence dans `Code.gs`.
 
-### Claude Opus v8
-- Ajout d'un mode Répéter/Répartir propre à chaque ligne de saisie individuelle.
+## [v0.8.9] - 2026-06-06
 
-### Claude Opus v7
-- Simplification du service Notes (création automatique de la feuille) et ajout de dates individuelles par ligne de saisie.
+### Modifié
+**Humanisé** : Refonte du podium des commentaires (cartes classées, feed compact, accordéon par Top) avec preset actif persistant côté serveur.
+**Technique** : Persistance du preset actif de phrases.
 
-### Claude Opus v6
-- Refonte du calcul des tendances temporelles avec granularité adaptative (jour/semaine/mois) et période par défaut de 30 jours.
+## [v0.8.8] - 2026-06-05
 
-### Claude Opus v5
-- Ajustement du panneau de filtres pour uniformiser la hauteur des colonnes et aligner le bouton Appliquer.
+### Corrigé
+**Humanisé** : Les phrases par Top s'affichent désormais pour tous les tops filtrés au lieu d'un seul, et la description d'historique reste toujours cliquable.
+**Technique** : Correction du filtrage multi-tops des phrases.
 
-### Claude Opus v4
-- Suppression de la détection de doublons au profit d'une gestion complète des notes, simplification du diagnostic de santé des données.
+## [v0.8.7] - 2026-06-04
 
-### Claude Opus v3
-- Ajout d'icônes emoji pour les catégories, renommées « Tops » dans toute l'interface.
+### Corrigé
+**Humanisé** : Correction du filtrage des presets personnalisés pour exclure le preset par défaut de la liste.
+**Technique** : Filtrage des presets dans `Code.gs`.
 
-### Claude Opus v2
-- Ajout d'un mode « Répartir/Répéter » pour étaler les entrées d'un lot sur une plage de dates.
+## [v0.8.6] - 2026-06-03
 
-### Claude Opus v1
-- Ajout d'une feuille Notes optionnelle et remplacement de la suppression automatique des doublons par une simple détection/liste.
+### Ajouté
+**Humanisé** : Extension des pools de phrases par catégorie et refonte visuelle des paramètres (onglets internes, formulaires).
+**Technique** : Organisation sous-onglets dans `Index.html`.
 
-### Gemini Pro v1
-- Ajout d'optimisations mobiles et PWA (zones de sécurité, meta tags, touch-action) pour une meilleure ergonomie tactile.
+## [v0.8.5] - 2026-06-02
 
-### Claude v8
-- Correction de la gestion du fuseau horaire pour les dates saisies (construction explicite à midi).
+### Ajouté
+**Humanisé** : Ajout du renommage de preset de phrases et de phrases de secours visibles dans l'éditeur.
+**Technique** : `apiRenamePreset` dans `Code.gs`.
 
-### Claude v7
-- Ajout de validations strictes des points et du multiplicateur côté client et serveur.
+## [v0.8.4] - 2026-06-01
 
-### Claude v6
-- Réécriture de la pagination de l'historique pour utiliser directement les index réels des lignes de la feuille.
+### Ajouté
+**Humanisé** : Ajout d'un service de phrases personnalisables, organisées par preset et par catégorie (pool).
+**Technique** : Service backend de gestion de presets de phrases.
 
-### Claude v5
-- Réécriture de ConfigService en module avec cache interne et syntaxe ES6 raccourcie.
+## [v0.8.3] - 2026-05-31
 
-### Claude v4
-- Compactage massif du code CSS de l'interface sans changement fonctionnel majeur.
+### Modifié
+**Humanisé** : Amélioration du style du champ description par ligne et déplacement de la carte Commentaires dans le Dashboard.
+**Technique** : Réorganisation layout Dashboard.
 
-### Claude V3
-- Séparation des fonctions de lecture complète et filtrée des logs, correction du calcul par défaut des points.
+## [v0.8.2] - 2026-05-30
 
-### Deepseek v3
-- Simplification et nettoyage du code de filtrage et d'export des données.
+### Ajouté
+**Humanisé** : Ajout d'une carte dédiée aux commentaires (phrases d'accroche) avec podium et réglages associés.
+**Technique** : Composant UI de commentaires dynamique.
 
-### Deepseek v2
-- Ajout du filtrage avancé des données historiques et de l'export CSV/XLSX via des bibliothèques externes.
+## [v0.8.1] - 2026-05-29
 
-### Deepseek v1
-- Ajout d'un cache interne à l'exécution pour ConfigService et renforcement de la validation des types/actions.
+### Modifié
+**Humanisé** : Réorganisation de la saisie de lot en disposition verticale à deux rangées par ligne.
+**Technique** : Mise en page CSS flex/grid à deux niveaux.
 
-### Claude v2
-- Refonte du CSS en mobile-first : tailles tactiles, prévention du zoom iOS, navbar défilante horizontalement.
+## [v0.8.0] - 2026-05-28
 
-### Claude v1
-- Nettoyage du backend et correction d'un bug de mutation du tableau source dans la lecture des logs.
+### Ajouté
+**Humanisé** : Refonte visuelle des modales, ajout de phrases d'accroche animées et d'une infobulle personnalisée pour les graphiques.
+**Technique** : Module d'infobulles Chart.js sur-mesure.
 
-### v21
-- Corrections responsives et sécurisation de la fonction de changement d'onglet contre un bug sur Safari.
+## [v0.7.8] - 2026-05-27
 
-### v19
-- Ajout d'un sélecteur de joueur enrichi avec avatar dynamique dans le formulaire de saisie en lot.
+### Corrigé
+**Humanisé** : Correction du calcul de date locale pour éviter les décalages liés au fuseau horaire UTC.
+**Technique** : Calcul d'offset horaire local.
 
-### v18
-- Ajout d'avatars générés automatiquement pour les joueurs sans image et correction d'un bug lors de l'édition des métadonnées.
+## [v0.7.7] - 2026-05-26
 
-### v17
-- Ajout d'un système de citations de secours utilisé si l'appel à l'API Gemini échoue ou est indisponible.
+### Modifié
+**Humanisé** : Réintégration du CSS en ligne dans `Index.html`, annulant l'externalisation précédente.
+**Technique** : Regroupement monobloc pour Apps Script.
 
-### v16
-- Mise à jour du modèle Gemini utilisé pour générer les citations (passage de 1.5-flash à 2.0-flash).
+## [v0.7.6] - 2026-05-25
 
-### Plein de fonctions trop biens
-- Ajout de métadonnées (avatar pour les joueurs, description pour les catégories) et intégration d'un appel à l'API Gemini pour générer des citations.
+### Modifié
+**Humanisé** : Externalisation du CSS de l'interface vers un fichier `styles.css` séparé.
+**Technique** : Séparation des fichiers frontend.
 
-### v12
-- Refonte complète du CSS de l'interface (navbar, cartes, grille de saisie en lot, listes, toasts).
+## [v0.7.5] - 2026-05-24
 
-### Naaan ergonomie naaan
-- Nettoyage du code et calcul dynamique des catégories/joueurs lors de l'agrégation des statistiques.
+### Modifié
+**Humanisé** : Remplacement du sélecteur de joueur du graphique Donut par des puces cliquables avec avatars.
+**Technique** : Puces de sélection interactive du graphique Donut.
 
-### v10
-- Écriture groupée des scores en une seule opération (au lieu d'une boucle appendRow) et nettoyage du rapport HTML généré.
+## [v0.7.4] - 2026-05-23
 
-### v9
-- Passage à la saisie en lot avec points et multiplicateur, le score enregistré étant désormais le produit des deux.
+### Ajouté
+**Humanisé** : Ajout d'un cache des logs, regroupement visuel des entrées par groupe dans l'historique, et recherche textuelle.
+**Technique** : Recherche textuelle et regroupement d'entrées.
 
-### v8
-- Traduction en français de tous les messages d'erreur du backend.
+## [v0.7.3] - 2026-05-22
 
-### Ajout Trois
-- Ajout de SettingsService pour gérer joueurs et catégories (ajout/suppression/renommage) avec mise à jour en cascade de l'historique.
+### Corrigé
+**Humanisé** : Réécriture de la détection des lots répartis pour exclure les doublons manuels et fiabiliser le chaînage par date.
+**Technique** : Algorithme de détection des chaînes chronologiques.
 
-### Plus de bug ID sheet
-- L'identifiant du classeur est désormais lu via la propriété SPREADSHEET_ID au lieu d'être codé en dur ; ajout accidentel d'un fichier desktop.ini.
+## [v0.7.2] - 2026-05-21
 
-### Trois plein de fonctions tri phrases graphs etc
-- Refonte du Code.gs monolithique en services ConfigService/StorageService/AnalyticsService et changement du titre de l'application.
+### Ajouté
+**Humanisé** : Ajout d'un identifiant de groupe transmis lors de la saisie en lot sur plusieurs dates.
+**Technique** : Champ `groupId` dans le contrat d'API.
+
+## [v0.7.1] - 2026-05-20
+
+### Corrigé
+**Humanisé** : Correction d'un bug de déclaration en double d'une variable JavaScript lors du regroupement des lots.
+**Technique** : Nettoyage des portées de variables JS.
+
+## [v0.7.0] - 2026-05-19
+
+### Modifié
+**Humanisé** : Passage d'une fusion destructive à un simple marquage groupé (`groupId`), réversible, des lots répartis.
+**Technique** : Gestion d'ID de groupe réversible sans perte de lignes.
+
+## [v0.6.9] - 2026-05-18
+
+### Ajouté
+**Humanisé** : Les lots détectés sont désormais fusionnés en une seule entrée totalisée au lieu d'être simplement supprimés.
+**Technique** : Fusion d'entrées agrégées.
+
+## [v0.6.8] - 2026-05-17
+
+### Ajouté
+**Humanisé** : Ajout de la détection des lots répartis (entrées identiques étalées sur plusieurs jours).
+**Technique** : `apiDetectDistributedLots` dans `Code.gs`.
+
+## [v0.6.7] - 2026-05-16
+
+### Ajouté
+**Humanisé** : Ajout d'un champ description par entrée d'historique, modifiable individuellement ou en masse.
+**Technique** : Colonne description dans l'Historique.
+
+## [v0.6.6] - 2026-05-15
+
+### Ajouté
+**Humanisé** : Ajout de la suppression multiple d'entrées d'historique et refonte visuelle du barème présenté par section.
+**Technique** : `apiDeleteHistoryEntries`.
+
+## [v0.6.5] - 2026-05-14
+
+### Modifié
+**Humanisé** : Le barème est désormais organisé par Top (catégorie), avec une interface de gestion dédiée dans les paramètres.
+**Technique** : Reconstitution de la structure du barème.
+
+## [v0.6.4] - 2026-05-13
+
+### Ajouté
+**Humanisé** : Ajout d'un système de barème définissant des points par action, configurable par l'utilisateur.
+**Technique** : Service de gestion des barèmes.
+
+## [v0.6.3] - 2026-05-12
+
+### Modifié
+**Humanisé** : Les couleurs personnalisées sont désormais stockées côté serveur dans des colonnes dédiées plutôt qu'en localStorage.
+**Technique** : `apiSetColor` et stockage Google Sheet.
+
+## [v0.6.2] - 2026-05-11
+
+### Ajouté
+**Humanisé** : Ajout de couleurs personnalisables par joueur et par catégorie, stockées localement et appliquées aux graphiques.
+**Technique** : Application dynamique de couleurs Chart.js.
+
+## [v0.6.1] - 2026-05-10
+
+### Ajouté
+**Humanisé** : Ajout d'un sélecteur de jours de la semaine pour cibler les dates générées lors de la saisie en lot.
+**Technique** : Filtre de jours de la semaine dans la saisie.
+
+## [v0.6.0] - 2026-05-09
+
+### Ajouté
+**Humanisé** : Ajout du total global par joueur tous tops confondus et d'un sélecteur de jours de la semaine pour les lots répartis.
+**Technique** : Calcul du total global multi-categories.
+
+## [v0.5.9] - 2026-05-08
+
+### Modifié
+**Humanisé** : Remplacement des champs date par un bouton ouvrant un éditeur, avec plages de dates prédéfinies réutilisables.
+**Technique** : Composant d'édition de plages temporelles.
+
+## [v0.5.8] - 2026-05-07
+
+### Ajouté
+**Humanisé** : Ajout d'un mode Répéter/Répartir propre à chaque ligne de saisie individuelle.
+**Technique** : Option de répétition par ligne.
+
+## [v0.5.7] - 2026-05-06
+
+### Ajouté
+**Humanisé** : Simplification du service Notes (création automatique de la feuille) et ajout de dates individuelles par ligne de saisie.
+**Technique** : Auto-initialisation de la feuille Notes.
+
+## [v0.5.6] - 2026-05-05
+
+### Modifié
+**Humanisé** : Refonte du calcul des tendances temporelles avec granularité adaptative (jour/semaine/mois) et période par défaut de 30 jours.
+**Technique** : `getTrendData` adaptatif.
+
+## [v0.5.5] - 2026-05-04
+
+### Modifié
+**Humanisé** : Ajustement du panneau de filtres pour uniformiser la hauteur des colonnes et aligner le bouton Appliquer.
+**Technique** : Harmonisation des colonnes de filtres.
+
+## [v0.5.4] - 2026-05-03
+
+### Modifié
+**Humanisé** : Suppression de la détection de doublons au profit d'une gestion complète des notes, simplification du diagnostic de santé des données.
+**Technique** : `getDataHealth` simplifié.
+
+## [v0.5.3] - 2026-05-02
+
+### Ajouté
+**Humanisé** : Ajout d'icônes emoji pour les catégories, renommées « Tops » dans toute l'interface.
+**Technique** : Gestion des emojis de catégories.
+
+## [v0.5.2] - 2026-05-01
+
+### Ajouté
+**Humanisé** : Ajout d'un mode « Répartir/Répéter » pour étaler les entrées d'un lot sur une plage de dates.
+**Technique** : Algorithme d'étalement de dates.
+
+## [v0.5.1] - 2026-04-30
+
+### Ajouté
+**Humanisé** : Ajout d'une feuille Notes optionnelle et remplacement de la suppression automatique des doublons par une simple détection/liste.
+**Technique** : Module Notes et détection sans suppression.
+
+## [v0.5.0] - 2026-04-29
+
+### Ajouté
+**Humanisé** : Ajout d'optimisations mobiles et PWA (zones de sécurité, meta tags, touch-action) pour une meilleure ergonomie tactile.
+**Technique** : Meta tags PWA & viewport safe-area.
+
+## [v0.4.5] - 2026-04-28
+
+### Corrigé
+**Humanisé** : Correction de la gestion du fuseau horaire pour les dates saisies (construction explicite à midi).
+**Technique** : Horodatage fixé à 12:00:00.
+
+## [v0.4.4] - 2026-04-27
+
+### Corrigé
+**Humanisé** : Ajout de validations strictes des points et du multiplicateur côté client et serveur.
+**Technique** : Validation d'entrées numériques strictes.
+
+## [v0.4.3] - 2026-04-26
+
+### Modifié
+**Humanisé** : Réécriture de la pagination de l'historique pour utiliser directement les index réels des lignes de la feuille.
+**Technique** : Indexation 1-based directe sur Google Sheet.
+
+## [v0.4.2] - 2026-04-25
+
+### Modifié
+**Humanisé** : Réécriture de ConfigService en module avec cache interne et syntaxe ES6 raccourcie.
+**Technique** : Cache mémoire d'exécution.
+
+## [v0.4.1] - 2026-04-24
+
+### Modifié
+**Humanisé** : Compactage massif du code CSS de l'interface sans changement fonctionnel majeur.
+**Technique** : Optimization CSS.
+
+## [v0.4.0] - 2026-04-23
+
+### Modifié
+**Humanisé** : Séparation des fonctions de lecture complète et filtrée des logs, correction du calcul par défaut des points.
+**Technique** : `apiGetFilteredLogs` & `getAllLogs`.
+
+## [v0.3.4] - 2026-04-22
+
+### Modifié
+**Humanisé** : Simplification et nettoyage du code de filtrage et d'export des données.
+**Technique** : Refactorisation des fonctions d'exportation.
+
+## [v0.3.3] - 2026-04-21
+
+### Ajouté
+**Humanisé** : Ajout du filtrage avancé des données historiques et de l'export CSV/XLSX via des bibliothèques externes.
+**Technique** : Intégration des bibliothèques d'export CSV/XLSX.
+
+## [v0.3.2] - 2026-04-20
+
+### Ajouté
+**Humanisé** : Ajout d'un cache interne à l'exécution pour ConfigService et renforcement de la validation des types/actions.
+**Technique** : Valideurs de types stricts.
+
+## [v0.3.1] - 2026-04-19
+
+### Modifié
+**Humanisé** : Refonte du CSS en mobile-first : tailles tactiles, prévention du zoom iOS, navbar défilante horizontalement.
+**Technique** : Mobile-first CSS media queries.
+
+## [v0.3.0] - 2026-04-18
+
+### Corrigé
+**Humanisé** : Nettoyage du backend et correction d'un bug de mutation du tableau source dans la lecture des logs.
+**Technique** : Immuabilité des tableaux de logs.
+
+## [v0.2.3] - 2026-04-17
+
+### Corrigé
+**Humanisé** : Corrections responsives et sécurisation de la fonction de changement d'onglet contre un bug sur Safari.
+**Technique** : Safari touch event fixes.
+
+## [v0.2.2] - 2026-04-16
+
+### Ajouté
+**Humanisé** : Ajout d'un sélecteur de joueur enrichi avec avatar dynamique dans le formulaire de saisie en lot.
+**Technique** : Composant de sélection d'avatars.
+
+## [v0.2.1] - 2026-04-15
+
+### Ajouté
+**Humanisé** : Ajout d'avatars générés automatiquement pour les joueurs sans image et correction d'un bug lors de l'édition des métadonnées.
+**Technique** : Génération SVG d'avatars de secours.
+
+## [v0.2.0] - 2026-04-14
+
+### Ajouté
+**Humanisé** : Ajout d'un système de citations de secours utilisé si l'appel à l'API Gemini échoue ou est indisponible.
+**Technique** : Citations de secours en mode hors-ligne.
+
+## [v0.1.9] - 2026-04-13
+
+### Modifié
+**Humanisé** : Mise à jour du modèle Gemini utilisé pour générer les citations (passage de 1.5-flash à 2.0-flash).
+**Technique** : Migration endpoint Gemini 2.0 Flash.
+
+## [v0.1.8] - 2026-04-12
+
+### Ajouté
+**Humanisé** : Ajout de métadonnées (avatar pour les joueurs, description pour les catégories) et intégration d'un appel à l'API Gemini pour générer des citations.
+**Technique** : Intégration API Gemini & métadonnées entités.
+
+## [v0.1.7] - 2026-04-11
+
+### Modifié
+**Humanisé** : Refonte complète du CSS de l'interface (navbar, cartes, grille de saisie en lot, listes, toasts).
+**Technique** : Nouveau système de cartes et notifications toasts.
+
+## [v0.1.6] - 2026-04-10
+
+### Modifié
+**Humanisé** : Nettoyage du code et calcul dynamique des catégories/joueurs lors de l'agrégation des statistiques.
+**Technique** : Dynamic aggregation pipeline.
+
+## [v0.1.5] - 2026-04-09
+
+### Modifié
+**Humanisé** : Écriture groupée des scores en une seule opération (au lieu d'une boucle appendRow) et nettoyage du rapport HTML généré.
+**Technique** : `setValues()` par blocs.
+
+## [v0.1.4] - 2026-04-08
+
+### Ajouté
+**Humanisé** : Passage à la saisie en lot avec points et multiplicateur, le score enregistré étant désormais le produit des deux.
+**Technique** : Multiplicateur de saisie en lot.
+
+## [v0.1.3] - 2026-04-07
+
+### Modifié
+**Humanisé** : Traduction en français de tous les messages d'erreur du backend.
+**Technique** : Localisation française des erreurs `Code.gs`.
+
+## [v0.1.2] - 2026-04-06
+
+### Ajouté
+**Humanisé** : Ajout de SettingsService pour gérer joueurs et catégories (ajout/suppression/renommage) avec mise à jour en cascade de l'historique.
+**Technique** : Mise à jour en cascade Google Sheet.
+
+## [v0.1.1] - 2026-04-05
+
+### Corrigé
+**Humanisé** : L'identifiant du classeur est désormais lu via la propriété `SPREADSHEET_ID` au lieu d'être codé en dur.
+**Technique** : `PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')`.
+
+## [v0.1.0] - 2026-04-01
+
+### Ajouté
+**Humanisé** : Refonte du Code.gs monolithique en services ConfigService/StorageService/AnalyticsService et lancement officiel de l'application Tops des Tops.
+**Technique** : Architecture initiale modulaire en 3 services Google Apps Script.
