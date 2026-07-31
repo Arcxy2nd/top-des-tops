@@ -136,8 +136,8 @@
     }
     .nav-container {
       display: flex; min-width: 0;
-      width: 100%; max-width: 1200px; gap: 8px;
-      align-items: center; padding: 6px 12px;
+      width: 100%; max-width: 1200px; gap: 6px;
+      align-items: center; padding: 4px 10px;
     }
     .nav-btn-group {
       display: flex; align-items: center;
@@ -148,16 +148,24 @@
     .nav-btn {
       position: relative;
       background: transparent; border: none;
-      color: var(--text-muted); font-size: 0.88rem;
-      padding: 14px 16px; cursor: pointer;
+      color: var(--text-muted); font-size: 0.86rem;
+      padding: 10px 14px; cursor: pointer;
       border-bottom: 3px solid transparent;
-      white-space: nowrap; min-height: var(--tap-min);
+      white-space: nowrap; min-height: 38px;
       font-weight: 600; 
       transition: color 0.2s, flex-grow 0.3s ease, border-color 0.2s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       display: flex; align-items: center; justify-content: center;
       flex: 1 1 0; min-width: max-content;
+    }
+    .nav-btn:not(:last-child)::after {
+      content: "";
+      position: absolute; right: 0;
+      top: 28%; bottom: 28%;
+      width: 1px;
+      background: color-mix(in srgb, var(--border) 40%, transparent);
+      pointer-events: none;
     }
     .nav-btn:hover { color: var(--text); }
     .nav-btn.active {
@@ -166,7 +174,7 @@
       font-weight: 700;
       flex-grow: 2.6;
     }
-    .nav-btn-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+    .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
     .nav-btn-label {
       display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
       transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
@@ -184,71 +192,103 @@
     .nav-hover-tip.visible { opacity: 1; }
 
     /* ── Identité de l'app (titre + logo) ── */
-    .app-brand { display: flex; align-items: center; gap: 10px; padding: 0 14px 0 6px; flex-shrink: 0; }
-    .app-brand-logo { width: 30px; height: 30px; border-radius: var(--radius-sm); object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-    .app-brand-title { font-weight: 900; font-size: 1.05rem; color: var(--accent); white-space: nowrap; letter-spacing: -0.02em; }
+    .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 4px; flex-shrink: 0; }
+    .app-brand-logo { width: 28px; height: 28px; border-radius: var(--radius-sm); object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .app-brand-title { font-weight: 900; font-size: 1rem; color: var(--accent); white-space: nowrap; letter-spacing: -0.02em; }
     @media (max-width: 640px) {
-      .app-brand-title { font-size: 0.9rem; }
+      .app-brand-title { font-size: 0.88rem; }
     }
 
     /* Boutons contrôles droite */
     .nav-refresh-wrap {
-      display: flex; align-items: center; gap: 6px;
-      margin-left: auto; padding: 0 8px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 5px;
+      margin-left: auto; padding: 0 6px; flex-shrink: 0;
     }
     .nav-refresh-btn {
       background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: var(--radius-full); font-size: 1rem; padding: 7px 12px;
-      cursor: pointer; color: var(--text); min-height: 36px;
-      transition: all 0.2s ease;
+      border-radius: var(--radius-full); font-size: 0.95rem; padding: 5px 10px;
+      cursor: pointer; color: var(--text); min-height: 34px;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       touch-action: manipulation;
     }
-    .nav-refresh-btn:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); transform: rotate(180deg); }
+    .nav-refresh-btn:hover {
+      background: var(--accent); color: var(--on-accent, #ffffff); border-color: var(--accent);
+      transform: rotate(180deg) scale(1.05); box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+    }
+    .nav-refresh-btn:active { transform: scale(0.94); }
     .nav-bareme-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600;
-      padding: 7px 14px; cursor: pointer; color: var(--text); min-height: 36px;
+      border-radius: var(--radius-full); font-size: 0.82rem; font-weight: 600;
+      padding: 5px 12px; cursor: pointer; color: var(--text); min-height: 34px;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       touch-action: manipulation; flex-shrink: 0;
     }
     .nav-bareme-btn:hover {
-      background: var(--card-hover); border-color: var(--accent); color: var(--accent);
-      transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: var(--card-hover); border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+      color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     .nav-bareme-btn.active, .nav-bareme-btn[aria-expanded="true"] {
       background: var(--accent); color: var(--on-accent, #ffffff); border-color: var(--accent);
       box-shadow: 0 4px 14px rgba(255, 71, 87, 0.4);
     }
-    .bareme-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
-    .bareme-btn-label { font-size: 0.85rem; font-weight: 600; }
+    .bareme-btn-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+    .bareme-btn-label { font-size: 0.82rem; font-weight: 600; }
     .refresh-badge {
       font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
       white-space: nowrap;
     }
     .theme-toggle {
       background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: var(--radius-full); font-size: 1.1rem; padding: 8px 12px;
+      border-radius: var(--radius-full); font-size: 1rem; padding: 5px 10px;
       cursor: pointer; color: var(--text);
-      min-height: 36px; margin-right: 8px;
-      transition: all 0.2s ease;
+      min-height: 34px; margin-right: 4px;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       touch-action: manipulation;
     }
-    .theme-toggle:hover { background: var(--card-hover); transform: scale(1.08); }
+    .theme-toggle:hover {
+      background: var(--card-hover); border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+      transform: scale(1.08) translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .theme-toggle:active { transform: scale(0.95); }
+
+    .layout-mode-toggle {
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-full); font-size: 0.82rem; font-weight: 600;
+      padding: 5px 11px; cursor: pointer; color: var(--text);
+      min-height: 34px; display: inline-flex; align-items: center; gap: 5px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      touch-action: manipulation;
+    }
+    .layout-mode-toggle:hover {
+      background: var(--card-hover); border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+      color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .layout-mode-toggle:active { transform: scale(0.96); }
 
     /* ── Sélecteur Qui suis-je ? ── */
-    .who-am-i-wrap { position: relative; flex-shrink: 0; margin: 0 4px; }
+    .who-am-i-wrap { position: relative; flex-shrink: 0; margin: 0 3px; }
     .who-am-i-btn {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 7px;
       background: var(--btn-alt); border: 1px solid var(--border); 
       border-radius: var(--radius-full);
-      padding: 5px 12px 5px 6px; cursor: pointer; color: var(--text);
-      font-size: 0.82rem; font-weight: 700; min-height: 36px;
-      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      padding: 4px 10px 4px 5px; cursor: pointer; color: var(--text);
+      font-size: 0.8rem; font-weight: 700; min-height: 34px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       white-space: nowrap; position: relative;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .who-am-i-btn:hover { background: var(--card-hover); border-color: var(--border-hover); }
+    .who-am-i-btn:hover {
+      background: var(--card-hover); border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+      transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
 
     /* État non sélectionné : halo néon respirant et badge d'attention */
     .who-am-i-btn.unselected {

@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-31
 
+### Modifié
+**Humanisé** : La barre supérieure a été rendue plus compacte et élégante, les boutons disposent d'un design affiné et les onglets sont subtilement séparés par de fines bordures verticales.
+**Technique** : `Index.html` — densification verticale de `.nav-container` et `.nav-btn` (`padding` et `min-height` réduits), ajout de séparateurs verticaux discrets (`.nav-btn:not(:last-child)::after`), et amélioration du style visuel des boutons de la top bar (`.nav-refresh-btn`, `.nav-bareme-btn`, `.who-am-i-btn`, `.theme-toggle`, `.layout-mode-toggle`).
+
 ### Corrigé
 **Humanisé** : La barre supérieure et le bandeau de boutons sous le titre s'adaptent désormais parfaitement à 100% de la largeur de votre écran mobile sans déborder.
 **Technique** : `Index.html` — ajustement du CSS responsive pour `.navbar`, `.nav-container`, `.quick-stats-bar` et `.qs-pill` (`flex-wrap: wrap`, padding/gap compacts, flex 100% width) en mode `mobile-layout` et media query `<= 768px`.
