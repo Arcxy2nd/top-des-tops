@@ -9533,19 +9533,47 @@
     const theme = EXPORT_THEMES[opts.theme] || EXPORT_THEMES.dark;
     const ratio = opts.aspectRatio || 'auto';
 
-    // Base dimensions calculation
-    let W = Math.round(1200 * S);
-    let chartH_target = Math.round(440 * S);
+    // Measure Legend items for wrapped layout calculation
+    const legendDatasets = (opts.legend && currentChartData && currentChartData.datasets) ? currentChartData.datasets : [];
+    let legendHeightNeeded = 0;
+    let legendItems = [];
 
-    if (ratio === '16:9') {
-      W = Math.round(1200 * S);
-    } else if (ratio === '1:1') {
-      W = Math.round(1000 * S);
-      chartH_target = Math.round(520 * S);
-    } else if (ratio === '9:16') {
-      W = Math.round(720 * S);
-      chartH_target = Math.round(580 * S);
+    const sideMargin = Math.round(16 * S);
+    const baseW = (ratio === '1:1') ? Math.round(1000 * S) : ((ratio === '9:16') ? Math.round(720 * S) : Math.round(1200 * S));
+    const cardWidth = baseW - sideMargin * 2;
+
+    if (legendDatasets.length > 0) {
+      const dummyCv = document.createElement('canvas');
+      const dummyCtx = dummyCv.getContext('2d');
+      dummyCtx.font = '600 ' + Math.round(10.5 * S) + 'px sans-serif';
+
+      let curX = Math.round(12 * S);
+      let curY = Math.round(30 * S);
+      const rowH = Math.round(26 * S);
+      const gapX = Math.round(8 * S);
+      const gapY = Math.round(8 * S);
+
+      legendDatasets.forEach(ds => {
+        const name = catDisplay(ds.label || '');
+        const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || theme.accent);
+        const textW = dummyCtx.measureText(name).width;
+        const itemW = Math.round(textW + Math.round(34 * S));
+
+        if (curX + itemW > cardWidth - Math.round(12 * S)) {
+          curX = Math.round(12 * S);
+          curY += rowH + gapY;
+        }
+
+        legendItems.push({ x: curX, y: curY, w: itemW, h: rowH, name, color });
+        curX += itemW + gapX;
+      });
+
+      legendHeightNeeded = curY + rowH + Math.round(12 * S);
     }
+
+    // Base dimensions calculation
+    let W = baseW;
+    let chartH_target = Math.round(440 * S);
 
     // Section heights
     const headerH = opts.title ? Math.round(74 * S) : 0;
@@ -9553,19 +9581,18 @@
     const activeCats = opts.filters ? [...(selectedCategoryChips || [])] : [];
     const activePls  = opts.filters ? [...(selectedPlayerChips  || [])] : [];
     const hasFilterText = activeCats.length > 0 || activePls.length > 0;
-    const filtersH = (opts.filters && hasFilterText) ? Math.round(30 * S) : 0;
+    const filtersH = (opts.filters && hasFilterText) ? Math.round(32 * S) : 0;
 
-    const topMoverH = (opts.topMover && opts._topMoverResult) ? Math.round(38 * S) : 0;
+    const topMoverH = (opts.topMover && opts._topMoverResult) ? Math.round(40 * S) : 0;
     const statsH    = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
-      ? Math.round(58 * S) : 0;
+      ? Math.round(70 * S) : 0;
     const playersH  = (opts.players && currentChartData && currentChartData.labels && currentChartData.labels.length > 1)
-      ? Math.round(58 * S) : 0;
-    const legendH   = (opts.legend && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
-      ? Math.round(30 * S) : 0;
+      ? Math.round(70 * S) : 0;
+    const legendH   = legendHeightNeeded;
     const footH     = opts.footer !== false ? Math.round(28 * S) : 0;
 
     const verticalPadding = Math.round(16 * S);
-    const spacing = Math.round(10 * S);
+    const spacing = Math.round(12 * S);
 
     let H;
     if (ratio === '16:9') {
@@ -9581,7 +9608,7 @@
       const consumed = headerH + filtersH + topMoverH + statsH + playersH + legendH + footH + verticalPadding * 2 + spacing * 6;
       chartH_target = Math.max(Math.round(300 * S), H - consumed);
     } else {
-      // Auto mode: dynamic height calculation so everything looks spacious and crisp
+      // Auto mode: dynamic height calculation
       H = verticalPadding * 2 + headerH + filtersH + topMoverH + chartH_target + statsH + playersH + legendH + footH + spacing * 8;
     }
 
@@ -9599,9 +9626,9 @@
     // Card Helper
     function drawCard(x, y, w, h, r = Math.round(12 * S)) {
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
-      ctx.shadowBlur = Math.round(10 * S);
-      ctx.shadowOffsetY = Math.round(3 * S);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.32)';
+      ctx.shadowBlur = Math.round(12 * S);
+      ctx.shadowOffsetY = Math.round(4 * S);
       ctx.fillStyle = theme.cardBg;
       roundRect(ctx, x, y, w, h, r);
       ctx.fill();
@@ -9616,14 +9643,11 @@
     }
 
     let yOff = verticalPadding;
-    const sideMargin = Math.round(16 * S);
-    const cardWidth = W - sideMargin * 2;
 
     // ── 1. HEADER CARD ──
     if (headerH) {
       drawCard(sideMargin, yOff, cardWidth, headerH, Math.round(14 * S));
 
-      // Accent Left Bar
       const accentGrad = ctx.createLinearGradient(sideMargin, yOff, sideMargin, yOff + headerH);
       accentGrad.addColorStop(0, theme.accentGrad[0]);
       accentGrad.addColorStop(1, theme.accentGrad[1]);
@@ -9635,17 +9659,16 @@
       const badgeX = sideMargin + Math.round(16 * S);
       const badgeY = yOff + Math.round(14 * S);
       ctx.fillStyle = theme.pillBg;
-      roundRect(ctx, badgeX, badgeY, Math.round(135 * S), Math.round(20 * S), Math.round(10 * S));
+      roundRect(ctx, badgeX, badgeY, Math.round(140 * S), Math.round(20 * S), Math.round(10 * S));
       ctx.fill();
-      ctx.strokeStyle = theme.pillBorder;
-      ctx.lineWidth = Math.max(1, Math.round(1 * S));
-      roundRect(ctx, badgeX, badgeY, Math.round(135 * S), Math.round(20 * S), Math.round(10 * S));
+      ctx.strokeStyle = theme.pillBorder; ctx.lineWidth = Math.max(1, Math.round(1 * S));
+      roundRect(ctx, badgeX, badgeY, Math.round(140 * S), Math.round(20 * S), Math.round(10 * S));
       ctx.stroke();
 
       ctx.fillStyle = theme.accent;
       ctx.font = '700 ' + Math.round(10 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('🏆 TOPS DES TOPS', badgeX + Math.round(67.5 * S), badgeY + Math.round(10 * S));
+      ctx.fillText('🏆 TOPS DES TOPS', badgeX + Math.round(70 * S), badgeY + Math.round(10 * S));
 
       // Title & Subtitle
       const chartTitleEl = document.getElementById('chartTitle');
@@ -9653,7 +9676,7 @@
 
       ctx.textAlign = 'left';
       ctx.fillStyle = theme.fg;
-      ctx.font = '700 ' + Math.round(16 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '700 ' + Math.round(16.5 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillText(chartLabel.length > 45 ? chartLabel.slice(0, 44) + '…' : chartLabel, badgeX, yOff + Math.round(52 * S));
 
       // Right Side: Period Badge & Donut Avatar
@@ -9674,7 +9697,7 @@
           const ed = document.getElementById('endDate').value;
           const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
           ctx.fillStyle = theme.muted;
-          ctx.font = Math.round(10 * S) + 'px sans-serif';
+          ctx.font = '600 ' + Math.round(10 * S) + 'px sans-serif';
           ctx.fillText('📅 ' + periodTxt, avCX - avR - Math.round(10 * S), yOff + Math.round(48 * S));
         }
       } else if (opts.period) {
@@ -9683,7 +9706,7 @@
         const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
 
         ctx.fillStyle = theme.pillBg;
-        const periodW = Math.round(170 * S);
+        const periodW = Math.round(175 * S);
         const periodH = Math.round(26 * S);
         const periodX = rightX - periodW;
         const periodY = yOff + (headerH - periodH) / 2;
@@ -9718,9 +9741,9 @@
       ctx.fillStyle = theme.muted;
       ctx.font = '600 ' + Math.round(10 * S) + 'px sans-serif';
       ctx.textBaseline = 'middle';
-      const textX = sideMargin + Math.round(12 * S);
+      const textX = sideMargin + Math.round(14 * S);
       const textY = yOff + filtersH / 2;
-      const fullTxt = '⚡ Filtres : ' + parts.join('  •  ');
+      const fullTxt = '⚡ Filtres actifs : ' + parts.join('  •  ');
       ctx.fillText(fullTxt.length > 110 ? fullTxt.slice(0, 108) + '…' : fullTxt, textX, textY);
 
       ctx.textBaseline = 'alphabetic';
@@ -9759,7 +9782,7 @@
     if (chartH_target > 0) {
       drawCard(sideMargin, yOff, cardWidth, chartH_target, Math.round(14 * S));
 
-      const innerMargin = Math.round(10 * S);
+      const innerMargin = Math.round(12 * S);
       const offW = cardWidth - innerMargin * 2;
       const offH = chartH_target - innerMargin * 2;
 
@@ -9767,7 +9790,6 @@
       if (offscreenCv) {
         ctx.drawImage(offscreenCv, sideMargin + innerMargin, yOff + innerMargin, offW, offH);
       } else {
-        // Fallback on DOM canvas if offscreen build failed
         const chartCv = document.getElementById('mainChart');
         if (chartCv) {
           ctx.drawImage(chartCv, sideMargin + innerMargin, yOff + innerMargin, offW, offH);
@@ -9777,8 +9799,12 @@
       yOff += chartH_target + spacing;
     }
 
-    // Rank Medal Badges Helper
-    const RANK_MEDALS = ['🥇', '🥈', '🥉'];
+    // Rank Medal Styles Helper
+    const RANK_STYLES = [
+      { medal: '🥇', label: '#1 GOLD',   bg: 'rgba(255, 215, 0, 0.22)', border: 'rgba(255, 215, 0, 0.65)' },
+      { medal: '🥈', label: '#2 SILVER', bg: 'rgba(226, 232, 240, 0.22)', border: 'rgba(226, 232, 240, 0.65)' },
+      { medal: '🥉', label: '#3 BRONZE', bg: 'rgba(217, 119, 6, 0.22)', border: 'rgba(217, 119, 6, 0.65)' }
+    ];
 
     // ── 5. STATS STRIP (CATEGORIES) ──
     if (statsH && currentChartData && currentChartData.datasets) {
@@ -9789,33 +9815,44 @@
       })).sort((a, b) => b.total - a.total).slice(0, 6);
 
       if (topTotals.length) {
-        const itemW = Math.round((cardWidth - (topTotals.length - 1) * Math.round(8 * S)) / topTotals.length);
+        drawCard(sideMargin, yOff, cardWidth, statsH, Math.round(12 * S));
+
+        // Section Title Header
+        ctx.fillStyle = theme.muted;
+        ctx.font = '700 ' + Math.round(9.5 * S) + 'px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('📊 TOP CATÉGORIES (TOTAL POINTS)', sideMargin + Math.round(14 * S), yOff + Math.round(16 * S));
+
+        const cardInnerY = yOff + Math.round(24 * S);
+        const cardInnerH = statsH - Math.round(30 * S);
+        const itemW = Math.round((cardWidth - Math.round(24 * S) - (topTotals.length - 1) * Math.round(8 * S)) / topTotals.length);
+
         topTotals.forEach((t, i) => {
-          const px = sideMargin + i * (itemW + Math.round(8 * S));
-          const py = yOff;
+          const px = sideMargin + Math.round(12 * S) + i * (itemW + Math.round(8 * S));
+          const py = cardInnerY;
           const pw = itemW;
-          const ph = statsH;
+          const ph = cardInnerH;
 
-          drawCard(px, py, pw, ph, Math.round(8 * S));
+          const rStyle = RANK_STYLES[i] || { medal: '#' + (i + 1), bg: t.color + '22', border: t.color + '66' };
 
-          ctx.fillStyle = t.color; ctx.globalAlpha = 0.15;
-          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill(); ctx.globalAlpha = 1;
+          ctx.fillStyle = rStyle.bg;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill();
 
-          ctx.strokeStyle = t.color; ctx.lineWidth = Math.max(1, Math.round(1.5 * S)); ctx.globalAlpha = 0.6;
-          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke(); ctx.globalAlpha = 1;
+          ctx.strokeStyle = rStyle.border; ctx.lineWidth = Math.max(1, Math.round(1 * S));
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke();
 
-          const medal = RANK_MEDALS[i] || ('#' + (i + 1));
           ctx.fillStyle = theme.fg;
-          ctx.font = '700 ' + Math.round(12 * S) + 'px sans-serif';
+          ctx.font = '700 ' + Math.round(11.5 * S) + 'px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(22 * S));
+          ctx.fillText(rStyle.medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
 
           ctx.fillStyle = theme.muted;
-          ctx.font = '600 ' + Math.round(9.5 * S) + 'px sans-serif';
+          ctx.font = '600 ' + Math.round(9 * S) + 'px sans-serif';
           const catName = catDisplay(t.name);
-          ctx.fillText(catName.length > 13 ? catName.slice(0, 12) + '…' : catName, px + pw / 2, py + Math.round(42 * S));
+          ctx.fillText(catName.length > 13 ? catName.slice(0, 12) + '…' : catName, px + pw / 2, py + Math.round(32 * S));
           ctx.textAlign = 'left';
         });
+
         yOff += statsH + spacing;
       }
     }
@@ -9829,74 +9866,97 @@
       })).filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 8);
 
       if (playerTotals.length) {
-        const itemW = Math.round((cardWidth - (playerTotals.length - 1) * Math.round(8 * S)) / playerTotals.length);
+        drawCard(sideMargin, yOff, cardWidth, playersH, Math.round(12 * S));
+
+        // Section Title Header
+        ctx.fillStyle = theme.muted;
+        ctx.font = '700 ' + Math.round(9.5 * S) + 'px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('👥 CLASSEMENT DES JOUEURS', sideMargin + Math.round(14 * S), yOff + Math.round(16 * S));
+
+        const cardInnerY = yOff + Math.round(24 * S);
+        const cardInnerH = playersH - Math.round(30 * S);
+        const itemW = Math.round((cardWidth - Math.round(24 * S) - (playerTotals.length - 1) * Math.round(8 * S)) / playerTotals.length);
         const useAvatars = opts.avatars && avatarImages && avatarImages.size > 0;
 
         playerTotals.forEach((t, i) => {
-          const px = sideMargin + i * (itemW + Math.round(8 * S));
-          const py = yOff;
+          const px = sideMargin + Math.round(12 * S) + i * (itemW + Math.round(8 * S));
+          const py = cardInnerY;
           const pw = itemW;
-          const ph = playersH;
+          const ph = cardInnerH;
 
-          drawCard(px, py, pw, ph, Math.round(8 * S));
+          const rStyle = RANK_STYLES[i] || { medal: '#' + (i + 1), bg: t.color + '22', border: t.color + '66' };
 
-          ctx.fillStyle = t.color; ctx.globalAlpha = 0.15;
-          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill(); ctx.globalAlpha = 1;
+          ctx.fillStyle = rStyle.bg;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill();
 
-          ctx.strokeStyle = t.color; ctx.lineWidth = Math.max(1, Math.round(1.5 * S)); ctx.globalAlpha = 0.6;
-          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke(); ctx.globalAlpha = 1;
+          ctx.strokeStyle = rStyle.border; ctx.lineWidth = Math.max(1, Math.round(1 * S));
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke();
 
           if (useAvatars) {
-            const avR = Math.round(13 * S);
-            const avCX = px + Math.round(18 * S);
+            const avR = Math.round(11 * S);
+            const avCX = px + Math.round(16 * S);
             const avCY = py + ph / 2;
             drawAvatarOnCanvas(ctx, avatarImages.get(t.name) || { img: null, color: t.color, initial: t.name.charAt(0).toUpperCase() }, avCX, avCY, avR, S);
 
-            const textX = px + Math.round(36 * S);
-            const maxChars = Math.max(4, Math.floor((pw - Math.round(40 * S)) / Math.round(7 * S)));
+            const textX = px + Math.round(32 * S);
+            const maxChars = Math.max(4, Math.floor((pw - Math.round(36 * S)) / Math.round(6.5 * S)));
             const nameStr = t.name.length > maxChars ? t.name.slice(0, maxChars - 1) + '…' : t.name;
 
             ctx.fillStyle = theme.fg; ctx.font = '700 ' + Math.round(11 * S) + 'px sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText(t.total + ' pts', textX, py + Math.round(22 * S));
-            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(9 * S) + 'px sans-serif';
-            ctx.fillText(nameStr, textX, py + Math.round(40 * S));
+            ctx.fillText(t.total + ' pts', textX, py + Math.round(15 * S));
+            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(8.5 * S) + 'px sans-serif';
+            ctx.fillText(nameStr, textX, py + Math.round(30 * S));
           } else {
-            const medal = RANK_MEDALS[i] || ('#' + (i + 1));
-            ctx.fillStyle = theme.fg; ctx.font = '700 ' + Math.round(12 * S) + 'px sans-serif';
+            ctx.fillStyle = theme.fg; ctx.font = '700 ' + Math.round(11.5 * S) + 'px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(22 * S));
-            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(9.5 * S) + 'px sans-serif';
-            ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(42 * S));
+            ctx.fillText(rStyle.medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
+            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(9 * S) + 'px sans-serif';
+            ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(32 * S));
             ctx.textAlign = 'left';
           }
         });
+
         yOff += playersH + spacing;
       }
     }
 
-    // ── 7. LEGEND STRIP ──
-    if (legendH && currentChartData && currentChartData.datasets) {
-      drawCard(sideMargin, yOff, cardWidth, legendH, Math.round(8 * S));
+    // ── 7. LEGEND STRIP (MULTI-LINE WRAPPED PILLS) ──
+    if (legendH > 0 && legendItems.length > 0) {
+      drawCard(sideMargin, yOff, cardWidth, legendH, Math.round(12 * S));
 
-      const datasets = currentChartData.datasets.slice(0, 8);
-      const itemW = Math.round((cardWidth - Math.round(16 * S)) / Math.max(datasets.length, 1));
-      datasets.forEach((ds, i) => {
-        const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || theme.accent);
-        const lx = sideMargin + Math.round(12 * S) + i * itemW;
-        const ly = yOff + legendH / 2;
-        const dotR = Math.round(5 * S);
+      // Section Title Header
+      ctx.fillStyle = theme.muted;
+      ctx.font = '700 ' + Math.round(9.5 * S) + 'px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('📌 LÉGENDE DES SÉRIES (' + legendItems.length + ')', sideMargin + Math.round(14 * S), yOff + Math.round(16 * S));
 
-        ctx.beginPath();
-        ctx.arc(lx + dotR, ly, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = color; ctx.fill();
+      // RenderWrapped Legend Pills
+      legendItems.forEach(item => {
+        const itemX = sideMargin + item.x;
+        const itemY = yOff + item.y;
 
+        ctx.fillStyle = item.color; ctx.globalAlpha = 0.15;
+        roundRect(ctx, itemX, itemY, item.w, item.h, Math.round(13 * S)); ctx.fill(); ctx.globalAlpha = 1;
+
+        ctx.strokeStyle = item.color; ctx.lineWidth = Math.max(1, Math.round(1 * S)); ctx.globalAlpha = 0.55;
+        roundRect(ctx, itemX, itemY, item.w, item.h, Math.round(13 * S)); ctx.stroke(); ctx.globalAlpha = 1;
+
+        // Color Dot
+        const dotR = Math.round(4.5 * S);
+        const dotX = itemX + Math.round(12 * S);
+        const dotY = itemY + item.h / 2;
+        ctx.beginPath(); ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = item.color; ctx.fill();
+
+        // Label
         ctx.fillStyle = theme.fg;
-        ctx.font = '600 ' + Math.round(10 * S) + 'px sans-serif';
+        ctx.font = '600 ' + Math.round(10.5 * S) + 'px sans-serif';
         ctx.textBaseline = 'middle';
-        const name = ds.label || '';
-        ctx.fillText(name.length > 14 ? name.slice(0, 13) + '…' : name, lx + dotR * 2 + Math.round(6 * S), ly);
+        ctx.fillText(item.name, itemX + Math.round(22 * S), dotY);
       });
+
       ctx.textBaseline = 'alphabetic';
       yOff += legendH + spacing;
     }
