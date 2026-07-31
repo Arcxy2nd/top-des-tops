@@ -2212,67 +2212,300 @@
 
     .phrases-list { display: flex; flex-direction: column; gap: 16px; }
 
-    /* ── Podium (Top 3) ── */
+    /* ── Podium Innovant (Top 3 & Socles 3D) ── */
     .phrases-podium {
-      display: flex; align-items: flex-end; gap: 8px; min-height: 140px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px 8px 8px 8px;
+      min-height: 200px;
     }
-    .phrase-podium-card {
-      flex: 1; border-radius: 12px; padding: 14px 12px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      border-top: 3px solid var(--phrase-color, var(--accent));
-      display: flex; flex-direction: column; gap: 7px;
-      position: relative; overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-      animation: phraseSlideUp 0.4s ease both;
-    }
-    .phrase-podium-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: var(--phrase-color, var(--accent));
-      opacity: 0.05; pointer-events: none;
-    }
-    .phrase-podium-card { box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
-    .phrase-podium-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .phrase-podium-bg-avatar {
-      position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
-      width: 90px; height: 90px; border-radius: 50%; object-fit: cover;
-      opacity: 0.07; pointer-events: none; z-index: 0;
-    }
-    .phrase-podium-card.first .phrase-podium-bg-avatar { width: 110px; height: 110px; opacity: 0.08; }
-    .phrase-podium-card.first { flex: 1.45; padding: 18px 14px; }
-    .phrase-podium-medal { font-size: 1.6rem; line-height: 1; }
-    .phrase-podium-card.first .phrase-podium-medal { font-size: 2rem; }
-    .phrase-podium-player {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.72rem; font-weight: 900; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--phrase-color, var(--accent));
-    }
-    .phrase-podium-card.first .phrase-podium-player { font-size: 0.8rem; }
-    .phrase-podium-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .phrase-podium-card.first .phrase-podium-avatar { width: 28px; height: 28px; }
-    .phrase-podium-text {
-      font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; font-style: italic;
-    }
-    .phrase-podium-card.first .phrase-podium-text { font-size: 0.85rem; color: var(--text); }
 
-    /* ── Feed compact (4ème+) ── */
-    .phrases-feed { display: flex; flex-direction: column; gap: 4px; }
+    .podium-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-width: 0;
+      position: relative;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .podium-column:hover {
+      transform: translateY(-6px);
+      z-index: 5;
+    }
+    .podium-column.first {
+      flex: 1.25;
+      z-index: 3;
+    }
+
+    .phrase-podium-card {
+      border-radius: 14px;
+      padding: 14px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      transition: box-shadow 0.25s ease, border-color 0.25s ease;
+      animation: phraseSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Thèmes Métalliques par Rang */
+    .podium-column.rank-1 .phrase-podium-card {
+      border: 1.5px solid rgba(255, 215, 0, 0.65);
+      background: linear-gradient(145deg, rgba(255, 215, 0, 0.12), rgba(255, 140, 0, 0.04) 70%, var(--card));
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.18);
+    }
+    .podium-column.rank-1:hover .phrase-podium-card {
+      border-color: #ffd700;
+      box-shadow: 0 12px 32px rgba(255, 215, 0, 0.32);
+    }
+
+    .podium-column.rank-2 .phrase-podium-card {
+      border: 1.5px solid rgba(192, 192, 192, 0.55);
+      background: linear-gradient(145deg, rgba(220, 225, 230, 0.09), rgba(160, 175, 190, 0.03) 70%, var(--card));
+      box-shadow: 0 6px 20px rgba(192, 192, 192, 0.12);
+    }
+    .podium-column.rank-2:hover .phrase-podium-card {
+      border-color: #c0c0c0;
+      box-shadow: 0 10px 28px rgba(192, 192, 192, 0.25);
+    }
+
+    .podium-column.rank-3 .phrase-podium-card {
+      border: 1.5px solid rgba(205, 127, 50, 0.55);
+      background: linear-gradient(145deg, rgba(215, 145, 90, 0.09), rgba(160, 80, 20, 0.03) 70%, var(--card));
+      box-shadow: 0 6px 20px rgba(205, 127, 50, 0.12);
+    }
+    .podium-column.rank-3:hover .phrase-podium-card {
+      border-color: #cd7f32;
+      box-shadow: 0 10px 28px rgba(205, 127, 50, 0.25);
+    }
+
+    /* Socles (Marches de Podium) */
+    .podium-step-base {
+      margin-top: -4px;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-top: none;
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.05);
+    }
+    .podium-column.rank-1 .podium-step-base {
+      height: 46px;
+      background: linear-gradient(180deg, rgba(255, 215, 0, 0.25), rgba(218, 165, 32, 0.08));
+      border-color: rgba(255, 215, 0, 0.4);
+      color: #ffd700;
+      font-size: 1.5rem;
+    }
+    .podium-column.rank-2 .podium-step-base {
+      height: 34px;
+      background: linear-gradient(180deg, rgba(192, 192, 192, 0.2), rgba(140, 150, 160, 0.06));
+      border-color: rgba(192, 192, 192, 0.35);
+      color: #d0d8e0;
+      font-size: 1.25rem;
+    }
+    .podium-column.rank-3 .podium-step-base {
+      height: 26px;
+      background: linear-gradient(180deg, rgba(205, 127, 50, 0.2), rgba(140, 75, 25, 0.06));
+      border-color: rgba(205, 127, 50, 0.35);
+      color: #e59866;
+      font-size: 1.1rem;
+    }
+    .podium-step-number {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .podium-step-crown {
+      font-size: 0.95rem;
+      animation: crownBounce 2s ease-in-out infinite;
+    }
+    @keyframes crownBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    .phrase-podium-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .phrase-podium-medal {
+      font-size: 1.45rem;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    .podium-column.first .phrase-podium-medal { font-size: 1.85rem; }
+
+    .phrase-podium-score-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .podium-column.first .phrase-podium-score-chip {
+      font-size: 0.82rem;
+      padding: 4px 10px;
+      background: rgba(255, 215, 0, 0.16);
+      border-color: rgba(255, 215, 0, 0.4);
+      color: #ffd700;
+    }
+
+    .phrase-podium-player {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--phrase-color, var(--text));
+    }
+    .podium-column.first .phrase-podium-player { font-size: 0.92rem; }
+
+    .phrase-podium-avatar-wrap {
+      position: relative;
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+    .phrase-podium-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--phrase-color, var(--border));
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .podium-column.first .phrase-podium-avatar {
+      width: 34px;
+      height: 34px;
+      border-width: 2.5px;
+      border-color: #ffd700;
+    }
+
+    .phrase-podium-gap {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+    .phrase-podium-gap.ahead {
+      background: rgba(46, 213, 115, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(46, 213, 115, 0.25);
+    }
+    .phrase-podium-gap.behind {
+      background: rgba(255, 165, 2, 0.12);
+      color: var(--warn);
+      border: 1px solid rgba(255, 165, 2, 0.25);
+    }
+
+    .phrase-podium-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      font-style: italic;
+      position: relative;
+      z-index: 1;
+      background: rgba(0,0,0,0.08);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border-left: 3px solid var(--phrase-color, var(--accent));
+    }
+    body.light .phrase-podium-text {
+      background: rgba(0,0,0,0.03);
+    }
+    .podium-column.first .phrase-podium-text {
+      font-size: 0.84rem;
+      color: var(--text);
+    }
+
+    .phrase-podium-bg-avatar {
+      position: absolute; right: -12px; bottom: -12px;
+      width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
+      opacity: 0.06; pointer-events: none; z-index: 0;
+    }
+    .podium-column.first .phrase-podium-bg-avatar {
+      width: 130px; height: 130px; opacity: 0.09;
+    }
+
+    /* ── Feed compact (4ème+) Innovant ── */
+    .phrases-feed { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
     .phrase-feed-item {
-      display: flex; align-items: center; gap: 7px;
-      padding: 7px 10px; border-radius: 8px;
-      background: rgba(255,255,255,0.03); border: 1px solid transparent;
-      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
       animation: fadeIn 0.3s ease both;
     }
-    .phrase-feed-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .phrase-feed-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); }
-    .phrase-feed-emoji { font-size: 0.95rem; flex-shrink: 0; }
+    .phrase-feed-item:hover {
+      transform: translateX(4px);
+      background: rgba(255,255,255,0.06);
+      border-color: var(--phrase-color, var(--accent));
+    }
+    .phrase-feed-rank-badge {
+      font-size: 0.72rem; font-weight: 900; color: var(--text-muted);
+      background: rgba(255,255,255,0.05); padding: 2px 7px; border-radius: 6px;
+      flex-shrink: 0; min-width: 28px; text-align: center;
+    }
+    .phrase-feed-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
     .phrase-feed-player {
-      font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--phrase-color, var(--accent));
+      font-size: 0.76rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--phrase-color, var(--accent));
       flex-shrink: 0; white-space: nowrap;
     }
+    .phrase-feed-pts {
+      font-size: 0.72rem; font-weight: 800; color: var(--text);
+      background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;
+      flex-shrink: 0;
+    }
     .phrase-feed-sep { color: var(--border); flex-shrink: 0; }
-    .phrase-feed-text { font-size: 0.81rem; color: var(--text-muted); line-height: 1.4; min-width: 0; }
+    .phrase-feed-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.35; min-width: 0; font-style: italic; }
+
+    @media (max-width: 640px) {
+      .phrases-podium {
+        gap: 6px;
+        padding: 8px 4px;
+      }
+      .phrase-podium-card {
+        padding: 10px 8px;
+        gap: 6px;
+      }
+      .phrase-podium-medal { font-size: 1.2rem; }
+      .podium-column.first .phrase-podium-medal { font-size: 1.5rem; }
+      .phrase-podium-player { font-size: 0.7rem; gap: 4px; }
+      .podium-column.first .phrase-podium-player { font-size: 0.78rem; }
+      .phrase-podium-avatar { width: 20px; height: 20px; }
+      .podium-column.first .phrase-podium-avatar { width: 26px; height: 26px; }
+      .phrase-podium-score-chip { font-size: 0.68rem; padding: 2px 6px; }
+      .phrase-podium-text { font-size: 0.72rem; padding: 6px 8px; }
+      .podium-column.first .phrase-podium-text { font-size: 0.78rem; }
+      .podium-step-base { font-size: 1rem !important; height: 32px !important; }
+    }
 
     /* ── Commentaires par Top (section plate, toujours visible) ── */
     .phrases-cat-section { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
@@ -6086,32 +6319,77 @@
         const visualOrder = { 1: 1, 2: 0, 3: 2 };
         podiumPhrases.forEach(p => { if (p.rank <= 3) slots[visualOrder[p.rank] ?? 0] = p; });
 
+        // Score du leader et dauphin pour les calculs d'écart
+        const leaderTotal = activeRows[0] ? activeRows[0].total : 0;
+        const runnerUpTotal = activeRows[1] ? activeRows[1].total : 0;
+
         slots.filter(Boolean).forEach((p, vi) => {
           const color  = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
           const plData = cachedPlayers.find(pl => pl.name === p.player);
-          const el     = document.createElement('div');
-          el.className = 'phrase-podium-card' + (p.rank === 1 ? ' first' : '');
+
+          // Colonne podium avec socle
+          const col = document.createElement('div');
+          col.className = `podium-column rank-${p.rank}` + (p.rank === 1 ? ' first' : '');
+
+          // Carte principale du joueur
+          const el = document.createElement('div');
+          el.className = 'phrase-podium-card';
           el.style.setProperty('--phrase-color', color);
           el.style.animationDelay = (vi * 0.08) + 's';
 
+          // Ligne d'en-tête (Médaille + Badge de points)
+          const headRow = document.createElement('div');
+          headRow.className = 'phrase-podium-header-row';
+
           const medal = document.createElement('div');
           medal.className = 'phrase-podium-medal';
-          medal.textContent = p.emoji || '';
+          medal.textContent = p.emoji || (p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉');
 
+          const scoreChip = document.createElement('div');
+          scoreChip.className = 'phrase-podium-score-chip';
+          scoreChip.textContent = `${p.total.toLocaleString()} pts`;
+
+          headRow.appendChild(medal);
+          headRow.appendChild(scoreChip);
+
+          // Ligne joueur (Avatar cerclé + Nom)
           const playerRow = document.createElement('div');
           playerRow.className = 'phrase-podium-player';
+
+          const avWrap = document.createElement('div');
+          avWrap.className = 'phrase-podium-avatar-wrap';
+
           const avImg = document.createElement('img');
           avImg.className = 'phrase-podium-avatar';
           avImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
           avImg.onerror = () => { avImg.src = getAvatarUrl(p.player, ''); };
-          avImg.alt = '';
-          playerRow.appendChild(avImg);
-          playerRow.appendChild(document.createTextNode(p.player));
+          avImg.alt = p.player;
+          avWrap.appendChild(avImg);
 
+          const nameNode = document.createElement('span');
+          nameNode.textContent = p.player;
+
+          playerRow.appendChild(avWrap);
+          playerRow.appendChild(nameNode);
+
+          // Badge d'écart (Gap / Ahead)
+          const gapBadge = document.createElement('div');
+          if (p.rank === 1) {
+            const gapVal = leaderTotal - runnerUpTotal;
+            gapBadge.className = 'phrase-podium-gap ahead';
+            gapBadge.textContent = gapVal > 0 ? `+${gapVal.toLocaleString()} pts d'avance` : 'En tête';
+          } else {
+            const gapVal = leaderTotal - p.total;
+            gapBadge.className = 'phrase-podium-gap behind';
+            gapBadge.textContent = `-${gapVal.toLocaleString()} pts du leader`;
+          }
+
+          // Citation / Phrase de commentaire
           const phraseText = document.createElement('div');
           phraseText.className = 'phrase-podium-text';
-          phraseText.textContent = p.text;
+          phraseText.textContent = `“ ${p.text} ”`;
 
+          // Filigrane d'avatar en fond
           const bgAvImg = document.createElement('img');
           bgAvImg.className = 'phrase-podium-bg-avatar';
           bgAvImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
@@ -6119,10 +6397,27 @@
           bgAvImg.alt = '';
 
           el.appendChild(bgAvImg);
-          el.appendChild(medal);
+          el.appendChild(headRow);
           el.appendChild(playerRow);
+          el.appendChild(gapBadge);
           el.appendChild(phraseText);
-          podiumWrap.appendChild(el);
+
+          // Socle (Marche du Podium)
+          const stepBase = document.createElement('div');
+          stepBase.className = 'podium-step-base';
+
+          const stepNum = document.createElement('div');
+          stepNum.className = 'podium-step-number';
+          if (p.rank === 1) {
+            stepNum.innerHTML = '<span class="podium-step-crown">👑</span> 1';
+          } else {
+            stepNum.textContent = p.rank;
+          }
+          stepBase.appendChild(stepNum);
+
+          col.appendChild(el);
+          col.appendChild(stepBase);
+          podiumWrap.appendChild(col);
         });
 
         list.appendChild(podiumWrap);
@@ -6132,27 +6427,31 @@
       if (feedPhrases.length) {
         const feedWrap = document.createElement('div');
         feedWrap.className = 'phrases-feed';
-        feedPhrases.forEach((p, i) => {
-          const color  = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
-          const plData = cachedPlayers.find(pl => pl.name === p.player);
+        feedPhrases.forEach((i_p, i) => {
+          const color  = (typeof playerColor === 'function' ? playerColor(i_p.player) : null) || 'var(--accent)';
+          const plData = cachedPlayers.find(pl => pl.name === i_p.player);
           const el     = document.createElement('div');
           el.className = 'phrase-feed-item';
           el.style.setProperty('--phrase-color', color);
           el.style.animationDelay = (i * 0.06) + 's';
 
-          const emojiSpan = document.createElement('span');
-          emojiSpan.className = 'phrase-feed-emoji';
-          emojiSpan.textContent = p.emoji || '';
+          const rankBadge = document.createElement('span');
+          rankBadge.className = 'phrase-feed-rank-badge';
+          rankBadge.textContent = `#${i_p.rank}`;
 
           const feedAv = document.createElement('img');
           feedAv.className = 'phrase-feed-avatar';
-          feedAv.src = getAvatarUrl(p.player, plData ? plData.meta : '');
-          feedAv.onerror = () => { feedAv.src = getAvatarUrl(p.player, ''); };
-          feedAv.alt = '';
+          feedAv.src = getAvatarUrl(i_p.player, plData ? plData.meta : '');
+          feedAv.onerror = () => { feedAv.src = getAvatarUrl(i_p.player, ''); };
+          feedAv.alt = i_p.player;
 
           const playerSpan = document.createElement('span');
           playerSpan.className = 'phrase-feed-player';
-          playerSpan.textContent = p.player;
+          playerSpan.textContent = i_p.player;
+
+          const ptsSpan = document.createElement('span');
+          ptsSpan.className = 'phrase-feed-pts';
+          ptsSpan.textContent = `${i_p.total.toLocaleString()} pts`;
 
           const sepSpan = document.createElement('span');
           sepSpan.className = 'phrase-feed-sep';
@@ -6160,11 +6459,12 @@
 
           const textSpan = document.createElement('span');
           textSpan.className = 'phrase-feed-text';
-          textSpan.textContent = p.text;
+          textSpan.textContent = i_p.text;
 
-          el.appendChild(emojiSpan);
+          el.appendChild(rankBadge);
           el.appendChild(feedAv);
           el.appendChild(playerSpan);
+          el.appendChild(ptsSpan);
           el.appendChild(sepSpan);
           el.appendChild(textSpan);
           feedWrap.appendChild(el);

@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.6.0] - 2026-07-31
+
+### Modifié
+**Humanisé** : Refonte visuelle d'exception et mise en scène du Podium avec socles physiques 3D, badges Or/Argent/Bronze, affichage du total de points, métriques d'écart en temps réel et liste compacte enrichie.
+**Technique** : `Index.html` — restructuration du composant Podium avec la hiérarchie `.podium-column` (socles `.podium-step-base` et cartes `.phrase-podium-card`), styles métalliques Or/Argent/Bronze réactifs aux thèmes, et intégration dans `renderPhrasesCard()` des pilules de score (`.phrase-podium-score-chip`) et d'écart (`.phrase-podium-gap`).
+
 ## [v2.5.5] - 2026-07-31
 
 ### Modifié
