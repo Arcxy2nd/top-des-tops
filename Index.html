@@ -2528,13 +2528,13 @@
     .phrases-cat-body.autoplay-active { scroll-snap-type: none; }
     .phrases-cat-body::-webkit-scrollbar { display: none; }
     .phrase-cat-card {
-      flex-shrink: 0; width: 168px; border-radius: 12px; padding: 12px 12px 11px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      flex-shrink: 0; width: 175px; border-radius: 12px; padding: 12px 12px 11px;
+      background: var(--card); border: 1px solid var(--border);
       border-top: 3px solid var(--phrase-color, var(--accent));
       display: flex; flex-direction: column; gap: 6px;
-      position: relative; overflow: hidden;
+      position: relative; overflow: hidden; cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s;
+      animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
       scroll-snap-align: start;
     }
     .phrase-cat-card::before {
@@ -2542,7 +2542,15 @@
       background: var(--phrase-color, var(--accent));
       opacity: 0.04; pointer-events: none;
     }
-    .phrase-cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+    .phrase-cat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      border-color: var(--phrase-color, var(--accent));
+    }
+    .phrase-cat-card.active-filter {
+      border: 1.5px solid var(--phrase-color, var(--accent));
+      box-shadow: 0 0 12px var(--phrase-color, var(--accent)), 0 4px 14px rgba(0,0,0,0.2);
+    }
     .phrase-cat-bg-avatar {
       position: absolute; right: 0; top: 0; bottom: 0; width: 90px;
       background-size: cover; background-position: center top;
@@ -2560,6 +2568,23 @@
       display: inline-flex; align-items: center; justify-content: center;
       width: 20px; height: 20px; border-radius: 50%; font-size: 0.85rem;
       background: var(--phrase-color, var(--accent)); opacity: 0.9; flex-shrink: 0;
+    }
+    .phrase-cat-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 0.64rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;
+      width: fit-content; position: relative; z-index: 1;
+    }
+    .phrase-cat-badge.tight {
+      background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3);
+    }
+    .phrase-cat-badge.dominance {
+      background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+    .phrase-cat-badge.active-top {
+      background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3);
+    }
+    .phrase-cat-filter-indicator {
+      margin-left: auto; font-size: 0.65rem; font-weight: 800; color: var(--phrase-color, var(--accent));
     }
     .phrase-cat-text { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; font-style: italic; position: relative; z-index: 1; }
 
@@ -6504,14 +6529,18 @@
         const secondPts    = ranked.length > 1 ? ranked[1].v : 0;
         const categoryTotal = ds.data.reduce((s, v) => s + (Number(v) || 0), 0);
         const dominance    = categoryTotal > 0 ? topPts / categoryTotal : 0;
+        const gap          = topPts - secondPts;
+        const isTight      = secondPts > 0 && gap <= (0.15 * topPts);
+        const isDominant   = dominance >= 0.5;
 
         const tpl  = pool[Math.floor(Math.random() * pool.length)];
-        const vars = { player: topPlayer, pts: topPts, gap: topPts - secondPts, behind: 0, rank: 1 };
+        const vars = { player: topPlayer, pts: topPts, gap, behind: 0, rank: 1 };
         const text = tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
-        return { cat, text, topPts, dominance, topPlayer };
+        return { cat, text, topPts, secondPts, gap, dominance, isTight, isDominant, topPlayer, categoryTotal };
       }).filter(Boolean);
 
       catItems.sort((a, b) => (b.dominance || 0) - (a.dominance || 0));
+      const maxCategoryTotal = catItems.length ? Math.max(...catItems.map(c => c.categoryTotal || 0)) : 0;
 
       const section = document.createElement('div');
       section.className = 'phrases-cat-section';
@@ -6521,6 +6550,7 @@
 
       const catHeaderLabel = document.createElement('span');
       catHeaderLabel.textContent = '💬 Commentaires par Top';
+      catHeaderLabel.title = 'Cliquez sur une carte pour filtrer le Dashboard sur ce Top';
       catHeader.appendChild(catHeaderLabel);
 
       const autoplayBtn = document.createElement('button');
@@ -6542,19 +6572,51 @@
         catItems.forEach((item, i) => {
           const col = typeof categoryColor === 'function' ? categoryColor(item.cat.name) : 'var(--accent)';
           const el  = document.createElement('div');
-          el.className = 'phrase-cat-card';
+          const isSelected = selectedCategoryChips.has(item.cat.name);
+
+          el.className = 'phrase-cat-card' + (isSelected ? ' active-filter' : '');
           el.style.setProperty('--phrase-color', col);
           el.style.animationDelay = (i * 0.05) + 's';
+          el.title = isSelected ? `Filtre actif : ${item.cat.name} (cliquer pour tout réafficher)` : `Cliquer pour filtrer uniquement sur ${item.cat.name}`;
+
+          // Badge d'intensité de rivalité
+          let badgeHtml = '';
+          if (item.isTight) {
+            badgeHtml = '<div class="phrase-cat-badge tight">🔥 Duel serré</div>';
+          } else if (item.isDominant) {
+            badgeHtml = '<div class="phrase-cat-badge dominance">👑 Domination</div>';
+          } else if (item.categoryTotal === maxCategoryTotal && maxCategoryTotal > 0) {
+            badgeHtml = '<div class="phrase-cat-badge active-top">⚡ Top actif</div>';
+          }
+
+          const filterCheck = isSelected ? '<span class="phrase-cat-filter-indicator">✓</span>' : '';
+
           el.innerHTML =
             '<div class="phrase-cat-bg-avatar"></div>' +
             '<div class="phrase-cat-header">' +
               '<span>' + escapeHtml(item.cat.icon || '🎯') + '</span>' +
               '<span>' + escapeHtml(item.cat.name) + '</span>' +
+              filterCheck +
             '</div>' +
+            badgeHtml +
             '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
+
           const catPlayer = cachedPlayers.find(p => p.name === item.topPlayer);
           const catBg = el.querySelector('.phrase-cat-bg-avatar');
           catBg.style.backgroundImage = 'url(' + getAvatarUrl(item.topPlayer, catPlayer ? catPlayer.meta : '') + ')';
+
+          // Interaction au clic : Filtrage interactif sur la catégorie
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedCategoryChips.has(item.cat.name)) {
+              selectedCategoryChips.delete(item.cat.name);
+            } else {
+              selectedCategoryChips.add(item.cat.name);
+            }
+            renderCategoryChips();
+            scheduleApplyFilters();
+          });
+
           body.appendChild(el);
         });
       } else {

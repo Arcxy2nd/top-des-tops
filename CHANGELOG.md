@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.6.1] - 2026-08-01
+
+### Ajouté
+**Humanisé** : Les cartes de "Commentaires par Top" affichent désormais des badges d'intensité (Duel serré, Domination, Top actif) et permettent de filtrer instantanément le Dashboard en cliquant directement sur le Top désiré.
+**Technique** : `Index.html` — calcul automatique des métriques de rivalité et de dominance par catégorie dans `renderPhrasesCard()`, ajout des badges sémantiques `.phrase-cat-badge`, et intégration du filtrage interactif `.phrase-cat-card.active-filter` lié à `selectedCategoryChips`.
+
 ## [v2.6.0] - 2026-07-31
 
 ### Modifié
