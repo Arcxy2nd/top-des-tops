@@ -5464,11 +5464,9 @@
     });
   }
 
-  function renderChangelogView() {
-    const container = document.getElementById('changelogContent');
-    if (!container || !_changelogRawMarkdown) return;
-
-    const rawSections = _changelogRawMarkdown.split(/^##\s+/m);
+  function parseRawChangelogMarkdown(markdownText) {
+    if (!markdownText) return { introHtml: '', rawItems: [] };
+    const rawSections = markdownText.split(/^##\s+/m);
     let introHtml = '';
     const rawItems = [];
 
@@ -5494,6 +5492,39 @@
       rawItems.push({ ver, date, bodyContent });
     });
 
+    return { introHtml, rawItems };
+  }
+
+  function formatChangelogBody(bodyContent) {
+    let formatted = renderMarkdown(bodyContent);
+    formatted = formatted.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
+    formatted = formatted.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
+    formatted = formatted.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
+    formatted = formatted.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
+    formatted = formatted.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
+    formatted = formatted.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
+    return formatted;
+  }
+
+  function buildChangelogVersionCard(item) {
+    const isUnreleased = item.ver.toLowerCase().includes('non publié');
+    const badgeClass = isUnreleased ? 'changelog-badge-unreleased' : 'changelog-badge-release';
+    const labelVer = isUnreleased ? '⚠️ ' + escapeHtml(item.ver) : '🏷️ ' + escapeHtml(item.ver);
+    const formattedBody = formatChangelogBody(item.bodyContent);
+
+    return '<div class="changelog-version-card card" style="padding:16px 18px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); transition:all 0.15s ease;">' +
+             '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:10px; margin-bottom:12px;">' +
+               '<span class="' + badgeClass + '">' + labelVer + '</span>' +
+             '</div>' +
+             '<div class="changelog-body">' + formattedBody + '</div>' +
+           '</div>';
+  }
+
+  function renderChangelogView() {
+    const container = document.getElementById('changelogContent');
+    if (!container || !_changelogRawMarkdown) return;
+
+    const { introHtml, rawItems } = parseRawChangelogMarkdown(_changelogRawMarkdown);
     populateVersionSelects(rawItems);
 
     // Filter items by version range
@@ -5600,25 +5631,7 @@
       html += '<div class="changelog-versions-list" style="display:flex; flex-direction:column; gap:14px; padding-left:4px;">';
 
       group.versions.forEach(item => {
-        const isUnreleased = item.ver.toLowerCase().includes('non publié');
-        const badgeClass = isUnreleased ? 'changelog-badge-unreleased' : 'changelog-badge-release';
-        const labelVer = isUnreleased ? '⚠️ ' + escapeHtml(item.ver) : '🏷️ ' + escapeHtml(item.ver);
-
-        let formattedBody = renderMarkdown(item.bodyContent);
-        formattedBody = formattedBody.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
-        formattedBody = formattedBody.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
-        formattedBody = formattedBody.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
-        formattedBody = formattedBody.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
-
-        formattedBody = formattedBody.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
-        formattedBody = formattedBody.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
-
-        html += '<div class="changelog-version-card card" style="padding:16px 18px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); transition:all 0.15s ease;">' +
-                  '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:10px; margin-bottom:12px;">' +
-                    '<span class="' + badgeClass + '">' + labelVer + '</span>' +
-                  '</div>' +
-                  '<div class="changelog-body">' + formattedBody + '</div>' +
-                '</div>';
+        html += buildChangelogVersionCard(item);
       });
 
       html += '</div></div>';
