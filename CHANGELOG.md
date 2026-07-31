@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [Non publié] - 2026-07-31
+
+### Corrigé
+**Humanisé** : La barre supérieure et le bandeau de boutons sous le titre s'adaptent désormais parfaitement à 100% de la largeur de votre écran mobile sans déborder.
+**Technique** : `Index.html` — ajustement du CSS responsive pour `.navbar`, `.nav-container`, `.quick-stats-bar` et `.qs-pill` (`flex-wrap: wrap`, padding/gap compacts, flex 100% width) en mode `mobile-layout` et media query `<= 768px`.
+
 ## [Non publié] - 2026-07-29
 
 ### Modifié
