@@ -4,7 +4,7 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
-## [Non publié] - 2026-07-31
+## [v2.5.0] - 2026-07-31
 
 ### Corrigé
 **Humanisé** : Le changelog se charge à présent de manière fiable sans faire planter l'application même lorsque la liste des mises à jour devient très volumineuse.
@@ -18,7 +18,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : La barre supérieure et le bandeau de boutons sous le titre s'adaptent désormais parfaitement à 100% de la largeur de votre écran mobile sans déborder.
 **Technique** : `Index.html` — ajustement du CSS responsive pour `.navbar`, `.nav-container`, `.quick-stats-bar` et `.qs-pill` (`flex-wrap: wrap`, padding/gap compacts, flex 100% width) en mode `mobile-layout` et media query `<= 768px`.
 
-## [Non publié] - 2026-07-29
+## [v2.4.0] - 2026-07-29
 
 ### Modifié
 **Humanisé** : Les éléments de la légende du graphique original sont désormais entourés d'un contour sous forme de bouton pour les rendre clairement cliquables.
@@ -36,7 +36,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : L'application s'affiche désormais sur une seule page qui s'adapte automatiquement à votre écran, que vous soyez sur ordinateur ou téléphone portable.
 **Technique** : `Code.gs` — simplification de `doGet()` pour retourner systématiquement `Index.html` ; `Index.html` — renforcement du CSS responsive et mise à jour de `context.md` et `tests/doget-routing.test.js`.
 
-## [Non publié] - 2026-07-28
+## [v2.3.0] - 2026-07-28
 
 ### Corrigé
 **Humanisé** : Autorisation des requêtes HTTP externes pour le chargement dynamique du Changelog depuis GitHub.
@@ -65,7 +65,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Correction intégrale de l'interface mobile : refonte complète du Podium (cartes visuelles 1er/2e/3e avec médailles 🥇 🥈 🥉, filigrane d'avatar et couleurs des joueurs comme sur PC), affichage systématique des graphiques du Dashboard à l'arrivée des données, et fermeture fluide du sélecteur d'identité.
 **Technique** : `Mobile.html` — (1) Refonte de `renderComments()` avec cartes Podium en échelons (1er au centre surélevé avec médaille d'or) et feed compact pour la 4e place et plus. (2) Déblocage du rendu des graphiques dans `applyBootstrapData()` à la réception des données serveur réelles. (3) Intégration de graphiques Chart.js dans `loadTrendsStat()` et `loadWeekdayStat()`. (4) Élévation du `z-index` de `#mIdentitySheet` à `10000` et ajout de padding de sécurité.
 
-## [Non publié] - 2026-07-27
+## [v2.2.0] - 2026-07-27
 
 ### Corrigé
 **Humanisé** : Chargement instantané et correction des bugs d'affichage sur l'interface mobile (suppression du délai d'attente au démarrage, options de saisie et destinataires toujours présents, accordéons de statistiques stables sans blocage).
@@ -143,7 +143,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Refonte visuelle et interactive complète de l'interface — intégration du défilement doux (Lenis), d'un moteur d'animations réactives (GSAP 3), de cartes interactives à lumière dynamique (Spotlight Cards) et d'une esthétique glassmorphism moderne.
 **Technique** : `Index.html` et `Mobile.html` — ajouts des CDN GSAP 3 et Lenis Scroll ; refonte du système de tokens CSS (`:root`, `body.light`) avec arrières-plans à mesh gradient, glassmorphism (`backdrop-filter: blur()`), bordures lumineuses et effets de survol magnétiques ; intégration du tracker de curseur `--mouse-x`/`--mouse-y` (`initSpotlightCards()`) ; transition d'onglets animée par GSAP keyframes (`goToTab()`).
 
-## [Non publié] - 2026-07-26
+## [v2.1.0] - 2026-07-26
 
 ### Corrigé
 **Humanisé** : Répartir un total sur une période fonctionne enfin. Avant, si on ne cliquait qu'une seule date dans le mini-calendrier, la fin de période restait vide et tous les points atterrissaient sur un seul jour, sans prévenir. Maintenant le premier clic crée une période d'un jour, le second l'étend — la fin n'est jamais vide.
@@ -163,7 +163,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : L'aperçu du mode « Un total à répartir » annonce le découpage réel jour par jour (ex. « 10 pts ÷ 3 jours = 4 pts sur 1 jour, 3 sur les 2 autres ») au lieu d'une moyenne à virgule qui ne correspondait pas à ce qui était enregistré.
 **Technique** : `Index.html` — `updateDatePreview()` reproduit le calcul entier de `submitBulk()` (`base` + `rem`) et signale les cas limites (période d'1 jour, points insuffisants).
 
-## [Non publié] - 2026-07-23
+## [v2.0.0] - 2026-07-23
 
 ### Ajouté
 **Humanisé** : Un nouveau bouton « Tout exporter » télécharge en un clic un zip contenant l'infographie de chaque type de graphique compatible (Empilé, Groupé, Courbes, Radar), avec les filtres actuellement actifs.
@@ -189,13 +189,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : La fenêtre d'export d'infographie se souvient maintenant des derniers réglages choisis (thème, résolution, options cochées) au lieu de repartir des valeurs par défaut à chaque ouverture.
 **Technique** : `Index.html` — `openExportModal()` initialise `exportOpts` via nouvelle fonction `loadStoredExportOpts()` (localStorage, clé `exportOpts_v1`) au lieu d'un objet littéral fixe ; chaque mutation (`pillGroup`, `checkOpt`, filigrane) appelle `saveExportOpts()`. Le titre personnalisé n'est volontairement pas persisté.
 
-## [Non publié] - 2026-07-22
+## [v1.9.0] - 2026-07-22
 
 ### Modifié
 **Humanisé** : Dans Saisir un lot, les boutons rapides de barème (raccourcis pour appliquer un nombre de points prédéfini) s'affichent maintenant du plus petit score au plus grand, au lieu d'un ordre imprévisible.
 **Technique** : `Index.html` — `renderBaremeQuickBtns()` : les entrées filtrées sont triées par `pts` croissant avant le rendu des `.bq-btn`.
 
-## [Non publié] - 2026-07-21
+## [v1.8.0] - 2026-07-21
 
 ### Modifié
 **Humanisé** : La zone « Créé par / Modifié par » prenait trop de place sur une ligne à part au-dessus des boutons Éditer/Supprimer. Elle est maintenant alignée sur la même ligne que ces boutons (pastilles à gauche, actions à droite), plus compacte.
@@ -345,7 +345,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Dans l'infobulle du graphique du Dashboard, un score à 0 point reste toujours grisé et discret, même si la palette de couleurs personnalisée dans Paramètres change — ce n'est pas une "performance froide" à teinter, juste une absence de données qui ne doit jamais ressortir autant qu'un vrai score.
 **Technique** : `Index.html` — `pointValueTier()` renvoie un palier dédié `pv-zero` pour `value === 0` (avant de calculer le ratio à la moyenne), stylé en dur (`color:var(--text-muted); opacity:0.65`) indépendamment des variables `--ctt-*` personnalisables. La jauge optionnelle est masquée pour ce palier (aucun ratio pertinent à afficher).
 
-## [Non publié] - 2026-07-17
+## [v1.7.0] - 2026-07-17
 
 ### Corrigé
 **Humanisé** : Audit complet de la traçabilité : trois actions pouvaient encore modifier des données sans confirmation d'identité — supprimer un joueur ou un Top (Paramètres, PC), supprimer un message du tchat (PC et mobile) et ajouter une note (mobile). Elles demandent désormais l'identité comme tout le reste. En plus, le serveur refuse maintenant toute écriture arrivant sans auteur, quelle qu'en soit l'origine.
@@ -355,7 +355,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Dans le Dashboard, la card "Commentaires par Top" (Index.html — les phrases par catégorie configurées dans Paramètres → Commentaires) se manipule maintenant comme un vrai carrousel au doigt : le glissé s'aimante carte par carte au lieu de s'arrêter n'importe où. Un petit bouton ⏸️/▶️ dans l'en-tête permet aussi de mettre en pause ou relancer un défilement automatique continu (va-et-vient doux d'un bout à l'autre), activé par défaut ; il s'interrompt tout seul quelques secondes dès qu'on touche/glisse/scrolle manuellement la card, et le choix pause/lecture est mémorisé.
 **Technique** : `renderPhrasesCard` (Index.html) — CSS `scroll-snap-type: x mandatory` / `scroll-snap-align: start` sur `.phrases-cat-body`/`.phrase-cat-card`. Nouveau défilement auto (`startCatAutoplay`/`stopCatAutoplay`/`pauseCatAutoplayBriefly`) piloté par `requestAnimationFrame`, position suivie en flottant (évite l'arrondi entier de `scrollLeft` sur certains navigateurs), va-et-vient entre 0 et `scrollWidth - clientWidth`, désactive `scroll-snap-type` pendant la lecture (`.autoplay-active`) et se met en pause 4s sur interaction (`pointerdown`/`touchstart`/`wheel`). État persisté dans `localStorage` (`tdt_cat_autoplay`, actif par défaut). Pas d'indicateur de position (points de pagination essayés puis retirés : la métaphore "page" ne correspondait pas à un rail en scroll continu). Mobile.html n'a pas cette section (non répliquée côté mobile), donc pas de changement là-bas.
 
-## [Non publié] - 2026-07-16
+## [v1.6.0] - 2026-07-16
 
 ### Corrigé
 **Humanisé** : Dans le tchat flottant, taper `@` ou `#` n'affichait aucune suggestion. En cause : le champ de saisie est collé en bas de l'écran (widget flottant), et la liste de suggestions s'ouvrait toujours vers le bas — donc hors de l'écran, invisible. Elle bascule maintenant automatiquement au-dessus du champ quand il n'y a pas la place en dessous.
@@ -365,7 +365,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Un tchat est maintenant accessible partout dans l'app via un bouton flottant 💬 — un clic l'ouvre, un maintien-glissé le déplace où on veut sur l'écran (position mémorisée). On peut écrire en markdown, mentionner un joueur (`@Nom`) ou un Top (`#NomDuTop`, nouveauté — jusqu'ici seul `@` existait), répondre à un message précis (aperçu cité, cliquable pour remonter dessus), et chaque message affiche son heure. Un badge rouge sur le bouton indique le nombre de nouveaux messages non lus. On ne peut supprimer que ses propres messages.
 **Technique** : Nouveau `ChatService` (Code.gs) + feuille `Chat` auto-créée (`Id | Date | Auteur | Texte | RéponseÀ`), API `apiGetChatMessages`/`apiPostChatMessage`/`apiDeleteChatMessage` (audit + `requireIdentity` comme partout ailleurs). Frontend : widget global hors du système d'onglets (`#chatFab`/`#chatPanel` sur Index.html, `#mChatFab`/`#mChatPanel` sur Mobile.html), sondage toutes les 4s (`google.script.run` n'a pas de push serveur), glisser du bouton via Pointer Events avec seuil anti-faux-clic, position persistée en localStorage. Extension de `renderMarkdown`/`attachMentionAutocomplete` (Index.html et Mobile.html en lecture) pour reconnaître `#NomDuTop` au même titre que `@Nom`, réutilisée automatiquement partout où le rendu markdown existait déjà (descriptions, notes, règles auto).
 
-## [Non publié] - 2026-07-15
+## [v1.5.0] - 2026-07-15
 
 ### Corrigé
 **Humanisé** : Sur mobile, le bouton pour passer à la version tactile était minuscule et facile à manquer dans la barre du haut. Une bannière s'affiche désormais automatiquement sur petit écran (avec un gros bouton « 📱 Version mobile ») ; une vraie redirection automatique reste impossible côté Google (le bac à sable de l'app bloque toute navigation non déclenchée par un vrai clic), donc ce bandeau est la meilleure alternative pour rendre le passage au mobile évident sans y penser.
@@ -412,7 +412,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Une fois sur la version mobile, l'interface s'adaptait mal aux téléphones à petit écran (bande de navigation latérale trop large par rapport à l'espace disponible, marges non resserrées).
 **Technique** : `Mobile.html` n'avait aucun breakpoint `@media`. Largeur de la bande latérale extraite dans une variable `--rail-w` (56px), avec un breakpoint `≤380px` qui la réduit à 46px et resserre le padding de `.m-container`/`.card` ainsi que la taille des titres.
 
-## [Non publié] - 2026-07-14
+## [v1.4.0] - 2026-07-14
 
 ### Corrigé
 **Humanisé** : Dans Historique → Journal d'audit, les lignes « Dégroupement lot » et « Retrait du groupe » n'affichaient plus aucune information (régression de la refonte du 10 juillet) — elles montrent de nouveau quel lot/quelle ligne était concerné.
@@ -439,7 +439,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Le markdown/mentions manquait encore sur trois champs de description : la modification groupée de plusieurs entrées d'Historique, l'ajout d'un nouveau Top et l'édition d'un Top existant (Paramètres → Tops). Corrigé pour rester cohérent avec la règle « partout où on peut éditer une description, on doit avoir les mêmes outils ».
 **Technique** : `mbDesc` (modale d'édition groupée, `openBulkEditModal`), `newCategoryMeta` (ajout de Top) et `mNewMeta` côté catégorie uniquement (`openEditModal`, le champ reste un `<input>` texte simple côté joueur puisqu'il contient une URL d'avatar, pas une description) remplacés par `buildTextEditor()`. La logique « valeurs mixtes » de l'édition groupée (n'écraser la description que si elle a été modifiée) est préservée en dehors du composant, sur `aDesc.mixed`. Affichage de la description d'un Top (liste des Tops, Paramètres) passé à `renderMarkdown()`.
 
-## [Non publié] - 2026-07-11
+## [v1.3.0] - 2026-07-11
 
 ### Ajouté
 **Humanisé** : Sur le graphique principal du Dashboard, survoler une barre/point affiche maintenant l'avatar du joueur et son écart avec les autres joueurs proches au classement. Cliquer dessus (ou taper deux fois de suite sur mobile) ouvre la liste en lecture seule des scores concernés (date, Top, points, description) — pour modifier ou supprimer une entrée, direction l'onglet Historique comme avant. Cliquer sur un nom dans la légende isole sa courbe/barre pour mieux la comparer aux autres — recliquer restaure l'affichage complet. Ces trois améliorations couvrent les 6 types de graphique (empilé, groupé, courbes, radar, donut, classement), sur PC comme sur mobile.
@@ -449,7 +449,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Sept petits soucis trouvés en relecture de code sur les nouveautés du graphique Dashboard, corrigés avant mise en ligne : sur le graphique Radar mobile, taper sur un point ouvrait le détail du mauvais joueur/Top. Sur le graphique Donut, cliquer une catégorie dans la légende ne l'isolait pas correctement. Sur le Classement, la légende se comportait différemment sur PC et sur mobile. Sur les Courbes mobile, le détail ignorait le filtre de catégorie actif et pouvait manquer les entrées du tout dernier jour d'une semaine ou d'un mois. Cliquer très vite sur deux points du graphique pouvait afficher le détail du mauvais point. Et l'avatar manquait sur la ligne de comparaison du tooltip.
 **Technique** : `Mobile.html` `renderRadarChart` réorganise désormais les données (labels=catégories, datasets=joueurs) comme `Index.html`, au lieu de passer `chartData` brut à Chart.js. `isolatableLegendOnClick` (Index.html + Mobile.html) gère le cas donut/pie (un seul dataset) via `chart.toggleDataVisibility(index)`/`getDataVisibility(index)` au lieu de `getDatasetMeta`. Légende du Classement explicitement non isolable des deux côtés (`onClick: undefined` si `stacked === undefined` côté Mobile.html, commentaire explicite côté Index.html). Le contexte de drill-down des Courbes mobile passe désormais `mFilterCategories`. Les calculs de date de fin de semaine/mois utilisent le formateur local `toDateStr()` au lieu de `toISOString().slice(0,10)` (qui décalait la date selon le fuseau horaire). `openChartDrilldown`/`openChartDrilldownMobile` utilisent un compteur `_drilldownRequestId` pour ignorer les réponses serveur obsolètes. `comparisonText`/`mComparisonText` retournent désormais `{text, neighbor}` pour permettre l'affichage de l'avatar du joueur cité.
 
-## [Non publié] - 2026-07-10
+## [v1.2.0] - 2026-07-10
 
 ### Ajouté
 **Humanisé** : Le Journal d'audit permet maintenant d'annuler directement une action passée (ajout/suppression/modification de points, joueurs, catégories, barème, notes, phrases) grâce à un bouton "↩️ Annuler" sur chaque ligne concernée, sur PC comme sur mobile. Le groupement/dégroupement de lots reste pour l'instant en lecture seule — pas encore assez sûr à annuler automatiquement.
@@ -459,7 +459,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : La colonne "Avant → Après" du Journal d'audit n'affiche plus de fragments sans signification (ex. `"" → "3 entrée(s)"`) pour les actions qui n'ont pas de vrai avant/après — cette information reste visible dans la colonne Détail. Le bouton copier la ligne et le clic pour filtrer sur l'auteur/l'action/l'entité ont été retirés (jugés inutiles).
 **Technique** : `AUDIT_NO_DIFF_ACTIONS` filtre le rendu de la colonne diff dans `renderAuditTable` (`Index.html`) et `auditCardHtml` (`Mobile.html`). Cellules Qui/Action/Entité redeviennent non interactives dans `Index.html` ; classe CSS `.audit-clickable-cell` retirée.
 
-## [Non publié] - 2026-07-09
+## [v1.1.0] - 2026-07-09
 
 ### Ajouté
 **Humanisé** : Sept nouveaux outils dans l'onglet 🔧 Outils : détection des doublons et des scores anormaux (avec correction ou "ignorer" en un clic), liste des joueurs inactifs, records personnels et absolu, tendances récentes par Top et par joueur, jour de la semaine le plus actif, et duo joueur/Top le plus fréquent.
@@ -517,7 +517,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ### Retiré
 **Humanisé** : Retrait du mot anglais "event" qui traînait dans quelques libellés du Dashboard.
 
-## [Non publié] - 2026-07-08
+## [v1.0.0] - 2026-07-08
 
 ### Ajouté
 **Humanisé** : Les mises à jour du code se déploient maintenant automatiquement dès qu'elles sont envoyées sur GitHub — plus besoin de recopier les fichiers ni de redéployer à la main, le lien court reste toujours valide. Ça marche aussi pour les copies du même script (groupes différents), toutes mises à jour d'un coup.
