@@ -192,3 +192,42 @@ test('apiDetectLegacyGroups reuses the cached full-history read across calls, re
   gas.apiDetectLegacyGroups();
   assert.strictEqual(history.reads, 2);
 });
+
+test('apiGetChangelog handles large responses by chunking cache and falling back gracefully on cache errors', () => {
+  const largeContent = '# Changelog\n' + 'x'.repeat(120000);
+  const store = new Map();
+  let fetchCount = 0;
+
+  const gas = loadGas({
+    UrlFetchApp: {
+      fetch: (url) => {
+        fetchCount++;
+        return {
+          getResponseCode: () => 200,
+          getContentText: () => largeContent
+        };
+      }
+    },
+    CacheService: {
+      getScriptCache: () => ({
+        get: (k) => store.get(k) || null,
+        put: (k, v, exp) => {
+          if (v.length > 100000) throw new Error('Value exceeds maximum size of 100KB');
+          store.set(k, v);
+        }
+      })
+    }
+  });
+
+  const res1 = gas.apiGetChangelog(false);
+  assert.strictEqual(res1.success, true);
+  assert.strictEqual(res1.content, largeContent);
+  assert.strictEqual(store.get('github_changelog_v1_chunks'), '2');
+  assert.strictEqual(fetchCount, 1);
+
+  // Second call should hit chunked cache without fetching again
+  const res2 = gas.apiGetChangelog(false);
+  assert.strictEqual(res2.success, true);
+  assert.strictEqual(res2.content, largeContent);
+  assert.strictEqual(fetchCount, 1);
+});

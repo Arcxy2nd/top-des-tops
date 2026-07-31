@@ -3236,9 +3236,31 @@ function apiGetChangelog(forceRefresh) {
     const cacheKey = 'github_changelog_v1';
     const cache = CacheService.getScriptCache();
     if (!forceRefresh) {
-      const cached = cache.get(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
+      try {
+        const cached = cache.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+        const chunkCountStr = cache.get(cacheKey + '_chunks');
+        if (chunkCountStr) {
+          const chunkCount = parseInt(chunkCountStr, 10);
+          let fullJson = '';
+          let valid = true;
+          for (let i = 0; i < chunkCount; i++) {
+            const chunk = cache.get(cacheKey + '_' + i);
+            if (chunk) {
+              fullJson += chunk;
+            } else {
+              valid = false;
+              break;
+            }
+          }
+          if (valid && fullJson) {
+            return JSON.parse(fullJson);
+          }
+        }
+      } catch (cacheReadErr) {
+        console.warn('Erreur lecture cache changelog:', cacheReadErr);
       }
     }
     const url = 'https://raw.githubusercontent.com/Arcxy2nd/top-des-tops/main/CHANGELOG.md';
@@ -3246,7 +3268,21 @@ function apiGetChangelog(forceRefresh) {
     if (response.getResponseCode() === 200) {
       const content = response.getContentText();
       const result = { success: true, content: content, fetchedAt: new Date().toISOString() };
-      cache.put(cacheKey, JSON.stringify(result), 600); // 10 min
+      try {
+        const json = JSON.stringify(result);
+        const chunkSize = 90000;
+        if (json.length <= chunkSize) {
+          cache.put(cacheKey, json, 600); // 10 min
+        } else {
+          const chunkCount = Math.ceil(json.length / chunkSize);
+          cache.put(cacheKey + '_chunks', String(chunkCount), 600);
+          for (let i = 0; i < chunkCount; i++) {
+            cache.put(cacheKey + '_' + i, json.slice(i * chunkSize, (i + 1) * chunkSize), 600);
+          }
+        }
+      } catch (cacheWriteErr) {
+        console.warn('Erreur écriture cache changelog:', cacheWriteErr);
+      }
       return result;
     } else {
       return { success: false, error: 'Impossible de charger le changelog depuis GitHub (Code HTTP ' + response.getResponseCode() + ')' };

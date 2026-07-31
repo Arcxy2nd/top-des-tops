@@ -6,6 +6,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
 ## [Non publié] - 2026-07-31
 
+### Corrigé
+**Humanisé** : Le changelog se charge à présent de manière fiable sans faire planter l'application même lorsque la liste des mises à jour devient très volumineuse.
+**Technique** : `Code.gs` — mise à jour de `apiGetChangelog()` avec découpage de la mise en cache (`CacheService`) par blocs de 90 Ko et sécurisation via `try/catch` pour éviter les exceptions de limite à 100 Ko. `tests/cache.test.js` & `tests/harness.js` — ajout du test unitaire et mise à jour du harnais.
+
 ### Modifié
 **Humanisé** : La barre supérieure a été rendue plus compacte et élégante, les boutons disposent d'un design affiné et les onglets sont subtilement séparés par de fines bordures verticales.
 **Technique** : `Index.html` — densification verticale de `.nav-container` et `.nav-btn` (`padding` et `min-height` réduits), ajout de séparateurs verticaux discrets (`.nav-btn:not(:last-child)::after`), et amélioration du style visuel des boutons de la top bar (`.nav-refresh-btn`, `.nav-bareme-btn`, `.who-am-i-btn`, `.theme-toggle`, `.layout-mode-toggle`).
