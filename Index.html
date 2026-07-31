@@ -9260,267 +9260,661 @@
     ctx.lineWidth = Math.round(Math.max(1.5, 2 * S)); ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
+  // ── CHARTS HIGH-DPI OFFSCREEN RENDERER ─────────────────────────────
+  function renderOffscreenChartCanvas(targetWidth, targetHeight, data, type, isDark) {
+    if (!data || !data.labels || !data.labels.length) return null;
+    const offCv = document.createElement('canvas');
+    const w = Math.max(100, Math.round(targetWidth));
+    const h = Math.max(100, Math.round(targetHeight));
+    offCv.width = w;
+    offCv.height = h;
+    const offCtx = offCv.getContext('2d');
+
+    const textColor = isDark ? '#e0e6ed' : '#1a202c';
+    const mutedColor = isDark ? '#9aa5be' : '#4a5568';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const c = { text: textColor, muted: mutedColor, grid: gridColor };
+
+    const scaleFactor = Math.max(0.6, w / 700);
+    const fontBase = Math.max(10, Math.round(13 * Math.sqrt(scaleFactor)));
+
+    const baseOpts = {
+      animation: false,
+      responsive: false,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    };
+
+    let tempChart = null;
+
+    try {
+      if (type === 'doughnut') {
+        const player = _donutPlayer;
+        const idx = data.labels.indexOf(player);
+        let segLabels = data.datasets.map(d => d.label);
+        let segValues = data.datasets.map(ds => idx >= 0 ? (ds.data[idx] || 0) : 0);
+        const order = sortIndices(segValues, chartOptions.sortCat, segLabels);
+        segLabels = order.map(i => segLabels[i]);
+        segValues = order.map(i => segValues[i]);
+        const origLabels = data.datasets.map(d => d.label);
+        const segColors = order.map(i => categoryColor(origLabels[i]));
+        const total = segValues.reduce((s, v) => s + v, 0);
+
+        const centerPlugin = {
+          id: 'donutCenterExport',
+          afterDraw(chart) {
+            if (!chartOptions.donutCenter) return;
+            const { ctx, chartArea } = chart;
+            const cx = (chartArea.left + chartArea.right) / 2;
+            const cy = (chartArea.top + chartArea.bottom) / 2;
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = c.text;
+            ctx.font = '700 ' + Math.round(fontBase * 1.8) + 'px sans-serif';
+            ctx.fillText(String(total), cx, cy - Math.round(scaleFactor * 4));
+            ctx.font = Math.round(fontBase * 0.9) + 'px sans-serif'; ctx.fillStyle = c.muted;
+            ctx.fillText('total', cx, cy + Math.round(scaleFactor * 14));
+            ctx.restore();
+          }
+        };
+
+        tempChart = new Chart(offCtx, {
+          type: 'doughnut',
+          data: { labels: segLabels.map(catDisplay), datasets: [{ data: segValues, backgroundColor: segColors }] },
+          options: { ...baseOpts },
+          plugins: [centerPlugin]
+        });
+      } else if (type === 'radar') {
+        const radarDatasets = data.labels.map((player) => ({
+          label: player,
+          data: data.datasets.map(ds => ds.data[data.labels.indexOf(player)] || 0),
+          backgroundColor: playerColor(player) + '33',
+          borderColor: playerColor(player),
+          pointBackgroundColor: playerColor(player),
+          borderWidth: Math.max(2, Math.round(2 * scaleFactor))
+        }));
+        tempChart = new Chart(offCtx, {
+          type: 'radar',
+          data: { labels: data.datasets.map(d => catDisplay(d.label)), datasets: radarDatasets },
+          options: {
+            ...baseOpts,
+            scales: {
+              r: {
+                grid: { color: c.grid },
+                pointLabels: { color: c.text, font: { size: fontBase, weight: '600' } },
+                ticks: { color: c.muted, backdropColor: 'transparent', font: { size: Math.round(fontBase * 0.85) } }
+              }
+            }
+          }
+        });
+      } else if (type === 'ranking') {
+        const rows = data.labels.map((p, i) => ({
+          player: p, index: i, total: data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+        }));
+        const totalsVals = rows.map(r => r.total);
+        const order = sortIndices(totalsVals, chartOptions.sortBy, rows.map(r => r.player));
+        const totals = order.map(i => rows[i]);
+
+        let datasets;
+        if (chartOptions.detailed) {
+          datasets = data.datasets.map((ds) => ({
+            label: catDisplay(ds.label),
+            data: totals.map(t => ds.data[t.index] || 0),
+            backgroundColor: categoryColor(ds.label),
+            borderRadius: Math.max(3, Math.round(3 * scaleFactor))
+          }));
+        } else {
+          datasets = [{
+            label: 'Total points',
+            data: totals.map(t => t.total),
+            backgroundColor: totals.map(t => playerColor(t.player)),
+            borderRadius: Math.max(4, Math.round(4 * scaleFactor))
+          }];
+        }
+
+        tempChart = new Chart(offCtx, {
+          type: 'bar',
+          data: { labels: totals.map(t => t.player), datasets },
+          options: {
+            ...baseOpts,
+            indexAxis: 'y',
+            scales: {
+              x: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.muted, font: { size: fontBase } } },
+              y: { stacked: chartOptions.detailed, grid: { color: c.grid }, ticks: { color: c.text, font: { size: fontBase, weight: '600' } } }
+            }
+          }
+        });
+      } else {
+        const stacked = type !== 'grouped';
+        const sorted = getSortedBarData(data);
+        const displayData = {
+          labels: sorted.labels,
+          datasets: sorted.datasets.map(ds => ({ ...ds, label: catDisplay(ds.label) }))
+        };
+
+        const totalsPlugin = {
+          id: 'barTotalsExport',
+          afterDatasetsDraw(chart) {
+            if (!chartOptions.showTotals) return;
+            const { ctx } = chart;
+            const metas = chart.data.datasets.map((_, di) => chart.getDatasetMeta(di));
+            ctx.save();
+            ctx.fillStyle = c.text;
+            ctx.font = '700 ' + Math.round(fontBase * 0.9) + 'px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            sorted.labels.forEach((lbl, i) => {
+              const total = sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0);
+              if (total <= 0) return;
+              let sumX = 0, cnt = 0, minY = Infinity;
+              metas.forEach(meta => {
+                const el = meta.data[i];
+                if (!el) return;
+                sumX += el.x; cnt++; minY = Math.min(minY, el.y);
+              });
+              if (!cnt) return;
+              ctx.fillText(String(total), sumX / cnt, minY - Math.round(scaleFactor * 3));
+            });
+            ctx.restore();
+          }
+        };
+
+        tempChart = new Chart(offCtx, {
+          type: 'bar',
+          data: displayData,
+          options: {
+            ...baseOpts,
+            layout: chartOptions.showTotals ? { padding: { top: Math.round(scaleFactor * 22) } } : {},
+            scales: {
+              x: { stacked, grid: { color: c.grid }, ticks: { color: c.text, font: { size: fontBase }, maxRotation: 40 } },
+              y: {
+                type: chartOptions.logScale ? 'logarithmic' : 'linear',
+                stacked, beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.muted, font: { size: fontBase } }
+              }
+            }
+          },
+          plugins: [totalsPlugin]
+        });
+      }
+
+      const resultCv = document.createElement('canvas');
+      resultCv.width = w;
+      resultCv.height = h;
+      const resCtx = resultCv.getContext('2d');
+
+      if (tempChart) {
+        tempChart.update('none');
+        resCtx.drawImage(offCv, 0, 0);
+      }
+      return resultCv;
+    } catch (e) {
+      console.warn('Offscreen chart render fallback:', e);
+      return null;
+    } finally {
+      if (tempChart) {
+        try { tempChart.destroy(); } catch (err) {}
+      }
+    }
+  }
+
+  // ── INFOGRAPHIC DESIGN SYSTEM & THEMES ────────────────────────────────
+  const EXPORT_THEMES = {
+    dark: {
+      name: '🌙 Cyber',
+      bgGrad: ['#0b0f19', '#161f33'],
+      cardBg: 'rgba(22, 31, 51, 0.88)',
+      cardBorder: 'rgba(255, 255, 255, 0.1)',
+      fg: '#f1f5f9',
+      muted: '#94a3b8',
+      accent: '#ff4757',
+      accentGrad: ['#ff4757', '#ff6b81'],
+      pillBg: 'rgba(255, 71, 87, 0.15)',
+      pillBorder: 'rgba(255, 71, 87, 0.4)',
+      isDark: true
+    },
+    light: {
+      name: '☀️ Executive',
+      bgGrad: ['#f8fafc', '#e2e8f0'],
+      cardBg: '#ffffff',
+      cardBorder: 'rgba(0, 0, 0, 0.08)',
+      fg: '#0f172a',
+      muted: '#64748b',
+      accent: '#ff4757',
+      accentGrad: ['#ff4757', '#ff6b81'],
+      pillBg: 'rgba(255, 71, 87, 0.08)',
+      pillBorder: 'rgba(255, 71, 87, 0.3)',
+      isDark: false
+    },
+    purple: {
+      name: '🔮 Deluxe',
+      bgGrad: ['#0f0c29', '#24243e'],
+      cardBg: 'rgba(36, 36, 62, 0.88)',
+      cardBorder: 'rgba(255, 255, 255, 0.12)',
+      fg: '#ffffff',
+      muted: '#a5b4fc',
+      accent: '#8b5cf6',
+      accentGrad: ['#8b5cf6', '#a855f7'],
+      pillBg: 'rgba(139, 92, 246, 0.2)',
+      pillBorder: 'rgba(139, 92, 246, 0.4)',
+      isDark: true
+    },
+    ocean: {
+      name: '🌊 Océan',
+      bgGrad: ['#0f2027', '#2c5364'],
+      cardBg: 'rgba(32, 58, 67, 0.88)',
+      cardBorder: 'rgba(255, 255, 255, 0.12)',
+      fg: '#f0f9ff',
+      muted: '#7dd3fc',
+      accent: '#0ea5e9',
+      accentGrad: ['#0ea5e9', '#38bdf8'],
+      pillBg: 'rgba(14, 165, 233, 0.2)',
+      pillBorder: 'rgba(14, 165, 233, 0.4)',
+      isDark: true
+    },
+    emerald: {
+      name: '🌲 Émeraude',
+      bgGrad: ['#061a14', '#11382b'],
+      cardBg: 'rgba(12, 43, 33, 0.88)',
+      cardBorder: 'rgba(255, 255, 255, 0.12)',
+      fg: '#f0fdf4',
+      muted: '#86efac',
+      accent: '#10b981',
+      accentGrad: ['#10b981', '#34d399'],
+      pillBg: 'rgba(16, 185, 129, 0.2)',
+      pillBorder: 'rgba(16, 185, 129, 0.4)',
+      isDark: true
+    }
+  };
+
   function buildInfographicCanvas(opts, forceScale, avatarImages) {
-    const S = forceScale !== undefined ? forceScale : opts.scale;
-    const W = Math.round(1200 * S);
-    const H = Math.round(700 * S);
+    const S = forceScale !== undefined ? forceScale : (opts.scale || 2);
+    const theme = EXPORT_THEMES[opts.theme] || EXPORT_THEMES.dark;
+    const ratio = opts.aspectRatio || 'auto';
+
+    // Base dimensions calculation
+    let W = Math.round(1200 * S);
+    let chartH_target = Math.round(440 * S);
+
+    if (ratio === '16:9') {
+      W = Math.round(1200 * S);
+    } else if (ratio === '1:1') {
+      W = Math.round(1000 * S);
+      chartH_target = Math.round(520 * S);
+    } else if (ratio === '9:16') {
+      W = Math.round(720 * S);
+      chartH_target = Math.round(580 * S);
+    }
+
+    // Section heights
+    const headerH = opts.title ? Math.round(74 * S) : 0;
+    
+    const activeCats = opts.filters ? [...(selectedCategoryChips || [])] : [];
+    const activePls  = opts.filters ? [...(selectedPlayerChips  || [])] : [];
+    const hasFilterText = activeCats.length > 0 || activePls.length > 0;
+    const filtersH = (opts.filters && hasFilterText) ? Math.round(30 * S) : 0;
+
+    const topMoverH = (opts.topMover && opts._topMoverResult) ? Math.round(38 * S) : 0;
+    const statsH    = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
+      ? Math.round(58 * S) : 0;
+    const playersH  = (opts.players && currentChartData && currentChartData.labels && currentChartData.labels.length > 1)
+      ? Math.round(58 * S) : 0;
+    const legendH   = (opts.legend && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
+      ? Math.round(30 * S) : 0;
+    const footH     = opts.footer !== false ? Math.round(28 * S) : 0;
+
+    const verticalPadding = Math.round(16 * S);
+    const spacing = Math.round(10 * S);
+
+    let H;
+    if (ratio === '16:9') {
+      H = Math.round(W * 9 / 16);
+      const consumed = headerH + filtersH + topMoverH + statsH + playersH + legendH + footH + verticalPadding * 2 + spacing * 6;
+      chartH_target = Math.max(Math.round(220 * S), H - consumed);
+    } else if (ratio === '1:1') {
+      H = W;
+      const consumed = headerH + filtersH + topMoverH + statsH + playersH + legendH + footH + verticalPadding * 2 + spacing * 6;
+      chartH_target = Math.max(Math.round(260 * S), H - consumed);
+    } else if (ratio === '9:16') {
+      H = Math.round(W * 16 / 9);
+      const consumed = headerH + filtersH + topMoverH + statsH + playersH + legendH + footH + verticalPadding * 2 + spacing * 6;
+      chartH_target = Math.max(Math.round(300 * S), H - consumed);
+    } else {
+      // Auto mode: dynamic height calculation so everything looks spacious and crisp
+      H = verticalPadding * 2 + headerH + filtersH + topMoverH + chartH_target + statsH + playersH + legendH + footH + spacing * 8;
+    }
+
     const cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d');
 
-    // opts.theme est un choix explicite de l'utilisateur pour l'image exportée,
-    // indépendant du thème actuellement affiché à l'écran — getComputedStyle()
-    // ne peut donc pas être utilisé ici (il ne renvoie que le thème live du DOM).
-    // Ces valeurs doivent rester synchronisées avec les variables --bg/--card/
-    // --text/--text-muted/--accent définies dans le CSS (voir §6 de context.md).
-    const isDark = opts.theme === 'dark';
-    const BG    = isDark ? '#0b0c10' : '#f0f2f5';
-    const CARD  = isDark ? '#1f2833' : '#ffffff';
-    const FG    = isDark ? '#e0e6ed' : '#1a202c';
-    const MUTED = isDark ? '#9aa5be' : '#4a5568';
-    const ACCENT = '#ff4757';
-
-    ctx.fillStyle = BG;
+    // Gradient Background
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0, theme.bgGrad[0]);
+    bgGrad.addColorStop(1, theme.bgGrad[1]);
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    let yOff = 0;
+    // Card Helper
+    function drawCard(x, y, w, h, r = Math.round(12 * S)) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
+      ctx.shadowBlur = Math.round(10 * S);
+      ctx.shadowOffsetY = Math.round(3 * S);
+      ctx.fillStyle = theme.cardBg;
+      roundRect(ctx, x, y, w, h, r);
+      ctx.fill();
+      ctx.restore();
 
-    // Header band
-    if (opts.title) {
-      const hH = Math.round(64 * S);
-      ctx.fillStyle = CARD;
-      ctx.fillRect(0, 0, W, hH);
-      // Accent left bar
-      ctx.fillStyle = ACCENT;
-      ctx.fillRect(0, 0, Math.round(4 * S), hH);
-      // App name (conditional on watermark option)
-      ctx.fillStyle = FG;
-      ctx.font = 'bold ' + Math.round(18 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      if (opts.watermark !== false) {
-        ctx.fillText(opts.watermarkText || 'Tops des Tops', Math.round(18 * S), Math.round(24 * S));
-      }
-      // Chart label (or custom title)
+      ctx.save();
+      ctx.strokeStyle = theme.cardBorder;
+      ctx.lineWidth = Math.max(1, Math.round(1 * S));
+      roundRect(ctx, x, y, w, h, r);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    let yOff = verticalPadding;
+    const sideMargin = Math.round(16 * S);
+    const cardWidth = W - sideMargin * 2;
+
+    // ── 1. HEADER CARD ──
+    if (headerH) {
+      drawCard(sideMargin, yOff, cardWidth, headerH, Math.round(14 * S));
+
+      // Accent Left Bar
+      const accentGrad = ctx.createLinearGradient(sideMargin, yOff, sideMargin, yOff + headerH);
+      accentGrad.addColorStop(0, theme.accentGrad[0]);
+      accentGrad.addColorStop(1, theme.accentGrad[1]);
+      ctx.fillStyle = accentGrad;
+      roundRect(ctx, sideMargin, yOff, Math.round(5 * S), headerH, Math.round(4 * S));
+      ctx.fill();
+
+      // App Badge
+      const badgeX = sideMargin + Math.round(16 * S);
+      const badgeY = yOff + Math.round(14 * S);
+      ctx.fillStyle = theme.pillBg;
+      roundRect(ctx, badgeX, badgeY, Math.round(135 * S), Math.round(20 * S), Math.round(10 * S));
+      ctx.fill();
+      ctx.strokeStyle = theme.pillBorder;
+      ctx.lineWidth = Math.max(1, Math.round(1 * S));
+      roundRect(ctx, badgeX, badgeY, Math.round(135 * S), Math.round(20 * S), Math.round(10 * S));
+      ctx.stroke();
+
+      ctx.fillStyle = theme.accent;
+      ctx.font = '700 ' + Math.round(10 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🏆 TOPS DES TOPS', badgeX + Math.round(67.5 * S), badgeY + Math.round(10 * S));
+
+      // Title & Subtitle
       const chartTitleEl = document.getElementById('chartTitle');
-      const chartLabel = opts.customTitle || (chartTitleEl ? chartTitleEl.textContent : '');
-      ctx.fillStyle = MUTED;
-      ctx.font = Math.round(13 * S) + 'px sans-serif';
-      ctx.fillText(chartLabel, Math.round(18 * S), Math.round(46 * S));
-      // Right side: avatar (donut) OR period text
-      const avatarR = Math.round(22 * S);
-      const avatarCX = W - Math.round(34 * S);
-      const avatarCY = Math.round(32 * S);
+      const chartLabel = opts.customTitle || (chartTitleEl ? chartTitleEl.textContent : 'Graphique');
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = theme.fg;
+      ctx.font = '700 ' + Math.round(16 * S) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(chartLabel.length > 45 ? chartLabel.slice(0, 44) + '…' : chartLabel, badgeX, yOff + Math.round(52 * S));
+
+      // Right Side: Period Badge & Donut Avatar
+      const rightX = sideMargin + cardWidth - Math.round(16 * S);
       if (opts.avatars && avatarImages && currentChartType === 'doughnut' && _donutPlayer) {
-        // Draw player avatar circle
-        drawAvatarOnCanvas(ctx, avatarImages.get(_donutPlayer) || null, avatarCX, avatarCY, avatarR, S);
-        // Player name to the left of the avatar
-        ctx.fillStyle = FG;
-        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+        const avR = Math.round(22 * S);
+        const avCX = rightX - avR;
+        const avCY = yOff + headerH / 2;
+        drawAvatarOnCanvas(ctx, avatarImages.get(_donutPlayer) || null, avCX, avCY, avR, S);
+
+        ctx.fillStyle = theme.fg;
+        ctx.font = '700 ' + Math.round(13 * S) + 'px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(_donutPlayer, avatarCX - avatarR - Math.round(8 * S), Math.round(28 * S));
-        ctx.fillStyle = MUTED;
-        ctx.font = Math.round(11 * S) + 'px sans-serif';
+        ctx.fillText(_donutPlayer, avCX - avR - Math.round(10 * S), yOff + Math.round(30 * S));
+
         if (opts.period) {
           const sd = document.getElementById('startDate').value;
           const ed = document.getElementById('endDate').value;
           const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
-          ctx.fillText(periodTxt, avatarCX - avatarR - Math.round(8 * S), Math.round(44 * S));
+          ctx.fillStyle = theme.muted;
+          ctx.font = Math.round(10 * S) + 'px sans-serif';
+          ctx.fillText('📅 ' + periodTxt, avCX - avR - Math.round(10 * S), yOff + Math.round(48 * S));
         }
-        ctx.textAlign = 'left';
       } else if (opts.period) {
         const sd = document.getElementById('startDate').value;
         const ed = document.getElementById('endDate').value;
         const periodTxt = sd || ed ? ((sd || '…') + ' → ' + (ed || '…')) : 'Toute la période';
-        ctx.textAlign = 'right';
-        ctx.fillText(periodTxt, W - Math.round(18 * S), Math.round(42 * S));
-        ctx.textAlign = 'left';
+
+        ctx.fillStyle = theme.pillBg;
+        const periodW = Math.round(170 * S);
+        const periodH = Math.round(26 * S);
+        const periodX = rightX - periodW;
+        const periodY = yOff + (headerH - periodH) / 2;
+        roundRect(ctx, periodX, periodY, periodW, periodH, Math.round(13 * S));
+        ctx.fill();
+        ctx.strokeStyle = theme.pillBorder; ctx.lineWidth = Math.max(1, Math.round(1 * S));
+        roundRect(ctx, periodX, periodY, periodW, periodH, Math.round(13 * S));
+        ctx.stroke();
+
+        ctx.fillStyle = theme.fg;
+        ctx.font = '600 ' + Math.round(10.5 * S) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('📅 ' + periodTxt, periodX + periodW / 2, periodY + periodH / 2);
       }
-      yOff = hH + Math.round(8 * S);
+
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      yOff += headerH + spacing;
     }
 
-    // Filters bar
-    if (opts.filters) {
-      const activeCats = [...(selectedCategoryChips || [])];
-      const activePls  = [...(selectedPlayerChips  || [])];
+    // ── 2. FILTERS BAR ──
+    if (filtersH) {
+      drawCard(sideMargin, yOff, cardWidth, filtersH, Math.round(8 * S));
+
       const parts = [];
-      if (activeCats.length) parts.push('Catégories : ' + activeCats.join(', '));
-      if (activePls.length)  parts.push('Joueurs : ' + activePls.join(', '));
-      if (parts.length) {
-        const fH = Math.round(26 * S);
-        ctx.fillStyle = CARD;
-        ctx.fillRect(0, yOff, W, fH);
-        ctx.fillStyle = ACCENT;
-        ctx.globalAlpha = 0.6;
-        ctx.fillRect(0, yOff, Math.round(3 * S), fH);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = MUTED;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
-        ctx.fillText('Filtres : ' + parts.join(' | '), Math.round(12 * S), yOff + Math.round(17 * S));
-        yOff += fH + Math.round(4 * S);
+      if (activeCats.length) parts.push('Catégories (' + activeCats.length + ') : ' + activeCats.join(', '));
+      if (activePls.length)  parts.push('Joueurs (' + activePls.length + ') : ' + activePls.join(', '));
+
+      ctx.fillStyle = theme.accent;
+      roundRect(ctx, sideMargin, yOff, Math.round(4 * S), filtersH, Math.round(2 * S));
+      ctx.fill();
+
+      ctx.fillStyle = theme.muted;
+      ctx.font = '600 ' + Math.round(10 * S) + 'px sans-serif';
+      ctx.textBaseline = 'middle';
+      const textX = sideMargin + Math.round(12 * S);
+      const textY = yOff + filtersH / 2;
+      const fullTxt = '⚡ Filtres : ' + parts.join('  •  ');
+      ctx.fillText(fullTxt.length > 110 ? fullTxt.slice(0, 108) + '…' : fullTxt, textX, textY);
+
+      ctx.textBaseline = 'alphabetic';
+      yOff += filtersH + spacing;
+    }
+
+    // ── 3. TOP MOVER HIGHLIGHT CARD ──
+    if (topMoverH) {
+      const mover = opts._topMoverResult;
+      const isUp = mover.delta >= 0;
+      const moverColor = isUp ? '#2ed573' : '#ff4757';
+
+      drawCard(sideMargin, yOff, cardWidth, topMoverH, Math.round(10 * S));
+
+      ctx.fillStyle = moverColor; ctx.globalAlpha = 0.15;
+      roundRect(ctx, sideMargin, yOff, cardWidth, topMoverH, Math.round(10 * S));
+      ctx.fill(); ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = moverColor; ctx.lineWidth = Math.max(1, Math.round(1.5 * S)); ctx.globalAlpha = 0.5;
+      roundRect(ctx, sideMargin, yOff, cardWidth, topMoverH, Math.round(10 * S));
+      ctx.stroke(); ctx.globalAlpha = 1;
+
+      ctx.fillStyle = theme.fg;
+      ctx.font = '700 ' + Math.round(12 * S) + 'px sans-serif';
+      ctx.textBaseline = 'middle';
+      const icon = isUp ? '🚀' : '📉';
+      const sign = isUp ? '+' : '';
+      const text = icon + '  Plus forte progression : ' + mover.name + ' (' + sign + mover.delta + ' pts vs. période précédente)';
+      ctx.fillText(text, sideMargin + Math.round(16 * S), yOff + topMoverH / 2);
+
+      ctx.textBaseline = 'alphabetic';
+      yOff += topMoverH + spacing;
+    }
+
+    // ── 4. MAIN CHART (VECTOR HIGH-DPI OFFSCREEN) ──
+    if (chartH_target > 0) {
+      drawCard(sideMargin, yOff, cardWidth, chartH_target, Math.round(14 * S));
+
+      const innerMargin = Math.round(10 * S);
+      const offW = cardWidth - innerMargin * 2;
+      const offH = chartH_target - innerMargin * 2;
+
+      const offscreenCv = renderOffscreenChartCanvas(offW, offH, currentChartData, currentChartType, theme.isDark);
+      if (offscreenCv) {
+        ctx.drawImage(offscreenCv, sideMargin + innerMargin, yOff + innerMargin, offW, offH);
+      } else {
+        // Fallback on DOM canvas if offscreen build failed
+        const chartCv = document.getElementById('mainChart');
+        if (chartCv) {
+          ctx.drawImage(chartCv, sideMargin + innerMargin, yOff + innerMargin, offW, offH);
+        }
       }
+
+      yOff += chartH_target + spacing;
     }
 
-    // Reserve space for stats strip, players strip, top-mover pill, legend and footer
-    const statsH = (opts.stats && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
-      ? Math.round(52 * S) : 0;
-    const playersH = (opts.players && currentChartData && currentChartData.labels && currentChartData.labels.length > 1)
-      ? Math.round(52 * S) : 0;
-    const topMoverH = (opts.topMover && opts._topMoverResult) ? Math.round(30 * S) : 0;
-    const legendH = (opts.legend && currentChartData && currentChartData.datasets && currentChartData.datasets.length)
-      ? Math.round(22 * S) : 0;
-    const footH = opts.footer !== false ? Math.round(24 * S) : 0;
+    // Rank Medal Badges Helper
+    const RANK_MEDALS = ['🥇', '🥈', '🥉'];
 
-    // Chart image
-    const chartCv = document.getElementById('mainChart');
-    if (chartCv) {
-      const chartH = H - yOff - statsH - playersH - topMoverH - legendH - footH - Math.round(8 * S);
-      ctx.drawImage(chartCv, Math.round(10 * S), yOff, W - Math.round(20 * S), chartH);
-      yOff += chartH + Math.round(6 * S);
-    }
-
-    // Stats strip — top totals as pills
+    // ── 5. STATS STRIP (CATEGORIES) ──
     if (statsH && currentChartData && currentChartData.datasets) {
       const topTotals = currentChartData.datasets.map(ds => ({
         name:  ds.label,
         total: (ds.data || []).reduce((s, v) => s + (Number(v) || 0), 0),
-        color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || ACCENT)
+        color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || theme.accent)
       })).sort((a, b) => b.total - a.total).slice(0, 6);
 
-      const pillW = Math.round((W - 20 * S) / Math.max(topTotals.length, 1));
-      topTotals.forEach((t, i) => {
-        const px = Math.round(10 * S) + i * pillW;
-        const py = yOff;
-        const pw = pillW - Math.round(6 * S);
-        const ph = Math.round(38 * S);
-        // Pill background (tinted)
-        ctx.fillStyle = t.color;
-        ctx.globalAlpha = 0.18;
-        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        // Pill border
-        ctx.strokeStyle = t.color;
-        ctx.lineWidth = Math.round(1.5 * S);
-        ctx.globalAlpha = 0.5;
-        roundRect(ctx, px, py, pw, ph, Math.round(7 * S));
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        // Pill text
-        ctx.fillStyle = FG;
-        ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
-        ctx.fillStyle = MUTED;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
-        ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
-        ctx.textAlign = 'left';
-      });
-      yOff += statsH;
+      if (topTotals.length) {
+        const itemW = Math.round((cardWidth - (topTotals.length - 1) * Math.round(8 * S)) / topTotals.length);
+        topTotals.forEach((t, i) => {
+          const px = sideMargin + i * (itemW + Math.round(8 * S));
+          const py = yOff;
+          const pw = itemW;
+          const ph = statsH;
+
+          drawCard(px, py, pw, ph, Math.round(8 * S));
+
+          ctx.fillStyle = t.color; ctx.globalAlpha = 0.15;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill(); ctx.globalAlpha = 1;
+
+          ctx.strokeStyle = t.color; ctx.lineWidth = Math.max(1, Math.round(1.5 * S)); ctx.globalAlpha = 0.6;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke(); ctx.globalAlpha = 1;
+
+          const medal = RANK_MEDALS[i] || ('#' + (i + 1));
+          ctx.fillStyle = theme.fg;
+          ctx.font = '700 ' + Math.round(12 * S) + 'px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(22 * S));
+
+          ctx.fillStyle = theme.muted;
+          ctx.font = '600 ' + Math.round(9.5 * S) + 'px sans-serif';
+          const catName = catDisplay(t.name);
+          ctx.fillText(catName.length > 13 ? catName.slice(0, 12) + '…' : catName, px + pw / 2, py + Math.round(42 * S));
+          ctx.textAlign = 'left';
+        });
+        yOff += statsH + spacing;
+      }
     }
 
-    // Players strip — totals per player
+    // ── 6. PLAYERS STRIP ──
     if (playersH && currentChartData && currentChartData.labels && currentChartData.datasets) {
       const playerTotals = currentChartData.labels.map((player, i) => ({
         name:  player,
         total: currentChartData.datasets.reduce((sum, ds) => sum + (Number((ds.data || [])[i]) || 0), 0),
-        color: (typeof playerColor === 'function' ? playerColor(player) : null) || ACCENT
+        color: (typeof playerColor === 'function' ? playerColor(player) : null) || theme.accent
       })).filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 8);
 
       if (playerTotals.length) {
-        const pillW = Math.round((W - 20 * S) / playerTotals.length);
+        const itemW = Math.round((cardWidth - (playerTotals.length - 1) * Math.round(8 * S)) / playerTotals.length);
         const useAvatars = opts.avatars && avatarImages && avatarImages.size > 0;
+
         playerTotals.forEach((t, i) => {
-          const px = Math.round(10 * S) + i * pillW;
+          const px = sideMargin + i * (itemW + Math.round(8 * S));
           const py = yOff;
-          const pw = pillW - Math.round(6 * S);
-          const ph = Math.round(38 * S);
-          // Pill background + border
-          ctx.fillStyle = t.color; ctx.globalAlpha = 0.18;
-          roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.fill();
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = t.color; ctx.lineWidth = Math.round(1.5 * S); ctx.globalAlpha = 0.5;
-          roundRect(ctx, px, py, pw, ph, Math.round(7 * S)); ctx.stroke();
-          ctx.globalAlpha = 1;
+          const pw = itemW;
+          const ph = playersH;
+
+          drawCard(px, py, pw, ph, Math.round(8 * S));
+
+          ctx.fillStyle = t.color; ctx.globalAlpha = 0.15;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.fill(); ctx.globalAlpha = 1;
+
+          ctx.strokeStyle = t.color; ctx.lineWidth = Math.max(1, Math.round(1.5 * S)); ctx.globalAlpha = 0.6;
+          roundRect(ctx, px, py, pw, ph, Math.round(8 * S)); ctx.stroke(); ctx.globalAlpha = 1;
+
           if (useAvatars) {
-            // Avatar left, text right
             const avR = Math.round(13 * S);
-            const avCX = px + Math.round(16 * S);
+            const avCX = px + Math.round(18 * S);
             const avCY = py + ph / 2;
             drawAvatarOnCanvas(ctx, avatarImages.get(t.name) || { img: null, color: t.color, initial: t.name.charAt(0).toUpperCase() }, avCX, avCY, avR, S);
-            const textX = px + Math.round(34 * S);
-            const maxChars = Math.max(4, Math.floor((pw - Math.round(38 * S)) / Math.round(7 * S)));
+
+            const textX = px + Math.round(36 * S);
+            const maxChars = Math.max(4, Math.floor((pw - Math.round(40 * S)) / Math.round(7 * S)));
             const nameStr = t.name.length > maxChars ? t.name.slice(0, maxChars - 1) + '…' : t.name;
-            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(11 * S) + 'px sans-serif';
+
+            ctx.fillStyle = theme.fg; ctx.font = '700 ' + Math.round(11 * S) + 'px sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText(t.total + ' pts', textX, py + Math.round(15 * S));
-            ctx.fillStyle = MUTED; ctx.font = Math.round(9 * S) + 'px sans-serif';
-            ctx.fillText(nameStr, textX, py + Math.round(28 * S));
-            ctx.textAlign = 'left';
+            ctx.fillText(t.total + ' pts', textX, py + Math.round(22 * S));
+            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(9 * S) + 'px sans-serif';
+            ctx.fillText(nameStr, textX, py + Math.round(40 * S));
           } else {
-            // Text-only (original)
-            ctx.fillStyle = FG; ctx.font = 'bold ' + Math.round(13 * S) + 'px sans-serif';
+            const medal = RANK_MEDALS[i] || ('#' + (i + 1));
+            ctx.fillStyle = theme.fg; ctx.font = '700 ' + Math.round(12 * S) + 'px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(t.total + ' pts', px + pw / 2, py + Math.round(16 * S));
-            ctx.fillStyle = MUTED; ctx.font = Math.round(10 * S) + 'px sans-serif';
-            ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(30 * S));
+            ctx.fillText(medal + ' ' + t.total + ' pts', px + pw / 2, py + Math.round(22 * S));
+            ctx.fillStyle = theme.muted; ctx.font = '600 ' + Math.round(9.5 * S) + 'px sans-serif';
+            ctx.fillText(t.name.length > 12 ? t.name.slice(0, 11) + '…' : t.name, px + pw / 2, py + Math.round(42 * S));
             ctx.textAlign = 'left';
           }
         });
+        yOff += playersH + spacing;
       }
-      yOff += playersH;
     }
 
-    // Top mover pill (biggest change vs. previous equivalent period)
-    if (topMoverH) {
-      const mover = opts._topMoverResult;
-      const isUp = mover.delta >= 0;
-      const color = isUp ? '#2ed573' : '#ff4757';
-      ctx.fillStyle = color; ctx.globalAlpha = 0.15;
-      roundRect(ctx, Math.round(10 * S), yOff, W - Math.round(20 * S), topMoverH - Math.round(4 * S), Math.round(7 * S));
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = FG;
-      ctx.font = 'bold ' + Math.round(12 * S) + 'px sans-serif';
-      ctx.textAlign = 'left';
-      const arrow = isUp ? '▲' : '▼';
-      ctx.fillText(arrow + ' Plus forte progression : ' + mover.name + ' (' + (isUp ? '+' : '') + mover.delta + ' pts)', Math.round(18 * S), yOff + Math.round(19 * S));
-      yOff += topMoverH;
-    }
-
-    // Legend strip
+    // ── 7. LEGEND STRIP ──
     if (legendH && currentChartData && currentChartData.datasets) {
+      drawCard(sideMargin, yOff, cardWidth, legendH, Math.round(8 * S));
+
       const datasets = currentChartData.datasets.slice(0, 8);
-      const itemW = Math.round((W - 20 * S) / Math.max(datasets.length, 1));
+      const itemW = Math.round((cardWidth - Math.round(16 * S)) / Math.max(datasets.length, 1));
       datasets.forEach((ds, i) => {
-        const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || ACCENT);
-        const lx = Math.round(10 * S) + i * itemW;
-        const ly = yOff + Math.round(6 * S);
+        const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : (ds.backgroundColor || theme.accent);
+        const lx = sideMargin + Math.round(12 * S) + i * itemW;
+        const ly = yOff + legendH / 2;
         const dotR = Math.round(5 * S);
+
         ctx.beginPath();
-        ctx.arc(lx + dotR, ly + dotR, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.fillStyle = FG;
-        ctx.font = Math.round(10 * S) + 'px sans-serif';
+        ctx.arc(lx + dotR, ly, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+
+        ctx.fillStyle = theme.fg;
+        ctx.font = '600 ' + Math.round(10 * S) + 'px sans-serif';
+        ctx.textBaseline = 'middle';
         const name = ds.label || '';
-        ctx.fillText(name.length > 14 ? name.slice(0, 13) + '…' : name, lx + dotR * 2 + Math.round(4 * S), ly + dotR + Math.round(4 * S));
+        ctx.fillText(name.length > 14 ? name.slice(0, 13) + '…' : name, lx + dotR * 2 + Math.round(6 * S), ly);
       });
-      yOff += legendH;
+      ctx.textBaseline = 'alphabetic';
+      yOff += legendH + spacing;
     }
 
-    // Footer
+    // ── 8. FOOTER & WATERMARK ──
     if (opts.footer !== false) {
-      ctx.fillStyle = MUTED;
+      ctx.fillStyle = theme.muted;
       ctx.font = Math.round(10 * S) + 'px sans-serif';
-      ctx.fillText('Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR'), Math.round(10 * S), H - Math.round(6 * S));
+      ctx.textAlign = 'left';
+      ctx.fillText('✨ Tops des Tops — Exporté le ' + new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), sideMargin, H - Math.round(10 * S));
     }
 
-    // Watermark
     if (opts.watermark) {
       ctx.save();
       ctx.translate(W / 2, H / 2);
       ctx.rotate(-Math.PI / 6);
-      ctx.font = 'bold ' + Math.round(72 * S) + 'px sans-serif';
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+      ctx.font = '700 ' + Math.round(68 * S) + 'px sans-serif';
+      ctx.fillStyle = theme.isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.035)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText((opts.watermarkText || 'Tops des Tops').toUpperCase(), 0, 0);
@@ -9533,14 +9927,30 @@
   async function generateInfographic(opts) {
     const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), opts.avatars);
     const canvas = buildInfographicCanvas(opts, opts.scale, avatarImages);
+    
     if (opts.format === 'pdf') {
       loadScriptOnce(EXPORT_LIBS.jspdf).then(() => {
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('landscape', 'px', [canvas.width / opts.scale, canvas.height / opts.scale]);
+        const isLandscape = canvas.width >= canvas.height;
+        const pdf = new jsPDF(isLandscape ? 'landscape' : 'portrait', 'px', [canvas.width / opts.scale, canvas.height / opts.scale]);
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / opts.scale, canvas.height / opts.scale);
         pdf.save('tops-des-tops-infographie.pdf');
         showToast('PDF généré !', 'success');
       }).catch(e => showToast('Erreur PDF : ' + e.message, 'error'));
+    } else if (opts.format === 'svg') {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const svgString = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><image width="${canvas.width}" height="${canvas.height}" xlink:href="${dataUrl}"/></svg>`;
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'tops-des-tops-infographie.svg';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('Export SVG OK', 'success');
+      } catch (e) {
+        showToast('Erreur SVG : ' + e.message, 'error');
+      }
     } else {
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/' + opts.format);
@@ -9550,18 +9960,19 @@
     }
   }
 
-  const EXPORT_OPTS_STORAGE_KEY = 'exportOpts_v1';
+  const EXPORT_OPTS_STORAGE_KEY = 'exportOpts_v2';
 
   function defaultExportOpts() {
     return {
       format:        'png',
-      theme:         document.body.classList.contains('light') ? 'light' : 'dark',
+      theme:         'dark',
+      aspectRatio:   'auto',
+      scale:         2,
       title:         true,
       period:        true,
       stats:         true,
       players:       true,
       avatars:       true,
-      scale:         1,
       legend:        true,
       watermark:     true,
       watermarkText: 'Tops des Tops',
@@ -9589,13 +10000,12 @@
       const toStore = Object.assign({}, opts);
       delete toStore._topMoverResult;
       localStorage.setItem(EXPORT_OPTS_STORAGE_KEY, JSON.stringify(toStore));
-    } catch (e) { /* localStorage indisponible (mode privé, quota) — réglages non persistés, sans impact fonctionnel */ }
+    } catch (e) {}
   }
 
   function openExportModal() {
     if (!currentChart) { showToast('Aucun graphique à exporter.', 'error'); return; }
 
-    // Modal state
     let exportOpts = loadStoredExportOpts();
 
     const overlay = document.createElement('div');
@@ -9631,7 +10041,7 @@
     // Helper: checkbox option builder
     const checkOpt = (label, key) => {
       const wrap = document.createElement('label');
-      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;';
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;user-select:none;';
       const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = exportOpts[key];
       chk.addEventListener('change', () => { exportOpts[key] = chk.checked; saveExportOpts(exportOpts); updatePreview(); });
       wrap.appendChild(chk); wrap.appendChild(document.createTextNode(label));
@@ -9639,7 +10049,7 @@
     };
 
     const copyBtn = document.createElement('button');
-    copyBtn.className = 'secondary'; copyBtn.textContent = '📋 Copier'; copyBtn.type = 'button';
+    copyBtn.className = 'secondary'; copyBtn.textContent = '📋 Copier HD'; copyBtn.type = 'button';
     copyBtn.style.display = (window.ClipboardItem && exportOpts.format !== 'pdf') ? 'inline-block' : 'none';
     copyBtn.addEventListener('click', async () => {
       try {
@@ -9647,40 +10057,86 @@
         const canvas = buildInfographicCanvas(exportOpts, exportOpts.scale, avatarImages);
         const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
-        showToast('Image copiée !', 'success');
+        showToast('Image copiée dans le presse-papier !', 'success');
       } catch (e) {
         showToast('Copie impossible : ' + e.message, 'error');
       }
     });
 
-    const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une infographie';
+    const titleEl = document.createElement('h3'); titleEl.textContent = '🎨 Exporter une Infographie HD/4K';
     box.appendChild(titleEl);
-    box.appendChild(pillGroup('Format', [{v:'png',t:'PNG'},{v:'jpeg',t:'JPEG'},{v:'pdf',t:'PDF'}], 'format'));
-    box.appendChild(pillGroup('Thème', [{v:'dark',t:'🌙 Sombre'},{v:'light',t:'☀️ Clair'}], 'theme'));
-    box.appendChild(pillGroup('Résolution', [{v:1,t:'Normal'},{v:2,t:'HD ×2'},{v:3,t:'4K ×3'}], 'scale'));
+
+    // Presets Row
+    const presetsWrap = document.createElement('div');
+    presetsWrap.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;background:rgba(255,255,255,0.04);padding:8px;border-radius:10px;margin-bottom:2px;';
+    const presetLbl = document.createElement('div'); presetLbl.style.cssText = 'width:100%;font-size:0.75rem;color:var(--text-muted);font-weight:600;';
+    presetLbl.textContent = '⚡ Profils Rapides :';
+    presetsWrap.appendChild(presetLbl);
+
+    const addPresetBtn = (text, applyFn) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'export-pill';
+      btn.style.cssText = 'padding:4px 10px;font-size:0.78rem;';
+      btn.textContent = text;
+      btn.addEventListener('click', () => {
+        applyFn();
+        saveExportOpts(exportOpts);
+        overlay.remove();
+        openExportModal();
+      });
+      presetsWrap.appendChild(btn);
+    };
+
+    addPresetBtn('📱 Réseaux (1:1 Dark)', () => {
+      exportOpts.aspectRatio = '1:1'; exportOpts.theme = 'dark'; exportOpts.scale = 2;
+    });
+    addPresetBtn('📊 Rapport (16:9 Light)', () => {
+      exportOpts.aspectRatio = '16:9'; exportOpts.theme = 'light'; exportOpts.scale = 2;
+    });
+    addPresetBtn('✨ Adaptatif Ultra-HD (4K)', () => {
+      exportOpts.aspectRatio = 'auto'; exportOpts.theme = 'purple'; exportOpts.scale = 3;
+    });
+    box.appendChild(presetsWrap);
+
+    box.appendChild(pillGroup('Format d\'export', [
+      { v: 'png', t: 'PNG HD' }, { v: 'jpeg', t: 'JPEG' }, { v: 'svg', t: 'SVG Vector' }, { v: 'pdf', t: 'PDF' }
+    ], 'format'));
+
+    box.appendChild(pillGroup('Thème visuel', [
+      { v: 'dark', t: '🌙 Cyber' }, { v: 'light', t: '☀️ Executive' }, { v: 'purple', t: '🔮 Deluxe' }, { v: 'ocean', t: '🌊 Océan' }, { v: 'emerald', t: '🌲 Émeraude' }
+    ], 'theme'));
+
+    box.appendChild(pillGroup('Ratio d\'aspect', [
+      { v: 'auto', t: '📐 Auto' }, { v: '16:9', t: '🖥️ 16:9' }, { v: '1:1', t: '⏹️ 1:1' }, { v: '9:16', t: '📱 9:16' }
+    ], 'aspectRatio'));
+
+    box.appendChild(pillGroup('Résolution & Finesse', [
+      { v: 1, t: 'Normal (1x)' }, { v: 2, t: 'HD (2x)' }, { v: 3, t: '4K (3x)' }
+    ], 'scale'));
 
     const optsGroup = document.createElement('div');
     optsGroup.className = 'export-opt-group';
-    const optsLbl = document.createElement('label'); optsLbl.textContent = 'Options';
+    const optsLbl = document.createElement('label'); optsLbl.textContent = 'Éléments d\'infographie';
     optsGroup.appendChild(optsLbl);
-    optsGroup.appendChild(checkOpt('Inclure le titre & période', 'title'));
-    optsGroup.appendChild(checkOpt('Inclure la période (droite)', 'period'));
-    optsGroup.appendChild(checkOpt('Totaux par catégorie (pills)', 'stats'));
-    optsGroup.appendChild(checkOpt('Totaux par joueur (pills)', 'players'));
+    optsGroup.appendChild(checkOpt('En-tête (Titre & App)', 'title'));
+    optsGroup.appendChild(checkOpt('Badge Période (dates)', 'period'));
+    optsGroup.appendChild(checkOpt('Cartes Catégories (badges #1 #2 #3)', 'stats'));
+    optsGroup.appendChild(checkOpt('Cartes Joueurs (badges #1 #2 #3)', 'players'));
     optsGroup.appendChild(checkOpt('Avatars des joueurs', 'avatars'));
-    optsGroup.appendChild(checkOpt('Plus forte progression', 'topMover'));
-    optsGroup.appendChild(checkOpt('Pied de page (date export)', 'footer'));
+    optsGroup.appendChild(checkOpt('Plus forte progression (Top Mover)', 'topMover'));
+    optsGroup.appendChild(checkOpt('Pied de page & horodatage', 'footer'));
     box.appendChild(optsGroup);
 
-    // Groupe avancé
     const advGroup = document.createElement('div');
     advGroup.className = 'export-opt-group';
-    const advLbl = document.createElement('label'); advLbl.textContent = 'Contenu avancé';
+    const advLbl = document.createElement('label'); advLbl.textContent = 'Options avancées';
     advGroup.appendChild(advLbl);
     advGroup.appendChild(checkOpt('Légende du graphique', 'legend'));
+    
     const wmWrap = document.createElement('div');
     wmWrap.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
-    const wmCheck = checkOpt('Filigrane', 'watermark');
+    const wmCheck = checkOpt('Filigrane de fond', 'watermark');
     const wmInput = document.createElement('input');
     wmInput.type = 'text';
     wmInput.value = exportOpts.watermarkText;
@@ -9700,29 +10156,27 @@
     advGroup.appendChild(checkOpt('Résumé des filtres actifs', 'filters'));
     box.appendChild(advGroup);
 
-    // Titre personnalisé
     const titleGroup = document.createElement('div');
     titleGroup.className = 'export-opt-group';
     const titleLbl = document.createElement('label'); titleLbl.textContent = 'Titre personnalisé (optionnel)';
     const titleIn  = document.createElement('input');
-    titleIn.type = 'text'; titleIn.placeholder = 'Laissez vide pour le titre auto';
+    titleIn.type = 'text'; titleIn.placeholder = 'Laissez vide pour le titre automatique';
+    titleIn.value = exportOpts.customTitle || '';
     titleIn.style.cssText = 'margin-top:4px;';
     titleIn.addEventListener('input', () => { exportOpts.customTitle = titleIn.value.trim(); updatePreview(); });
     titleGroup.appendChild(titleLbl); titleGroup.appendChild(titleIn);
     box.appendChild(titleGroup);
 
-    // Preview area
     const prevWrap = document.createElement('div');
     prevWrap.className = 'export-preview-wrap';
-    const prevImg = document.createElement('img'); prevImg.alt = 'Aperçu';
+    const prevImg = document.createElement('img'); prevImg.alt = 'Aperçu Infographie';
     prevWrap.appendChild(prevImg);
     box.appendChild(prevWrap);
 
-    // Action buttons
     const btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
     const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Annuler'; cancelBtn.type = 'button';
+    cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Fermer'; cancelBtn.type = 'button';
     cancelBtn.addEventListener('click', () => overlay.remove());
     const dlBtn = document.createElement('button');
     dlBtn.className = 'primary'; dlBtn.textContent = '⬇️ Télécharger'; dlBtn.type = 'button';
@@ -9731,11 +10185,9 @@
     box.appendChild(btnRow);
 
     overlay.appendChild(box);
-    // Close on backdrop click
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 
-    // Live preview (always at 1x for speed) — async for avatar loading
     async function updatePreview() {
       if (exportOpts.topMover) {
         await new Promise(resolve => computeTopMover(currentChartData, mover => {
