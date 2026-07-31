@@ -10,6 +10,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Ajout d'une barre de contrôle interactive sur la page du Changelog (recherche instantanée par mots-clés, filtrage par type de modification ✨/⚡/🐛/🗑️, bascule d'affichage Humanisé/Technique/Tous, tri chronologique et sélection par plage de versions).
 **Technique** : `Index.html` — intégration de la barre de filtres dans `#stab-changelog`, création du moteur de rendu réactif `renderChangelogView()`, de `initChangelogFilters()` et du remplissage automatique des sélecteurs de plage `populateVersionSelects()`.
 
+### Corrigé
+**Humanisé** : Harmonie parfaite des couleurs des boutons de filtres du Changelog avec les étiquettes des catégories du corps (Ajouté en vert, Modifié en bleu, Corrigé en orange, Supprimé en rouge).
+**Technique** : `Index.html` — création des règles CSS `.cl-cat-chip` basées sur les variables sémantiques `--success`, `--info`, `--warn`, `--error` et suppression des styles inlines incohérents.
+
 ### Modifié
 **Humanisé** : Refactorisation complète du moteur d'affichage du Changelog pour garantir une modularité maximale, zéro duplication et un traitement instantané sans rechargement.
 **Technique** : `Index.html` — séparation de la logique selon les principes DRY/SOLID/KISS avec `parseRawChangelogMarkdown()`, `formatChangelogBody()` et `buildChangelogVersionCard()`.

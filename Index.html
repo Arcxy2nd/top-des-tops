@@ -2929,6 +2929,15 @@
   .cl-modified { background: rgba(124, 140, 255, 0.15); color: var(--info); }
   .cl-fixed { background: rgba(255, 165, 0, 0.15); color: var(--warn); }
   .cl-removed { background: rgba(255, 71, 87, 0.15); color: var(--error); }
+  .cl-cat-chip {
+    padding: 3px 10px; border-radius: 16px; font-size: 0.76rem; font-weight: 700;
+    cursor: pointer; transition: all 0.15s ease; opacity: 0.4; border: 1px solid transparent;
+  }
+  .cl-cat-chip.active { opacity: 1; }
+  .cl-cat-chip[data-cat="Ajouté"] { border-color: var(--success); background: rgba(46, 213, 115, 0.15); color: var(--success); }
+  .cl-cat-chip[data-cat="Modifié"] { border-color: var(--info); background: rgba(124, 140, 255, 0.15); color: var(--info); }
+  .cl-cat-chip[data-cat="Corrigé"] { border-color: var(--warn); background: rgba(255, 165, 0, 0.15); color: var(--warn); }
+  .cl-cat-chip[data-cat="Supprimé"] { border-color: var(--error); background: rgba(255, 71, 87, 0.15); color: var(--error); }
   .cl-tag {
     display: inline-block; font-size: 0.72rem; font-weight: 700;
     padding: 2px 7px; border-radius: 4px; margin-right: 6px;
@@ -3906,10 +3915,10 @@
             <!-- Pilules de catégories -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <span style="font-size:0.76rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-right:4px;">Catégories :</span>
-              <button class="cl-cat-chip active" data-cat="Ajouté" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(46,213,115,0.4); background:rgba(46,213,115,0.15); color:var(--success);">✨ Ajouté</button>
-              <button class="cl-cat-chip active" data-cat="Modifié" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(255,165,2,0.4); background:rgba(255,165,2,0.15); color:var(--warn);">⚡ Modifié</button>
-              <button class="cl-cat-chip active" data-cat="Corrigé" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(255,71,87,0.4); background:rgba(255,71,87,0.15); color:var(--error);">🐛 Corrigé</button>
-              <button class="cl-cat-chip active" data-cat="Supprimé" style="padding:3px 10px; border-radius:16px; font-size:0.76rem; font-weight:700; cursor:pointer; border:1px solid rgba(124,140,255,0.4); background:rgba(124,140,255,0.15); color:var(--info);">🗑️ Supprimé</button>
+              <button class="cl-cat-chip active" data-cat="Ajouté">✨ Ajouté</button>
+              <button class="cl-cat-chip active" data-cat="Modifié">⚡ Modifié</button>
+              <button class="cl-cat-chip active" data-cat="Corrigé">🐛 Corrigé</button>
+              <button class="cl-cat-chip active" data-cat="Supprimé">🗑️ Supprimé</button>
             </div>
 
             <!-- Plage de versions -->
@@ -5423,12 +5432,10 @@
           if (_clActiveCats.size > 1) {
             _clActiveCats.delete(cat);
             btn.classList.remove('active');
-            btn.style.opacity = '0.4';
           }
         } else {
           _clActiveCats.add(cat);
           btn.classList.add('active');
-          btn.style.opacity = '1';
         }
         renderChangelogView();
       });
