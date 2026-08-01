@@ -8,6 +8,13 @@ Au début de chaque session (rituel d'initialisation, prise de connaissance du c
 
 ---
 
+## RÈGLE IMPÉRATIVE — PUSH SYSTÉMATIQUE SUR LES DEUX CIBLES (« Site tops » & « Tops RDS »)
+
+Toute modification livrée doit **IMPÉRATIVEMENT** être poussée via `git push` sur `main` afin d'actualiser et déployer **les deux instances de l'application (« Site tops » et « Tops RDS »)** via le workflow GitHub Actions (`.github/workflows/deploy-gas.yml`).
+En cas d'opération de déploiement manuel ou `clasp push` hors CI, il faut **OBLIGATOIREMENT** exécuter la mise à jour sur les 2 cibles listées dans `deploy-targets.json`. Aucune livraison ne doit laisser l'une des deux copies non mise à jour.
+
+---
+
 ## §0 — RITUEL D'INITIALISATION
 
 Au tout début de chaque session, avant toute action, lire dans cet ordre :
@@ -295,9 +302,9 @@ Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé`. Les deu
 
 Le projet n'a pas de suite de tests automatisés. Vérifier les changements via le harness Node VM local ou l'app déployée. Invoquer `/verify` après tout changement fonctionnel.
 
-### Commit & push
+### Commit & push (Double Déploiement Obligatoire)
 
-Toute modification livrée doit être commit **et poussée** (`git push`) — pas seulement commit en local. Le push déclenche le déploiement automatique (§10), donc un commit non poussé ne se retrouve jamais dans l'app en ligne. **Ne jamais demander la permission de committer/pousser** — c'est systématique, pas un choix à valider à chaque fois.
+Toute modification livrée doit être commit **et systématiquement poussée (`git push`)**. Le push déclenche l'auto-sync GitHub Actions (§10) qui déploie automatiquement le code vers **les deux cibles simultanément (« Site tops » et « Tops RDS »)**. Un commit gardé en local ou non poussé prive les deux instances des mises à jour. Ne jamais oublier de push sur les deux cibles, et **ne jamais demander la permission de committer/pousser** — c'est systématique et obligatoire.
 
 **Deux comptes GitHub actifs sur la machine** (`Arcxy2nd` et `zebi-wouldik`) — avant tout `pull`/`push`/`commit` distant, vérifier le compte actif (`gh auth status`) et basculer sur `Arcxy2nd` si besoin (`gh auth switch --user Arcxy2nd`).
 
