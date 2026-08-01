@@ -2532,9 +2532,9 @@
       background: var(--card); border: 1px solid var(--border);
       border-top: 3px solid var(--phrase-color, var(--accent));
       display: flex; flex-direction: column; gap: 6px;
-      position: relative; overflow: hidden; cursor: pointer;
+      position: relative; overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+      animation: fadeIn 0.25s ease both; transition: transform 0.18s, box-shadow 0.18s;
       scroll-snap-align: start;
     }
     .phrase-cat-card::before {
@@ -2543,13 +2543,8 @@
       opacity: 0.04; pointer-events: none;
     }
     .phrase-cat-card:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-      border-color: var(--phrase-color, var(--accent));
-    }
-    .phrase-cat-card.active-filter {
-      border: 1.5px solid var(--phrase-color, var(--accent));
-      box-shadow: 0 0 12px var(--phrase-color, var(--accent)), 0 4px 14px rgba(0,0,0,0.2);
     }
     .phrase-cat-bg-avatar {
       position: absolute; right: 0; top: 0; bottom: 0; width: 90px;
@@ -6550,7 +6545,6 @@
 
       const catHeaderLabel = document.createElement('span');
       catHeaderLabel.textContent = '💬 Commentaires par Top';
-      catHeaderLabel.title = 'Cliquez sur une carte pour filtrer le Dashboard sur ce Top';
       catHeader.appendChild(catHeaderLabel);
 
       const autoplayBtn = document.createElement('button');
@@ -6572,12 +6566,10 @@
         catItems.forEach((item, i) => {
           const col = typeof categoryColor === 'function' ? categoryColor(item.cat.name) : 'var(--accent)';
           const el  = document.createElement('div');
-          const isSelected = selectedCategoryChips.has(item.cat.name);
 
-          el.className = 'phrase-cat-card' + (isSelected ? ' active-filter' : '');
+          el.className = 'phrase-cat-card';
           el.style.setProperty('--phrase-color', col);
           el.style.animationDelay = (i * 0.05) + 's';
-          el.title = isSelected ? `Filtre actif : ${item.cat.name} (cliquer pour tout réafficher)` : `Cliquer pour filtrer uniquement sur ${item.cat.name}`;
 
           // Badge d'intensité de rivalité
           let badgeHtml = '';
@@ -6589,14 +6581,11 @@
             badgeHtml = '<div class="phrase-cat-badge active-top">⚡ Top actif</div>';
           }
 
-          const filterCheck = isSelected ? '<span class="phrase-cat-filter-indicator">✓</span>' : '';
-
           el.innerHTML =
             '<div class="phrase-cat-bg-avatar"></div>' +
             '<div class="phrase-cat-header">' +
               '<span>' + escapeHtml(item.cat.icon || '🎯') + '</span>' +
               '<span>' + escapeHtml(item.cat.name) + '</span>' +
-              filterCheck +
             '</div>' +
             badgeHtml +
             '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
@@ -6604,18 +6593,6 @@
           const catPlayer = cachedPlayers.find(p => p.name === item.topPlayer);
           const catBg = el.querySelector('.phrase-cat-bg-avatar');
           catBg.style.backgroundImage = 'url(' + getAvatarUrl(item.topPlayer, catPlayer ? catPlayer.meta : '') + ')';
-
-          // Interaction au clic : Filtrage interactif sur la catégorie
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedCategoryChips.has(item.cat.name)) {
-              selectedCategoryChips.delete(item.cat.name);
-            } else {
-              selectedCategoryChips.add(item.cat.name);
-            }
-            renderCategoryChips();
-            scheduleApplyFilters();
-          });
 
           body.appendChild(el);
         });

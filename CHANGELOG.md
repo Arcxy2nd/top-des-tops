@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.6.2] - 2026-08-01
+
+### Modifié
+**Humanisé** : Retrait de l'action au clic de filtrage sur les cartes des Commentaires par Top afin d'éviter les interactions involontaires.
+**Technique** : `Index.html` — suppression du gestionnaire d'événements `click` sur `.phrase-cat-card` et de la classe CSS `.active-filter`.
+
 ## [v2.6.1] - 2026-08-01
 
 ### Ajouté
