@@ -95,3 +95,16 @@ Si l'app affiche une erreur `SPREADSHEET_ID est manquant`, il faut le configurer
    - Propriété : `SPREADSHEET_ID`
    - Valeur : l'ID de ta feuille Google Sheets *(c'est la partie longue dans l'URL de ton sheet, entre `/d/` et `/edit`)*
 5. Clique sur **"Enregistrer"**
+
+---
+
+## Note — Limite de 200 versions dans Google Apps Script (« Cannot create more versions »)
+
+Google Apps Script limite chaque projet à 200 versions historiques. Si cette limite est atteinte sur l'un des deux projets Apps Script (« Site tops » ou « Tops RDS »), le workflow d'auto-déploiement GitHub Actions affiche une erreur `Cannot create more versions`.
+
+**Pour débloquer une instance ayant atteint 200 versions :**
+
+1. Ouvre le projet correspondant sur [script.google.com](https://script.google.com) (ScriptId présent dans `deploy-targets.json`)
+2. Dans le menu de gauche, clique sur **Paramètres du projet** (⚙️) ou accède à la liste des versions/déploiements
+3. Supprime ou nettoie les anciennes versions historiques inutilisées
+4. Relance le workflow dans GitHub Actions (ou effectue un nouveau `git push`)

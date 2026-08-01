@@ -40,32 +40,48 @@ EOF
   deployments_output=$(clasp deployments)
   echo "$deployments_output"
 
-  # clasp deployments prints lines like:
-  #   - AKfycbyyyy @HEAD (Development)
-  #   - AKfycbzzzz @3 - auto: <sha>
-  # We want the deployment ID that is NOT the @HEAD dev deployment.
-  local old_deployment_id
-  old_deployment_id=$(echo "$deployments_output" | grep '^- ' | grep -v '@HEAD' | awk '{print $2}' | tail -n1)
+  # Extract ALL old non-HEAD deployment IDs
+  local old_deployment_ids
+  old_deployment_ids=$(echo "$deployments_output" | grep '^- ' | grep -v '@HEAD' | awk '{print $2}')
+  local last_deployment_id
+  last_deployment_id=$(echo "$old_deployment_ids" | tail -n1)
 
-  if [ -z "${old_deployment_id:-}" ]; then
-    echo "No previous non-HEAD deployment found for '$name'. Skipping undeploy."
-  else
-    echo "Undeploying previous deployment: $old_deployment_id"
-    clasp undeploy "$old_deployment_id" || echo "WARNING: undeploy failed for '$name', continuing anyway."
+  echo "== 3/4: Creating or updating deployment =="
+  local deploy_output=""
+  local new_deployment_id=""
+
+  # Attempt to update existing deployment first if available
+  if [ -n "${last_deployment_id:-}" ]; then
+    echo "Attempting to update existing deployment ($last_deployment_id)..."
+    deploy_output=$(clasp deploy -i "$last_deployment_id" -d "$DEPLOY_DESCRIPTION" 2>&1) || true
+    echo "$deploy_output"
+    if echo "$deploy_output" | grep -qE "Updated deployment|Deployed"; then
+      new_deployment_id="$last_deployment_id"
+    fi
   fi
 
-  echo "== 3/4: Creating new deployment =="
-  local deploy_output
-  deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION")
-  echo "$deploy_output"
-
-  # clasp deploy prints a line like: "Deployed AKfycbwwww @4"
-  local new_deployment_id
-  new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
+  # If update didn't work or no prior deployment, create a new one
+  if [ -z "${new_deployment_id:-}" ]; then
+    echo "Creating new deployment..."
+    deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION" 2>&1) || true
+    echo "$deploy_output"
+    new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
+  fi
 
   if [ -z "${new_deployment_id:-}" ]; then
-    echo "ERROR: could not parse the new deployment ID from clasp deploy output for '$name'." >&2
+    echo "ERROR: could not parse the deployment ID from clasp deploy output for '$name'." >&2
+    echo "NOTE: Si le projet Google Apps Script a atteint la limite de 200 versions, supprimez les anciennes versions historiques dans script.google.com (Paramètres du projet → Historique)." >&2
     return 1
+  fi
+
+  # Clean up any leftover old non-HEAD deployments other than the active one
+  if [ -n "${old_deployment_ids:-}" ]; then
+    for old_id in $old_deployment_ids; do
+      if [ "$old_id" != "$new_deployment_id" ]; then
+        echo "Undeploying obsolete deployment: $old_id"
+        clasp undeploy "$old_id" || echo "WARNING: undeploy failed for '$old_id', continuing anyway."
+      fi
+    done
   fi
 
   local new_url="https://script.google.com/macros/s/${new_deployment_id}/exec"
