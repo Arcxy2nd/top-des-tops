@@ -604,20 +604,20 @@
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-    /* ── CURSOR NEon BORDER — secondary buttons (same technique as .card spotlight) ── */
-    button.secondary {
+    /* ── CURSOR NEON BORDER (Spotlight effect on buttons, cards, pills & containers) ── */
+    .card, .spotlight-card, .qs-pill, .filter-panel, button, .fchip, .d-mode-btn, .export-btn, .chart-type-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .lot-row, .sub-top-item, .settings-section, .stat-card, .audit-card, .guide-card, .note-card, .modal-content, .phrase-item, .auto-rule-card, .custom-select-trigger, .nav-item, .subtab-btn {
       position: relative;
     }
-    button.secondary::before {
+    .card::before, .spotlight-card::before, .qs-pill::before, .filter-panel::before, button::before, .fchip::before, .d-mode-btn::before, .export-btn::before, .chart-type-btn::before, .who-am-i-btn::before, .nav-refresh-btn::before, .nav-bareme-btn::before, .nav-chat-btn::before, .quick-btn::before, .lot-row::before, .sub-top-item::before, .settings-section::before, .stat-card::before, .audit-card::before, .guide-card::before, .note-card::before, .modal-content::before, .phrase-item::before, .auto-rule-card::before, .custom-select-trigger::before, .nav-item::before, .subtab-btn::before {
       content: "";
       position: absolute;
       inset: 0;
       border-radius: inherit;
       padding: 1px;
       background: radial-gradient(
-        120px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-        rgba(124, 140, 255, 0.8),
-        transparent 80%
+        140px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        var(--border-accent, rgba(255, 71, 87, 0.45)),
+        transparent 75%
       );
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
@@ -625,8 +625,9 @@
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.25s ease;
+      z-index: 2;
     }
-    button.secondary:hover::before {
+    .card:hover::before, .spotlight-card:hover::before, .qs-pill:hover::before, .filter-panel:hover::before, button:hover::before, .fchip:hover::before, .d-mode-btn:hover::before, .export-btn:hover::before, .chart-type-btn:hover::before, .who-am-i-btn:hover::before, .nav-refresh-btn:hover::before, .nav-bareme-btn:hover::before, .nav-chat-btn:hover::before, .quick-btn:hover::before, .lot-row:hover::before, .sub-top-item:hover::before, .settings-section:hover::before, .stat-card:hover::before, .audit-card:hover::before, .guide-card:hover::before, .note-card:hover::before, .modal-content:hover::before, .phrase-item:hover::before, .auto-rule-card:hover::before, .custom-select-trigger:hover::before, .nav-item:hover::before, .subtab-btn:hover::before {
       opacity: 1;
     }
 
@@ -14453,15 +14454,14 @@
 
   // ── GSAP & SPOTLIGHT INITIALIZATION (Taste, Hyperframes, React-Bits) ──
   function initSpotlightCards() {
+    const selector = '.card, .spotlight-card, .qs-pill, .filter-panel, button, .fchip, .d-mode-btn, .export-btn, .chart-type-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .lot-row, .sub-top-item, .settings-section, .stat-card, .audit-card, .guide-card, .note-card, .modal-content, .phrase-item, .auto-rule-card, .custom-select-trigger, .nav-item, .subtab-btn';
     const handleMouseMove = (e) => {
-      const targets = document.querySelectorAll('.card, .spotlight-card, .qs-pill, .filter-panel, button.secondary');
-      targets.forEach(el => {
-        const rect = el.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        el.style.setProperty('--mouse-x', `${x}px`);
-        el.style.setProperty('--mouse-y', `${y}px`);
-      });
+      const target = e.target.closest(selector);
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+      }
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
   }

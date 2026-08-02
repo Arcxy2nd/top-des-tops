@@ -6,8 +6,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v2.9.2] - 2026-08-02
 
 ### Modifié
-**Humanisé** : Les boutons secondaires (gris neutres) ont maintenant un contour néon bleuté qui suit exactement le curseur quand on survole — le même effet que les cartes et panneaux du Dashboard. Rien d'animé en permanence, ça s'allume seulement là où se trouve la souris.
-**Technique** : `Index.html` — `button.secondary::before` avec `radial-gradient(120px circle at var(--mouse-x) var(--mouse-y), rgba(124,140,255,0.8), transparent 80%)` + `mask-composite: exclude` pour ne coloriser que le bord (1px padding). `initSpotlightCards()` étendu pour inclure `button.secondary` dans le `querySelectorAll` qui alimente `--mouse-x`/`--mouse-y`. Suppression des blocs CSS arc-en-ciel animés erronés des commits précédents.
+**Humanisé** : Le contour néon réactif au curseur est maintenant généralisé à tous les boutons, cartes, filtres, onglets, modales et conteneurs interactifs de l'application. Dès que la souris survole un élément, son bord s'illumine subtilement à l'endroit exact du curseur.
+**Technique** : `Index.html` — extension de la règle CSS de spotlight avec `radial-gradient` à tous les composants interactifs (`button`, `.card`, `.filter-panel`, `.qs-pill`, `.lot-row`, `.modal-content`, `.settings-section`, etc.) avec `-webkit-mask-composite: xor` / `mask-composite: exclude` ; optimisation de `initSpotlightCards()` grâce à `e.target.closest(selector)` pour un suivi ultra-fluide à 60 FPS sans surconsommation CPU.
 
 ## [v2.9.1] - 2026-08-02
 
