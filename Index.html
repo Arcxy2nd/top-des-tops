@@ -894,22 +894,15 @@
     .row-date-line {
       display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
-    /* ── CELLULE DATE & PANNEAU PÉRIODE (Layout fluide et adaptatif) ── */
+    /* .d-cell & .d-period : alignement strict 3 colonnes horizontales sans retour à la ligne */
     .d-cell {
-      display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; width: 100%;
+      display: flex !important; align-items: flex-start !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; width: 100% !important;
     }
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
     .d-period {
-      display: none; align-items: flex-start; gap: 10px; flex-wrap: wrap; flex: 1; min-width: 0;
-    }
-    .d-period-left-col {
-      display: flex; flex-direction: column; gap: 6px; background: var(--bg);
-      border: 1px solid var(--border); border-radius: 8px; padding: 8px; flex: 0 0 auto;
-    }
-    .d-period-right-col {
-      display: flex; flex-direction: column; gap: 6px; flex: 1 1 140px; min-width: 140px;
+      display: none; flex-direction: row !important; align-items: flex-start !important; gap: 8px !important; flex-wrap: nowrap !important; flex: 1 1 auto !important; min-width: 0 !important;
     }
     .row-tops-group {
       display: flex; flex-direction: column; gap: 6px;
@@ -1337,10 +1330,10 @@
     .d-mode-seg .d-mode-btn:hover { color: var(--text); }
     .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
 
-    /* Mini-calendrier : adaptatif et fluide */
+    /* Mini-calendrier : positionné au centre (emplacement cercle vert) */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 4px 8px; flex: 1 1 260px; max-width: 400px; box-sizing: border-box;
+      padding: 3px 6px; flex: 1 1 auto; max-width: 380px; min-width: 250px; width: auto; box-sizing: border-box; flex-shrink: 1;
     }
     .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.72rem; }
     .d-cal-title { font-size: 0.72rem; font-weight: 700; color: var(--text); }
