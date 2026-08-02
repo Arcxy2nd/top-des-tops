@@ -604,7 +604,7 @@
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-    /* ── CURSOR NEON BORDER (Spotlight effect on buttons, cards, pills & containers) ── */
+    /* ── CURSOR NEON BORDER (Intense spotlight effect with slow hue cycling) ── */
     .card, .spotlight-card, .qs-pill, .filter-panel, button, .fchip, .d-mode-btn, .export-btn, .chart-type-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .lot-row, .sub-top-item, .settings-section, .stat-card, .audit-card, .guide-card, .note-card, .modal-content, .phrase-item, .auto-rule-card, .custom-select-trigger, .nav-item, .subtab-btn {
       position: relative;
     }
@@ -613,10 +613,11 @@
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      padding: 1px;
+      padding: 1.5px;
       background: radial-gradient(
-        140px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-        var(--border-accent, rgba(255, 71, 87, 0.45)),
+        160px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        rgba(255, 60, 95, 0.95) 0%,
+        rgba(255, 60, 95, 0.5) 45%,
         transparent 75%
       );
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -624,11 +625,16 @@
       mask-composite: exclude;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.2s ease;
+      animation: neonHueCycle 10s linear infinite;
       z-index: 2;
     }
     .card:hover::before, .spotlight-card:hover::before, .qs-pill:hover::before, .filter-panel:hover::before, button:hover::before, .fchip:hover::before, .d-mode-btn:hover::before, .export-btn:hover::before, .chart-type-btn:hover::before, .who-am-i-btn:hover::before, .nav-refresh-btn:hover::before, .nav-bareme-btn:hover::before, .nav-chat-btn:hover::before, .quick-btn:hover::before, .lot-row:hover::before, .sub-top-item:hover::before, .settings-section:hover::before, .stat-card:hover::before, .audit-card:hover::before, .guide-card:hover::before, .note-card:hover::before, .modal-content:hover::before, .phrase-item:hover::before, .auto-rule-card:hover::before, .custom-select-trigger:hover::before, .nav-item:hover::before, .subtab-btn:hover::before {
       opacity: 1;
+    }
+    @keyframes neonHueCycle {
+      0%   { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
     }
 
     /* ── FILTER PANEL V2 (Taste & Impeccable Chips) ── */

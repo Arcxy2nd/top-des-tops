@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v2.9.2] - 2026-08-02
+## [v2.9.3] - 2026-08-02
+
+### Modifié
+**Humanisé** : Le contour néon au survol est désormais plus éclatant et fait tourner lentement ses couleurs (cycle chromatique continu en 10 secondes) au niveau du curseur sur tous les boutons et conteneurs.
+**Technique** : `Index.html` — augmentation de l'opacité et de la saturation du `radial-gradient` au curseur (de 0.45 à 0.95), élargissement du rayon (160px), et ajout de `@keyframes neonHueCycle` avec `filter: hue-rotate(0deg → 360deg)` en boucle continue (10s).
+
+## [v2.9.2] - 2026-08-02
 
 ### Modifié
 **Humanisé** : Le contour néon réactif au curseur est maintenant généralisé à tous les boutons, cartes, filtres, onglets, modales et conteneurs interactifs de l'application. Dès que la souris survole un élément, son bord s'illumine subtilement à l'endroit exact du curseur.
