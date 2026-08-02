@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.4] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Actualisation dynamique de l'ensemble des statistiques et cartes du Dashboard (Leader, Écart, Records, Tendances, Jour actif, Duos et Mentions) lors du passage entre Tops Principaux et Tops Alternatifs et lors des changements de filtres.
+**Technique** : `Code.gs` — ajout du paramètre `universe` sur `apiGetQuickStats`, `apiGetPlayerRecords`, `apiGetTrends`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs` et `apiGetMentionStats` pour basculer sur `AltStorageService.getAltLogs()` et isoler les clés de cache ; `Index.html` — création de `refreshDashboardStats()` appelée lors de `applyFilters()`, de la bascule d'univers et au démarrage.
+
 ## [v2.8.3] - 2026-08-02
 
 ### Corrigé

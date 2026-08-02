@@ -2133,10 +2133,11 @@ function apiGetPlayerTotals(players, startDate, endDate) {
   } catch(e) { return fail(e); }
 }
 
-function apiGetQuickStats() {
+function apiGetQuickStats(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
-    const logs = StorageService.getFilteredLogs(allPlayers, null, null, null);
+    const logs = isAlt ? AltStorageService.getAltLogs() : StorageService.getFilteredLogs(allPlayers, null, null, null);
 
     const totals = {};
     allPlayers.forEach(p => { totals[p] = 0; });
@@ -3002,15 +3003,16 @@ function apiGetInactivePlayers() {
   } catch(e) { return fail(e); }
 }
 
-function apiGetPlayerRecords() {
+function apiGetPlayerRecords(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
-    const key   = 'records_v' + _logsVersion();
+    const key   = 'records_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const rows = StorageService.getFullHistoryRowsCached();
+    const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
     const byPlayer = {};
     rows.forEach(r => (byPlayer[r.player] = byPlayer[r.player] || []).push(r));
 
@@ -3043,15 +3045,16 @@ function apiGetPlayerRecords() {
   } catch(e) { return fail(e); }
 }
 
-function apiGetTrends() {
+function apiGetTrends(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
-    const key   = 'trends_v' + _logsVersion();
+    const key   = 'trends_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const rows = StorageService.getFullHistoryRowsCached();
+    const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
     const now = new Date();
     const cutoff1 = new Date(now.getTime() - 30 * 86400000);
     const cutoff2 = new Date(now.getTime() - 60 * 86400000);
@@ -3093,15 +3096,16 @@ function apiGetTrends() {
   } catch(e) { return fail(e); }
 }
 
-function apiGetActiveWeekday() {
+function apiGetActiveWeekday(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
-    const key   = 'weekday_v' + _logsVersion();
+    const key   = 'weekday_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const rows = StorageService.getFullHistoryRowsCached();
+    const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
     const counts = [0, 0, 0, 0, 0, 0, 0]; // index = Date.getDay(), 0 = dimanche
     rows.forEach(r => { counts[r.date.getDay()]++; });
 
@@ -3117,15 +3121,16 @@ function apiGetActiveWeekday() {
   } catch(e) { return fail(e); }
 }
 
-function apiGetTopPlayerCategoryPairs() {
+function apiGetTopPlayerCategoryPairs(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
-    const key   = 'pairs_v' + _logsVersion();
+    const key   = 'pairs_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const rows = StorageService.getFullHistoryRowsCached();
+    const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
     const counts = {};
     rows.forEach(r => {
       const key = r.player + '|' + r.category;
@@ -3344,8 +3349,9 @@ function _countMentionsInText(text, playersSortedByLengthDesc) {
  *  joueurs qui mentionnent le plus (auteur = saisisseur réel de l'entrée, avec repli
  *  sur le joueur concerné pour les lignes sans saisisseur tracé, ou pour les notes),
  *  et la paire de joueurs qui se mentionnent mutuellement le plus. */
-function apiGetMentionStats() {
+function apiGetMentionStats(universe) {
   try {
+    const isAlt = (universe === 'alt');
     const players = SettingsService.getEntities('Players').map(p => p.name).filter(Boolean);
     if (!players.length) return { success: true, mostMentioned: [], mostMentioning: [], topDuo: null };
     const sorted = players.slice().sort((a, b) => b.length - a.length);
@@ -3368,7 +3374,8 @@ function apiGetMentionStats() {
       });
     }
 
-    StorageService.getFullHistoryRowsCached().forEach(r => process(r.description, r.saiseur || r.player));
+    const historyRows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
+    historyRows.forEach(r => process(r.description, r.saiseur || r.player));
     NotesService.getAllNotes().notes.forEach(n => process(n.text, n.player));
 
     const toSortedArray = obj => Object.keys(obj)

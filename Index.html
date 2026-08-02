@@ -5289,7 +5289,7 @@
     const recordValue  = document.getElementById('qsRecordValue');
     [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => skeletonizeText(el, 60));
 
-    callServer('apiGetQuickStats', [], res => {
+    callServer('apiGetQuickStats', [activeDashboardUniverse], res => {
       const s = res.stats;
       const leaderAvatar = document.getElementById('qsLeaderAvatar');
       const lastAvatar   = document.getElementById('qsLastAvatar');
@@ -14402,6 +14402,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
+        refreshDashboardStats();
       });
       univAltBtn.addEventListener('click', () => {
         if (activeDashboardUniverse === 'alt') return;
@@ -14412,6 +14413,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
+        refreshDashboardStats();
       });
     }
 
@@ -15390,11 +15392,20 @@
     return row;
   }
 
+  function refreshDashboardStats() {
+    loadQuickStats();
+    scanRecords();
+    loadTrends();
+    loadActiveWeekday();
+    scanTopPairs();
+    loadMentionStats();
+  }
+
   // ── RECORDS ──────────────────────────────────────────────────────────
   function scanRecords() {
     const container = document.getElementById('recordsResults');
     showSkeleton(container, { rows: 3, height: 40 });
-    callServer('apiGetPlayerRecords', [], res => {
+    callServer('apiGetPlayerRecords', [activeDashboardUniverse], res => {
       container.innerHTML = '';
       if (res.globalBest) {
         const gb = res.globalBest;
@@ -15447,7 +15458,7 @@
   let trendsChartInstance = null;
 
   function loadTrends() {
-    callServer('apiGetTrends', [], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances', err => {
+    callServer('apiGetTrends', [activeDashboardUniverse], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances', err => {
       const empty = document.getElementById('trendsEmpty');
       const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
       if (empty) empty.style.display = 'block';
@@ -15507,7 +15518,7 @@
   let weekdayChartInstance = null;
 
   function loadActiveWeekday() {
-    callServer('apiGetActiveWeekday', [], res => {
+    callServer('apiGetActiveWeekday', [activeDashboardUniverse], res => {
       const empty = document.getElementById('weekdayEmpty');
       const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
       if (!res.topWeekday) {
@@ -15554,7 +15565,7 @@
   function scanTopPairs() {
     const container = document.getElementById('pairsResults');
     showSkeleton(container, { rows: 3, height: 30 });
-    callServer('apiGetTopPlayerCategoryPairs', [], res => {
+    callServer('apiGetTopPlayerCategoryPairs', [activeDashboardUniverse], res => {
       container.innerHTML = '';
       if (!res.pairs.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
@@ -15592,7 +15603,7 @@
   function loadMentionStats() {
     const container = document.getElementById('mentionsResults');
     showSkeleton(container, { rows: 3, height: 30 });
-    callServer('apiGetMentionStats', [], res => {
+    callServer('apiGetMentionStats', [activeDashboardUniverse], res => {
       container.innerHTML = '';
       if (res.mostMentioned.length) {
         const list = mentionSection(container, '📣', 'Les plus mentionnés');
@@ -15934,13 +15945,7 @@
 
     // Differ de 150ms le chargement des statistiques secondaires du Dashboard
     // pour éviter d'inonder Google Apps Script de requêtes parallèles au démarrage
-    setTimeout(() => {
-      scanRecords();
-      loadTrends();
-      loadActiveWeekday();
-      scanTopPairs();
-      loadMentionStats();
-    }, 150);
+    setTimeout(refreshDashboardStats, 150);
   };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────
