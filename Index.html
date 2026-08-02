@@ -6505,8 +6505,8 @@
 
     // ── Commentaires de classement ──
     const activeRows = sortedRows.filter(r => r.total > 0);
-    const phrases = generateRankingPhrases(activeRows, settings.count);
-    if (phrases.length) {
+    const phrases = generateRankingPhrases(activeRows.length ? activeRows : sortedRows, settings.count);
+    if (phrases && phrases.length) {
       const podiumPhrases = phrases.filter(p => p.rank <= 3);
       const feedPhrases   = phrases.filter(p => p.rank > 3);
 
@@ -8734,7 +8734,7 @@
         renderChart(res.chartData, currentChartType);
         renderChartControls(currentChartType);
         const ranked = computeRankedTotals(res.chartData);
-        if (ranked.length) renderPhrasesCard(ranked);
+        renderPhrasesCard(ranked);
         if (onDone) onDone();
       }, 'Chargement Dashboard Alternatif');
       return;
@@ -8761,6 +8761,8 @@
         document.getElementById('chartWrapper').style.display  = 'block';
         renderChart(res.chartData, 'ranking');
         renderChartControls('ranking');
+        const ranked = computeRankedTotals(res.chartData);
+        renderPhrasesCard(ranked);
         if (onDone) onDone();
       }, 'Chargement total global');
       return;
@@ -8779,7 +8781,7 @@
       }
       // Phrases card always populated from global totals
       const ranked = computeRankedTotals(res.chartData);
-      if (ranked.length) renderPhrasesCard(ranked);
+      renderPhrasesCard(ranked);
       if (onDone) onDone();
     }, 'Chargement graphique');
   }
