@@ -844,11 +844,11 @@
 
     /* ── LAYOUT INTERNE LIGNE (top bar + contenu) ── */
 
-    /* Barre du haut : poignée + boutons dup/del allongés avec texte */
+    /* Barre du haut : poignée + Top Alt + boutons dup/del allongés avec texte */
     .row-topbar {
       display: flex; align-items: center; gap: 8px;
       background: rgba(0,0,0,0.12); border-radius: 6px;
-      padding: 5px 10px; margin-bottom: 6px;
+      padding: 5px 10px; margin-bottom: 8px; flex-wrap: wrap;
     }
     .row-topbar .row-drag-handle {
       padding: 0 4px; font-size: 1.1rem; flex-shrink: 0;
@@ -860,34 +860,32 @@
       display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : Joueur à gauche (50%), Top + Points à droite */
+    /* Rangée principale : 3 colonnes relatives côte à côte (Joueur, Top/Pts, Date) */
     .row-main {
-      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
     }
+    /* Colonne 1 : Joueur (30% relative) */
     .row-main .player-sel-wrap {
-      flex: 1 1 calc(50% - 6px); min-width: 150px;
+      flex: 1 1 30%; min-width: 140px;
     }
-    .row-main-right {
-      flex: 1 1 calc(50% - 6px); min-width: 220px;
+    /* Colonne 2 : Top principal, pts, tops supp, points rapides sur 2 lignes */
+    .row-main-pts-col {
+      flex: 1 1 35%; min-width: 160px;
       display: flex; flex-direction: column; gap: 6px;
     }
     .row-main-top-line {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      display: flex; align-items: center; gap: 6px;
     }
     .row-main-top-line .c-sel-wrap {
-      flex: 1 1 130px; min-width: 110px;
+      flex: 1; min-width: 100px;
     }
     .row-main-top-line .custom-pts-in {
-      width: 56px; flex-shrink: 0; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 6px 4px;
+      width: 52px; flex-shrink: 0; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 5px 2px;
       border: 1.5px solid var(--row-accent, var(--border)); border-radius: 8px; background: var(--bg); color: var(--text);
     }
-    .row-main-right .row-pts-line {
-      display: flex; justify-content: flex-end; align-items: center; margin-top: 2px;
-    }
-
-    /* Rangée Date + Top Alt sous la rangée principale */
-    .row-date-line {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+    /* Colonne 3 : Date (sur le côté, côte à côte) */
+    .row-main .d-cell {
+      flex: 1 1 30%; min-width: 180px; margin-top: 0;
     }
       display: flex; flex-direction: column; gap: 6px;
     }
@@ -917,17 +915,21 @@
     #entryContainer { min-height: 60px; }
     .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px; }
 
-    /* ── POINTS TOGGLE BUTTONS ── */
+    /* ── POINTS TOGGLE BUTTONS (Grille 2 lignes de 4 : 1 3 5 7 / 10 25 50 100) ── */
     .pts-toggle-wrap {
-      display: flex; gap: 4px; flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      width: 100%;
     }
     .pts-btn {
       background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: 4px; padding: 5px 8px;
+      border-radius: 4px; padding: 4px 2px;
       font-size: 0.78rem; cursor: pointer; color: var(--text);
-      min-height: 32px; font-weight: 600;
-      transition: 0.15s; flex: 1; min-width: 30px;
+      min-height: 28px; font-weight: 700;
+      transition: 0.15s;
       display: flex; align-items: center; justify-content: center;
+      text-align: center;
     }
     .pts-btn:hover, .pts-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
@@ -11512,125 +11514,7 @@
     descRowWrapper.appendChild(descIcon);
     descRowWrapper.appendChild(descDiv);
 
-    // ── Top bar : poignée + boutons dup/del allongés avec texte ────────
-    const topBar = document.createElement('div');
-    topBar.className = 'row-topbar';
-
-    const dragHandle = document.createElement('div');
-    dragHandle.className = 'row-drag-handle';
-    dragHandle.textContent = '⠿';
-    dragHandle.title = 'Glisser pour réorganiser cette ligne';
-    topBar.appendChild(dragHandle);
-
-    const topBarSpacer = document.createElement('span');
-    topBarSpacer.className = 'row-topbar-spacer';
-    topBar.appendChild(topBarSpacer);
-
-    const dupBtn = document.createElement('button');
-    dupBtn.className = 'small secondary btn-dup';
-    dupBtn.innerHTML = '📋 Dupliquer cette ligne';
-    dupBtn.title = 'Dupliquer cette ligne';
-    dupBtn.addEventListener('click', () => addEntryRow({
-      player:      pSel.value,
-      category:    cSel.value,
-      customPts:   customPtsInput.value,
-      date:        startInput.value,
-      dateEnd:     rangeCb.checked ? endInput.value : '',
-      fill:        fillToggle.dataset.fill,
-      days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
-      description: descInput.value,
-      altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : ''
-    }, dupBtn));
-    topBar.appendChild(dupBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'small danger btn-del';
-    delBtn.innerHTML = '✕ Supprimer cette ligne';
-    delBtn.title = 'Supprimer cette ligne';
-    delBtn.addEventListener('click', () => {
-      div.classList.add('row-removing');
-      setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
-    });
-    topBar.appendChild(delBtn);
-
-    // ── Rangée principale : Joueur (50%) + [Top (33%) + Pts + Tops supp + Points rapides] ──
-    const mainRow = document.createElement('div');
-    mainRow.className = 'row-main';
-
-    const mainRight = document.createElement('div');
-    mainRight.className = 'row-main-right';
-
-    // Ligne Top principal + Pts
-    const mainTopLine = document.createElement('div');
-    mainTopLine.className = 'row-main-top-line';
-    mainTopLine.appendChild(cSelWrap);
-    mainTopLine.appendChild(customPtsInput);
-
-    // Liste et bouton sous-tops
-    const subTopsList = document.createElement('div');
-    subTopsList.className = 'sub-tops-list';
-    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
-
-    const subTopBtn = document.createElement('button');
-    subTopBtn.className = 'small secondary sub-top-add-btn';
-    subTopBtn.innerHTML = '＋ Top supp.';
-    subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
-
-    subTopBtn.addEventListener('click', () => {
-      const subItem = document.createElement('div');
-      subItem.className = 'sub-top-item';
-      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem; border:1px solid var(--border);';
-
-      const subCatSel = document.createElement('select');
-      subCatSel.className = 'sub-cat-select';
-      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:120px;';
-      cachedCategories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
-        subCatSel.appendChild(opt);
-      });
-      if (cachedCategories[1]) subCatSel.value = cachedCategories[1].name;
-
-      const subPtsInput = document.createElement('input');
-      subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
-      subPtsInput.value = customPtsInput.value || '1';
-      subPtsInput.min = '1';
-      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;';
-
-      const delSubBtn = document.createElement('button');
-      delSubBtn.className = 'small danger'; delSubBtn.innerHTML = '✕';
-      delSubBtn.title = 'Retirer ce top supplémentaire';
-      delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
-
-      subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
-      subItem.appendChild(subCatSel);
-      subItem.appendChild(document.createTextNode(' Pts : '));
-      subItem.appendChild(subPtsInput);
-      subItem.appendChild(delSubBtn);
-
-      subTopsList.appendChild(subItem);
-      updateLotSummary();
-    });
-
-    // Raccourcis points rapides
-    const ptsRow = document.createElement('div');
-    ptsRow.className = 'row-pts-line';
-    ptsRow.appendChild(ptsToggle);
-
-    mainRight.appendChild(mainTopLine);
-    mainRight.appendChild(subTopsList);
-    mainRight.appendChild(subTopBtn);
-    mainRight.appendChild(ptsRow);
-
-    mainRow.appendChild(wrap);      // Joueur (50%)
-    mainRow.appendChild(mainRight); // Top + Pts + Tops supp + Points rapides
-
-    // ── Rangée Date & Top Alt (sur sa propre ligne sous le bloc principal) ──
-    const dateRow = document.createElement('div');
-    dateRow.className = 'row-date-line';
-    dateRow.appendChild(dateCell);
-
-    // ── Custom Alt-Top Picker (Positionné à droite de la date) ──────────────
+    // ── Custom Alt-Top Picker (Positionné dans la top bar) ─────────────────
     const customAltPicker = document.createElement('div');
     customAltPicker.className = 'custom-alt-picker';
     customAltPicker.style.cssText = 'position:relative; display:inline-block; user-select:none;';
@@ -11662,7 +11546,7 @@
     const altBtn = document.createElement('button');
     altBtn.type = 'button';
     altBtn.className = 'alt-picker-btn';
-    altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+    altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
 
     const altBtnContent = document.createElement('span');
     altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
@@ -11670,7 +11554,7 @@
 
     const altMenu = document.createElement('div');
     altMenu.className = 'alt-picker-menu';
-    altMenu.style.cssText = 'display:none; position:absolute; bottom:100%; right:0; margin-bottom:6px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid #ffd166; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;';
+    altMenu.style.cssText = 'display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid #ffd166; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;';
 
     const updateAltPickerUI = () => {
       const active = altCb.checked && altCatSel.value;
@@ -11678,11 +11562,11 @@
         const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
         const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
         altBtn.className = 'alt-picker-btn active';
-        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px solid #ffd166; background:rgba(255, 209, 102, 0.22); color:#ffd166; font-size:0.8rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);';
+        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid #ffd166; background:rgba(255, 209, 102, 0.22); color:#ffd166; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);';
         altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
       } else {
         altBtn.className = 'alt-picker-btn';
-        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
         altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
       }
     };
@@ -11773,7 +11657,114 @@
     customAltPicker.appendChild(altBtn);
     customAltPicker.appendChild(altMenu);
 
-    dateRow.appendChild(customAltPicker);
+    // ── Top bar : poignée + Top Alt + boutons dup/del ───────────────────
+    const topBar = document.createElement('div');
+    topBar.className = 'row-topbar';
+
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'row-drag-handle';
+    dragHandle.textContent = '⠿';
+    dragHandle.title = 'Glisser pour réorganiser cette ligne';
+    topBar.appendChild(dragHandle);
+    topBar.appendChild(customAltPicker); // ⭐ Top Alt dans la top bar !
+
+    const topBarSpacer = document.createElement('span');
+    topBarSpacer.className = 'row-topbar-spacer';
+    topBar.appendChild(topBarSpacer);
+
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'small secondary btn-dup';
+    dupBtn.innerHTML = '📋 Dupliquer cette ligne';
+    dupBtn.title = 'Dupliquer cette ligne';
+    dupBtn.addEventListener('click', () => addEntryRow({
+      player:      pSel.value,
+      category:    cSel.value,
+      customPts:   customPtsInput.value,
+      date:        startInput.value,
+      dateEnd:     rangeCb.checked ? endInput.value : '',
+      fill:        fillToggle.dataset.fill,
+      days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
+      description: descInput.value,
+      altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : ''
+    }, dupBtn));
+    topBar.appendChild(dupBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small danger btn-del';
+    delBtn.innerHTML = '✕ Supprimer cette ligne';
+    delBtn.title = 'Supprimer cette ligne';
+    delBtn.addEventListener('click', () => {
+      div.classList.add('row-removing');
+      setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
+    });
+    topBar.appendChild(delBtn);
+
+    // ── Rangée principale : 3 colonnes relatives côte à côte (Joueur, Top/Pts, Date) ──
+    const mainRow = document.createElement('div');
+    mainRow.className = 'row-main';
+
+    // Colonne Top & Points
+    const ptsCol = document.createElement('div');
+    ptsCol.className = 'row-main-pts-col';
+
+    const mainTopLine = document.createElement('div');
+    mainTopLine.className = 'row-main-top-line';
+    mainTopLine.appendChild(cSelWrap);
+    mainTopLine.appendChild(customPtsInput);
+
+    const subTopsList = document.createElement('div');
+    subTopsList.className = 'sub-tops-list';
+    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
+
+    const subTopBtn = document.createElement('button');
+    subTopBtn.className = 'small secondary sub-top-add-btn';
+    subTopBtn.innerHTML = '＋ Top supp.';
+    subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
+
+    subTopBtn.addEventListener('click', () => {
+      const subItem = document.createElement('div');
+      subItem.className = 'sub-top-item';
+      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem; border:1px solid var(--border);';
+
+      const subCatSel = document.createElement('select');
+      subCatSel.className = 'sub-cat-select';
+      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:120px;';
+      cachedCategories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
+        subCatSel.appendChild(opt);
+      });
+      if (cachedCategories[1]) subCatSel.value = cachedCategories[1].name;
+
+      const subPtsInput = document.createElement('input');
+      subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
+      subPtsInput.value = customPtsInput.value || '1';
+      subPtsInput.min = '1';
+      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;';
+
+      const delSubBtn = document.createElement('button');
+      delSubBtn.className = 'small danger'; delSubBtn.innerHTML = '✕';
+      delSubBtn.title = 'Retirer ce top supplémentaire';
+      delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
+
+      subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
+      subItem.appendChild(subCatSel);
+      subItem.appendChild(document.createTextNode(' Pts : '));
+      subItem.appendChild(subPtsInput);
+      subItem.appendChild(delSubBtn);
+
+      subTopsList.appendChild(subItem);
+      updateLotSummary();
+    });
+
+    ptsCol.appendChild(mainTopLine);
+    ptsCol.appendChild(subTopsList);
+    ptsCol.appendChild(subTopBtn);
+    ptsCol.appendChild(ptsToggle); // Grille 2 lignes (1 3 5 7 / 10 25 50 100) liant la zone points !
+
+    mainRow.appendChild(wrap);     // Col 1 : Joueur (30%)
+    mainRow.appendChild(ptsCol);   // Col 2 : Top & Points (35%)
+    mainRow.appendChild(dateCell); // Col 3 : Date sur le côté ! (30%)
 
     // ── Barème rapide par Top ────────────────────────────────────────────
     const baremeRow = document.createElement('div');
@@ -11835,7 +11826,6 @@
 
     div.appendChild(topBar);
     div.appendChild(mainRow);
-    div.appendChild(dateRow);
     div.appendChild(baremeRow);
 
     // ── Historique rapide (joueur + Top) ─────────────────────────────────
