@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.12] - 2026-08-02
+
+### Corrigé
+**Humanisé** : La création, la suppression et le regroupement de Tops Alternatifs ne plantent plus avec une erreur "requireIdentity is not defined".
+**Technique** : `Code.gs` — `apiSaveAltCategories`, `apiLinkHistoryRowsToAltCategory` et `apiGroupSimilarEntries` appelaient `requireIdentity(author)` (fonction frontend inexistante côté GAS) au lieu de `requireAuthor(author)` (le garde-fou serveur standard). Correction des 3 occurrences.
+
 ## [v2.8.11] - 2026-08-02
 
 ### Modifié

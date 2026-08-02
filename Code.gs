@@ -2197,7 +2197,7 @@ function apiGetAltCategories() {
 
 function apiSaveAltCategories(author, list) {
   try {
-    requireIdentity(author);
+    requireAuthor(author);
     return withLock(function() {
       AltSettingsService.saveAltCategories(list);
       AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', 'Mise à jour des catégories alternes');
@@ -2208,7 +2208,7 @@ function apiSaveAltCategories(author, list) {
 
 function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
   try {
-    requireIdentity(author);
+    requireAuthor(author);
     return withLock(function() {
       const count = AltStorageService.linkHistoryRowsToAltCategory(rowIndices, altCategory, author);
       AuditService.log(author, 'Affectation Top Alternatif', altCategory, count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
@@ -2219,7 +2219,7 @@ function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
 
 function apiGroupSimilarEntries(author) {
   try {
-    requireIdentity(author);
+    requireAuthor(author);
     return withLock(function() {
       const result = StorageService.apiGroupSimilarEntries();
       if (result.groupedCount > 0) {
