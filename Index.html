@@ -844,55 +844,51 @@
 
     /* ── LAYOUT INTERNE LIGNE (top bar + contenu) ── */
 
-    /* Barre du haut : poignée + label résumé + boutons dup/del */
+    /* Barre du haut : poignée + boutons dup/del allongés avec texte */
     .row-topbar {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 8px;
       background: rgba(0,0,0,0.12); border-radius: 6px;
-      padding: 4px 8px; margin-bottom: 4px;
+      padding: 5px 10px; margin-bottom: 6px;
     }
     .row-topbar .row-drag-handle {
-      padding: 0; font-size: 1rem; flex-shrink: 0;
+      padding: 0 4px; font-size: 1.1rem; flex-shrink: 0;
     }
     .row-topbar-spacer { flex: 1; min-width: 0; }
     .row-topbar .btn-dup,
     .row-topbar .btn-del {
-      flex-shrink: 0; padding: 4px 9px; font-size: 0.8rem; min-height: 30px;
-    }
-    .row-topbar-label {
-      font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
+      flex-shrink: 0; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; min-height: 32px;
+      display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : joueur (50%) + tops+date côte à côte */
+    /* Rangée principale : Joueur à gauche (50%), Top + Points à droite */
     .row-main {
-      display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
-    /* Sélecteur joueur : réduit de moitié */
     .row-main .player-sel-wrap {
-      flex: 0 0 calc(50% - 5px); min-width: 140px; max-width: 280px;
+      flex: 1 1 calc(50% - 6px); min-width: 150px;
     }
-    /* Groupe Top + Date : prend le reste de la ligne */
     .row-main-right {
-      display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 240px; flex-wrap: wrap;
+      flex: 1 1 calc(50% - 6px); min-width: 220px;
+      display: flex; flex-direction: column; gap: 6px;
     }
-    /* Sélecteur Top principal : réduit à 1/3 */
-    .row-main-right .c-sel-wrap {
-      flex: 0 0 calc(33% - 5px); min-width: 120px;
+    .row-main-top-line {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    .row-main-right .custom-pts-in {
-      width: 58px; flex-shrink: 0;
-      text-align: center; font-size: 0.95rem; font-weight: 800;
-      padding: 7px 4px;
-      border: 1.5px solid var(--row-accent, var(--border));
-      border-radius: 8px; background: var(--bg); color: var(--text);
-      transition: border-color 0.2s;
+    .row-main-top-line .c-sel-wrap {
+      flex: 1 1 130px; min-width: 110px;
     }
-    /* La cellule date inline à droite du top */
-    .row-main-right .d-cell {
-      flex: 1; min-width: 200px;
+    .row-main-top-line .custom-pts-in {
+      width: 56px; flex-shrink: 0; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 6px 4px;
+      border: 1.5px solid var(--row-accent, var(--border)); border-radius: 8px; background: var(--bg); color: var(--text);
     }
-    /* Groupe Top+sous-tops : s'étend verticalement, alignement gauche */
-    .row-tops-group {
+    .row-main-right .row-pts-line {
+      display: flex; justify-content: flex-end; align-items: center; margin-top: 2px;
+    }
+
+    /* Rangée Date + Top Alt sous la rangée principale */
+    .row-date-line {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+    }
       display: flex; flex-direction: column; gap: 6px;
     }
     .row-tops-group .main-top-row {
@@ -11516,14 +11512,14 @@
     descRowWrapper.appendChild(descIcon);
     descRowWrapper.appendChild(descDiv);
 
-    // ── Top bar : poignée + boutons dup/del ─────────────────────────────
+    // ── Top bar : poignée + boutons dup/del allongés avec texte ────────
     const topBar = document.createElement('div');
     topBar.className = 'row-topbar';
 
     const dragHandle = document.createElement('div');
     dragHandle.className = 'row-drag-handle';
     dragHandle.textContent = '⠿';
-    dragHandle.title = 'Glisser pour réorganiser';
+    dragHandle.title = 'Glisser pour réorganiser cette ligne';
     topBar.appendChild(dragHandle);
 
     const topBarSpacer = document.createElement('span');
@@ -11531,7 +11527,9 @@
     topBar.appendChild(topBarSpacer);
 
     const dupBtn = document.createElement('button');
-    dupBtn.className = 'small secondary btn-dup'; dupBtn.innerHTML = '📋'; dupBtn.title = 'Dupliquer cette ligne';
+    dupBtn.className = 'small secondary btn-dup';
+    dupBtn.innerHTML = '📋 Dupliquer cette ligne';
+    dupBtn.title = 'Dupliquer cette ligne';
     dupBtn.addEventListener('click', () => addEntryRow({
       player:      pSel.value,
       category:    cSel.value,
@@ -11546,29 +11544,29 @@
     topBar.appendChild(dupBtn);
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'small danger btn-del'; delBtn.innerHTML = '✕'; delBtn.title = 'Supprimer cette ligne';
+    delBtn.className = 'small danger btn-del';
+    delBtn.innerHTML = '✕ Supprimer cette ligne';
+    delBtn.title = 'Supprimer cette ligne';
     delBtn.addEventListener('click', () => {
       div.classList.add('row-removing');
       setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
     });
     topBar.appendChild(delBtn);
 
-    // ── Rangée principale : joueur (50%) + [top + pts + date] ───────────
+    // ── Rangée principale : Joueur (50%) + [Top (33%) + Pts + Tops supp + Points rapides] ──
     const mainRow = document.createElement('div');
     mainRow.className = 'row-main';
 
     const mainRight = document.createElement('div');
     mainRight.className = 'row-main-right';
 
-    // ── Groupe principal des Tops & Sous-Tops ────────────────────────────
-    const topsGroup = document.createElement('div');
-    topsGroup.className = 'row-tops-group';
+    // Ligne Top principal + Pts
+    const mainTopLine = document.createElement('div');
+    mainTopLine.className = 'row-main-top-line';
+    mainTopLine.appendChild(cSelWrap);
+    mainTopLine.appendChild(customPtsInput);
 
-    const mainTopRow = document.createElement('div');
-    mainTopRow.className = 'main-top-row';
-    mainTopRow.appendChild(cSelWrap);
-    mainTopRow.appendChild(customPtsInput);
-
+    // Liste et bouton sous-tops
     const subTopsList = document.createElement('div');
     subTopsList.className = 'sub-tops-list';
     subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
@@ -11577,10 +11575,6 @@
     subTopBtn.className = 'small secondary sub-top-add-btn';
     subTopBtn.innerHTML = '＋ Top supp.';
     subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
-
-    topsGroup.appendChild(mainTopRow);
-    topsGroup.appendChild(subTopsList);
-    topsGroup.appendChild(subTopBtn);
 
     subTopBtn.addEventListener('click', () => {
       const subItem = document.createElement('div');
@@ -11618,79 +11612,25 @@
       updateLotSummary();
     });
 
-    mainRight.appendChild(topsGroup);
-    mainRight.appendChild(dateCell);
-    mainRow.appendChild(wrap);       // joueur (50%)
-    mainRow.appendChild(mainRight);  // tops + date
-
-    // ── Raccourcis de points ─────────────────────────────────────────────
+    // Raccourcis points rapides
     const ptsRow = document.createElement('div');
     ptsRow.className = 'row-pts-line';
-    ptsRow.style.cssText = 'display:flex; justify-content:flex-end; align-items:center; margin:4px 0;';
     ptsRow.appendChild(ptsToggle);
 
-    // ── Barème rapide par Top ────────────────────────────────────────────
-    const baremeRow = document.createElement('div');
-    baremeRow.className = 'bareme-quick-row';
+    mainRight.appendChild(mainTopLine);
+    mainRight.appendChild(subTopsList);
+    mainRight.appendChild(subTopBtn);
+    mainRight.appendChild(ptsRow);
 
-    const bqHeader = document.createElement('button');
-    bqHeader.type = 'button';
-    bqHeader.className = 'bareme-quick-header open';
-    bqHeader.innerHTML = '⚖️ Barème <span class="bq-chevron">▶</span>';
+    mainRow.appendChild(wrap);      // Joueur (50%)
+    mainRow.appendChild(mainRight); // Top + Pts + Tops supp + Points rapides
 
-    const bqBtns = document.createElement('div');
-    bqBtns.className = 'bareme-quick-btns open';
+    // ── Rangée Date & Top Alt (sur sa propre ligne sous le bloc principal) ──
+    const dateRow = document.createElement('div');
+    dateRow.className = 'row-date-line';
+    dateRow.appendChild(dateCell);
 
-    bqHeader.addEventListener('click', () => {
-      const open = bqBtns.classList.toggle('open');
-      bqHeader.classList.toggle('open', open);
-    });
-
-    baremeRow.appendChild(bqHeader);
-    baremeRow.appendChild(bqBtns);
-
-    function applyBaremePts(pts, action) {
-      customPtsInput.value = pts;
-      ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
-        const match = parseInt(b.dataset.val, 10) === pts;
-        b.classList.toggle('active', match);
-        if (match) { b.classList.add('pts-pop'); setTimeout(() => b.classList.remove('pts-pop'), 220); }
-      });
-      if (action) descInput.value = action;
-      updateLotSummary();
-      updateDatePreview();
-    }
-
-    function renderBaremeQuickBtns(entries, topName) {
-      bqBtns.innerHTML = '';
-      const matching = entries.filter(e => e.top === topName).sort((a, b) => b.pts - a.pts);
-      if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
-      baremeRow.classList.add('has-entries');
-      matching.forEach(entry => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'bq-btn';
-        btn.title = entry.action + ' : ' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts';
-        btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts</span>';
-        btn.addEventListener('click', () => applyBaremePts(entry.pts, entry.action));
-        bqBtns.appendChild(btn);
-      });
-    }
-
-    function refreshBaremeForTop(topName) {
-      if (baremeEntries) {
-        renderBaremeQuickBtns(baremeEntries, topName);
-      } else {
-        callServer('apiGetBareme', [], res => {
-          if (res.success) { baremeEntries = res.entries; renderBaremeQuickBtns(res.entries, topName); }
-        }, 'Barème rapide');
-      }
-    }
-
-    div.appendChild(topBar);
-    div.appendChild(mainRow);
-    div.appendChild(ptsRow);
-    div.appendChild(baremeRow);
+    // ── Custom Alt-Top Picker (Positionné à droite de la date) ──────────────
     const customAltPicker = document.createElement('div');
     customAltPicker.className = 'custom-alt-picker';
     customAltPicker.style.cssText = 'position:relative; display:inline-block; user-select:none;';
@@ -11833,8 +11773,70 @@
     customAltPicker.appendChild(altBtn);
     customAltPicker.appendChild(altMenu);
 
-    // customAltPicker : affiché juste après le groupe de tops
-    mainRight.appendChild(customAltPicker);
+    dateRow.appendChild(customAltPicker);
+
+    // ── Barème rapide par Top ────────────────────────────────────────────
+    const baremeRow = document.createElement('div');
+    baremeRow.className = 'bareme-quick-row';
+
+    const bqHeader = document.createElement('button');
+    bqHeader.type = 'button';
+    bqHeader.className = 'bareme-quick-header open';
+    bqHeader.innerHTML = '⚖️ Barème <span class="bq-chevron">▶</span>';
+
+    const bqBtns = document.createElement('div');
+    bqBtns.className = 'bareme-quick-btns open';
+
+    bqHeader.addEventListener('click', () => {
+      const open = bqBtns.classList.toggle('open');
+      bqHeader.classList.toggle('open', open);
+    });
+
+    baremeRow.appendChild(bqHeader);
+    baremeRow.appendChild(bqBtns);
+
+    function applyBaremePts(pts, action) {
+      customPtsInput.value = pts;
+      ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
+        const match = parseInt(b.dataset.val, 10) === pts;
+        b.classList.toggle('active', match);
+        if (match) { b.classList.add('pts-pop'); setTimeout(() => b.classList.remove('pts-pop'), 220); }
+      });
+      if (action) descInput.value = action;
+      updateLotSummary();
+      updateDatePreview();
+    }
+
+    function renderBaremeQuickBtns(entries, topName) {
+      bqBtns.innerHTML = '';
+      const matching = entries.filter(e => e.top === topName).sort((a, b) => b.pts - a.pts);
+      if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
+      baremeRow.classList.add('has-entries');
+      matching.forEach(entry => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bq-btn';
+        btn.title = entry.action + ' : ' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts';
+        btn.innerHTML = '<span class="bq-action">' + (entry.action || '—') + '</span><span class="bq-pts">' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts</span>';
+        btn.addEventListener('click', () => applyBaremePts(entry.pts, entry.action));
+        bqBtns.appendChild(btn);
+      });
+    }
+
+    function refreshBaremeForTop(topName) {
+      if (baremeEntries) {
+        renderBaremeQuickBtns(baremeEntries, topName);
+      } else {
+        callServer('apiGetBareme', [], res => {
+          if (res.success) { baremeEntries = res.entries; renderBaremeQuickBtns(res.entries, topName); }
+        }, 'Barème rapide');
+      }
+    }
+
+    div.appendChild(topBar);
+    div.appendChild(mainRow);
+    div.appendChild(dateRow);
+    div.appendChild(baremeRow);
 
     // ── Historique rapide (joueur + Top) ─────────────────────────────────
     const histRow = document.createElement('div');
