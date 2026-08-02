@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.0] - 2026-08-02
+
+### Ajouté
+**Humanisé** : Passage à la version 2.9 ! La ligne de saisie a été entièrement repensée pour être ultra-fluide, avec des dimensions adaptatives et un placement logique de chaque élément.
+**Technique** : `Index.html` — refonte majeure de l'ergonomie des lignes de lot (`addEntryRow`) :
+- **Top bar** : intègre la poignée de réorganisation, le sélecteur `⭐ Top Alt`, et les boutons allongés avec libellé complet `📋 Dupliquer cette ligne` et `✕ Supprimer cette ligne`.
+- **Rangée principale (3 colonnes fluides en % relatives)** : `Joueur` (30%), `Top principal & Points` (35%), et `Date` (30%) directement sur le côté (côte à côte).
+- **Points rapides** : réorganisés en une grille 2 lignes de 4 boutons (`1 3 5 7` / `10 25 50 100`) directement sous les points et dictant la largeur de la section.
+- **Onglet Automatisations** : déplacé dans son propre onglet dédié des Paramètres avec gestion complète et duplication 1-clic.
+
 ## [v2.8.15] - 2026-08-02
 
 ### Ajouté
