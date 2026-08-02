@@ -4941,6 +4941,8 @@
   }
   window.requireIdentity = requireIdentity;
 
+
+
   // ── SETTINGS PHRASES D'ACCROCHE ─────────────────────────────────────────
   const PHRASE_SETTINGS_KEY = 'tdt_phrase_settings';
   const CAT_AUTOPLAY_KEY = 'tdt_cat_autoplay';
@@ -8578,7 +8580,8 @@
     if (!nameIn) return;
     const name = nameIn.value.trim();
     if (!name) { showToast('Veuillez entrer un nom pour le Top alternatif.', 'error'); return; }
-    if (!requireIdentity()) return;
+    const checkIdent = typeof requireIdentity === 'function' ? requireIdentity : window.requireIdentity;
+    if (checkIdent && !checkIdent()) return;
 
     const newList = [...cachedAltCategories, {
       name: name,
