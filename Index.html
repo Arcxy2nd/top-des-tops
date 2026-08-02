@@ -4925,6 +4925,7 @@
     }
     return false;
   }
+  window.requireIdentity = requireIdentity;
 
   // ── SETTINGS PHRASES D'ACCROCHE ─────────────────────────────────────────
   const PHRASE_SETTINGS_KEY = 'tdt_phrase_settings';
@@ -7468,6 +7469,7 @@
       setTimeout(() => t.remove(), 300);
     }, ms);
   }
+  window.showToast = showToast;
 
   // Retour haptique léger (mobile) sur les actions destructives.
   function buzz() {

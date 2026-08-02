@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.5] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Correction de l'erreur "requireIdentity is not defined" en rendant le contrôleur d'identité et les notifications toasts accessibles globalement sur `window`.
+**Technique** : `Index.html` — assignation explicite de `window.requireIdentity` et `window.showToast` pour garantir l'accès universel depuis les handlers dynamiques.
+
 ## [v2.8.4] - 2026-08-02
 
 ### Corrigé
