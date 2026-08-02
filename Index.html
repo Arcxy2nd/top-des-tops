@@ -4068,9 +4068,6 @@
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">
         Deuxième univers de classement avec ses propres Tops (ex: Tops 1, 2, 3... ou sous-thématiques).
       </p>
-      <div style="margin-bottom: 12px;">
-        <button id="groupSimilarEntriesBtn" class="secondary small">🔗 Regrouper les entrées identiques en lot</button>
-      </div>
       <ul id="altCategoriesList" class="entity-list"></ul>
       <div class="add-form">
         <p class="add-form-label">Ajouter un Top Alternatif</p>
@@ -4177,7 +4174,10 @@
         <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
           Détecte les entrées identiques étalées sur plusieurs jours (même joueur, même Top, mêmes points, même description, max 7 jours d'écart, minimum 3 entrées). Permet de les fusionner en une seule entrée avec le total des points.
         </p>
-        <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button id="detectLotsBtn" class="primary small">🔍 Scanner l'historique</button>
+          <button id="groupSimilarEntriesBtn" class="secondary small">🔗 Regrouper les entrées identiques en lot</button>
+        </div>
         <div id="detectResults" class="detect-results"></div>
       </div>
 

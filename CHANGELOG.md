@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.10] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Nettoyage de l'onglet de configuration des Tops Alternatifs : déplacement du bouton de maintenance "🔗 Regrouper les entrées identiques en lot" hors de cet onglet pour le repositionner dans son emplacement légitime sous **Paramètres → 🔧 Outils** (avec les outils d'audit et de regroupement de lots).
+**Technique** : `Index.html` — suppression de `groupSimilarEntriesBtn` du panneau `stab-alt-categories` et intégration dans la carte `toolLotsCard` sous `stab-tools`.
+
 ## [v2.8.8] - 2026-08-02
 
 ### Modifié
