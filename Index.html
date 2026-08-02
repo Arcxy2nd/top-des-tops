@@ -860,20 +860,17 @@
       display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : 3 colonnes (Col 1: Joueur 30% | Col 2: Top principal & supp 35% | Col 3: Points 168px) */
+    /* Rangée principale : 3 colonnes distinctes (Col 1: Joueur | Col 2: Top principal | Col 3: Points) */
     .row-main {
       display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
     }
-    .row-main .player-sel-wrap {
-      flex: 1 1 30%; min-width: 140px;
+    .row-main .row-col-1 {
+      flex: 1 1 32%; min-width: 140px;
     }
-    .row-main .c-sel-col {
-      flex: 1 1 35%; min-width: 140px; display: flex; flex-direction: column; gap: 6px;
+    .row-main .row-col-2 {
+      flex: 1 1 38%; min-width: 150px; display: flex; flex-direction: column; gap: 6px;
     }
-    .row-main .c-sel-col .c-sel-wrap { width: 100%; }
-
-    /* Colonne 3 : Points (case [pts] en haut prend 100% de la largeur du bloc de boutons 2x4) */
-    .pts-box-group {
+    .pts-box-group.row-col-3 {
       flex: 0 0 168px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
     }
     .pts-box-group .custom-pts-in {
@@ -893,16 +890,46 @@
       display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
     .d-cell {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
     }
+    /* Interrupteur de mode de la date UNIQUEMENT (vertical) */
+    .d-cell .d-mode-seg {
+      display: inline-flex; flex-direction: column; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 2px; gap: 2px; flex-shrink: 0; align-self: flex-start;
+    }
+    .d-cell .d-mode-btn {
+      border: none; background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      padding: 5px 10px; border-radius: 6px; min-height: 26px; white-space: nowrap; text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .d-cell .d-mode-btn:hover { color: var(--text); }
+    .d-cell .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
+
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    /* Panneau "Une période" : S'OUVRE NORMALEMENT SUR LE CÔTÉ (côte à côte en ligne) */
+    /* Panneau "Une période" : s'ouvre normalement SUR LE CÔTÉ (côte à côte en ligne) */
     .d-period {
       display: none; align-items: center; gap: 8px; flex-wrap: wrap;
       background: transparent; border: none; padding: 0; box-shadow: none; position: static;
     }
+    /* Mini-calendrier : allongé en largeur, hauteur compacte réduite */
+    .d-cal {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 4px 6px; width: 320px; max-width: 100%;
+    }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+    .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); }
+    .d-cal-nav, .d-cal-today { padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid var(--border); background: var(--btn-alt); color: var(--text); cursor: pointer; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+    .d-cal-dow { font-size: 0.65rem; text-align: center; color: var(--text-muted); padding: 1px 0; font-weight: 700; }
+    .d-cal-day { font-size: 0.68rem; padding: 1px 0; min-height: 20px; text-align: center; border-radius: 3px; border: none; background: transparent; color: var(--text); cursor: pointer; }
+    .d-cal-day:hover { background: var(--btn-alt); }
+    .d-cal-day.in-range { background: rgba(59, 130, 246, 0.25); color: var(--text); }
+    .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+    .d-cal-day.is-today { font-weight: 800; border: 1px solid var(--accent); }
+    .d-cal-hint { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 2px; font-style: italic; }
       display: flex; flex-direction: column; gap: 6px;
     }
     .row-tops-group .main-top-row {
@@ -1315,42 +1342,37 @@
     /* ── CELLULE DATE : « Un jour » / « Une période » (par ligne) ── */
     .d-cell { min-width: 0; max-width: 100%; }
     .d-cell .d-start, .d-cell .d-end { width: 100%; }
-    /* Interrupteur de mode — strictement ciblé dans .d-mode-seg, disposé en vertical */
+    /* Interrupteur de mode — remplace la case à cocher, impossible à rater */
     .d-mode-seg {
       display: inline-flex; flex-direction: column; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 2px; gap: 2px; flex-shrink: 0; align-self: flex-start;
+      border-radius: 8px; padding: 2px; gap: 2px; flex-shrink: 0; align-self: center;
     }
-    .d-mode-seg .d-mode-btn {
+    .d-mode-btn {
       border: none; background: transparent; color: var(--text-muted);
       font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
       padding: 5px 10px; border-radius: 6px; min-height: 26px; white-space: nowrap; text-align: left;
       transition: background 0.15s, color 0.15s;
     }
-    .d-mode-seg .d-mode-btn:hover { color: var(--text); }
-    .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
-    .d-single { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .d-period { display: none; align-items: center; gap: 8px; flex-wrap: wrap; }
-    /* Mini-calendrier : allongé en largeur (330px) avec hauteur compacte réduite */
+    .d-mode-btn:hover { color: var(--text); }
+    .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
+    /* Les deux panneaux sont bornés en largeur (les chips s'enroulent au lieu de tout
+       étirer) et rétrécissent sous cette largeur sur petit écran → adaptable. */
+    .d-single { display: flex; flex-direction: column; gap: 4px; width: 280px; max-width: 100%; }
+    .d-period { display: none; flex-direction: column; gap: 8px; width: 280px; max-width: 100%; }
+    /* Mini-calendrier : clic 1er jour puis dernier, période colorée entre les deux */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-      padding: 4px 6px; width: 330px; max-width: 100%; box-sizing: border-box;
+      padding: 8px; width: 100%;
     }
-    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
-    .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .d-cal-title { font-size: 0.82rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
     .d-cal-nav {
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 4px;
-      color: var(--text); cursor: pointer; width: 22px; height: 22px; font-size: 0.82rem;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); cursor: pointer; width: 28px; height: 28px; font-size: 1rem;
       line-height: 1; display: flex; align-items: center; justify-content: center;
     }
     .d-cal-nav:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
-    .d-cal-dow { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); padding: 1px 0; text-align: center; }
-    .d-cal-day {
-      padding: 2px 0; font-size: 0.72rem; border-radius: 4px; border: none; background: transparent; color: var(--text);
-      cursor: pointer; min-height: 20px; line-height: 1; text-align: center;
-    }
-    .d-cal-today { display: none; }
-    .d-cal-hint { display: none; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .d-cal-dow { text-align: center; font-size: 0.62rem; font-weight: 700; color: var(--text-muted); padding-bottom: 2px; }
     /* Les cases héritent sinon du min-height/padding global des boutons (44px) :
        plus larges que leur colonne, elles débordaient hors du cadre du calendrier. */
@@ -11411,11 +11433,9 @@
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
-    // ── Panneau « Une période » (s'ouvre sur le côté avec mini-calendrier allongé) ───────────
+    // ── Panneau « Une période » (s'ouvre normalement sur le côté) ───────────
     const periodPanel = document.createElement('div');
     periodPanel.className = 'd-period';
-
-    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
 
     const periodDates = document.createElement('div');
     periodDates.style.cssText = 'display:flex; align-items:center; gap:4px;';
@@ -11430,6 +11450,8 @@
     periodDates.appendChild(lblAu);
     periodDates.appendChild(endInput);
 
+    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
+
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'row-shortcuts';
     [['+3 j', 3], ['+7 j', 7], ['+14 j', 14], ['+1 mois', 30]].forEach(([label, n]) => {
@@ -11441,7 +11463,8 @@
         const dt = new Date(base + 'T12:00:00');
         dt.setDate(dt.getDate() + n - 1);
         endInput.value = toDateStr(dt);
-        cal.refresh(); updateDatePreview();
+        cal.refresh();
+        updateDatePreview();
       });
       durationShortcuts.appendChild(b);
     });
@@ -11452,8 +11475,8 @@
     fillPreview.className = 'd-fill-preview';
     fillPreview.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic;';
 
-    periodPanel.appendChild(cal); // 🗓️ Mini-calendrier allongé réintégré !
     periodPanel.appendChild(periodDates);
+    periodPanel.appendChild(cal); // Mini-calendrier compact allongé inclus !
     periodPanel.appendChild(durationShortcuts);
     periodPanel.appendChild(fillToggle);
     periodPanel.appendChild(fillPreview);
@@ -11489,7 +11512,7 @@
       singlePanel.style.display = range ? 'none' : 'flex';
       if (range) {
         if (!endInput.value) endInput.value = startInput.value;
-        cal.refresh(); updateDatePreview();
+        updateDatePreview();
       } else {
         endInput.value = '';
       }
@@ -11497,15 +11520,14 @@
     modeSingle.addEventListener('click', () => setDateMode(false));
     modeRange.addEventListener('click', () => setDateMode(true));
 
-    startInput.addEventListener('change', () => { cal.refresh(); updateDatePreview(); });
+    startInput.addEventListener('change', () => { updateDatePreview(); });
 
     div.__applyDate = (start, end, fill) => {
       startInput.value = start; endInput.value = end || '';
       setLineFill(fillToggle, fill);
       setDateMode(!!end);
-      cal.refresh(); updateDatePreview();
+      updateDatePreview();
     };
-
     dateCell.appendChild(rangeCb);
     dateCell.appendChild(dayPickerWrap);
     dateCell.appendChild(modeSeg);
@@ -11717,26 +11739,29 @@
     });
     topBar.appendChild(delBtn);
 
-    // ── Rangée principale : 3 colonnes (Col 1: Joueur | Col 2: Top principal & supp | Col 3: Points & pavé 2x4) ──
+    // ── Rangée principale : 3 colonnes distinctes (Col 1: Joueur | Col 2: Top principal | Col 3: Points) ──
     const mainRow = document.createElement('div');
     mainRow.className = 'row-main';
 
-    // Col 2 : Top principal + sous-tops
-    const cSelCol = document.createElement('div');
-    cSelCol.className = 'c-sel-col';
-    cSelCol.appendChild(cSelWrap);
-    cSelCol.appendChild(subTopsList);
-    cSelCol.appendChild(subTopBtn);
+    // Col 1 : Joueur
+    wrap.className = 'player-sel-wrap row-col-1';
 
-    // Col 3 : Groupe Points (case pts en haut + boutons 2x4 en dessous)
+    // Col 2 : Top principal & sous-tops
+    const colTop = document.createElement('div');
+    colTop.className = 'row-col-top row-col-2';
+    colTop.appendChild(cSelWrap);
+    colTop.appendChild(subTopsList);
+    colTop.appendChild(subTopBtn);
+
+    // Col 3 : Points (Case [pts] + Boutons rapides 2x4 en dessous)
     const ptsBoxGroup = document.createElement('div');
-    ptsBoxGroup.className = 'pts-box-group';
+    ptsBoxGroup.className = 'pts-box-group row-col-3';
     ptsBoxGroup.appendChild(customPtsInput);
     ptsBoxGroup.appendChild(ptsToggle);
 
-    mainRow.appendChild(wrap);        // Col 1 : Joueur (30%)
-    mainRow.appendChild(cSelCol);     // Col 2 : Top principal & supp (35%)
-    mainRow.appendChild(ptsBoxGroup); // Col 3 : Points (case pts + boutons 2x4 en dessous)
+    mainRow.appendChild(wrap);        // Col 1 : Joueur
+    mainRow.appendChild(colTop);      // Col 2 : Top principal
+    mainRow.appendChild(ptsBoxGroup); // Col 3 : Points (3e colonne !)
 
     // ── Ligne de date à son emplacement d'origine (sous mainRow) ───────────────────
     const dateRow = document.createElement('div');
