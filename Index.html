@@ -233,25 +233,20 @@
       margin-left: 4px;
     }
 
-    .app-layout {
+    /* ── SIDEBAR CHAT (desktop uniquement) ── */
+    /* Sur desktop-layout : .container est flex, le panel est sticky à droite */
+    body.desktop-layout .container {
       display: flex;
-      width: 100%;
-      max-width: 1400px;
-      margin: 0 auto;
-      gap: 16px;
       align-items: flex-start;
+      gap: 16px;
+      max-width: 1600px !important;
     }
-    .main-content-wrapper {
-      flex: 1 1 0;
-      min-width: 0;
-      width: 100%;
-    }
-    .chat-side-panel {
+    body.desktop-layout .chat-side-panel {
       width: 360px;
       flex-shrink: 0;
       position: sticky;
-      top: 60px;
-      height: calc(100vh - 80px);
+      top: 70px;
+      height: calc(100vh - 90px);
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
@@ -260,21 +255,20 @@
       box-shadow: var(--glass-shadow);
       z-index: 100;
       overflow: hidden;
+      order: 2;
     }
-    @media (max-width: 900px) {
-      .app-layout { display: block; }
-      .chat-side-panel {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        top: auto !important;
-        width: 100% !important;
-        height: 75vh !important;
-        border-radius: 20px 20px 0 0 !important;
-        z-index: 1000 !important;
-        box-shadow: 0 -8px 30px rgba(0,0,0,0.5) !important;
-      }
+    /* Le contenu principal prend tout l'espace restant */
+    body.desktop-layout .container > :not(.chat-side-panel):not(#toastContainer) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    /* Sur tous les layouts non-desktop : panneau invisible (pas de FAB dans le DOM) */
+    body:not(.desktop-layout) .chat-side-panel {
+      display: none !important;
+    }
+    /* Bouton chat navbar : masqué hors desktop (le panel n'existe pas en mobile) */
+    body:not(.desktop-layout) .nav-chat-btn {
+      display: none !important;
     }
 
     /* Boutons contrôles droite */
@@ -3577,8 +3571,7 @@
   /* Bottom nav : visible en mobile-layout, cachée le desktopNavGroup dans la navbar */
   body.mobile-layout #desktopNavGroup { display: none !important; }
   body.mobile-layout #mobileBottomNav { display: flex !important; }
-  body.mobile-layout .chat-fab { bottom: 75px !important; }
-  body.mobile-layout .chat-panel { bottom: 135px !important; max-height: calc(100vh - 150px) !important; }
+
 
   /* ── Adaptabilité de la Top Bar & Quick Stats Bar en mode mobile ── */
   body.mobile-layout .nav-container,
@@ -3713,8 +3706,7 @@
     body:not(.desktop-layout) .npb-add input[type="text"],
     body:not(.desktop-layout) .npb-add .npb-date-field,
     body:not(.desktop-layout) .npb-add button { width: 100%; }
-    body:not(.desktop-layout) .chat-fab { bottom: 75px !important; }
-    body:not(.desktop-layout) .chat-panel { bottom: 135px !important; max-height: calc(100vh - 150px) !important; }
+
   }
 
   @media (max-width: 600px) {

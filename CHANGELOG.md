@@ -4,7 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.13] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Le panneau de tchat s'affiche maintenant correctement en sidebar fixe sur la droite de la page en mode PC — il ne s'ouvre plus "par-dessus" le contenu. En mode mobile, le bouton Tchat de la barre de navigation est masqué (le chat y est inutilisable, aucun FAB mobile n'était présent).
+**Technique** : `Index.html` — `.app-layout` et `.main-content-wrapper` n'existaient que dans le CSS sans aucune `<div>` correspondante dans le HTML, rendant le `position: sticky` du `.chat-side-panel` inopérant. Fix : sur `body.desktop-layout`, `.container` passe en `display: flex` et le `chatSidePanel` devient un flex enfant `order: 2` sticky à droite. Sur `body:not(.desktop-layout)`, le panneau est masqué en `display: none !important` et le bouton `.nav-chat-btn` idem. Suppression des règles CSS mortes `.chat-fab` et `.chat-panel` (éléments absents du DOM).
+
 ## [v2.8.12] - 2026-08-02
+
 
 ### Corrigé
 **Humanisé** : La création, la suppression et le regroupement de Tops Alternatifs ne plantent plus avec une erreur "requireIdentity is not defined".
