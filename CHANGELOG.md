@@ -6,8 +6,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v2.9.2] - 2026-08-02
 
 ### Modifié
-**Humanisé** : Tous les boutons neutres de l'interface (Actualiser, Rafraîchir, Nouveau tirage, Sélectionner, etc.) ont désormais le halo arc-en-ciel animé — seuls les boutons Annuler/Fermer dans les modales restent sobres.
-**Technique** : `Index.html` — nouvelle règle CSS ciblant `button.secondary` dans `.tab-content`, `.settings-section`, `#lotBuilderSection`, `#historyContent`, `#notesContent`, `.panel-body`, `.tool-section` (exclusion des `.modal`) : pseudo-éléments `::before`/`::after` animés via `btn-hue-anim`, intensification au hover via transition sur `filter`, `opacity` et `transform`. Complète la classe `.btn-glow` déjà appliquée aux boutons Dupliquer.
+**Humanisé** : Les boutons secondaires (gris neutres) ont maintenant un contour néon bleuté qui suit exactement le curseur quand on survole — le même effet que les cartes et panneaux du Dashboard. Rien d'animé en permanence, ça s'allume seulement là où se trouve la souris.
+**Technique** : `Index.html` — `button.secondary::before` avec `radial-gradient(120px circle at var(--mouse-x) var(--mouse-y), rgba(124,140,255,0.8), transparent 80%)` + `mask-composite: exclude` pour ne coloriser que le bord (1px padding). `initSpotlightCards()` étendu pour inclure `button.secondary` dans le `querySelectorAll` qui alimente `--mouse-x`/`--mouse-y`. Suppression des blocs CSS arc-en-ciel animés erronés des commits précédents.
 
 ## [v2.9.1] - 2026-08-02
 

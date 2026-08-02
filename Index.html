@@ -604,169 +604,30 @@
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-    /* ── GLOWING SHADOW BUTTON ── */
-    @property --btn-hue {
-      syntax: "<number>";
-      inherits: false;
-      initial-value: 0;
-    }
-    @property --btn-rotate {
-      syntax: "<number>";
-      inherits: false;
-      initial-value: 0;
-    }
-    @property --btn-glow-opacity {
-      syntax: "<number>";
-      inherits: false;
-      initial-value: 0.55;
-    }
-    @property --btn-glow-blur {
-      syntax: "<number>";
-      inherits: false;
-      initial-value: 6;
-    }
-    @property --btn-glow-scale {
-      syntax: "<number>";
-      inherits: false;
-      initial-value: 1.5;
-    }
-
-    .btn-glow {
-      --btn-anim-speed: 4s;
-      --btn-interact-speed: 0.45s;
+    /* ── CURSOR NEon BORDER — secondary buttons (same technique as .card spotlight) ── */
+    button.secondary {
       position: relative;
-      overflow: visible;
-      isolation: isolate;
-      border: none !important;
-      background: transparent !important;
-      z-index: 0;
     }
-    .btn-glow::before {
+    button.secondary::before {
       content: "";
       position: absolute;
-      inset: -3px;
+      inset: 0;
       border-radius: inherit;
-      z-index: -1;
-      background: hsl(0deg 0% 16%) radial-gradient(
-        50% 50% at 50% 50%,
-        hsl(calc(var(--btn-hue) * 1deg) 100% 70%) 0%,
-        hsl(calc(var(--btn-hue) * 1deg) 100% 50%) 40%,
-        transparent 100%
-      );
-      animation:
-        btn-hue-anim var(--btn-anim-speed) linear infinite,
-        btn-rotate-bg var(--btn-anim-speed) linear infinite;
-      transition: opacity var(--btn-interact-speed) ease;
-      opacity: 0.7;
-    }
-    .btn-glow::after {
-      content: "";
-      position: absolute;
-      inset: -3px;
-      border-radius: inherit;
-      z-index: -2;
-      filter: blur(calc(var(--btn-glow-blur) * 1px));
-      background: hsl(calc(var(--btn-hue) * 1deg) 100% 60%);
-      animation:
-        btn-hue-anim var(--btn-anim-speed) linear infinite;
-      transform: scaleX(calc(var(--btn-glow-scale) * 1.15)) scaleY(var(--btn-glow-scale));
-      opacity: var(--btn-glow-opacity);
-      transition:
-        --btn-glow-blur var(--btn-interact-speed) ease,
-        --btn-glow-opacity var(--btn-interact-speed) ease,
-        --btn-glow-scale var(--btn-interact-speed) ease;
-    }
-    .btn-glow:hover::before {
-      opacity: 1;
-    }
-    .btn-glow:hover::after {
-      --btn-glow-blur: 3;
-      --btn-glow-opacity: 0.9;
-      --btn-glow-scale: 2.2;
-    }
-    .btn-glow:active { transform: scale(0.96); }
-
-    @keyframes btn-hue-anim {
-      from { --btn-hue: 0; }
-      to   { --btn-hue: 360; }
-    }
-    @keyframes btn-rotate-bg {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    /* Extend glowing effect to all secondary buttons outside modals/toasts */
-    .tab-content button.secondary,
-    .settings-section button.secondary,
-    #lotBuilderSection button.secondary,
-    #historyContent button.secondary,
-    #notesContent button.secondary,
-    .panel-body button.secondary,
-    .tool-section button.secondary {
-      position: relative;
-      overflow: visible;
-      isolation: isolate;
-      z-index: 0;
-    }
-    .tab-content button.secondary::before,
-    .settings-section button.secondary::before,
-    #lotBuilderSection button.secondary::before,
-    #historyContent button.secondary::before,
-    #notesContent button.secondary::before,
-    .panel-body button.secondary::before,
-    .tool-section button.secondary::before {
-      content: "";
-      position: absolute;
-      inset: -3px;
-      border-radius: inherit;
-      z-index: -1;
+      padding: 1px;
       background: radial-gradient(
-        50% 50% at 50% 50%,
-        hsl(calc(var(--btn-hue) * 1deg) 100% 70%) 0%,
-        hsl(calc(var(--btn-hue) * 1deg) 100% 50%) 40%,
-        transparent 100%
+        120px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        rgba(124, 140, 255, 0.8),
+        transparent 80%
       );
-      animation: btn-hue-anim 4s linear infinite;
-      opacity: 0.55;
-      transition: opacity 0.45s ease;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
     }
-    .tab-content button.secondary::after,
-    .settings-section button.secondary::after,
-    #lotBuilderSection button.secondary::after,
-    #historyContent button.secondary::after,
-    #notesContent button.secondary::after,
-    .panel-body button.secondary::after,
-    .tool-section button.secondary::after {
-      content: "";
-      position: absolute;
-      inset: -3px;
-      border-radius: inherit;
-      z-index: -2;
-      filter: blur(6px);
-      background: hsl(calc(var(--btn-hue) * 1deg) 100% 60%);
-      animation: btn-hue-anim 4s linear infinite;
-      transform: scaleX(1.72) scaleY(1.5);
-      opacity: 0.45;
-      transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s ease;
-    }
-    .tab-content button.secondary:hover::before,
-    .settings-section button.secondary:hover::before,
-    #lotBuilderSection button.secondary:hover::before,
-    #historyContent button.secondary:hover::before,
-    #notesContent button.secondary:hover::before,
-    .panel-body button.secondary:hover::before,
-    .tool-section button.secondary:hover::before { opacity: 0.9; }
-    .tab-content button.secondary:hover::after,
-    .settings-section button.secondary:hover::after,
-    #lotBuilderSection button.secondary:hover::after,
-    #historyContent button.secondary:hover::after,
-    #notesContent button.secondary:hover::after,
-    .panel-body button.secondary:hover::after,
-    .tool-section button.secondary:hover::after {
-      filter: blur(3px);
-      opacity: 0.85;
-      transform: scaleX(2.53) scaleY(2.2);
+    button.secondary:hover::before {
+      opacity: 1;
     }
 
     /* ── FILTER PANEL V2 (Taste & Impeccable Chips) ── */
@@ -11867,7 +11728,7 @@
     topBar.appendChild(topBarSpacer);
 
     const dupBtn = document.createElement('button');
-    dupBtn.className = 'small secondary btn-dup btn-glow';
+    dupBtn.className = 'small secondary btn-dup';
     dupBtn.innerHTML = '📋 Dupliquer cette ligne';
     dupBtn.title = 'Dupliquer cette ligne';
     dupBtn.addEventListener('click', () => addEntryRow({
@@ -14473,7 +14334,7 @@
       actionsGroup.appendChild(editBtn);
 
       const dupRuleBtn = document.createElement('button');
-      dupRuleBtn.className = 'secondary small btn-glow';
+      dupRuleBtn.className = 'secondary small';
       dupRuleBtn.textContent = '📋'; dupRuleBtn.title = 'Dupliquer cette règle';
       dupRuleBtn.addEventListener('click', () => openDuplicateAutoRuleModal(rule));
       actionsGroup.appendChild(dupRuleBtn);
@@ -14593,13 +14454,13 @@
   // ── GSAP & SPOTLIGHT INITIALIZATION (Taste, Hyperframes, React-Bits) ──
   function initSpotlightCards() {
     const handleMouseMove = (e) => {
-      const cards = document.querySelectorAll('.card, .spotlight-card, .qs-pill, .filter-panel');
-      cards.forEach(card => {
-        const rect = card.getBoundingClientRect();
+      const targets = document.querySelectorAll('.card, .spotlight-card, .qs-pill, .filter-panel, button.secondary');
+      targets.forEach(el => {
+        const rect = el.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
+        el.style.setProperty('--mouse-x', `${x}px`);
+        el.style.setProperty('--mouse-y', `${y}px`);
       });
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
