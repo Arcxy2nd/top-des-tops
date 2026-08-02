@@ -898,6 +898,9 @@
     .d-cell {
       display: flex; align-items: flex-start; flex-direction: row; flex-wrap: nowrap; gap: 8px; width: 100%;
     }
+    .d-single {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
     .d-period {
       display: none; flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap; flex: 1; min-width: 0;
     }
@@ -1312,9 +1315,6 @@
     .row-desc .desc-in:not(:placeholder-shown) { color: var(--text); }
 
     /* ── CELLULE DATE : « Un jour » / « Une période » (par ligne) ── */
-    .d-cell { min-width: 0; max-width: 100%; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
-    .d-single { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .d-period { display: none; flex-direction: column; gap: 6px; width: 420px; max-width: 100%; }
 
     /* Interrupteur de mode vertical — ciblé STRICTEMENT sur .d-mode-seg */
     .d-mode-seg {
