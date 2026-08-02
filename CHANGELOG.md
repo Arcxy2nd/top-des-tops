@@ -7,111 +7,25 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v2.9.0] - 2026-08-02
 
 ### Ajouté
-**Humanisé** : Passage à la version 2.9 ! La ligne de saisie a été entièrement repensée pour être ultra-fluide, avec des dimensions adaptatives et un placement logique de chaque élément.
-**Technique** : `Index.html` — refonte majeure de l'ergonomie des lignes de lot (`addEntryRow`) :
-- **Top bar** : intègre la poignée de réorganisation, le sélecteur `⭐ Top Alt`, et les boutons allongés avec libellé complet `📋 Dupliquer cette ligne` et `✕ Supprimer cette ligne`.
-- **Rangée principale (3 colonnes fluides en % relatives)** : `Joueur` (30%), `Top principal & Points` (35%), et `Date` (30%) directement sur le côté (côte à côte).
-- **Points rapides** : réorganisés en une grille 2 lignes de 4 boutons (`1 3 5 7` / `10 25 50 100`) directement sous les points et dictant la largeur de la section.
-- **Onglet Automatisations** : déplacé dans son propre onglet dédié des Paramètres avec gestion complète et duplication 1-clic.
-
-## [v2.8.15] - 2026-08-02
-
-### Ajouté
-**Humanisé** : Les automatisations ont maintenant leur propre onglet dans les Paramètres — facile à trouver, impossible de les rater.
-**Technique** : `Index.html` — création de `stab-automations` (nouvel onglet Paramètres) contenant le formulaire de création de règles et la liste des règles existantes ; déclenchement de `loadAutoRules()` au clic sur cet onglet.
-
-**Humanisé** : Chaque règle automatique peut maintenant être dupliquée en un clic — pour créer rapidement une variante sans tout ressaisir.
-**Technique** : `Index.html` — ajout du bouton 📋 dans `renderAutoRules()` ; ajout de `openDuplicateAutoRuleModal(rule)` qui pré-remplit joueur/top/fréquence/description et appelle `apiAddAutoRule` pour créer la copie.
+**Humanisé** : Version 2.9 ! Refonte complète de la ligne de saisie de lot pour une ergonomie ultra-fluide avec dimensions adaptatives et placement logique, et création de l'onglet dédié aux Automatisations.
+**Technique** : `Index.html` — refonte majeure du composant `addEntryRow()` et de ses règles CSS :
+- **Top bar** : intègre la poignée de réorganisation, le sélecteur `⭐ Top Alt`, et les boutons allongés `📋 Dupliquer cette ligne` et `✕ Supprimer cette ligne`.
+- **Rangée principale (3 colonnes fluides en % relatives)** : `Joueur` (30%), `Top & Points` (35%), et `Date` (30%) placées directement sur le même niveau (côte à côte).
+- **Points rapides** : organisés en grille 2 lignes de 4 boutons (`1 3 5 7` / `10 25 50 100`) positionnée sous les points et dictant la largeur de la section.
+- **Onglet Automatisations** : création de `stab-automations` dans les Paramètres avec duplication de règles en 1-clic (`openDuplicateAutoRuleModal`).
 
 ### Supprimé
-**Humanisé** : L'outil "Scores aberrants" a été retiré des Outils — il était rarement utile et encombrait l'interface.
-**Technique** : `Index.html` — suppression de la carte `toolOutliersCard`, des fonctions `scanOutliers`, `getDismissedOutlierRowIndexes`, `dismissOutlierRowIndex`, de la constante `DISMISSED_OUTLIERS_KEY`, du listener `detectOutliersBtn` et du bouton correspondant dans le sommaire `toolsQuickNav`.
-
-### Modifié
-**Humanisé** : La section "Points automatiques" a été retirée de l'onglet Outils (où elle était cachée) et déplacée dans le nouvel onglet Automatisations.
-**Technique** : `Index.html` — retrait de `toolAutoCard` de `stab-tools` et de son `makeCollapsible`, branchement du chargement sur `stab-automations` dans `initSettingsTabs()`.
-
-## [v2.8.14] - 2026-08-02
-
-### Modifié
-**Humanisé** : La barre de navigation en haut de l'écran mobile est enfin propre — les boutons ne se marchent plus dessus, les labels texte inutiles disparaissent, et tout reste accessible d'un tap.
-**Technique** : `Index.html` — refonte complète des règles CSS navbar mobile : les trois blocs dupliqués (`body.mobile-layout`, `body:not(.desktop-layout).on-mobile`, `@media 768px`) sont fusionnés en une source unique `body:not(.desktop-layout)`. Labels `.bareme-btn-label` et `.lmt-label` masqués globalement sur mobile. Tous les boutons icônes unifiés à 36×36px tactile minimum. Barème et Refresh icône seule. Qui-suis-je avec nom tronqué à 60px. Suppression de ~60 lignes de CSS dupliqué avec `!important` inutiles.
-
-## [v2.8.13] - 2026-08-02
-
-
-### Corrigé
-**Humanisé** : Le panneau de tchat s'affiche maintenant correctement en sidebar fixe sur la droite de la page en mode PC — il ne s'ouvre plus "par-dessus" le contenu. En mode mobile, le bouton Tchat de la barre de navigation est masqué (le chat y est inutilisable, aucun FAB mobile n'était présent).
-**Technique** : `Index.html` — `.app-layout` et `.main-content-wrapper` n'existaient que dans le CSS sans aucune `<div>` correspondante dans le HTML, rendant le `position: sticky` du `.chat-side-panel` inopérant. Fix : sur `body.desktop-layout`, `.container` passe en `display: flex` et le `chatSidePanel` devient un flex enfant `order: 2` sticky à droite. Sur `body:not(.desktop-layout)`, le panneau est masqué en `display: none !important` et le bouton `.nav-chat-btn` idem. Suppression des règles CSS mortes `.chat-fab` et `.chat-panel` (éléments absents du DOM).
-
-## [v2.8.12] - 2026-08-02
-
-
-### Corrigé
-**Humanisé** : La création, la suppression et le regroupement de Tops Alternatifs ne plantent plus avec une erreur "requireIdentity is not defined".
-**Technique** : `Code.gs` — `apiSaveAltCategories`, `apiLinkHistoryRowsToAltCategory` et `apiGroupSimilarEntries` appelaient `requireIdentity(author)` (fonction frontend inexistante côté GAS) au lieu de `requireAuthor(author)` (le garde-fou serveur standard). Correction des 3 occurrences.
-
-## [v2.8.11] - 2026-08-02
-
-### Modifié
-**Humanisé** : Retrait complet des badges automatiques d'intensité et de statut (type "👑 Domination", "🔥 Duel serré", "⚡ Top actif") affichés sur les cartes de commentaires par Top, pour une présentation plus sobre et épurée.
-**Technique** : `Index.html` — suppression de la génération du fragment `badgeHtml` et retrait de l'élément des cartes `.phrase-cat-card`.
-
-## [v2.8.10] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Nettoyage de l'onglet de configuration des Tops Alternatifs : déplacement du bouton de maintenance "🔗 Regrouper les entrées identiques en lot" hors de cet onglet pour le repositionner dans son emplacement légitime sous **Paramètres → 🔧 Outils** (avec les outils d'audit et de regroupement de lots).
-**Technique** : `Index.html` — suppression de `groupSimilarEntriesBtn` du panneau `stab-alt-categories` et intégration dans la carte `toolLotsCard` sous `stab-tools`.
-
-## [v2.8.8] - 2026-08-02
-
-### Modifié
-**Humanisé** : Organisation de la carte de saisie en 3 rangées bien aérées : 1) Joueur, Top principal, Points et Actions de ligne ; 2) Raccourcis de points rapides (1 à 100) ; 3) Sélecteurs de date/raccourcis à gauche et **Top Alternatif** calé dans le coin inférieur droit (exactement au-dessus du Barème).
-**Technique** : `Index.html` — restructuration de `addEntryRow()` en rangées distinctes (`topRow`, `ptsRow`, `dateAltRow`), éliminant tout entassement visuel et garantissant l'alignement exact du bouton Top Alt dans l'emplacement bas-droite du composant.
-
-## [v2.8.7] - 2026-08-02
-
-### Modifié
-**Humanisé** : Refonte totale du sélecteur Top Alternatif avec un composant déroulant 100% sur-mesure (plus de sélecteur HTML natif) et positionnement exact dans le coin inférieur droit de la zone de date (au-dessus du barème).
-**Technique** : `Index.html` — création de `customAltPicker` dans `addEntryRow()` avec bouton pilule dynamique, popover sur mesure (`alt-picker-menu`), notification si aucun Top alt n'est configuré et positionnement dans `bottomAltRow` directement au-dessus de `baremeRow`.
-
-## [v2.8.6] - 2026-08-02
-
-### Modifié
-**Humanisé** : Refonte ergonomique de la disposition des lignes de saisie : le bouton **Top Alternatif** est désormais déplacé dans le coin inférieur droit de la ligne (au-dessus du barème), décongestionnant la rangée supérieure. Redesign complet du badge Top Alt avec une pilule dorée discrète et un sélecteur épuré.
-**Technique** : `Index.html` — restructuration de `addEntryRow()` : retrait de `.row-alt-pill` de `.row-top`, création du conteneur `.row-bottom-right-controls` dans `.row-bottom` hébergeant la bascule de points rapides et la pilule `.row-alt-pill` ; mise à jour des règles CSS `.row-alt-pill` et `.row-alt-select`.
-
-## [v2.8.5] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Correction de l'erreur "requireIdentity is not defined" en rendant le contrôleur d'identité et les notifications toasts accessibles globalement sur `window`.
-**Technique** : `Index.html` — assignation explicite de `window.requireIdentity` et `window.showToast` pour garantir l'accès universel depuis les handlers dynamiques.
-
-## [v2.8.4] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Actualisation dynamique de l'ensemble des statistiques et cartes du Dashboard (Leader, Écart, Records, Tendances, Jour actif, Duos et Mentions) lors du passage entre Tops Principaux et Tops Alternatifs et lors des changements de filtres.
-**Technique** : `Code.gs` — ajout du paramètre `universe` sur `apiGetQuickStats`, `apiGetPlayerRecords`, `apiGetTrends`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs` et `apiGetMentionStats` pour basculer sur `AltStorageService.getAltLogs()` et isoler les clés de cache ; `Index.html` — création de `refreshDashboardStats()` appelée lors de `applyFilters()`, de la bascule d'univers et au démarrage.
-
-## [v2.8.3] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Repositionnement de la bannière des statistiques rapides au-dessus des onglets pour qu'elle reste visible partout, correction de l'affichage et du fonctionnement de l'onglet "Saisir un lot" (reconstitution de l'arborescence des sous-tops et du bouton Top Alternatif), et résolution du filtre de catégories lors du changement d'univers sur le Dashboard.
-**Technique** : `Index.html` — déplacement de `#quickStatsBar` hors de `#tab-dashboard` vers le conteneur principal ; correction du nettoyage `selectedCategoryChips` dans `_paintEntitiesUI` pour utiliser la liste active (`cachedAltCategories` ou `cachedCategories`) ; réorganisation de `addEntryRow()` pour assembler correctement `topRow` avec `topsGroup` et `altPill` sans détacher les sélecteurs ni appeler de références inexistantes.
-
-## [v2.8.2] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Résolution du chargement infini au démarrage en sécurisant le masquage des squelettes visuels en cas d'erreur réseau et en échelonnant le lancement des statistiques du Dashboard.
-**Technique** : `Index.html` — ajout de gestionnaires d'erreur `onError` sur `applyFilters()`, `loadQuickStats()`, `scanRecords()`, `loadTrends()`, `loadActiveWeekday()`, `scanTopPairs()` et `loadMentionStats()` pour masquer systématiquement `#chartSkeleton` et dé-squelettiser les textes ; espacement de 150ms des requêtes de statistiques secondaires au démarrage via `setTimeout`.
+**Humanisé** : Retrait de l'outil "Scores aberrants" devenu obsolète.
+**Technique** : `Index.html` — suppression de la carte `toolOutliersCard`, des fonctions `scanOutliers` et de ses listeners.
 
 ## [v2.8.1] - 2026-08-02
 
 ### Corrigé
-**Humanisé** : Correction du groupement manuel d'entrées d'historique en lot, synchronisation des compteurs d'onglets (badge Historique et Notes) sur les versions mobile et ordinateur, et ajout du bouton d'association automatique des entrées identiques dans l'onglet des Tops Alternatifs.
-**Technique** : `Index.html` — ajout de l'écouteur `click` sur `#histBulkGroup` lié à `apiGroupRows`, mise à jour de `updateNavCount` pour cibler l'ensemble des éléments badges desktop/mobile via `querySelectorAll`, et intégration du bouton `#groupSimilarEntriesBtn` dans `#stab-alt-categories`.
+**Humanisé** : Nettoyage et stabilisation de l'interface : tchat ancré en sidebar fixe sur PC, simplification de la barre de navigation mobile (boutons 36px, masquage des labels superflus), et sécurisation des appels serveur.
+**Technique** : `Index.html` & `Code.gs` — correction des gardes-fous d'auteurs serveur (`requireAuthor`), masquage des badges d'intensité sur les cartes de commentaires, et fiabilisation du layout responsive.
 
 ## [v2.8.0] - 2026-08-02
+
 
 ### Modifié
 **Humanisé** : Intégration d'un moteur Markdown GFM complet, refonte ergonomique de la Saisie de Lot (sous-tops sous le top principal et pilule interactive Top Alternatif), édition complète des automatisations et tchat ancré en panneau latéral / tiroir mobile.
