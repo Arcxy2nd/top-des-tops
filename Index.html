@@ -860,7 +860,7 @@
       display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : Joueur à gauche (50%), Top principal + Pts à droite */
+    /* Rangée principale : Joueur à gauche (50%), Top principal + Points à droite */
     .row-main {
       display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
     }
@@ -871,50 +871,44 @@
       flex: 1 1 calc(50% - 6px); min-width: 200px;
       display: flex; flex-direction: column; gap: 6px;
     }
-    .row-main-right .main-top-row {
-      display: flex; align-items: center; gap: 6px;
+    .row-main-top-line {
+      display: flex; align-items: flex-start; gap: 8px;
     }
-    .row-main-right .c-sel-wrap {
+    .row-main-top-line .c-sel-wrap {
       flex: 1; min-width: 100px;
     }
-    .row-main-right .custom-pts-in {
-      width: 54px; flex-shrink: 0; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 5px 2px;
-      border: 1.5px solid var(--row-accent, var(--border)); border-radius: 8px; background: var(--bg); color: var(--text);
+
+    /* Groupe points : la case [pts] prend 100% de la largeur combinée des 4 boutons rapides 2x4 en dessous */
+    .pts-box-group {
+      display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+      width: 168px; flex-shrink: 0;
     }
-    .row-main-right .row-pts-line {
-      display: flex; justify-content: flex-end; align-items: center; margin-top: 2px;
+    .pts-box-group .custom-pts-in {
+      width: 100%; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 5px 4px;
+      border: 1.5px solid var(--row-accent, var(--border)); border-radius: 8px;
+      background: var(--bg); color: var(--text); box-sizing: border-box;
+    }
+    .pts-toggle-wrap {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; width: 100%;
+    }
+    .pts-toggle-wrap .pts-btn {
+      padding: 4px 0; text-align: center; font-size: 0.76rem; font-weight: 700;
     }
 
     /* Rangée Date : à sa place d'origine sous la rangée principale */
     .row-date-line {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
     .d-cell {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    /* Panneau "Une période" : S'OUVRE SUR LE CÔTÉ (popover latéral), PAS en dessous */
+    /* Panneau "Une période" : S'OUVRE NORMALEMENT SUR LE CÔTÉ (côte à côte en ligne) */
     .d-period {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      width: 280px;
-      max-width: 90vw;
-      background: var(--bg-card, #1e2533);
-      border: 1.5px solid var(--accent, #3b82f6);
-      border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      position: absolute;
-      left: calc(100% + 8px);
-      top: -10px;
-      z-index: 150;
+      display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+      background: transparent; border: none; padding: 0; box-shadow: none; position: static;
     }
       display: flex; flex-direction: column; gap: 6px;
     }
@@ -11419,25 +11413,23 @@
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
-    // ── Panneau « Une période » ───────────────────────────────────────────
+    // ── Panneau « Une période » (s'ouvre normalement sur le côté) ───────────
     const periodPanel = document.createElement('div');
     periodPanel.className = 'd-period';
 
-    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
+    const periodDates = document.createElement('div');
+    periodDates.style.cssText = 'display:flex; align-items:center; gap:4px;';
+    const lblDu = document.createElement('span');
+    lblDu.style.cssText = 'font-size:0.78rem; color:var(--text-muted); font-weight:600;';
+    lblDu.textContent = 'Du';
+    const lblAu = document.createElement('span');
+    lblAu.style.cssText = 'font-size:0.78rem; color:var(--text-muted); font-weight:600;';
+    lblAu.textContent = 'au';
+    periodDates.appendChild(lblDu);
+    periodDates.appendChild(startInput);
+    periodDates.appendChild(lblAu);
+    periodDates.appendChild(endInput);
 
-    const periodShortcuts = document.createElement('div');
-    periodShortcuts.className = 'row-shortcuts';
-    rangePresetItems().forEach(r => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'row-shortcut'; b.textContent = r.label;
-      b.addEventListener('click', () => {
-        startInput.value = r.from; endInput.value = r.to;
-        cal.refresh(); updateDatePreview();
-      });
-      periodShortcuts.appendChild(b);
-    });
-
-    // Durées calées sur le jour de début choisi : « à partir du 3, sur 7 jours ».
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'row-shortcuts';
     [['+3 j', 3], ['+7 j', 7], ['+14 j', 14], ['+1 mois', 30]].forEach(([label, n]) => {
@@ -11449,7 +11441,7 @@
         const dt = new Date(base + 'T12:00:00');
         dt.setDate(dt.getDate() + n - 1);
         endInput.value = toDateStr(dt);
-        cal.refresh(); updateDatePreview();
+        updateDatePreview();
       });
       durationShortcuts.appendChild(b);
     });
@@ -11458,9 +11450,9 @@
 
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
+    fillPreview.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic;';
 
-    periodPanel.appendChild(cal);
-    periodPanel.appendChild(periodShortcuts);
+    periodPanel.appendChild(periodDates);
     periodPanel.appendChild(durationShortcuts);
     periodPanel.appendChild(fillToggle);
     periodPanel.appendChild(fillPreview);
@@ -11472,20 +11464,18 @@
       const jour = ' jour' + (n > 1 ? 's' : '');
       const pt = pts + ' pt' + (pts > 1 ? 's' : '');
       if (fillToggle.dataset.fill === 'distribute') {
-        // Le serveur ne reçoit que des entiers : on montre le découpage réel
-        // (base + reste réparti sur les premiers jours), pas une moyenne trompeuse.
         const base = n ? Math.floor(pts / n) : pts, rem = n ? pts % n : 0;
         if (n <= 1) {
-          fillPreview.textContent = pt + ' sur 1 seul jour (période à élargir pour répartir)';
+          fillPreview.textContent = pt + ' sur 1 seul jour';
         } else if (base === 0) {
-          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' → 1 pt sur ' + rem + ' jour' + (rem > 1 ? 's' : '') + ', 0 sur les autres';
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' → 1 pt sur ' + rem + ' j';
         } else if (rem === 0) {
-          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + base + ' pt' + (base > 1 ? 's' : '') + ' / jour';
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + base + ' pt/j';
         } else {
-          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + (base + 1) + ' pts sur ' + rem + ' jour' + (rem > 1 ? 's' : '') + ', ' + base + ' sur les ' + (n - rem) + ' autres';
+          fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + (base + 1) + ' pts sur ' + rem + ' j, ' + base + ' sur ' + (n - rem) + ' j';
         }
       } else {
-        fillPreview.textContent = pt + ' chaque jour × ' + n + jour + ' = ' + (pts * n) + ' au total';
+        fillPreview.textContent = pt + '/j × ' + n + jour + ' = ' + (pts * n) + ' total';
       }
     }
 
@@ -11497,8 +11487,8 @@
       periodPanel.style.display = range ? 'flex' : 'none';
       singlePanel.style.display = range ? 'none' : 'flex';
       if (range) {
-        if (!endInput.value) endInput.value = startInput.value; // période valide dès l'entrée
-        cal.refresh(); updateDatePreview();
+        if (!endInput.value) endInput.value = startInput.value;
+        updateDatePreview();
       } else {
         endInput.value = '';
       }
@@ -11506,15 +11496,13 @@
     modeSingle.addEventListener('click', () => setDateMode(false));
     modeRange.addEventListener('click', () => setDateMode(true));
 
-    // Un raccourci « Un jour » change la date → resync calendrier + aperçu.
-    startInput.addEventListener('change', () => { cal.refresh(); updateDatePreview(); });
+    startInput.addEventListener('change', () => { updateDatePreview(); });
 
-    // Appliquée par « Appliquer à toutes les lignes » : pose date/période/fill + mode.
     div.__applyDate = (start, end, fill) => {
       startInput.value = start; endInput.value = end || '';
       setLineFill(fillToggle, fill);
       setDateMode(!!end);
-      cal.refresh(); updateDatePreview();
+      updateDatePreview();
     };
 
     dateCell.appendChild(rangeCb);
