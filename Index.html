@@ -8344,8 +8344,6 @@
       if (cached && cached.players && cached.categories) {
         cachedPlayers    = cached.players;
         cachedCategories = cached.categories;
-        // Rendu léger depuis le cache : pas de applyFilters/loadQuickStats
-        // pour éviter un double chargement (ils seront déclenchés après la réponse serveur)
         _paintEntitiesUI({ withDataLoad: false });
         paintedFromCache = true;
       }
@@ -8363,31 +8361,24 @@
         localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
       } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
 
+      // Rendu complet immédiat avec chargement des données (applyFilters + loadQuickStats)
+      _paintEntitiesUI({ withDataLoad: true });
+      if (onDone) onDone();
+
+      // Chargement en arrière-plan non-bloquant des tops alternatifs
       callServer('apiGetAltCategories', [], resAlt => {
         if (resAlt && resAlt.success) {
           cachedAltCategories = resAlt.altCategories || [];
           renderAltCategoriesList();
+          if (activeDashboardUniverse === 'alt') renderCategoryChips();
         }
-        // Rendu complet avec chargement des données (applyFilters + loadQuickStats)
-        _paintEntitiesUI({ withDataLoad: true });
-        if (onDone) onDone();
-      }, 'Tops alternatifs');
+      }, 'Tops alternatifs', () => { /* non-bloquant */ });
 
     }, 'Chargement settings', () => {
-      // apiGetSettings a échoué : si rien n'a pu être peint depuis le cache, les
-      // skeletons affichés au chargement (chart, phrases, listes joueurs/catégories)
-      // ne seront jamais nettoyés par applyFilters/loadQuickStats/renderEntityList
-      // puisqu'ils ne s'exécutent jamais — on les efface pour ne pas bloquer l'UI.
-      // Si un rendu depuis le cache a déjà eu lieu, on le laisse tel quel : un échec
-      // réseau ne doit pas effacer une interface déjà correctement affichée.
-      if (!paintedFromCache) {
-        clearPhrasesCard();
-        document.getElementById('chartSkeleton').style.display = 'none';
-        document.getElementById('chartWrapper').style.display  = 'block';
-        document.getElementById('playersList').innerHTML    = '';
-        document.getElementById('categoriesList').innerHTML = '';
-      }
-      if (onDone) onDone();
+      // apiGetSettings a échoué : effacement des skeletons pour débloquer l'UI
+      showSkeleton(document.getElementById('playersList'),    { rows: 0 });
+      showSkeleton(document.getElementById('categoriesList'), { rows: 0 });
+      _paintEntitiesUI({ withDataLoad: true });
     });
   }
 
