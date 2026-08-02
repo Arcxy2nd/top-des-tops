@@ -147,39 +147,44 @@
     .nav-btn-group::-webkit-scrollbar { display: none; }
     .nav-btn {
       position: relative;
-      background: transparent; border: none;
-      color: var(--text-muted); font-size: 0.86rem;
-      padding: 10px 14px; cursor: pointer;
-      border-bottom: 3px solid transparent;
-      white-space: nowrap; min-height: 38px;
-      font-weight: 600; 
-      transition: color 0.2s, flex-grow 0.3s ease, border-color 0.2s, transform 0.15s;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      padding: 6px 12px;
+      margin: 0 2px;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 34px;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      display: flex; align-items: center; justify-content: center;
-      flex: 1 1 0; min-width: max-content;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
     }
-    .nav-btn:not(:last-child)::after {
-      content: "";
-      position: absolute; right: 0;
-      top: 28%; bottom: 28%;
-      width: 1px;
-      background: color-mix(in srgb, var(--border) 40%, transparent);
-      pointer-events: none;
+    .nav-btn:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+      background: var(--btn-alt);
     }
-    .nav-btn:hover { color: var(--text); }
     .nav-btn.active {
-      color: var(--accent); 
-      border-bottom-color: var(--accent); 
+      color: var(--accent);
+      background: rgba(255, 209, 102, 0.1);
+      border-color: var(--accent);
       font-weight: 700;
-      flex-grow: 2.6;
+      box-shadow: 0 0 10px rgba(255, 209, 102, 0.2);
     }
     .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
     .nav-btn-label {
-      display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
-      transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
+      display: inline-block;
+      opacity: 1;
+      margin-left: 6px;
+      font-size: 0.82rem;
     }
-    .nav-btn.active .nav-btn-label { max-width: 160px; opacity: 1; margin-left: 8px; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card-solid); color: var(--text);
@@ -197,6 +202,84 @@
     .app-brand-title { font-weight: 900; font-size: 1rem; color: var(--accent); white-space: nowrap; letter-spacing: -0.02em; }
     @media (max-width: 640px) {
       .app-brand-title { font-size: 0.88rem; }
+    }
+
+    .nav-chat-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .nav-chat-btn:hover {
+      background: var(--btn-alt);
+      border-color: var(--accent);
+    }
+    .nav-chat-btn.active {
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+    }
+    .chat-badge {
+      background: #ff4757;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      border-radius: 10px;
+      padding: 1px 6px;
+      margin-left: 4px;
+    }
+
+    .app-layout {
+      display: flex;
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .main-content-wrapper {
+      flex: 1 1 0;
+      min-width: 0;
+      width: 100%;
+    }
+    .chat-side-panel {
+      width: 360px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 80px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--glass-shadow);
+      z-index: 100;
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .app-layout { display: block; }
+      .chat-side-panel {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        height: 75vh !important;
+        border-radius: 20px 20px 0 0 !important;
+        z-index: 1000 !important;
+        box-shadow: 0 -8px 30px rgba(0,0,0,0.5) !important;
+      }
     }
 
     /* Boutons contrôles droite */
@@ -2102,6 +2185,34 @@
       transition: color 0.25s;
     }
 
+    .row-alt-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 209, 102, 0.4);
+      background: rgba(255, 209, 102, 0.08);
+      color: #ffd166;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .row-alt-pill:hover {
+      background: rgba(255, 209, 102, 0.18);
+      border-color: #ffd166;
+      transform: translateY(-1px);
+    }
+    .row-alt-pill.active {
+      background: #ffd166;
+      color: #1a202c;
+      font-weight: 800;
+      border-color: #ffd166;
+      box-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+    }
+
     /* Avatar avec anneau couleur joueur */
     .row-avatar {
       box-shadow: 0 0 0 2.5px var(--player-ring, var(--btn-alt));
@@ -3620,6 +3731,7 @@
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
       <button class="nav-bareme-btn" id="baremeBtn" aria-expanded="false" title="Barème des Tops (touche ?)"><span class="bareme-btn-icon">⚖️</span><span class="bareme-btn-label">Barème</span></button>
+      <button class="nav-chat-btn" id="chatToggleBtn" title="Ouvrir le Tchat"><span class="chat-btn-icon">💬</span><span class="chat-btn-label">Tchat</span><span id="chatBadge" class="chat-badge" style="display:none;"></span></button>
     </div>
     <div class="who-am-i-wrap" id="whoAmIWrap">
       <button class="who-am-i-btn" id="whoAmIBtn" title="Sélectionner mon identité">
@@ -3683,11 +3795,8 @@
 <div class="container">
   <div id="toastContainer"></div>
 
-  <!-- ══ TCHAT FLOTTANT (accessible depuis n'importe quel onglet) ══ -->
-  <button id="chatFab" class="chat-fab" title="Tchat — cliquer pour ouvrir, maintenir pour déplacer" aria-label="Ouvrir le tchat">
-    💬<span id="chatFabBadge" class="chat-fab-badge" style="display:none;"></span>
-  </button>
-  <div id="chatPanel" class="chat-panel" style="display:none;">
+  <!-- ══ PANNEAU / TIROIR DE TCHAT ══ -->
+  <aside id="chatSidePanel" class="chat-side-panel" style="display:none;">
     <div class="chat-panel-header">
       <span>💬 Tchat</span>
       <button id="chatPanelClose" class="small" title="Fermer">✕</button>
@@ -3701,10 +3810,10 @@
       <button id="chatReplyBannerCancel" class="small" title="Annuler la réponse">✕</button>
     </div>
     <div class="chat-composer">
-      <textarea id="chatInput" rows="2" placeholder="Écris un message… (@joueur, #top, markdown supporté)"></textarea>
+      <textarea id="chatInput" rows="2" placeholder="Écris un message… (@joueur, #top, markdown)"></textarea>
       <button id="chatSendBtn" class="primary">Envoyer</button>
     </div>
-  </div>
+  </aside>
 
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
@@ -4639,6 +4748,164 @@
   let selectedCategoryChips = new Set();
 
   // ── QUI SUIS-JE ? ───────────────────────────────────────────────────
+  // ── MARKDOWN + MENTIONS (descriptions, notes, règles auto) ─────────────
+  function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function renderMentions(escapedHtml) {
+    if (!cachedPlayers.length) return escapedHtml;
+    const names = cachedPlayers.map(p => p.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)@(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedPlayers.find(p => escapeHtml(p.name) === name);
+      const realName = original ? original.name : name;
+      const col = playerColor(realName);
+      const avatarUrl = getAvatarUrl(realName, original ? original.meta : '');
+      return pre + '<span class="mention" data-player="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        '<img src="' + avatarUrl + '" alt="" onerror="this.remove()">' + name + '</span>';
+    });
+  }
+
+  function renderCategoryMentions(escapedHtml) {
+    if (!cachedCategories.length) return escapedHtml;
+    const names = cachedCategories.map(c => c.name).sort((a, b) => b.length - a.length);
+    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
+    const re = new RegExp('(^|\\s)#(' + alt + ')\\b', 'g');
+    return escapedHtml.replace(re, (m, pre, name) => {
+      const original = cachedCategories.find(c => escapeHtml(c.name) === name);
+      const realName = original ? original.name : name;
+      const col = categoryColor(realName);
+      const icon = original && original.icon ? original.icon + ' ' : '';
+      return pre + '<span class="category-mention" data-category="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
+        icon + '#' + name + '</span>';
+    });
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    let src = String(text).replace(/\r\n/g, '\n');
+
+    // 1) Blocs de code
+    const codeBlocks = [];
+    src = src.replace(/```([\s\S]*?)```/g, (m, code) => {
+      codeBlocks.push('<pre class="md-code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
+      return ' ___CODEBLOCK_' + (codeBlocks.length - 1) + '___ ';
+    });
+
+    // 2) Code inline
+    const inlineCodes = [];
+    src = src.replace(/`([^`]+)`/g, (m, code) => {
+      inlineCodes.push('<code>' + escapeHtml(code) + '</code>');
+      return ' ___INLINECODE_' + (inlineCodes.length - 1) + '___ ';
+    });
+
+    // 3) Échappement HTML du texte hors code
+    src = escapeHtml(src);
+
+    // 4) Titres (#, ##, ###, ####)
+    src = src.replace(/^#### (.*)$/gm, '<h4>$1</h4>')
+             .replace(/^### (.*)$/gm,  '<h3>$1</h3>')
+             .replace(/^## (.*)$/gm,   '<h2>$1</h2>')
+             .replace(/^# (.*)$/gm,    '<h1>$1</h1>');
+
+    // 5) Séparateurs horizontaux
+    src = src.replace(/^(---|[*]{3}|___)$/gm, '<hr>');
+
+    // 6) Citations / Blockquotes
+    src = src.replace(/^&gt;\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+    src = src.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
+
+    // 7) Mise en forme texte : Gras, Italique, Barré
+    src = src.replace(/~~(.*?)~~/g, '<del>$1</del>')
+             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+             .replace(/__(.*?)__/g, '<strong>$1</strong>')
+             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+             .replace(/_(.*?)_/g, '<em>$1</em>');
+
+    // 8) Liens [texte](url)
+    src = src.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // 9) Tableaux Markdown GFM (| col | col |)
+    const lines = src.split('\n');
+    const outLines = [];
+    let inTable = false;
+    let tableHtml = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('|') && line.endsWith('|')) {
+        const cells = line.split('|').slice(1, -1).map(c => c.trim());
+        const isHeaderSep = cells.every(c => /^:?-+:?$/.test(c));
+        if (isHeaderSep) continue;
+
+        if (!inTable) {
+          inTable = true;
+          tableHtml = '<table class="md-table"><thead><tr>' +
+            cells.map(c => '<th>' + c + '</th>').join('') +
+            '</tr></thead><tbody>';
+        } else {
+          tableHtml += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+        }
+      } else {
+        if (inTable) {
+          tableHtml += '</tbody></table>';
+          outLines.push(tableHtml);
+          inTable = false;
+          tableHtml = '';
+        }
+        outLines.push(lines[i]);
+      }
+    }
+    if (inTable) {
+      tableHtml += '</tbody></table>';
+      outLines.push(tableHtml);
+    }
+    src = outLines.join('\n');
+
+    // 10) Listes à puces (- / *) et numérotées (1.)
+    const lLines = src.split('\n');
+    const grouped = [];
+    let i = 0;
+    while (i < lLines.length) {
+      const line = lLines[i];
+      const ulMatch = /^[-*] (.*)$/.exec(line);
+      const olMatch = /^\d+\. (.*)$/.exec(line);
+      if (ulMatch) {
+        const items = [];
+        while (i < lLines.length && /^[-*] (.*)$/.test(lLines[i])) {
+          items.push('<li>' + /^[-*] (.*)$/.exec(lLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ul class="md-list">' + items.join('') + '</ul>');
+      } else if (olMatch) {
+        const items = [];
+        while (i < lLines.length && /^\d+\. (.*)$/.test(lLines[i])) {
+          items.push('<li>' + /^\d+\. (.*)$/.exec(lLines[i])[1] + '</li>');
+          i++;
+        }
+        grouped.push('<ol class="md-list">' + items.join('') + '</ol>');
+      } else {
+        grouped.push(line);
+        i++;
+      }
+    }
+    src = grouped.join('\n');
+
+    // 11) Sauts de ligne restants
+    src = src.replace(/\n/g, '<br>');
+
+    // 12) Mentions @Joueur et #Top
+    src = renderMentions(src);
+    src = renderCategoryMentions(src);
+
+    // 13) Restauration des blocs et du code inline
+    src = src.replace(/ ___INLINECODE_(\d+)___ /g, (m, idx) => inlineCodes[parseInt(idx, 10)]);
+    src = src.replace(/ ___CODEBLOCK_(\d+)___ /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
+
+    return src;
+  }
+
   const WHO_AM_I_KEY = 'tdt_who_am_i';
   let _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
 
@@ -4735,25 +5002,6 @@
   }
 
   // ── MARKDOWN + MENTIONS (descriptions, notes, règles auto) ─────────────
-  // Rendu volontairement minimal et sûr : on échappe tout le texte d'abord,
-  // puis on insère uniquement les balises que CE parseur génère lui-même
-  // (jamais de HTML venant du texte utilisateur). Pas de dépendance externe.
-  function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-  function renderMentions(escapedHtml) {
-    if (!cachedPlayers.length) return escapedHtml;
-    // Les plus longs noms d'abord pour éviter qu'un nom court n'avale le début d'un plus long.
-    const names = cachedPlayers.map(p => p.name).sort((a, b) => b.length - a.length);
-    const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
-    const re = new RegExp('(^|\\s)@(' + alt + ')\\b', 'g');
-    return escapedHtml.replace(re, (m, pre, name) => {
-      const original = cachedPlayers.find(p => escapeHtml(p.name) === name);
-      const realName = original ? original.name : name;
-      const col = playerColor(realName);
-      const avatarUrl = getAvatarUrl(realName, original ? original.meta : '');
-      return pre + '<span class="mention" data-player="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
-        '<img src="' + avatarUrl + '" alt="" onerror="this.remove()">' + name + '</span>';
-    });
   }
 
   function renderCategoryMentions(escapedHtml) {
@@ -6834,39 +7082,22 @@
   }
 
   function updateChatBadge() {
-    const badge = document.getElementById('chatFabBadge');
+    const badge = document.getElementById('chatBadge');
     if (!badge) return;
     if (_chatUnreadCount > 0) {
       badge.textContent = _chatUnreadCount > 99 ? '99+' : String(_chatUnreadCount);
-      badge.style.display = 'flex';
+      badge.style.display = 'inline-flex';
     } else {
       badge.style.display = 'none';
     }
   }
 
-  function positionChatPanel() {
-    const fab = document.getElementById('chatFab');
-    const panel = document.getElementById('chatPanel');
-    if (!fab || !panel || panel.style.display === 'none') return;
-    const fr = fab.getBoundingClientRect();
-    const pw = panel.offsetWidth || 360, ph = panel.offsetHeight || 480;
-    let left = fr.left + fr.width / 2 - pw / 2;
-    let top  = fr.top - ph - 12; // au-dessus du bouton par défaut
-    if (top < 8) top = fr.bottom + 12; // pas assez de place au-dessus → sous le bouton
-    // Math.max en dernier : sur un petit viewport la borne haute peut être
-    // négative, et l'ancien ordre poussait le panneau hors écran.
-    left = Math.max(8, Math.min(left, window.innerWidth  - pw - 8));
-    top  = Math.max(8, Math.min(top,  window.innerHeight - ph - 8));
-    panel.style.left = left + 'px';
-    panel.style.top  = top  + 'px';
-    panel.style.right = 'auto';
-    panel.style.bottom = 'auto';
-  }
-
   function openChatPanel() {
     _chatPanelOpen = true;
-    document.getElementById('chatPanel').style.display = 'flex';
-    positionChatPanel();
+    const panel = document.getElementById('chatSidePanel');
+    if (panel) panel.style.display = 'flex';
+    const btn = document.getElementById('chatToggleBtn');
+    if (btn) btn.classList.add('active');
     _chatUnreadCount = 0;
     updateChatBadge();
     if (!_chatLoadedOnce) loadChat(); else { renderChatMessages(true); pollChat(); }
@@ -6875,12 +7106,34 @@
 
   function closeChatPanel() {
     _chatPanelOpen = false;
-    document.getElementById('chatPanel').style.display = 'none';
+    const panel = document.getElementById('chatSidePanel');
+    if (panel) panel.style.display = 'none';
+    const btn = document.getElementById('chatToggleBtn');
+    if (btn) btn.classList.remove('active');
     scheduleChatPoll();
   }
 
   function toggleChatPanel() {
     if (_chatPanelOpen) closeChatPanel(); else openChatPanel();
+  }
+
+  function initChatWidget() {
+    const btn = document.getElementById('chatToggleBtn');
+    if (btn) btn.addEventListener('click', toggleChatPanel);
+    const closeBtn = document.getElementById('chatPanelClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
+    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    attachMentionAutocomplete(document.getElementById('chatInput'));
+    _chatInputFit = autoGrowTextarea(document.getElementById('chatInput'), 0.3);
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+    document.getElementById('chatReplyBannerCancel').addEventListener('click', clearChatReplyTo);
+    document.getElementById('chatMessages').addEventListener('scroll', function() {
+      _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
+    });
+    loadChat();
+    scheduleChatPoll();
   }
 
   function loadChat() {
@@ -6964,83 +7217,7 @@
     });
   }
 
-  // Glisser (souris ET tactile) via Pointer Events. Un déplacement au-delà du
-  // seuil marque `moved`, ce qui empêche le "click" qui suit de basculer le
-  // panneau — sinon chaque fin de glissement ouvrirait/fermerait le tchat.
-  function initChatFabDrag(fab) {
-    let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
-    const DRAG_THRESHOLD = 6;
-
-    function setPos(left, top) {
-      const maxLeft = window.innerWidth  - fab.offsetWidth  - 8;
-      const maxTop  = window.innerHeight - fab.offsetHeight - 8;
-      left = Math.max(8, Math.min(left, maxLeft));
-      top  = Math.max(8, Math.min(top,  maxTop));
-      fab.style.left = left + 'px';
-      fab.style.top  = top  + 'px';
-      fab.style.right = 'auto';
-      fab.style.bottom = 'auto';
-      positionChatPanel();
-    }
-
-    fab.addEventListener('pointerdown', e => {
-      dragging = true; moved = false;
-      const rect = fab.getBoundingClientRect();
-      startX = e.clientX; startY = e.clientY;
-      startLeft = rect.left; startTop = rect.top;
-      fab.setPointerCapture(e.pointerId);
-    });
-    fab.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      const dx = e.clientX - startX, dy = e.clientY - startY;
-      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
-      if (moved) setPos(startLeft + dx, startTop + dy);
-    });
-    function endDrag() {
-      if (!dragging) return;
-      dragging = false;
-      if (moved) {
-        const rect = fab.getBoundingClientRect();
-        try { localStorage.setItem(CHAT_FAB_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
-      }
-    }
-    fab.addEventListener('pointerup', endDrag);
-    fab.addEventListener('pointercancel', endDrag);
-    fab.addEventListener('click', () => {
-      if (moved) { moved = false; return; } // c'était un glisser, pas un clic
-      toggleChatPanel();
-    });
-
-    try {
-      const saved = JSON.parse(localStorage.getItem(CHAT_FAB_POS_KEY) || 'null');
-      if (saved) setPos(saved.left, saved.top);
-    } catch {}
-    window.addEventListener('resize', () => {
-      const rect = fab.getBoundingClientRect();
-      setPos(rect.left, rect.top);
-    });
-  }
-
-  function initChatWidget() {
-    const fab = document.getElementById('chatFab');
-    if (!fab) return;
-    initChatFabDrag(fab);
-    document.getElementById('chatPanelClose').addEventListener('click', closeChatPanel);
-    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
-    // Registered BEFORE the Enter-to-send listener: the autocomplete popup must
-    // swallow Enter (stopImmediatePropagation) or picking a mention sends the message.
-    attachMentionAutocomplete(document.getElementById('chatInput'));
-    _chatInputFit = autoGrowTextarea(document.getElementById('chatInput'), 0.3);
-    document.getElementById('chatInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-    });
-    document.getElementById('chatReplyBannerCancel').addEventListener('click', clearChatReplyTo);
-    document.getElementById('chatMessages').addEventListener('scroll', function() {
-      _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
-    });
-    loadChat();
-    scheduleChatPoll();
-  }
+  // Fin des helpers Tchat
 
   // ── SÉLECTION MULTIPLE PAR GLISSER (souris seule et tactile) ─────────
   // Équivalent à un shift+clic mais sans dépendre du clavier : on clique
@@ -7873,8 +8050,13 @@
     });
     if (!selectedCategoryChips.size) allChip.classList.add('active');
     row.appendChild(allChip);
-    cachedCategories.forEach(c => {
-      const col = categoryColor(c.name);
+
+    const categoriesToRender = (activeDashboardUniverse === 'alt')
+      ? cachedAltCategories.map(ac => ({ name: ac.name, icon: ac.emoji || '⭐', color: ac.color || '#ffd166' }))
+      : cachedCategories;
+
+    categoriesToRender.forEach(c => {
+      const col = (activeDashboardUniverse === 'alt') ? (c.color || '#ffd166') : categoryColor(c.name);
       const label = (c.icon ? c.icon + ' ' : '') + c.name;
       const chip = makeFilterChip(label, col, '', () => {
         if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
@@ -11410,19 +11592,83 @@
     actions.appendChild(subTopBtn);
     actions.appendChild(dupBtn); actions.appendChild(delBtn);
 
-    // ── Sub-Tops & Alt-Top ──────────────────────────────────────────────
+    // ── Alt-Top Pill Button (Sublimé & repositionné en haut) ────────────
+    const altPill = document.createElement('div');
+    altPill.className = 'row-alt-pill';
+    altPill.title = 'Associer cette saisie à un Top Alternatif';
+
+    const altCb = document.createElement('input');
+    altCb.type = 'checkbox'; altCb.className = 'row-alt-cb';
+    altCb.style.display = 'none';
+
+    const altLabelSpan = document.createElement('span');
+    altLabelSpan.className = 'row-alt-label';
+    altLabelSpan.innerHTML = '⭐ Top Alt';
+
+    const altCatSel = document.createElement('select');
+    altCatSel.className = 'row-alt-select';
+    altCatSel.style.cssText = 'display:none; margin-left:6px; padding:2px 6px; border-radius:12px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.75rem; font-weight:600;';
+    
+    const populateAltSelect = () => {
+      altCatSel.innerHTML = '';
+      if (cachedAltCategories.length) {
+        cachedAltCategories.forEach(ac => {
+          const opt = document.createElement('option');
+          opt.value = ac.name; opt.textContent = (ac.emoji ? ac.emoji + ' ' : '') + ac.name;
+          altCatSel.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = ''; opt.textContent = 'Aucun Top alt (voir Paramètres)';
+        altCatSel.appendChild(opt);
+      }
+    };
+    populateAltSelect();
+
+    const updateAltPillState = () => {
+      const active = altCb.checked;
+      altPill.classList.toggle('active', active);
+      altCatSel.style.display = active ? 'inline-block' : 'none';
+      if (active) populateAltSelect();
+    };
+
+    altPill.addEventListener('click', (e) => {
+      if (e.target === altCatSel) return;
+      altCb.checked = !altCb.checked;
+      updateAltPillState();
+      updateLotSummary();
+    });
+
+    altPill.appendChild(altCb);
+    altPill.appendChild(altLabelSpan);
+    altPill.appendChild(altCatSel);
+
+    // ── Groupe principal des Tops & Sous-Tops (positionnement sous le top principal) ──
+    const topsGroup = document.createElement('div');
+    topsGroup.className = 'row-tops-group';
+    topsGroup.style.cssText = 'display:flex; flex-direction:column; gap:6px; flex:1 1 300px; min-width:240px;';
+
+    const mainTopRow = document.createElement('div');
+    mainTopRow.className = 'main-top-row';
+    mainTopRow.style.cssText = 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;';
+    mainTopRow.appendChild(cSelWrap);
+    mainTopRow.appendChild(customPtsInput);
+
     const subTopsList = document.createElement('div');
     subTopsList.className = 'sub-tops-list';
-    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin:4px 0 4px 28px;';
+    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:2px;';
+
+    topsGroup.appendChild(mainTopRow);
+    topsGroup.appendChild(subTopsList);
 
     subTopBtn.addEventListener('click', () => {
       const subItem = document.createElement('div');
       subItem.className = 'sub-top-item';
-      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem;';
+      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem; border:1px solid var(--border);';
 
       const subCatSel = document.createElement('select');
       subCatSel.className = 'sub-cat-select';
-      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);';
+      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:120px;';
       cachedCategories.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
@@ -11434,10 +11680,11 @@
       subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
       subPtsInput.value = customPtsInput.value || '1';
       subPtsInput.min = '1';
-      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);';
+      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;';
 
       const delSubBtn = document.createElement('button');
       delSubBtn.className = 'small danger'; delSubBtn.innerHTML = '✕';
+      delSubBtn.title = 'Retirer ce top supplémentaire';
       delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
 
       subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
@@ -11449,44 +11696,6 @@
       subTopsList.appendChild(subItem);
       updateLotSummary();
     });
-
-    // ── Alt-Top Association Checkbox & Select ───────────────────────────
-    const altRowWrap = document.createElement('div');
-    altRowWrap.className = 'alt-top-row-wrap';
-    altRowWrap.style.cssText = 'display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted); margin:4px 0 4px 28px;';
-
-    const altCb = document.createElement('input');
-    altCb.type = 'checkbox'; altCb.className = 'row-alt-cb';
-    const altLbl = document.createElement('label');
-    altLbl.textContent = ' ⭐ Associer à un Top Alternatif';
-    altLbl.style.cursor = 'pointer';
-
-    const altCatSel = document.createElement('select');
-    altCatSel.className = 'row-alt-select';
-    altCatSel.style.cssText = 'display:none; padding:3px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem;';
-    const populateAltSelect = () => {
-      altCatSel.innerHTML = '';
-      if (cachedAltCategories.length) {
-        cachedAltCategories.forEach(ac => {
-          const opt = document.createElement('option');
-          opt.value = ac.name; opt.textContent = (ac.emoji ? ac.emoji + ' ' : '') + ac.name;
-          altCatSel.appendChild(opt);
-        });
-      } else {
-        const opt = document.createElement('option');
-        opt.value = ''; opt.textContent = 'Aucun Top alt config. (voir Paramètres)';
-        altCatSel.appendChild(opt);
-      }
-    };
-    populateAltSelect();
-
-    altCb.addEventListener('change', () => {
-      altCatSel.style.display = altCb.checked ? 'inline-block' : 'none';
-      if (altCb.checked) populateAltSelect();
-    });
-    altLbl.prepend(altCb);
-    altRowWrap.appendChild(altLbl);
-    altRowWrap.appendChild(altCatSel);
 
     // Rangée principale : joueur, top, valeur pts, actions
     const topRow = document.createElement('div');
@@ -13760,6 +13969,61 @@
       (rule.dayOfMonth ? ' le ' + rule.dayOfMonth : '');
   }
 
+  function openEditAutoRuleModal(rule) {
+    if (!requireIdentity()) return;
+    const body = document.getElementById('modalBody');
+    body.innerHTML =
+      '<h3>✏️ Modifier la règle automatique</h3>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Joueur</label><div id="mAutoPlayerRS"></div></div>' +
+        '<div class="modal-field"><label>Top</label><div id="mAutoCategoryRS"></div></div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Points</label><input type="number" id="mAutoPoints" value="' + rule.points + '" min="1"></div>' +
+        '<div class="modal-field"><label>Fréquence</label><select id="mAutoFreq">' +
+          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Quotidien</option>' +
+          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Hebdomadaire</option>' +
+          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Mensuel</option>' +
+        '</select></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Description</label><input type="text" id="mAutoDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mSaveAuto" class="primary">Enregistrer</button>' +
+        '<button id="mCancelAuto" class="secondary">Annuler</button>' +
+      '</div>';
+
+    const playerRS   = buildRichSelect({ type: 'player',   value: rule.player,   onChange: function() {} });
+    const categoryRS = buildRichSelect({ type: 'category', value: rule.category, onChange: function() {} });
+    document.getElementById('mAutoPlayerRS').appendChild(playerRS);
+    document.getElementById('mAutoCategoryRS').appendChild(categoryRS);
+
+    document.getElementById('mSaveAuto').onclick = function() {
+      const pts = parseInt(document.getElementById('mAutoPoints').value, 10);
+      const player = playerRS._getValue();
+      const category = categoryRS._getValue();
+      const frequency = document.getElementById('mAutoFreq').value;
+      const description = document.getElementById('mAutoDesc').value.trim();
+
+      if (!player) { showToast('Joueur requis.', 'error'); return; }
+      if (!category) { showToast('Top requis.', 'error'); return; }
+      if (isNaN(pts) || pts < 1) { showToast('Points invalides.', 'error'); return; }
+
+      closeModal();
+      callServer('apiUpdateAutoRule', [rule.id, { player, category, points: pts, frequency, description }, _whoAmI || ''], res => {
+        if (res && res.success === false) {
+          showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+        } else {
+          showToast('Règle modifiée avec succès !', 'success');
+          loadAutoRules();
+        }
+      }, 'Mise à jour règle auto');
+    };
+    document.getElementById('mCancelAuto').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
   function renderAutoRules(rules) {
     const container = document.getElementById('autoRulesList');
     if (!rules.length) {
@@ -13797,6 +14061,15 @@
       main.appendChild(tail);
       row.appendChild(main);
 
+      const actionsGroup = document.createElement('div');
+      actionsGroup.style.cssText = 'display:flex; align-items:center; gap:6px;';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'secondary small';
+      editBtn.textContent = '✏️'; editBtn.title = 'Éditer cette règle';
+      editBtn.addEventListener('click', () => openEditAutoRuleModal(rule));
+      actionsGroup.appendChild(editBtn);
+
       const toggleBtn = document.createElement('button');
       toggleBtn.className = 'secondary small';
       toggleBtn.textContent = rule.active ? '⏸️' : '▶️';
@@ -13808,7 +14081,7 @@
           loadAutoRules();
         }, 'Mise à jour règle');
       });
-      row.appendChild(toggleBtn);
+      actionsGroup.appendChild(toggleBtn);
 
       const delBtn = document.createElement('button');
       delBtn.className = 'danger small'; delBtn.textContent = '🗑️';
@@ -13822,8 +14095,9 @@
           }, 'Suppression règle');
         });
       });
-      row.appendChild(delBtn);
+      actionsGroup.appendChild(delBtn);
 
+      row.appendChild(actionsGroup);
       container.appendChild(row);
     });
   }
@@ -14209,6 +14483,8 @@
         univMainBtn.classList.add('active');
         univAltBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : Tops Principaux';
+        selectedCategoryChips.clear();
+        renderCategoryChips();
         applyFilters();
       });
       univAltBtn.addEventListener('click', () => {
@@ -14217,6 +14493,8 @@
         univAltBtn.classList.add('active');
         univMainBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : ⭐ Tops Alternatifs';
+        selectedCategoryChips.clear();
+        renderCategoryChips();
         applyFilters();
       });
     }

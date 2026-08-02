@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.0] - 2026-08-02
+
+### Modifié
+**Humanisé** : Intégration d'un moteur Markdown GFM complet, refonte ergonomique de la Saisie de Lot (sous-tops sous le top principal et pilule interactive Top Alternatif), édition complète des automatisations et tchat ancré en panneau latéral / tiroir mobile.
+**Technique** : `Index.html` — réécriture de `renderMarkdown` avec support GFM (titres, gras, italique, barré, citations, tableaux, listes et blocs), isolation des puces du panneau de filtres selon l'univers actif, repositionnement des sous-tops dans `.row-tops-group`, création du bouton pilule `.row-alt-pill`, ajout de la modale `openEditAutoRuleModal`, remplacement du widget tchat flottant par `#chatSidePanel` et du bouton `#chatToggleBtn` dans la Top Bar.
+
 ## [v2.7.0] - 2026-08-02
 
 ### Ajouté
