@@ -5336,7 +5336,9 @@
         recordAvatar.style.display = 'none';
         recordValue.textContent = 'Aucun record';
       }
-    }, 'Chargement résumé');
+    }, 'Chargement résumé', err => {
+      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => unskeletonizeText(el));
+    });
   }
 
   function goToPodium() {
@@ -8731,33 +8733,44 @@
     const startDate     = document.getElementById('startDate').value;
     const endDate       = document.getElementById('endDate').value;
 
+    const showChartWrapper = () => {
+      const skel = document.getElementById('chartSkeleton');
+      const wrap = document.getElementById('chartWrapper');
+      if (skel) skel.style.display = 'none';
+      if (wrap) wrap.style.display = 'block';
+    };
+
     document.getElementById('chartSkeleton').style.display = 'block';
     document.getElementById('chartWrapper').style.display  = 'none';
 
     if (activeDashboardUniverse === 'alt') {
       callServer('apiGetAltAnalyticsData', [selPlayers, selCategories, startDate, endDate], res => {
         currentChartData = res.chartData;
-        document.getElementById('chartSkeleton').style.display = 'none';
-        document.getElementById('chartWrapper').style.display  = 'block';
+        showChartWrapper();
         renderChart(res.chartData, currentChartType);
         renderChartControls(currentChartType);
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
         if (onDone) onDone();
-      }, 'Chargement Dashboard Alternatif');
+      }, 'Chargement Dashboard Alternatif', err => {
+        showChartWrapper();
+        if (onDone) onDone();
+      });
       return;
     }
 
     if (currentChartType === 'trend') {
       callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
         currentChartData = res.trendData;
-        document.getElementById('chartSkeleton').style.display = 'none';
-        document.getElementById('chartWrapper').style.display  = 'block';
+        showChartWrapper();
         renderTrendChart(res.trendData);
         renderChartControls('trend');
         clearTopStatsStrip();
         if (onDone) onDone();
-      }, 'Chargement courbes');
+      }, 'Chargement courbes', err => {
+        showChartWrapper();
+        if (onDone) onDone();
+      });
       return;
     }
 
@@ -8765,21 +8778,22 @@
     if (currentChartType === 'ranking' && !chartOptions.detailed) {
       callServer('apiGetPlayerTotals', [selPlayers, startDate, endDate], res => {
         currentChartData = res.chartData;
-        document.getElementById('chartSkeleton').style.display = 'none';
-        document.getElementById('chartWrapper').style.display  = 'block';
+        showChartWrapper();
         renderChart(res.chartData, 'ranking');
         renderChartControls('ranking');
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
         if (onDone) onDone();
-      }, 'Chargement total global');
+      }, 'Chargement total global', err => {
+        showChartWrapper();
+        if (onDone) onDone();
+      });
       return;
     }
 
     callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
       currentChartData = res.chartData;
-      document.getElementById('chartSkeleton').style.display = 'none';
-      document.getElementById('chartWrapper').style.display  = 'block';
+      showChartWrapper();
       renderChart(res.chartData, currentChartType);
       renderChartControls(currentChartType);
       if (currentChartType === 'stacked' || currentChartType === 'grouped') {
@@ -8791,7 +8805,10 @@
       const ranked = computeRankedTotals(res.chartData);
       renderPhrasesCard(ranked);
       if (onDone) onDone();
-    }, 'Chargement graphique');
+    }, 'Chargement graphique', err => {
+      showChartWrapper();
+      if (onDone) onDone();
+    });
   }
 
   function switchChartType(type, onDone) {
@@ -15415,7 +15432,9 @@
       } else if (!res.globalBest) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
       }
-    }, 'Chargement records');
+    }, 'Chargement records', err => {
+      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+    });
   }
 
   // ── TENDANCES ────────────────────────────────────────────────────────
@@ -15426,7 +15445,12 @@
   let trendsChartInstance = null;
 
   function loadTrends() {
-    callServer('apiGetTrends', [], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances');
+    callServer('apiGetTrends', [], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances', err => {
+      const empty = document.getElementById('trendsEmpty');
+      const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
+      if (empty) empty.style.display = 'block';
+      if (wrapper) wrapper.style.display = 'none';
+    });
   }
 
   function renderTrends() {
@@ -15516,7 +15540,12 @@
           }
         }
       });
-    }, 'Chargement jour actif');
+    }, 'Chargement jour actif', err => {
+      const empty = document.getElementById('weekdayEmpty');
+      const wrapper = document.getElementById('weekdayChart')?.closest('.chart-wrapper');
+      if (empty) empty.style.display = 'block';
+      if (wrapper) wrapper.style.display = 'none';
+    });
   }
 
   // ── DUO LE PLUS FRÉQUENT ─────────────────────────────────────────────
@@ -15541,7 +15570,9 @@
         }));
       });
       container.appendChild(list);
-    }, 'Chargement duos fréquents');
+    }, 'Chargement duos fréquents', err => {
+      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+    });
   }
 
   // ── MENTIONS ─────────────────────────────────────────────────────────
@@ -15587,7 +15618,9 @@
       if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
       }
-    }, 'Chargement mentions');
+    }, 'Chargement mentions', err => {
+      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+    });
   }
 
   function initPhraseSettings() {
@@ -15896,15 +15929,16 @@
     renderWhoAmI();
     loadEntities();
     loadAppBranding();
-    // Stats globales du Dashboard (Records/Tendances/Jour actif/Duo fréquent) :
-    // un seul chargement au démarrage, pas à chaque repaint de _paintEntitiesUI
-    // (qui tourne à chaque ajout/renommage de joueur ou catégorie) — ces
-    // statistiques ne dépendent pas de ça.
-    scanRecords();
-    loadTrends();
-    loadActiveWeekday();
-    scanTopPairs();
-    loadMentionStats();
+
+    // Differ de 150ms le chargement des statistiques secondaires du Dashboard
+    // pour éviter d'inonder Google Apps Script de requêtes parallèles au démarrage
+    setTimeout(() => {
+      scanRecords();
+      loadTrends();
+      loadActiveWeekday();
+      scanTopPairs();
+      loadMentionStats();
+    }, 150);
   };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────

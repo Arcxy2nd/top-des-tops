@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.2] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Résolution du chargement infini au démarrage en sécurisant le masquage des squelettes visuels en cas d'erreur réseau et en échelonnant le lancement des statistiques du Dashboard.
+**Technique** : `Index.html` — ajout de gestionnaires d'erreur `onError` sur `applyFilters()`, `loadQuickStats()`, `scanRecords()`, `loadTrends()`, `loadActiveWeekday()`, `scanTopPairs()` et `loadMentionStats()` pour masquer systématiquement `#chartSkeleton` et dé-squelettiser les textes ; espacement de 150ms des requêtes de statistiques secondaires au démarrage via `setTimeout`.
+
 ## [v2.8.1] - 2026-08-02
 
 ### Corrigé
