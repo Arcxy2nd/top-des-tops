@@ -2183,29 +2183,43 @@
     .row-alt-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 209, 102, 0.4);
+      border-radius: 12px;
+      border: 1px dashed rgba(255, 209, 102, 0.5);
       background: rgba(255, 209, 102, 0.08);
       color: #ffd166;
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
       user-select: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      height: 34px;
+      box-sizing: border-box;
     }
     .row-alt-pill:hover {
       background: rgba(255, 209, 102, 0.18);
       border-color: #ffd166;
-      transform: translateY(-1px);
+      border-style: solid;
     }
     .row-alt-pill.active {
-      background: #ffd166;
-      color: #1a202c;
-      font-weight: 800;
-      border-color: #ffd166;
-      box-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+      background: rgba(255, 209, 102, 0.18);
+      color: #ffd166;
+      font-weight: 700;
+      border: 1px solid #ffd166;
+      box-shadow: 0 0 10px rgba(255, 209, 102, 0.22);
+    }
+    .row-alt-select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid rgba(255, 209, 102, 0.6);
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
     }
 
     /* Avatar avec anneau couleur joueur */
@@ -11617,7 +11631,7 @@
       updateLotSummary();
     });
 
-    // Rangée principale : joueur, top, valeur pts, actions
+    // Rangée principale : joueur, top principal, valeur pts, actions
     const topRow = document.createElement('div');
     topRow.className = 'row-top';
     const dragHandle = document.createElement('div');
@@ -11627,14 +11641,20 @@
     topRow.appendChild(dragHandle);
     topRow.appendChild(wrap);
     topRow.appendChild(topsGroup);
-    topRow.appendChild(altPill);
     topRow.appendChild(actions);
 
-    // Rangée secondaire : date + raccourcis pts (à droite, proches du total)
+    // Rangée secondaire : date (à gauche) + raccourcis pts & Top Alt (à droite, au-dessus du barème)
     const bottomRow = document.createElement('div');
     bottomRow.className = 'row-bottom';
     bottomRow.appendChild(dateCell);
-    bottomRow.appendChild(ptsToggle);
+
+    const bottomRightWrap = document.createElement('div');
+    bottomRightWrap.className = 'row-bottom-right-controls';
+    bottomRightWrap.style.cssText = 'display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end;';
+    bottomRightWrap.appendChild(ptsToggle);
+    bottomRightWrap.appendChild(altPill);
+
+    bottomRow.appendChild(bottomRightWrap);
 
     // ── Barème rapide par Top ────────────────────────────────────────────
     const baremeRow = document.createElement('div');

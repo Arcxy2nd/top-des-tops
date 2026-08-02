@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.6] - 2026-08-02
+
+### Modifié
+**Humanisé** : Refonte ergonomique de la disposition des lignes de saisie : le bouton **Top Alternatif** est désormais déplacé dans le coin inférieur droit de la ligne (au-dessus du barème), décongestionnant la rangée supérieure. Redesign complet du badge Top Alt avec une pilule dorée discrète et un sélecteur épuré.
+**Technique** : `Index.html` — restructuration de `addEntryRow()` : retrait de `.row-alt-pill` de `.row-top`, création du conteneur `.row-bottom-right-controls` dans `.row-bottom` hébergeant la bascule de points rapides et la pilule `.row-alt-pill` ; mise à jour des règles CSS `.row-alt-pill` et `.row-alt-select`.
+
 ## [v2.8.5] - 2026-08-02
 
 ### Corrigé
