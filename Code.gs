@@ -85,7 +85,9 @@ const ConfigService = (() => {
       const settings = ss.getSheetByName('Settings') || null;
       const autoRules = ss.getSheetByName('AutoRules') || null;
       const chat      = ss.getSheetByName('Chat')      || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat };
+      const altCategories = ss.getSheetByName('AltCategories') || null;
+      const altHistory    = ss.getSheetByName('AltHistory')    || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat, altCategories, altHistory };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -562,7 +564,11 @@ const StorageService = {
     if (!plan || !plan.length) throw new Error("Aucune donnée à injecter.");
 
     const rows = [];
+    const altEntries = [];
     const tagToRealId = {};
+    const { history } = ConfigService.getSheets();
+    const initialLastRow = history.getLastRow();
+
     plan.forEach(day => {
       if (!day.date || !day.date.trim()) throw new Error("Date manquante dans le plan.");
       const targetDate = _parseLocalDateWithNow(day.date);
@@ -573,20 +579,57 @@ const StorageService = {
         const tms = parseInt(e.times,  10);
         if (isNaN(pts) || pts < 1)  throw new Error("Les points doivent être ≥ 1.");
         if (isNaN(tms) || tms < 1)  throw new Error("Le multiplicateur doit être ≥ 1.");
+
         let realGroupId = '';
         if (e.groupTag) {
           if (!tagToRealId[e.groupTag]) {
             tagToRealId[e.groupTag] = _generateGroupId();
           }
           realGroupId = tagToRealId[e.groupTag];
+        } else if (e.subTops && Array.isArray(e.subTops) && e.subTops.length > 0) {
+          realGroupId = _generateGroupId();
         }
-        rows.push([targetDate, e.player, e.category, pts * tms, e.description || '', realGroupId, e.saiseur || '']);
+
+        const totalPts = pts * tms;
+        rows.push([targetDate, e.player, e.category, totalPts, e.description || '', realGroupId, e.saiseur || '']);
+        const mainRowIndex = initialLastRow + rows.length;
+
+        // SubTops (Multiple tops on same row)
+        if (e.subTops && Array.isArray(e.subTops)) {
+          e.subTops.forEach(st => {
+            if (!st.category) return;
+            const stPts = parseInt(st.points, 10);
+            const validStPts = (isNaN(stPts) || stPts < 1) ? totalPts : stPts;
+            rows.push([targetDate, e.player, st.category, validStPts, e.description || '', realGroupId, e.saiseur || '']);
+          });
+        }
+
+        // Alt Tops (Inherited / Referenced)
+        const altCats = e.altCategories || (e.altCategory ? [e.altCategory] : []);
+        altCats.forEach(ac => {
+          if (ac) {
+            altEntries.push({
+              date: targetDate,
+              player: e.player,
+              category: typeof ac === 'object' ? ac.name : ac,
+              points: typeof ac === 'object' && ac.points ? parseInt(ac.points, 10) : totalPts,
+              description: e.description || '',
+              refHistoryRowId: mainRowIndex,
+              groupId: realGroupId,
+              saiseur: e.saiseur || ''
+            });
+          }
+        });
       });
     });
+
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
 
-    const { history } = ConfigService.getSheets();
-    history.getRange(history.getLastRow() + 1, 1, rows.length, 7).setValues(rows);
+    history.getRange(initialLastRow + 1, 1, rows.length, 7).setValues(rows);
+
+    if (altEntries.length && typeof AltStorageService !== 'undefined') {
+      AltStorageService.addAltEntries(altEntries);
+    }
   },
 
   /** Reads and parses every valid History row straight from the sheet (no cache). */
@@ -893,6 +936,195 @@ const StorageService = {
       }
     }
     return { deleted: rows.length, rows };
+  },
+
+  /**
+   * Outil de détection et regroupement automatique des entrées similaires non groupées.
+   * Regroupe les lignes ayant la même date/horodatage, le même joueur et la même description.
+   */
+  apiGroupSimilarEntries() {
+    const sheet = ConfigService.getSheets().history;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { groupedCount: 0, groupsCreated: 0 };
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const ungrouped = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rec = this._parseHistoryRow(row, i);
+      if (!rec.dateValid || !rec.player || !rec.description) continue;
+      if (!rec.groupId || !rec.groupId.trim()) {
+        const dateKey = rec.date.toISOString().slice(0, 16);
+        const key = `${dateKey}_${rec.player.trim().toLowerCase()}_${rec.description.trim().toLowerCase()}`;
+        ungrouped.push({ rowIndex: rec.rowIndex, key });
+      }
+    }
+
+    const groups = {};
+    ungrouped.forEach(item => {
+      if (!groups[item.key]) groups[item.key] = [];
+      groups[item.key].push(item.rowIndex);
+    });
+
+    let groupedCount = 0;
+    let groupsCreated = 0;
+
+    Object.keys(groups).forEach(key => {
+      const rows = groups[key];
+      if (rows.length >= 2) {
+        const groupId = _generateGroupId();
+        groupsCreated++;
+        rows.forEach(rIdx => {
+          sheet.getRange(rIdx, 6).setValue(groupId);
+          groupedCount++;
+        });
+      }
+    });
+
+    if (groupedCount > 0) {
+      ConfigService.clearCache();
+    }
+    return { groupedCount, groupsCreated };
+  }
+};
+
+// ─── ALT SETTINGS SERVICE ────────────────────────────────────────────────────────
+const AltSettingsService = {
+
+  _sheet() {
+    let sheet = ConfigService.getSheets().altCategories;
+    if (sheet) return sheet;
+    const ss = ConfigService.getSheets().spreadsheet;
+    sheet = ss.insertSheet('AltCategories');
+    sheet.appendRow(['Name', 'Description', 'Emoji', 'Hex color']);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+    ConfigService.clearCache();
+    return sheet;
+  },
+
+  getAltCategories() {
+    const sheet = this._sheet();
+    const data = sheet.getDataRange().getValues();
+    if (!data || data.length <= 1) return [];
+    return data
+      .filter((r, i) => i > 0 && r[0] && r[0].toString() !== 'Name')
+      .map(r => ({
+        name: r[0] ? r[0].toString() : '',
+        description: r[1] ? r[1].toString() : '',
+        emoji: r[2] ? r[2].toString() : '🎯',
+        color: r[3] ? r[3].toString() : '#7c8cff'
+      }));
+  },
+
+  saveAltCategories(categories) {
+    const sheet = this._sheet();
+    sheet.clearContents();
+    sheet.appendRow(['Name', 'Description', 'Emoji', 'Hex color']);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+    if (categories && categories.length) {
+      const rows = categories.map(c => [c.name, c.description || '', c.emoji || '🎯', c.color || '#7c8cff']);
+      sheet.getRange(2, 1, rows.length, 4).setValues(rows);
+    }
+    ConfigService.clearCache();
+  }
+};
+
+// ─── ALT STORAGE SERVICE ─────────────────────────────────────────────────────────
+const AltStorageService = {
+
+  _sheet() {
+    let sheet = ConfigService.getSheets().altHistory;
+    if (sheet) return sheet;
+    const ss = ConfigService.getSheets().spreadsheet;
+    sheet = ss.insertSheet('AltHistory');
+    sheet.appendRow(['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur']);
+    sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+    ConfigService.clearCache();
+    return sheet;
+  },
+
+  _parseAltHistoryRow(row, i) {
+    const d = new Date(row[0]);
+    const player = row[1] ? row[1].toString() : '';
+    const category = row[2] ? row[2].toString() : '';
+    const points = parseInt(row[3], 10);
+    return {
+      rowIndex: i + 2,
+      date: d,
+      dateValid: !isNaN(d.getTime()),
+      player,
+      category,
+      points,
+      description: row[4] ? row[4].toString() : '',
+      refHistoryRowId: row[5] ? row[5].toString() : '',
+      groupId: row[6] ? row[6].toString() : '',
+      saiseur: row[7] ? row[7].toString() : '',
+      hasEntities: !!(player && category),
+      pointsValid: !(isNaN(points) || points <= 0)
+    };
+  },
+
+  getAltLogs() {
+    const sheet = this._sheet();
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return [];
+    return sheet.getRange(2, 1, lastRow - 1, 8).getValues()
+      .map((row, i) => {
+        const rec = this._parseAltHistoryRow(row, i);
+        if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) return null;
+        return rec;
+      })
+      .filter(Boolean);
+  },
+
+  addAltEntries(entries) {
+    if (!entries || !entries.length) return;
+    const sheet = this._sheet();
+    const rows = entries.map(e => {
+      const targetDate = e.date ? new Date(e.date) : new Date();
+      return [
+        targetDate,
+        e.player,
+        e.category,
+        parseInt(e.points, 10) || 0,
+        e.description || '',
+        e.refHistoryRowId ? e.refHistoryRowId.toString() : '',
+        e.groupId || '',
+        e.saiseur || ''
+      ];
+    });
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
+    ConfigService.clearCache();
+  },
+
+  linkHistoryRowsToAltCategory(rowIndices, altCategory, saiseur) {
+    if (!rowIndices || !rowIndices.length || !altCategory) return 0;
+    const fullHistory = StorageService.getFullHistoryRowsCached();
+    const rowMap = {};
+    fullHistory.forEach(r => { rowMap[r.rowIndex] = r; });
+
+    const entriesToAdd = [];
+    rowIndices.forEach(idx => {
+      const histItem = rowMap[idx];
+      if (histItem) {
+        entriesToAdd.push({
+          date: histItem.timestamp,
+          player: histItem.player,
+          category: altCategory,
+          points: histItem.points,
+          description: histItem.description,
+          refHistoryRowId: histItem.rowIndex,
+          groupId: histItem.groupId || '',
+          saiseur: saiseur || histItem.saiseur || ''
+        });
+      }
+    });
+
+    if (entriesToAdd.length) {
+      this.addAltEntries(entriesToAdd);
+    }
+    return entriesToAdd.length;
   }
 };
 
@@ -1952,6 +2184,90 @@ function apiGetQuickStats() {
       }
     };
   } catch (e) { return fail(e); }
+}
+
+// ── TOPS ALTERNATIFS & REGROUPEMENT AUTOMATIQUE API ───────────
+
+function apiGetAltCategories() {
+  try {
+    return { success: true, altCategories: AltSettingsService.getAltCategories() };
+  } catch(e) { return fail(e); }
+}
+
+function apiSaveAltCategories(author, list) {
+  try {
+    requireIdentity(author);
+    return withLock(function() {
+      AltSettingsService.saveAltCategories(list);
+      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', 'Mise à jour des catégories alternes');
+      return { success: true, altCategories: AltSettingsService.getAltCategories() };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
+  try {
+    requireIdentity(author);
+    return withLock(function() {
+      const count = AltStorageService.linkHistoryRowsToAltCategory(rowIndices, altCategory, author);
+      AuditService.log(author, 'Affectation Top Alternatif', altCategory, count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
+      return { success: true, linkedCount: count };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiGroupSimilarEntries(author) {
+  try {
+    requireIdentity(author);
+    return withLock(function() {
+      const result = StorageService.apiGroupSimilarEntries();
+      if (result.groupedCount > 0) {
+        AuditService.log(author, 'Regroupement automatique', 'History', result.groupedCount + ' entrées regroupées dans ' + result.groupsCreated + ' groupe(s)');
+      }
+      return { success: true, groupedCount: result.groupedCount, groupsCreated: result.groupsCreated };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiGetAltAnalyticsData(players, altCategories, startDate, endDate) {
+  try {
+    const logs = AltStorageService.getAltLogs();
+    const allAltCats = AltSettingsService.getAltCategories();
+    const allPlayers = SettingsService.getEntities('Players');
+
+    const displayPlayers = (players && players.length) ? players : allPlayers.map(p => p.name);
+    const displayAltCats = (altCategories && altCategories.length) ? altCategories : allAltCats.map(c => c.name);
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+
+    const filteredLogs = logs.filter(l => {
+      if (start && l.date < start) return false;
+      if (end && l.date > end) return false;
+      if (players && players.length && !players.includes(l.player)) return false;
+      if (altCategories && altCategories.length && !altCategories.includes(l.category)) return false;
+      return true;
+    });
+
+    const { scores } = AnalyticsService._aggregate(filteredLogs, displayPlayers, displayAltCats);
+    const catColorMap = {};
+    allAltCats.forEach(c => { if (c.color) catColorMap[c.name] = c.color; });
+
+    const datasets = displayAltCats.map((cat, i) => ({
+      label: cat,
+      data: displayPlayers.map(p => (scores[p] && scores[p][cat]) || 0),
+      backgroundColor: catColorMap[cat] || '#7c8cff',
+      borderRadius: 4
+    }));
+
+    return {
+      success: true,
+      chartData: { labels: displayPlayers, datasets },
+      scores,
+      altCategories: allAltCats
+    };
+  } catch(e) { return fail(e); }
 }
 
 // ── Outils de nettoyage ──────────────────────────────────────────────────────

@@ -63,6 +63,7 @@ function makeSheet(grid) {
     getDataRange() { return api.getRange(1, 1, grid.length, api.getLastColumn()); },
     appendRow(row) { grid.push(row.slice()); },
     deleteRow(idx) { grid.splice(idx - 1, 1); },
+    clearContents() { grid.length = 0; },
     copyTo() { return { setName() {} }; },
     setName() {}
   };
@@ -137,6 +138,7 @@ function loadGas(extraMocks) {
   vm.createContext(sandbox);
   const epilogue = '\n;this.__exports = { ConfigService, AuditService, SettingsService, StorageService, ' +
     'NotesService, AnalyticsService, BaremeService, PhrasesService, SettingsSheetService, withLock, ' +
+    'AltSettingsService, AltStorageService, ' +
     'apiDetectDistributedLots, apiDetectLegacyGroups, apiAddBulkPlan, apiUpdateHistoryEntry, ' +
     'apiGetAuditLog, apiUndoAuditEntry, apiFixZeroPoints, apiDeleteOrphans, apiUpdateBulkEntries, ' +
     'apiDeleteHistoryEntries, apiUpdateHistoryDescription, apiManageEntity, apiSetColor, ' +
@@ -148,6 +150,12 @@ function loadGas(extraMocks) {
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +
     'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, apiGetFilteredLogs, ScriptApp, ' +
     'apiScanUnmentionedNames, apiApplyMentionFixes, apiGetMentionStats, apiGetChangelog, ' +
+    'apiGetAltCategories: (typeof apiGetAltCategories === "undefined" ? undefined : apiGetAltCategories), ' +
+    'apiSaveAltCategories: (typeof apiSaveAltCategories === "undefined" ? undefined : apiSaveAltCategories), ' +
+    'apiDeleteAltCategory: (typeof apiDeleteAltCategory === "undefined" ? undefined : apiDeleteAltCategory), ' +
+    'apiLinkHistoryRowsToAltCategory: (typeof apiLinkHistoryRowsToAltCategory === "undefined" ? undefined : apiLinkHistoryRowsToAltCategory), ' +
+    'apiGroupSimilarEntries: (typeof apiGroupSimilarEntries === "undefined" ? undefined : apiGroupSimilarEntries), ' +
+    'apiGetAltAnalyticsData: (typeof apiGetAltAnalyticsData === "undefined" ? undefined : apiGetAltAnalyticsData), ' +
     'apiGetQuickStats: (typeof apiGetQuickStats === "undefined" ? undefined : apiGetQuickStats) };';
   vm.runInContext(code + '\n' + autoPointsCode + epilogue, sandbox, { filename: 'Code.gs+AutoPoints.gs' });
   return sandbox.__exports;

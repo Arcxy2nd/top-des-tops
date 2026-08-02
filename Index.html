@@ -3709,6 +3709,17 @@
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
 
+    <!-- ══ BASCULE D'UNIVERS (Tops Principaux / Tops Alternatifs) ══ -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <div class="d-mode-seg" id="dashboardUniverseSeg">
+        <button type="button" class="d-mode-btn active" id="univMainBtn">🏆 Tops Principaux</button>
+        <button type="button" class="d-mode-btn" id="univAltBtn">⭐ Tops Alternatifs</button>
+      </div>
+      <div id="univIndicator" style="font-size:0.8rem; font-weight:700; color:var(--accent);">
+        Mode actif : Tops Principaux
+      </div>
+    </div>
+
     <!-- ══ PODIUM (toujours en haut, collapsible) ══ -->
     <div class="card card-collapsible" id="phrasesCard">
       <div class="phrases-card-header card-collapse-header">
@@ -3899,6 +3910,7 @@
     <div class="settings-inner-nav">
       <button class="settings-nav-btn active" data-stab="stab-players">👤 Joueurs</button>
       <button class="settings-nav-btn" data-stab="stab-categories">🎯 Tops</button>
+      <button class="settings-nav-btn" data-stab="stab-alt-categories">⭐ Tops Alternatifs</button>
       <button class="settings-nav-btn" data-stab="stab-bareme">⚖️ Barème</button>
       <button class="settings-nav-btn" data-stab="stab-phrases">🎭 Commentaires</button>
       <button class="settings-nav-btn" data-stab="stab-tools">🔧 Outils</button>
@@ -3928,6 +3940,22 @@
         <div id="newCategoryMetaEditor"></div>
         <input type="text" id="newCategoryIcon" placeholder="Icône emoji (ex : 🍺) — optionnel" maxlength="8">
         <button id="addCategoryBtn" class="primary small">+ Ajouter</button>
+      </div>
+    </div>
+
+    <!-- ─ Tops Alternatifs ─ -->
+    <div id="stab-alt-categories" class="settings-tab-pane card">
+      <h2>⭐ Tops Alternatifs</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">
+        Deuxième univers de classement avec ses propres Tops (ex: Tops 1, 2, 3... ou sous-thématiques).
+      </p>
+      <ul id="altCategoriesList" class="entity-list"></ul>
+      <div class="add-form">
+        <p class="add-form-label">Ajouter un Top Alternatif</p>
+        <input type="text" id="newAltCatName" placeholder="Nom (ex : Top 1)">
+        <input type="text" id="newAltCatDesc" placeholder="Description (optionnel)">
+        <input type="text" id="newAltCatEmoji" placeholder="Emoji (ex : ⭐) — optionnel" maxlength="8">
+        <button id="addAltCatBtn" class="primary small">+ Ajouter</button>
       </div>
     </div>
 
@@ -4288,6 +4316,7 @@
         <div id="histBulkBar" class="hist-bulk-bar" style="display:none;">
           <span id="histBulkCount">0 sélectionné(s)</span>
           <button id="histBulkEdit" class="secondary">✏️ Modifier la sélection</button>
+          <button id="histBulkAltLink" class="primary small">⭐ Affecter au Top Alternatif</button>
           <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
           <button id="histBulkGroup" class="secondary small">🔗 Grouper</button>
           <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
@@ -4562,6 +4591,8 @@
   let currentChartType = 'stacked';
   let cachedPlayers    = [];
   let cachedCategories = [];
+  let cachedAltCategories = [];
+  let activeDashboardUniverse = 'main'; // 'main' | 'alt'
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let _histLoadedOnce = false;
@@ -8035,6 +8066,53 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
+  function openAltCategoryLinkModal(selectedRowIndices) {
+    if (!selectedRowIndices || !selectedRowIndices.length) return;
+    if (!requireIdentity()) return;
+
+    if (!cachedAltCategories.length) {
+      showToast('Aucun Top alternatif configuré. Veuillez en ajouter dans Paramètres > Tops Alternatifs.', 'warn');
+      return;
+    }
+
+    const box = document.getElementById('modalBox');
+    let optionsHtml = cachedAltCategories.map(c =>
+      `<option value="${escapeHtml(c.name)}">${escapeHtml((c.emoji ? c.emoji + ' ' : '') + c.name)}</option>`
+    ).join('');
+
+    box.innerHTML = `
+      <h3>⭐ Affecter au Top Alternatif</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+        Sélectionnez le Top Alternatif auquel lier les <strong>${selectedRowIndices.length}</strong> entrée(s) sélectionnée(s) :
+      </p>
+      <div style="margin-bottom:16px;">
+        <select id="mAltCatSelect" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+          ${optionsHtml}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button id="mAltConfirm" class="primary">✓ Affecter</button>
+        <button id="mAltCancel" class="secondary">✕ Annuler</button>
+      </div>
+    `;
+
+    document.getElementById('mAltCancel').onclick = closeModal;
+    document.getElementById('mAltConfirm').onclick = () => {
+      const altCat = document.getElementById('mAltCatSelect').value;
+      closeModal();
+      if (altCat) {
+        callServer('apiLinkHistoryRowsToAltCategory', [_whoAmI, selectedRowIndices, altCat], res => {
+          if (res.success) {
+            showToast(`⭐ ${res.linkedCount} entrée(s) liée(s) au Top Alternatif "${altCat}" !`, 'success');
+            toggleHistSelectMode(false);
+          }
+        }, 'Affectation Top Alternatif');
+      }
+    };
+
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
   function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor) {
     if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
@@ -8206,9 +8284,16 @@
       try {
         localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
       } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
-      // Rendu complet avec chargement des données (applyFilters + loadQuickStats)
-      _paintEntitiesUI({ withDataLoad: true });
-      if (onDone) onDone();
+
+      callServer('apiGetAltCategories', [], resAlt => {
+        if (resAlt && resAlt.success) {
+          cachedAltCategories = resAlt.altCategories || [];
+          renderAltCategoriesList();
+        }
+        // Rendu complet avec chargement des données (applyFilters + loadQuickStats)
+        _paintEntitiesUI({ withDataLoad: true });
+        if (onDone) onDone();
+      }, 'Tops alternatifs');
 
     }, 'Chargement settings', () => {
       // apiGetSettings a échoué : si rien n'a pu être peint depuis le cache, les
@@ -8352,6 +8437,78 @@
       });
       dropdown.appendChild(opt);
     });
+  }
+
+  function renderAltCategoriesList() {
+    const ul = document.getElementById('altCategoriesList');
+    if (!ul) return;
+    ul.innerHTML = '';
+    if (!cachedAltCategories.length) {
+      ul.innerHTML = '<li class="empty-state" style="padding:12px;color:var(--text-muted);font-style:italic;">Aucun Top alternatif configuré.</li>';
+      return;
+    }
+    cachedAltCategories.forEach(cat => {
+      const li = document.createElement('li');
+      li.className = 'entity-item';
+      const icon = cat.emoji || '🎯';
+      const color = cat.color || '#7c8cff';
+      li.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex:1;">
+          <span style="font-size:1.2rem;">${escapeHtml(icon)}</span>
+          <div>
+            <strong style="color:${escapeHtml(color)};">${escapeHtml(cat.name)}</strong>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(cat.description || '')}</div>
+          </div>
+        </div>
+        <button class="small danger delete-alt-cat-btn" data-name="${escapeHtml(cat.name)}">🗑️</button>
+      `;
+      ul.appendChild(li);
+    });
+
+    ul.querySelectorAll('.delete-alt-cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const name = btn.dataset.name;
+        openConfirmModal(`Supprimer le Top Alternatif "${name}" ?`, () => {
+          if (!requireIdentity()) return;
+          const newList = cachedAltCategories.filter(c => c.name !== name);
+          callServer('apiSaveAltCategories', [_whoAmI, newList], res => {
+            if (res.success) {
+              cachedAltCategories = res.altCategories || [];
+              renderAltCategoriesList();
+              showToast(`Top alternatif "${name}" supprimé.`, 'success');
+            }
+          }, 'Suppression Top Alternatif');
+        });
+      });
+    });
+  }
+
+  function addAltCategory() {
+    const nameIn = document.getElementById('newAltCatName');
+    const descIn = document.getElementById('newAltCatDesc');
+    const emojiIn = document.getElementById('newAltCatEmoji');
+    if (!nameIn) return;
+    const name = nameIn.value.trim();
+    if (!name) { showToast('Veuillez entrer un nom pour le Top alternatif.', 'error'); return; }
+    if (!requireIdentity()) return;
+
+    const newList = [...cachedAltCategories, {
+      name: name,
+      description: descIn ? descIn.value.trim() : '',
+      emoji: emojiIn && emojiIn.value.trim() ? emojiIn.value.trim() : '🎯',
+      color: '#' + Math.floor(Math.random()*16777215).toString(16)
+    }];
+
+    callServer('apiSaveAltCategories', [_whoAmI, newList], res => {
+      if (res.success) {
+        cachedAltCategories = res.altCategories || [];
+        renderAltCategoriesList();
+        nameIn.value = '';
+        if (descIn) descIn.value = '';
+        if (emojiIn) emojiIn.value = '';
+        showToast(`Top alternatif "${name}" créé !`, 'success');
+      }
+    }, 'Création Top Alternatif');
   }
 
   function renderEntityList(container, items, type) {
@@ -8499,6 +8656,20 @@
 
     document.getElementById('chartSkeleton').style.display = 'block';
     document.getElementById('chartWrapper').style.display  = 'none';
+
+    if (activeDashboardUniverse === 'alt') {
+      callServer('apiGetAltAnalyticsData', [selPlayers, selCategories, startDate, endDate], res => {
+        currentChartData = res.chartData;
+        document.getElementById('chartSkeleton').style.display = 'none';
+        document.getElementById('chartWrapper').style.display  = 'block';
+        renderChart(res.chartData, currentChartType);
+        renderChartControls(currentChartType);
+        const ranked = computeRankedTotals(res.chartData);
+        if (ranked.length) renderPhrasesCard(ranked);
+        if (onDone) onDone();
+      }, 'Chargement Dashboard Alternatif');
+      return;
+    }
 
     if (currentChartType === 'trend') {
       callServer('apiGetTrendData', [selPlayers, selCategories, startDate, endDate], res => {
@@ -11234,7 +11405,88 @@
       div.classList.add('row-removing');
       setTimeout(() => { div.remove(); updateLotSummary(); }, 180);
     });
+    const subTopBtn = document.createElement('button');
+    subTopBtn.className = 'small secondary'; subTopBtn.innerHTML = '＋ Top supp.'; subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
+    actions.appendChild(subTopBtn);
     actions.appendChild(dupBtn); actions.appendChild(delBtn);
+
+    // ── Sub-Tops & Alt-Top ──────────────────────────────────────────────
+    const subTopsList = document.createElement('div');
+    subTopsList.className = 'sub-tops-list';
+    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin:4px 0 4px 28px;';
+
+    subTopBtn.addEventListener('click', () => {
+      const subItem = document.createElement('div');
+      subItem.className = 'sub-top-item';
+      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem;';
+
+      const subCatSel = document.createElement('select');
+      subCatSel.className = 'sub-cat-select';
+      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);';
+      cachedCategories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
+        subCatSel.appendChild(opt);
+      });
+      if (cachedCategories[1]) subCatSel.value = cachedCategories[1].name;
+
+      const subPtsInput = document.createElement('input');
+      subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
+      subPtsInput.value = customPtsInput.value || '1';
+      subPtsInput.min = '1';
+      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);';
+
+      const delSubBtn = document.createElement('button');
+      delSubBtn.className = 'small danger'; delSubBtn.innerHTML = '✕';
+      delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
+
+      subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
+      subItem.appendChild(subCatSel);
+      subItem.appendChild(document.createTextNode(' Pts : '));
+      subItem.appendChild(subPtsInput);
+      subItem.appendChild(delSubBtn);
+
+      subTopsList.appendChild(subItem);
+      updateLotSummary();
+    });
+
+    // ── Alt-Top Association Checkbox & Select ───────────────────────────
+    const altRowWrap = document.createElement('div');
+    altRowWrap.className = 'alt-top-row-wrap';
+    altRowWrap.style.cssText = 'display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted); margin:4px 0 4px 28px;';
+
+    const altCb = document.createElement('input');
+    altCb.type = 'checkbox'; altCb.className = 'row-alt-cb';
+    const altLbl = document.createElement('label');
+    altLbl.textContent = ' ⭐ Associer à un Top Alternatif';
+    altLbl.style.cursor = 'pointer';
+
+    const altCatSel = document.createElement('select');
+    altCatSel.className = 'row-alt-select';
+    altCatSel.style.cssText = 'display:none; padding:3px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem;';
+    const populateAltSelect = () => {
+      altCatSel.innerHTML = '';
+      if (cachedAltCategories.length) {
+        cachedAltCategories.forEach(ac => {
+          const opt = document.createElement('option');
+          opt.value = ac.name; opt.textContent = (ac.emoji ? ac.emoji + ' ' : '') + ac.name;
+          altCatSel.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = ''; opt.textContent = 'Aucun Top alt config. (voir Paramètres)';
+        altCatSel.appendChild(opt);
+      }
+    };
+    populateAltSelect();
+
+    altCb.addEventListener('change', () => {
+      altCatSel.style.display = altCb.checked ? 'inline-block' : 'none';
+      if (altCb.checked) populateAltSelect();
+    });
+    altLbl.prepend(altCb);
+    altRowWrap.appendChild(altLbl);
+    altRowWrap.appendChild(altCatSel);
 
     // Rangée principale : joueur, top, valeur pts, actions
     const topRow = document.createElement('div');
@@ -11485,6 +11737,8 @@
 
     div.appendChild(histRow);
     div.appendChild(descRowWrapper);
+    div.appendChild(subTopsList);
+    div.appendChild(altRowWrap);
     container.appendChild(div);
 
     // Valeurs initiales (preset ou premier item du cache)
@@ -11679,10 +11933,20 @@
       const descEl       = r.querySelector('.desc-in');
       const isRange      = rangeCb && rangeCb.checked;
       if (pSel && cSel && customPtsEl && dStart) {
+        const subTops = [];
+        r.querySelectorAll('.sub-top-item').forEach(st => {
+          const catSelect = st.querySelector('.sub-cat-select');
+          const ptsInput = st.querySelector('.sub-pts-input');
+          if (catSelect && ptsInput) {
+            subTops.push({ category: catSelect.value, points: parseInt(ptsInput.value || '1', 10) });
+          }
+        });
+        const altCb = r.querySelector('.row-alt-cb');
+        const altCatSel = r.querySelector('.row-alt-select');
+        const altCategory = (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : '';
+
         items.push({
           dateStart:   dStart.value || '',
-          // Filet : en mode période, une fin vide vaut « un seul jour » explicite —
-          // jamais un retour silencieux au mode date simple.
           dateEnd:     (isRange && dEnd) ? (dEnd.value || dStart.value) : '',
           fill:        fillTg ? fillTg.dataset.fill : 'repeat',
           days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
@@ -11691,7 +11955,9 @@
           points:      parseInt(customPtsEl.value || '1', 10),
           times:       1,
           description: descEl ? descEl.value.trim() : '',
-          groupTag:    lotGroupMap.get(r.id) || ''
+          groupTag:    lotGroupMap.get(r.id) || '',
+          subTops:     subTops,
+          altCategory: altCategory
         });
       }
     });
@@ -11702,49 +11968,41 @@
       if (isNaN(pts) || pts < 1) { showToast('La valeur des points doit être ≥ 1 sur toutes les lignes.', 'error'); return; }
     }
 
-    // Chaque ligne est étalée sur son intervalle (Du→Au) selon le mode choisi,
-    // puis tout est regroupé par date → un appel serveur par date distincte.
     const byDate = {};   // dateKey -> [entries]
     let hasRange = false;
     let hasDayFilter = false;
     items.forEach(it => {
-      // 1) Génération de toutes les dates de la plage
       let dates = lineDates(it.dateStart, it.dateEnd);
 
-      // 2) Filtrage optionnel par jours de la semaine
       if (dates.length > 1 && it.days && it.days.length) {
         dates = filterDatesByDays(dates, it.days);
         hasDayFilter = true;
       }
-      if (!dates.length) return; // tous les jours filtrés → ligne ignorée
+      if (!dates.length) return;
 
       if (dates.length > 1) hasRange = true;
 
-      // Une ligne étalée sur plusieurs dates doit rester reconnaissable comme un
-      // seul lot dans l'historique : si elle n'a pas déjà une étiquette de groupe
-      // manuelle, on lui en attribue une automatiquement (sinon les entrées
-      // générées arrivent éparpillées et non groupées).
       const effectiveGroupTag = it.groupTag || (dates.length > 1
         ? ('rng_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7))
         : '');
 
       if (dates.length === 1 || it.fill === 'repeat') {
-        // Répéter : la ligne complète sur chaque jour de l'intervalle.
         dates.forEach(dk => {
           (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: it.points, times: it.times,
-            description: it.description, groupTag: effectiveGroupTag
+            description: it.description, groupTag: effectiveGroupTag,
+            subTops: it.subTops, altCategory: it.altCategory
           });
         });
       } else {
-        // Répartir : le total de la ligne divisé en parts entières sur les jours retenus.
         const total = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
         const n = dates.length, base = Math.floor(total / n), rem = total % n;
         dates.forEach((dk, k) => {
           const val = base + (k < rem ? 1 : 0);
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: val, times: 1,
-            description: it.description, groupTag: effectiveGroupTag
+            description: it.description, groupTag: effectiveGroupTag,
+            subTops: it.subTops, altCategory: it.altCategory
           });
         });
       }
@@ -11755,7 +12013,6 @@
     const totalEntries = plan.reduce((s, p) => s + p.entries.length, 0);
     const btn = document.getElementById('submitLotBtn');
 
-    // Confirmation seulement si au moins une ligne couvre plusieurs jours.
     if (hasRange) {
       const dayNote = hasDayFilter ? ' (filtre jours actif)' : '';
       openConfirmModal(
@@ -11767,10 +12024,6 @@
     }
   }
 
-  /**
-   * Écrit tout le plan en un seul appel serveur.
-   * plan : [{ date, entries }].
-   */
   function runBulkPlan(plan, btn) {
     if (!requireIdentity()) return;
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
@@ -11785,6 +12038,8 @@
         times:       e.times,
         description: e.description,
         groupTag:    e.groupTag || '',
+        subTops:     e.subTops || [],
+        altCategory: e.altCategory || '',
         saiseur:     _whoAmI || ''
       }))
     }));
@@ -13886,6 +14141,13 @@
       }, 'Ajout Top');
     });
 
+    const addAltBtnEl = document.getElementById('addAltCatBtn');
+    if (addAltBtnEl) {
+      addAltBtnEl.addEventListener('click', () => {
+        addAltCategory();
+      });
+    }
+
     document.getElementById('addRowBtn').addEventListener('click', (e) => addEntryRow(undefined, e.currentTarget));
     document.querySelectorAll('.lot-sort-btn').forEach(btn => {
       btn.addEventListener('click', () => sortEntryRows(btn.dataset.sortCriterion));
@@ -13937,6 +14199,27 @@
       showToast(`${what} appliquée à ${rows.length} ligne(s).`, 'success');
     });
 
+
+    const univMainBtn = document.getElementById('univMainBtn');
+    const univAltBtn  = document.getElementById('univAltBtn');
+    if (univMainBtn && univAltBtn) {
+      univMainBtn.addEventListener('click', () => {
+        if (activeDashboardUniverse === 'main') return;
+        activeDashboardUniverse = 'main';
+        univMainBtn.classList.add('active');
+        univAltBtn.classList.remove('active');
+        document.getElementById('univIndicator').textContent = 'Mode actif : Tops Principaux';
+        applyFilters();
+      });
+      univAltBtn.addEventListener('click', () => {
+        if (activeDashboardUniverse === 'alt') return;
+        activeDashboardUniverse = 'alt';
+        univAltBtn.classList.add('active');
+        univMainBtn.classList.remove('active');
+        document.getElementById('univIndicator').textContent = 'Mode actif : ⭐ Tops Alternatifs';
+        applyFilters();
+      });
+    }
 
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
       currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1);
@@ -14037,7 +14320,26 @@
 
     // ── History bulk selection ──
     document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
-    document.getElementById('histBulkGroup').addEventListener('click', confirmGroupRows);
+    document.getElementById('histBulkAltLink').addEventListener('click', () => {
+      openAltCategoryLinkModal(Array.from(histSelected));
+    });
+
+    const groupSimilarBtn = document.getElementById('groupSimilarEntriesBtn');
+    if (groupSimilarBtn) {
+      groupSimilarBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
+        callServer('apiGroupSimilarEntries', [_whoAmI], res => {
+          if (res.success) {
+            if (res.groupedCount > 0) {
+              showToast(`✨ ${res.groupedCount} entrées associées dans ${res.groupsCreated} groupe(s) !`, 'success');
+              applyFilters();
+            } else {
+              showToast('Aucun groupe à associer trouvé.', 'info');
+            }
+          }
+        }, 'Regroupement similaire');
+      });
+    }
     document.getElementById('histBulkDelete').addEventListener('click', confirmBulkDelete);
     document.getElementById('histBulkCancel').addEventListener('click', () => toggleHistSelectMode(false));
     document.getElementById('histBulkSelectAll').addEventListener('click', () => {
