@@ -3573,121 +3573,99 @@
   body.mobile-layout #mobileBottomNav { display: flex !important; }
 
 
-  /* ── Adaptabilité de la Top Bar & Quick Stats Bar en mode mobile ── */
-  body.mobile-layout .nav-container,
-  body:not(.desktop-layout).on-mobile .nav-container {
-    width: 100% !important; max-width: 100% !important;
-    padding: 4px 6px !important; gap: 3px !important;
-    justify-content: space-between !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-  }
-  body.mobile-layout .app-brand,
-  body:not(.desktop-layout).on-mobile .app-brand { padding: 0 2px !important; gap: 4px !important; flex-shrink: 1 !important; min-width: 0 !important; }
-  body.mobile-layout .app-brand-title,
-  body:not(.desktop-layout).on-mobile .app-brand-title { font-size: 0.82rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-  body.mobile-layout .nav-refresh-wrap,
-  body:not(.desktop-layout).on-mobile .nav-refresh-wrap { padding: 0 1px !important; gap: 3px !important; flex-shrink: 0 !important; }
-  body.mobile-layout .nav-refresh-btn,
-  body:not(.desktop-layout).on-mobile .nav-refresh-btn { padding: 5px 8px !important; font-size: 0.9rem !important; min-height: 32px !important; }
-  body.mobile-layout .nav-bareme-btn,
-  body:not(.desktop-layout).on-mobile .nav-bareme-btn { padding: 5px 8px !important; font-size: 0.78rem !important; min-height: 32px !important; }
-  body.mobile-layout .who-am-i-wrap,
-  body:not(.desktop-layout).on-mobile .who-am-i-wrap { margin: 0 1px !important; flex-shrink: 1 !important; min-width: 0 !important; }
-  body.mobile-layout .who-am-i-btn,
-  body:not(.desktop-layout).on-mobile .who-am-i-btn { padding: 4px 6px !important; font-size: 0.75rem !important; min-height: 32px !important; max-width: 100% !important; }
-  body.mobile-layout .who-am-i-name,
-  body:not(.desktop-layout).on-mobile .who-am-i-name {
-    max-width: 55px !important; overflow: hidden !important;
-    text-overflow: ellipsis !important; white-space: nowrap !important;
-  }
-  body.mobile-layout .who-am-i-avatar,
-  body:not(.desktop-layout).on-mobile .who-am-i-avatar { width: 22px !important; height: 22px !important; }
-  body.mobile-layout .theme-toggle,
-  body:not(.desktop-layout).on-mobile .theme-toggle { margin-right: 1px !important; padding: 5px 7px !important; font-size: 0.95rem !important; min-height: 32px !important; flex-shrink: 0 !important; }
-  body.mobile-layout .layout-mode-toggle,
-  body:not(.desktop-layout).on-mobile .layout-mode-toggle { padding: 5px 7px !important; margin-right: 0 !important; font-size: 0.78rem !important; min-height: 32px !important; flex-shrink: 0 !important; }
+  /* ══ TOP BAR MOBILE — source unique, sans duplication ══
+     body:not(.desktop-layout) couvre mobile-layout ET auto-detect.
+     La navigation principale est en bas (mobileBottomNav),
+     donc la top bar ne garde que le strict nécessaire. ══ */
 
-  /* ── Adaptabilité du bandeau Quick Stats en mode mobile ── */
-  body.mobile-layout .quick-stats-bar,
-  body:not(.desktop-layout).on-mobile .quick-stats-bar {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 8px 10px !important;
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    overflow-x: visible !important;
+  /* Conteneur navbar */
+  body:not(.desktop-layout) .nav-container {
+    padding: 0 8px;
+    gap: 4px;
+    height: 48px;
+    justify-content: space-between;
   }
-  body.mobile-layout .qs-pill,
-  body:not(.desktop-layout).on-mobile .qs-pill {
-    flex: 1 1 calc(50% - 4px) !important;
-    min-width: 0 !important;
-    padding: 6px 8px !important;
-    gap: 6px !important;
-    box-sizing: border-box !important;
-  }
-  body.mobile-layout .qs-pill.qs-record,
-  body:not(.desktop-layout).on-mobile .qs-pill.qs-record {
-    flex: 1 1 100% !important;
-  }
-  body.mobile-layout .qs-avatar,
-  body:not(.desktop-layout).on-mobile .qs-avatar { width: 26px !important; height: 26px !important; }
-  body.mobile-layout .qs-pill-label,
-  body:not(.desktop-layout).on-mobile .qs-pill-label { font-size: 0.62rem !important; }
-  body.mobile-layout .qs-pill-value,
-  body:not(.desktop-layout).on-mobile .qs-pill-value { font-size: 0.82rem !important; }
 
-  /* ── Auto-détection mobile via media query ── */
+  /* Logo / titre : compact, ne grossit pas */
+  body:not(.desktop-layout) .app-brand {
+    flex-shrink: 0;
+    gap: 5px;
+    padding: 0;
+    min-width: 0;
+  }
+  body:not(.desktop-layout) .app-brand-logo {
+    width: 24px;
+    height: 24px;
+  }
+  body:not(.desktop-layout) .app-brand-title {
+    font-size: 0.88rem;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+  }
+
+  /* Groupe d'actions droite */
+  body:not(.desktop-layout) .nav-refresh-wrap {
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 0;
+    margin-left: auto;
+  }
+
+  /* Tous les boutons icônes : taille réduite, carré tactile respecté */
+  body:not(.desktop-layout) .nav-refresh-btn,
+  body:not(.desktop-layout) .nav-bareme-btn,
+  body:not(.desktop-layout) .theme-toggle,
+  body:not(.desktop-layout) .layout-mode-toggle {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 1rem;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Barème : icône seule sur mobile */
+  body:not(.desktop-layout) .bareme-btn-label { display: none; }
+
+  /* Layout toggle : icône seule sur mobile */
+  body:not(.desktop-layout) .lmt-label { display: none; }
+
+  /* Qui-suis-je : avatar + nom court, pas de shrink agressif */
+  body:not(.desktop-layout) .who-am-i-wrap {
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0 2px;
+  }
+  body:not(.desktop-layout) .who-am-i-btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    min-height: 36px;
+    gap: 5px;
+  }
+  body:not(.desktop-layout) .who-am-i-avatar {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  body:not(.desktop-layout) .who-am-i-name {
+    max-width: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+
+
+  /* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */
   @media (max-width: 768px) {
-    body:not(.desktop-layout) .nav-container {
-      width: 100% !important; max-width: 100% !important;
-      padding: 4px 6px !important; gap: 3px !important;
-      justify-content: space-between !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
-    body:not(.desktop-layout) .app-brand { padding: 0 2px !important; gap: 4px !important; flex-shrink: 1 !important; min-width: 0 !important; }
-    body:not(.desktop-layout) .app-brand-title { font-size: 0.82rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-    body:not(.desktop-layout) .nav-refresh-wrap { padding: 0 1px !important; gap: 3px !important; flex-shrink: 0 !important; }
-    body:not(.desktop-layout) .nav-refresh-btn { padding: 5px 8px !important; font-size: 0.9rem !important; min-height: 32px !important; }
-    body:not(.desktop-layout) .nav-bareme-btn { padding: 5px 8px !important; font-size: 0.78rem !important; min-height: 32px !important; }
-    body:not(.desktop-layout) .who-am-i-wrap { margin: 0 1px !important; flex-shrink: 1 !important; min-width: 0 !important; }
-    body:not(.desktop-layout) .who-am-i-btn { padding: 4px 6px !important; font-size: 0.75rem !important; min-height: 32px !important; max-width: 100% !important; }
-    body:not(.desktop-layout) .who-am-i-name {
-      max-width: 55px !important; overflow: hidden !important;
-      text-overflow: ellipsis !important; white-space: nowrap !important;
-    }
-    body:not(.desktop-layout) .who-am-i-avatar { width: 22px !important; height: 22px !important; }
-    body:not(.desktop-layout) .theme-toggle { margin-right: 1px !important; padding: 5px 7px !important; font-size: 0.95rem !important; min-height: 32px !important; flex-shrink: 0 !important; }
-    body:not(.desktop-layout) .layout-mode-toggle { padding: 5px 7px !important; margin-right: 0 !important; font-size: 0.78rem !important; min-height: 32px !important; flex-shrink: 0 !important; }
-    body:not(.desktop-layout) .quick-stats-bar {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-      padding: 8px 10px !important;
-      display: flex !important;
-      flex-wrap: wrap !important;
-      gap: 6px !important;
-      overflow-x: visible !important;
-    }
-    body:not(.desktop-layout) .qs-pill {
-      flex: 1 1 calc(50% - 4px) !important;
-      min-width: 0 !important;
-      padding: 6px 8px !important;
-      gap: 6px !important;
-      box-sizing: border-box !important;
-    }
-    body:not(.desktop-layout) .qs-pill.qs-record {
-      flex: 1 1 100% !important;
-    }
-    body:not(.desktop-layout) .qs-avatar { width: 26px !important; height: 26px !important; }
-    body:not(.desktop-layout) .qs-pill-label { font-size: 0.62rem !important; }
-    body:not(.desktop-layout) .qs-pill-value { font-size: 0.82rem !important; }
     body:not(.desktop-layout) #desktopNavGroup { display: none !important; }
     body:not(.desktop-layout) #mobileBottomNav { display: flex !important; }
-    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px !important; }
+    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding-bottom: 85px; }
     body:not(.desktop-layout) .card { padding: 14px; }
     body:not(.desktop-layout) h2 { font-size: 1.1rem; }
     body:not(.desktop-layout) .chart-wrapper { height: 280px; }
@@ -3706,15 +3684,26 @@
     body:not(.desktop-layout) .npb-add input[type="text"],
     body:not(.desktop-layout) .npb-add .npb-date-field,
     body:not(.desktop-layout) .npb-add button { width: 100%; }
-
+    /* Quick stats : grille 2 colonnes */
+    body:not(.desktop-layout) .quick-stats-bar {
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      overflow-x: visible;
+    }
+    body:not(.desktop-layout) .qs-pill {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 0;
+      padding: 6px 8px;
+      gap: 6px;
+    }
+    body:not(.desktop-layout) .qs-pill.qs-record { flex: 1 1 100%; }
+    body:not(.desktop-layout) .qs-avatar { width: 26px; height: 26px; }
+    body:not(.desktop-layout) .qs-pill-label { font-size: 0.62rem; }
+    body:not(.desktop-layout) .qs-pill-value { font-size: 0.82rem; }
   }
 
-  @media (max-width: 600px) {
-    body:not(.desktop-layout) .bareme-btn-label { display: none !important; }
-    body:not(.desktop-layout) .lmt-label { display: none !important; }
-    body.mobile-layout .bareme-btn-label { display: none !important; }
-    body.mobile-layout .lmt-label { display: none !important; }
-  }
+
 
   </style>
 </head>

@@ -4,7 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.14] - 2026-08-02
+
+### Modifié
+**Humanisé** : La barre de navigation en haut de l'écran mobile est enfin propre — les boutons ne se marchent plus dessus, les labels texte inutiles disparaissent, et tout reste accessible d'un tap.
+**Technique** : `Index.html` — refonte complète des règles CSS navbar mobile : les trois blocs dupliqués (`body.mobile-layout`, `body:not(.desktop-layout).on-mobile`, `@media 768px`) sont fusionnés en une source unique `body:not(.desktop-layout)`. Labels `.bareme-btn-label` et `.lmt-label` masqués globalement sur mobile. Tous les boutons icônes unifiés à 36×36px tactile minimum. Barème et Refresh icône seule. Qui-suis-je avec nom tronqué à 60px. Suppression de ~60 lignes de CSS dupliqué avec `!important` inutiles.
+
 ## [v2.8.13] - 2026-08-02
+
 
 ### Corrigé
 **Humanisé** : Le panneau de tchat s'affiche maintenant correctement en sidebar fixe sur la droite de la page en mode PC — il ne s'ouvre plus "par-dessus" le contenu. En mode mobile, le bouton Tchat de la barre de navigation est masqué (le chat y est inutilisable, aucun FAB mobile n'était présent).
