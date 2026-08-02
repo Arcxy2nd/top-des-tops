@@ -146,7 +146,7 @@ function loadGas(extraMocks) {
     'apiAddNote, apiDeleteNote, apiEditNote, ' +
     'apiAddPhrase, apiSavePhrasesBatch, apiUpdatePhrase, apiDeletePhrase, apiDeletePreset, apiRenamePreset, ' +
     'apiGetAppSettings, apiSaveAppSettings, apiSaveTooltipStyle, apiVerifyIdentity, apiRemoveFromGroup, ' +
-    'AutoPointsService, apiGetAutoRules, NAV_PAGES, apiGetNavPages, doGet, ' +
+    'AutoPointsService, apiGetAutoRules, apiAddAutoRule, apiUpdateAutoRule, apiDeleteAutoRule, apiSetAutoTrigger, apiRunAutoRulesNow, NAV_PAGES, apiGetNavPages, doGet, ' +
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +
     'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, apiGetFilteredLogs, ScriptApp, ' +
     'apiScanUnmentionedNames, apiApplyMentionFixes, apiGetMentionStats, apiGetChangelog, ' +

@@ -14069,6 +14069,7 @@
   function openEditAutoRuleModal(rule) {
     if (!requireIdentity()) return;
     const body = document.getElementById('modalBox');
+    const startStr = rule.startDate ? rule.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10);
     body.innerHTML =
       '<h3>✏️ Modifier la règle automatique</h3>' +
       '<div class="modal-grid">' +
@@ -14078,13 +14079,35 @@
       '<div class="modal-grid">' +
         '<div class="modal-field"><label>Points</label><input type="number" id="mAutoPoints" value="' + rule.points + '" min="1"></div>' +
         '<div class="modal-field"><label>Fréquence</label><select id="mAutoFreq">' +
-          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Quotidien</option>' +
-          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Hebdomadaire</option>' +
-          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Mensuel</option>' +
+          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Tous les jours</option>' +
+          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Certains jours de la semaine</option>' +
+          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Un jour précis du mois</option>' +
         '</select></div>' +
       '</div>' +
+      '<div id="mAutoWeekdays" class="auto-weekday-row" style="' + (rule.frequency === 'weekly' ? 'display:flex;' : 'display:none;') + 'margin-bottom:12px;">' +
+        '<label><input type="checkbox" value="1"' + ((rule.daysOfWeek || []).includes(1) ? ' checked' : '') + '> Lun</label>' +
+        '<label><input type="checkbox" value="2"' + ((rule.daysOfWeek || []).includes(2) ? ' checked' : '') + '> Mar</label>' +
+        '<label><input type="checkbox" value="3"' + ((rule.daysOfWeek || []).includes(3) ? ' checked' : '') + '> Mer</label>' +
+        '<label><input type="checkbox" value="4"' + ((rule.daysOfWeek || []).includes(4) ? ' checked' : '') + '> Jeu</label>' +
+        '<label><input type="checkbox" value="5"' + ((rule.daysOfWeek || []).includes(5) ? ' checked' : '') + '> Ven</label>' +
+        '<label><input type="checkbox" value="6"' + ((rule.daysOfWeek || []).includes(6) ? ' checked' : '') + '> Sam</label>' +
+        '<label><input type="checkbox" value="0"' + ((rule.daysOfWeek || []).includes(0) ? ' checked' : '') + '> Dim</label>' +
+      '</div>' +
+      '<div id="mAutoDayOfMonth" style="' + (rule.frequency === 'monthly' ? '' : 'display:none;') + 'margin-bottom:12px;">' +
+        '<div class="modal-field"><label>Jour du mois (1-31)</label>' +
+          '<input type="number" id="mAutoDayOfMonthInput" min="1" max="31" value="' + (rule.dayOfMonth || 1) + '">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Répéter tous les <span id="mAutoIntervalUnit">' + (rule.frequency === 'daily' ? 'jours' : (rule.frequency === 'weekly' ? 'semaines' : 'mois')) + '</span></label>' +
+          '<input type="number" id="mAutoInterval" min="1" value="' + (rule.interval || 1) + '">' +
+        '</div>' +
+        '<div class="modal-field"><label>Démarrer à partir du</label>' +
+          '<input type="date" id="mAutoStartDate" value="' + startStr + '">' +
+        '</div>' +
+      '</div>' +
       '<div class="modal-grid single">' +
-        '<div class="modal-field"><label>Description</label><input type="text" id="mAutoDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
+        '<div class="modal-field"><label>Description (optionnelle)</label><input type="text" id="mAutoDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
       '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSaveAuto" class="primary">Enregistrer</button>' +
@@ -14096,19 +14119,36 @@
     document.getElementById('mAutoPlayerRS').appendChild(playerRS);
     document.getElementById('mAutoCategoryRS').appendChild(categoryRS);
 
+    const freqSel = document.getElementById('mAutoFreq');
+    freqSel.addEventListener('change', () => {
+      const f = freqSel.value;
+      document.getElementById('mAutoWeekdays').style.display   = f === 'weekly'  ? 'flex' : 'none';
+      document.getElementById('mAutoDayOfMonth').style.display = f === 'monthly' ? '' : 'none';
+      document.getElementById('mAutoIntervalUnit').textContent =
+        f === 'daily' ? 'jours' : (f === 'weekly' ? 'semaines' : 'mois');
+    });
+
     document.getElementById('mSaveAuto').onclick = function() {
       const pts = parseInt(document.getElementById('mAutoPoints').value, 10);
       const player = playerRS._getValue();
       const category = categoryRS._getValue();
       const frequency = document.getElementById('mAutoFreq').value;
       const description = document.getElementById('mAutoDesc').value.trim();
+      const interval = parseInt(document.getElementById('mAutoInterval').value, 10) || 1;
+      const daysOfWeek = Array.from(document.querySelectorAll('#mAutoWeekdays input:checked')).map(cb => parseInt(cb.value, 10));
+      const dayOfMonth = parseInt(document.getElementById('mAutoDayOfMonthInput').value, 10) || null;
+      const startDate = document.getElementById('mAutoStartDate').value;
 
       if (!player) { showToast('Joueur requis.', 'error'); return; }
       if (!category) { showToast('Top requis.', 'error'); return; }
       if (isNaN(pts) || pts < 1) { showToast('Points invalides.', 'error'); return; }
+      if (frequency === 'weekly' && !daysOfWeek.length) {
+        showToast('Sélectionnez au moins un jour de la semaine.', 'error'); return;
+      }
 
+      const patch = { player, category, points: pts, frequency, description, interval, daysOfWeek, dayOfMonth, startDate };
       closeModal();
-      callServer('apiUpdateAutoRule', [rule.id, { player, category, points: pts, frequency, description }, _whoAmI || ''], res => {
+      callServer('apiUpdateAutoRule', [rule.id, patch, _whoAmI || ''], res => {
         if (res && res.success === false) {
           showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
         } else {
@@ -14124,6 +14164,7 @@
   function openDuplicateAutoRuleModal(rule) {
     if (!requireIdentity()) return;
     const body = document.getElementById('modalBox');
+    const startStr = new Date().toISOString().slice(0, 10);
     body.innerHTML =
       '<h3>📋 Dupliquer la règle automatique</h3>' +
       '<div class="modal-grid">' +
@@ -14133,13 +14174,35 @@
       '<div class="modal-grid">' +
         '<div class="modal-field"><label>Points</label><input type="number" id="mDupPoints" value="' + rule.points + '" min="1"></div>' +
         '<div class="modal-field"><label>Fréquence</label><select id="mDupFreq">' +
-          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Quotidien</option>' +
-          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Hebdomadaire</option>' +
-          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Mensuel</option>' +
+          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Tous les jours</option>' +
+          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Certains jours de la semaine</option>' +
+          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Un jour précis du mois</option>' +
         '</select></div>' +
       '</div>' +
+      '<div id="mDupWeekdays" class="auto-weekday-row" style="' + (rule.frequency === 'weekly' ? 'display:flex;' : 'display:none;') + 'margin-bottom:12px;">' +
+        '<label><input type="checkbox" value="1"' + ((rule.daysOfWeek || []).includes(1) ? ' checked' : '') + '> Lun</label>' +
+        '<label><input type="checkbox" value="2"' + ((rule.daysOfWeek || []).includes(2) ? ' checked' : '') + '> Mar</label>' +
+        '<label><input type="checkbox" value="3"' + ((rule.daysOfWeek || []).includes(3) ? ' checked' : '') + '> Mer</label>' +
+        '<label><input type="checkbox" value="4"' + ((rule.daysOfWeek || []).includes(4) ? ' checked' : '') + '> Jeu</label>' +
+        '<label><input type="checkbox" value="5"' + ((rule.daysOfWeek || []).includes(5) ? ' checked' : '') + '> Ven</label>' +
+        '<label><input type="checkbox" value="6"' + ((rule.daysOfWeek || []).includes(6) ? ' checked' : '') + '> Sam</label>' +
+        '<label><input type="checkbox" value="0"' + ((rule.daysOfWeek || []).includes(0) ? ' checked' : '') + '> Dim</label>' +
+      '</div>' +
+      '<div id="mDupDayOfMonth" style="' + (rule.frequency === 'monthly' ? '' : 'display:none;') + 'margin-bottom:12px;">' +
+        '<div class="modal-field"><label>Jour du mois (1-31)</label>' +
+          '<input type="number" id="mDupDayOfMonthInput" min="1" max="31" value="' + (rule.dayOfMonth || 1) + '">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Répéter tous les <span id="mDupIntervalUnit">' + (rule.frequency === 'daily' ? 'jours' : (rule.frequency === 'weekly' ? 'semaines' : 'mois')) + '</span></label>' +
+          '<input type="number" id="mDupInterval" min="1" value="' + (rule.interval || 1) + '">' +
+        '</div>' +
+        '<div class="modal-field"><label>Démarrer à partir du</label>' +
+          '<input type="date" id="mDupStartDate" value="' + startStr + '">' +
+        '</div>' +
+      '</div>' +
       '<div class="modal-grid single">' +
-        '<div class="modal-field"><label>Description</label><input type="text" id="mDupDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
+        '<div class="modal-field"><label>Description (optionnelle)</label><input type="text" id="mDupDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
       '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSaveDup" class="primary">Créer la copie</button>' +
@@ -14151,23 +14214,36 @@
     document.getElementById('mDupPlayerRS').appendChild(playerRS);
     document.getElementById('mDupCategoryRS').appendChild(categoryRS);
 
+    const freqSel = document.getElementById('mDupFreq');
+    freqSel.addEventListener('change', () => {
+      const f = freqSel.value;
+      document.getElementById('mDupWeekdays').style.display   = f === 'weekly'  ? 'flex' : 'none';
+      document.getElementById('mDupDayOfMonth').style.display = f === 'monthly' ? '' : 'none';
+      document.getElementById('mDupIntervalUnit').textContent =
+        f === 'daily' ? 'jours' : (f === 'weekly' ? 'semaines' : 'mois');
+    });
+
     document.getElementById('mSaveDup').onclick = function() {
       const pts = parseInt(document.getElementById('mDupPoints').value, 10);
       const player = playerRS._getValue();
       const category = categoryRS._getValue();
       const frequency = document.getElementById('mDupFreq').value;
       const description = document.getElementById('mDupDesc').value.trim();
+      const interval = parseInt(document.getElementById('mDupInterval').value, 10) || 1;
+      const daysOfWeek = Array.from(document.querySelectorAll('#mDupWeekdays input:checked')).map(cb => parseInt(cb.value, 10));
+      const dayOfMonth = parseInt(document.getElementById('mDupDayOfMonthInput').value, 10) || null;
+      const startDate = document.getElementById('mDupStartDate').value;
 
       if (!player)   { showToast('Joueur requis.', 'error'); return; }
       if (!category) { showToast('Top requis.', 'error'); return; }
       if (isNaN(pts) || pts < 1) { showToast('Points invalides.', 'error'); return; }
+      if (frequency === 'weekly' && !daysOfWeek.length) {
+        showToast('Sélectionnez au moins un jour de la semaine.', 'error'); return;
+      }
 
       const newRule = {
         player, category, points: pts, frequency, description,
-        interval:   rule.interval   || 1,
-        daysOfWeek: rule.daysOfWeek || [],
-        dayOfMonth: rule.dayOfMonth || null,
-        startDate:  new Date().toISOString().slice(0, 10)
+        interval, daysOfWeek, dayOfMonth, startDate
       };
       closeModal();
       callServer('apiAddAutoRule', [newRule, _whoAmI || ''], () => {
@@ -14208,11 +14284,16 @@
 
       main.appendChild(categoryPill(rule.category));
 
+      const nrDate = rule.nextRun ? new Date(rule.nextRun) : null;
+      const nrFormatted = (nrDate && !isNaN(nrDate.getTime()))
+        ? nrDate.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+
       const tail = document.createElement('span');
       tail.innerHTML =
         (rule.description ? ' — ' + renderMarkdown(rule.description) : '') +
         '<div class="auto-rule-schedule">' + escapeHtml(describeAutoRuleSchedule(rule)) +
-        (rule.nextRun ? ' · prochain : ' + new Date(rule.nextRun).toLocaleString('fr-FR') : '') + '</div>';
+        (nrFormatted ? ' · prochain : ' + escapeHtml(nrFormatted) : '') + '</div>';
       main.appendChild(tail);
       row.appendChild(main);
 

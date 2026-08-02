@@ -32,7 +32,18 @@ const AutoPointsService = (() => {
     return ConfigService.getSheets().autoRules || ss.getSheetByName('AutoRules');
   }
 
+  function _formatIsoDate(val) {
+    if (!val) return '';
+    const d = (val instanceof Date) ? val : new Date(val);
+    return !isNaN(d.getTime()) ? d.toISOString() : '';
+  }
+
   function _parseRow(row, i) {
+    const parseIso = (val) => {
+      if (!val) return null;
+      const d = (val instanceof Date) ? val : new Date(val);
+      return !isNaN(d.getTime()) ? d.toISOString() : null;
+    };
     return {
       rowIndex:    i + 2,
       id:          row[0] ? row[0].toString() : '',
@@ -44,9 +55,9 @@ const AutoPointsService = (() => {
       interval:    parseInt(row[6], 10) || 1,
       daysOfWeek:  row[7] ? row[7].toString().split(',').filter(x => x !== '').map(Number) : [],
       dayOfMonth:  row[8] ? parseInt(row[8], 10) : null,
-      startDate:   row[9] ? new Date(row[9]) : null,
-      nextRun:     row[10] ? new Date(row[10]) : null,
-      lastRun:     row[11] ? new Date(row[11]) : null,
+      startDate:   parseIso(row[9]),
+      nextRun:     parseIso(row[10]),
+      lastRun:     parseIso(row[11]),
       active:      row[12] === true || row[12] === 'TRUE' || row[12] === 'true',
       createdBy:   row[13] ? row[13].toString() : ''
     };
@@ -68,7 +79,8 @@ const AutoPointsService = (() => {
 
   /** Monday 00:00 of the week containing `d` (ISO week start), used to count "active" weeks for a weekly interval. */
   function _weekStart(d) {
-    const w = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dt = (d instanceof Date) ? d : new Date(d);
+    const w = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
     const isoDay = (w.getDay() + 6) % 7; // 0=Monday..6=Sunday
     w.setDate(w.getDate() - isoDay);
     w.setHours(0, 0, 0, 0);
@@ -86,14 +98,15 @@ const AutoPointsService = (() => {
    * firing every week regardless of interval.
    */
   function computeNextRun(rule, fromDate) {
-    const base = new Date(fromDate.getTime());
+    const fromDt = (fromDate instanceof Date) ? fromDate : new Date(fromDate);
+    const base = new Date(fromDt.getTime());
     if (rule.frequency === 'daily') {
       base.setDate(base.getDate() + rule.interval);
       return base;
     }
     if (rule.frequency === 'weekly') {
       const sortedDays = rule.daysOfWeek.length ? rule.daysOfWeek.slice().sort((a, b) => a - b) : [base.getDay()];
-      const refWeekStart = _weekStart(rule.startDate ? new Date(rule.startDate) : base);
+      const refWeekStart = _weekStart(rule.startDate ? rule.startDate : base);
       const candidate = new Date(base.getTime());
       const maxSteps = 7 * Math.max(rule.interval, 1) * 8; // generous search window, still bounded
       for (let step = 1; step <= maxSteps; step++) {
@@ -155,7 +168,7 @@ const AutoPointsService = (() => {
     sheet.appendRow([
       id, rule.player, rule.category, pts, rule.description || '',
       rule.frequency, normalized.interval, normalized.daysOfWeek.join(','), normalized.dayOfMonth || '',
-      startDate.toISOString(), nextRun.toISOString(), '', true, author || ''
+      _formatIsoDate(startDate), _formatIsoDate(nextRun), '', true, author || ''
     ]);
     ConfigService.clearCache();
     return _parseRow(sheet.getRange(sheet.getLastRow(), 1, 1, 14).getValues()[0], sheet.getLastRow() - 2);
@@ -166,9 +179,10 @@ const AutoPointsService = (() => {
     if (!sheet) throw new Error("Aucune règle définie.");
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) throw new Error("Règle introuvable.");
+    const targetId = id != null ? id.toString().trim() : '';
     const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
     for (let i = 0; i < ids.length; i++) {
-      if (ids[i][0] && ids[i][0].toString() === id) return i + 2;
+      if (ids[i][0] != null && ids[i][0].toString().trim() === targetId) return i + 2;
     }
     throw new Error("Règle introuvable : " + id);
   }
@@ -180,20 +194,20 @@ const AutoPointsService = (() => {
     const current = _parseRow(sheet.getRange(rowIndex, 1, 1, 14).getValues()[0], rowIndex - 2);
     const merged = Object.assign({}, current, patch);
     const pts = _validate(merged);
-    const startDate = merged.startDate ? new Date(merged.startDate) : current.startDate;
+    const startDateObj = merged.startDate ? new Date(merged.startDate) : (current.startDate ? new Date(current.startDate) : new Date());
     const scheduleChanged = ['frequency', 'interval', 'daysOfWeek', 'dayOfMonth', 'startDate']
       .some(k => Object.prototype.hasOwnProperty.call(patch, k));
-    const nextRun = scheduleChanged
-      ? computeNextRun(merged, new Date(startDate.getTime() - 1))
-      : current.nextRun;
+    const nextRunObj = scheduleChanged
+      ? computeNextRun(merged, new Date(startDateObj.getTime() - 1))
+      : (current.nextRun ? new Date(current.nextRun) : computeNextRun(merged, new Date()));
     sheet.getRange(rowIndex, 1, 1, 14).setValues([[
       current.id, merged.player, merged.category, pts, merged.description || '',
       merged.frequency, merged.interval,
       merged.frequency === 'weekly' ? (merged.daysOfWeek || []).join(',') : '',
       merged.frequency === 'monthly' ? (merged.dayOfMonth || '') : '',
-      startDate.toISOString(),
-      nextRun.toISOString(),
-      current.lastRun ? current.lastRun.toISOString() : '',
+      _formatIsoDate(startDateObj),
+      _formatIsoDate(nextRunObj),
+      _formatIsoDate(current.lastRun),
       Object.prototype.hasOwnProperty.call(patch, 'active') ? !!patch.active : current.active,
       current.createdBy
     ]]);
@@ -217,7 +231,7 @@ const AutoPointsService = (() => {
   function runDue(author) {
     const rules = getRules();
     const now = new Date();
-    const due = rules.filter(r => r.active && r.nextRun && r.nextRun <= now);
+    const due = rules.filter(r => r.active && r.nextRun && new Date(r.nextRun) <= now);
     if (!due.length) return { granted: 0, skipped: 0, rules: [] };
 
     const knownPlayers    = SettingsService.getEntities('Players').map(p => p.name);
@@ -237,8 +251,8 @@ const AutoPointsService = (() => {
 
     const sheet = ConfigService.getSheets().autoRules;
     due.forEach(r => {
-      const nextRun = computeNextRun(r, r.nextRun);
-      sheet.getRange(r.rowIndex, 11, 1, 2).setValues([[nextRun.toISOString(), now.toISOString()]]);
+      const nextRun = computeNextRun(r, new Date(r.nextRun));
+      sheet.getRange(r.rowIndex, 11, 1, 2).setValues([[_formatIsoDate(nextRun), _formatIsoDate(now)]]);
     });
     ConfigService.clearCache();
 

@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v2.9.0] - 2026-08-02
+## [v2.9.1] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Correction du problème structurel empêchant d'éditer, dupliquer ou supprimer la planification complète des règles d'automatisations dans les Paramètres.
+**Technique** : `AutoPoints.gs` — normalisation des dates dans `_parseRow` sous forme de chaînes ISO sérialisables, sécurisation de `updateRule`/`runDue` avec des garde-fous sur l'extension `.toISOString()`, et fiabilisation de `_findRowIndex()`. `Index.html` — refonte complète des modales `openEditAutoRuleModal` et `openDuplicateAutoRuleModal` incluant tous les champs de planification (`interval`, `daysOfWeek`, `dayOfMonth`, `startDate`) avec bascule dynamique d'affichage selon la fréquence choisie, et sécurisation du formatage de date dans `renderAutoRules`.
+
+## [v2.9.0] - 2026-08-02
 
 ### Ajouté
 **Humanisé** : Passage à la version 2.9 ! La ligne de saisie a été entièrement repensée pour être ultra-fluide, avec des dimensions adaptatives et un placement logique de chaque élément.
