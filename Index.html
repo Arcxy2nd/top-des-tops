@@ -860,28 +860,21 @@
       display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : Joueur à gauche (50%), Top principal + Points à droite */
+    /* Rangée principale : 3 colonnes (Col 1: Joueur 30% | Col 2: Top principal & supp 35% | Col 3: Points 168px) */
     .row-main {
       display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
     }
     .row-main .player-sel-wrap {
-      flex: 1 1 calc(50% - 6px); min-width: 140px;
+      flex: 1 1 30%; min-width: 140px;
     }
-    .row-main-right {
-      flex: 1 1 calc(50% - 6px); min-width: 200px;
-      display: flex; flex-direction: column; gap: 6px;
+    .row-main .c-sel-col {
+      flex: 1 1 35%; min-width: 140px; display: flex; flex-direction: column; gap: 6px;
     }
-    .row-main-top-line {
-      display: flex; align-items: flex-start; gap: 8px;
-    }
-    .row-main-top-line .c-sel-wrap {
-      flex: 1; min-width: 100px;
-    }
+    .row-main .c-sel-col .c-sel-wrap { width: 100%; }
 
-    /* Groupe points : la case [pts] prend 100% de la largeur combinée des 4 boutons rapides 2x4 en dessous */
+    /* Colonne 3 : Points (case [pts] en haut prend 100% de la largeur du bloc de boutons 2x4) */
     .pts-box-group {
-      display: flex; flex-direction: column; align-items: stretch; gap: 4px;
-      width: 168px; flex-shrink: 0;
+      flex: 0 0 168px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
     }
     .pts-box-group .custom-pts-in {
       width: 100%; text-align: center; font-size: 0.95rem; font-weight: 800; padding: 5px 4px;
@@ -1322,37 +1315,42 @@
     /* ── CELLULE DATE : « Un jour » / « Une période » (par ligne) ── */
     .d-cell { min-width: 0; max-width: 100%; }
     .d-cell .d-start, .d-cell .d-end { width: 100%; }
-    /* Interrupteur de mode — remplace la case à cocher, impossible à rater */
+    /* Interrupteur de mode — strictement ciblé dans .d-mode-seg, disposé en vertical */
     .d-mode-seg {
       display: inline-flex; flex-direction: column; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 2px; gap: 2px; flex-shrink: 0; align-self: center;
+      border-radius: 8px; padding: 2px; gap: 2px; flex-shrink: 0; align-self: flex-start;
     }
-    .d-mode-btn {
+    .d-mode-seg .d-mode-btn {
       border: none; background: transparent; color: var(--text-muted);
       font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
       padding: 5px 10px; border-radius: 6px; min-height: 26px; white-space: nowrap; text-align: left;
       transition: background 0.15s, color 0.15s;
     }
-    .d-mode-btn:hover { color: var(--text); }
-    .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
-    /* Les deux panneaux sont bornés en largeur (les chips s'enroulent au lieu de tout
-       étirer) et rétrécissent sous cette largeur sur petit écran → adaptable. */
-    .d-single { display: flex; flex-direction: column; gap: 4px; width: 280px; max-width: 100%; }
-    .d-period { display: none; flex-direction: column; gap: 8px; width: 280px; max-width: 100%; }
-    /* Mini-calendrier : clic 1er jour puis dernier, période colorée entre les deux */
+    .d-mode-seg .d-mode-btn:hover { color: var(--text); }
+    .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
+    .d-single { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .d-period { display: none; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Mini-calendrier : allongé en largeur (330px) avec hauteur compacte réduite */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-      padding: 8px; width: 100%;
+      padding: 4px 6px; width: 330px; max-width: 100%; box-sizing: border-box;
     }
-    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .d-cal-title { font-size: 0.82rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+    .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
     .d-cal-nav {
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
-      color: var(--text); cursor: pointer; width: 28px; height: 28px; font-size: 1rem;
+      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text); cursor: pointer; width: 22px; height: 22px; font-size: 0.82rem;
       line-height: 1; display: flex; align-items: center; justify-content: center;
     }
     .d-cal-nav:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+    .d-cal-dow { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); padding: 1px 0; text-align: center; }
+    .d-cal-day {
+      padding: 2px 0; font-size: 0.72rem; border-radius: 4px; border: none; background: transparent; color: var(--text);
+      cursor: pointer; min-height: 20px; line-height: 1; text-align: center;
+    }
+    .d-cal-today { display: none; }
+    .d-cal-hint { display: none; }
     .d-cal-dow { text-align: center; font-size: 0.62rem; font-weight: 700; color: var(--text-muted); padding-bottom: 2px; }
     /* Les cases héritent sinon du min-height/padding global des boutons (44px) :
        plus larges que leur colonne, elles débordaient hors du cadre du calendrier. */
@@ -11413,9 +11411,11 @@
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
-    // ── Panneau « Une période » (s'ouvre normalement sur le côté) ───────────
+    // ── Panneau « Une période » (s'ouvre sur le côté avec mini-calendrier allongé) ───────────
     const periodPanel = document.createElement('div');
     periodPanel.className = 'd-period';
+
+    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
 
     const periodDates = document.createElement('div');
     periodDates.style.cssText = 'display:flex; align-items:center; gap:4px;';
@@ -11441,7 +11441,7 @@
         const dt = new Date(base + 'T12:00:00');
         dt.setDate(dt.getDate() + n - 1);
         endInput.value = toDateStr(dt);
-        updateDatePreview();
+        cal.refresh(); updateDatePreview();
       });
       durationShortcuts.appendChild(b);
     });
@@ -11452,6 +11452,7 @@
     fillPreview.className = 'd-fill-preview';
     fillPreview.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic;';
 
+    periodPanel.appendChild(cal); // 🗓️ Mini-calendrier allongé réintégré !
     periodPanel.appendChild(periodDates);
     periodPanel.appendChild(durationShortcuts);
     periodPanel.appendChild(fillToggle);
@@ -11488,7 +11489,7 @@
       singlePanel.style.display = range ? 'none' : 'flex';
       if (range) {
         if (!endInput.value) endInput.value = startInput.value;
-        updateDatePreview();
+        cal.refresh(); updateDatePreview();
       } else {
         endInput.value = '';
       }
@@ -11496,13 +11497,13 @@
     modeSingle.addEventListener('click', () => setDateMode(false));
     modeRange.addEventListener('click', () => setDateMode(true));
 
-    startInput.addEventListener('change', () => { updateDatePreview(); });
+    startInput.addEventListener('change', () => { cal.refresh(); updateDatePreview(); });
 
     div.__applyDate = (start, end, fill) => {
       startInput.value = start; endInput.value = end || '';
       setLineFill(fillToggle, fill);
       setDateMode(!!end);
-      updateDatePreview();
+      cal.refresh(); updateDatePreview();
     };
 
     dateCell.appendChild(rangeCb);
@@ -11716,74 +11717,26 @@
     });
     topBar.appendChild(delBtn);
 
-    // ── Rangée principale : Joueur (50%) + [Top (33%) + Pts + Points rapides 2x4] ───────────
+    // ── Rangée principale : 3 colonnes (Col 1: Joueur | Col 2: Top principal & supp | Col 3: Points & pavé 2x4) ──
     const mainRow = document.createElement('div');
     mainRow.className = 'row-main';
 
-    const mainRight = document.createElement('div');
-    mainRight.className = 'row-main-right';
+    // Col 2 : Top principal + sous-tops
+    const cSelCol = document.createElement('div');
+    cSelCol.className = 'c-sel-col';
+    cSelCol.appendChild(cSelWrap);
+    cSelCol.appendChild(subTopsList);
+    cSelCol.appendChild(subTopBtn);
 
-    const mainTopRow = document.createElement('div');
-    mainTopRow.className = 'main-top-row';
-    mainTopRow.appendChild(cSelWrap);
-    mainTopRow.appendChild(customPtsInput);
+    // Col 3 : Groupe Points (case pts en haut + boutons 2x4 en dessous)
+    const ptsBoxGroup = document.createElement('div');
+    ptsBoxGroup.className = 'pts-box-group';
+    ptsBoxGroup.appendChild(customPtsInput);
+    ptsBoxGroup.appendChild(ptsToggle);
 
-    const subTopsList = document.createElement('div');
-    subTopsList.className = 'sub-tops-list';
-    subTopsList.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
-
-    const subTopBtn = document.createElement('button');
-    subTopBtn.className = 'small secondary sub-top-add-btn';
-    subTopBtn.innerHTML = '＋ Top supp.';
-    subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
-
-    subTopBtn.addEventListener('click', () => {
-      const subItem = document.createElement('div');
-      subItem.className = 'sub-top-item';
-      subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem; border:1px solid var(--border);';
-
-      const subCatSel = document.createElement('select');
-      subCatSel.className = 'sub-cat-select';
-      subCatSel.style.cssText = 'padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:120px;';
-      cachedCategories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
-        subCatSel.appendChild(opt);
-      });
-      if (cachedCategories[1]) subCatSel.value = cachedCategories[1].name;
-
-      const subPtsInput = document.createElement('input');
-      subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
-      subPtsInput.value = customPtsInput.value || '1';
-      subPtsInput.min = '1';
-      subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;';
-
-      const delSubBtn = document.createElement('button');
-      delSubBtn.className = 'small danger'; delSubBtn.innerHTML = '✕';
-      delSubBtn.title = 'Retirer ce top supplémentaire';
-      delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
-
-      subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
-      subItem.appendChild(subCatSel);
-      subItem.appendChild(document.createTextNode(' Pts : '));
-      subItem.appendChild(subPtsInput);
-      subItem.appendChild(delSubBtn);
-
-      subTopsList.appendChild(subItem);
-      updateLotSummary();
-    });
-
-    const ptsRow = document.createElement('div');
-    ptsRow.className = 'row-pts-line';
-    ptsRow.appendChild(ptsToggle);
-
-    mainRight.appendChild(mainTopRow);
-    mainRight.appendChild(subTopsList);
-    mainRight.appendChild(subTopBtn);
-    mainRight.appendChild(ptsRow); // Boutons de points rapides sous la zone de points
-
-    mainRow.appendChild(wrap);      // Joueur (50%)
-    mainRow.appendChild(mainRight); // Top + Pts + Points rapides
+    mainRow.appendChild(wrap);        // Col 1 : Joueur (30%)
+    mainRow.appendChild(cSelCol);     // Col 2 : Top principal & supp (35%)
+    mainRow.appendChild(ptsBoxGroup); // Col 3 : Points (case pts + boutons 2x4 en dessous)
 
     // ── Ligne de date à son emplacement d'origine (sous mainRow) ───────────────────
     const dateRow = document.createElement('div');
