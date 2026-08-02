@@ -6,8 +6,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v2.9.2] - 2026-08-02
 
 ### Modifié
-**Humanisé** : Les boutons "📋 Dupliquer cette ligne" et "📋 Dupliquer cette règle" arborent désormais un halo arc-en-ciel animé qui s'intensifie au survol, les rendant immédiatement repérables dans l'interface.
-**Technique** : `Index.html` — ajout de la classe `.btn-glow` sur `dupBtn` et `dupRuleBtn` ; nouveau bloc CSS `/* GLOWING SHADOW BUTTON */` avec `@property` custom (--btn-hue, --btn-glow-opacity, --btn-glow-blur, --btn-glow-scale), pseudo-éléments `::before`/`::after` animés via `@keyframes btn-hue-anim` (rotation de teinte 0→360°) et transition interactive au hover.
+**Humanisé** : Tous les boutons neutres de l'interface (Actualiser, Rafraîchir, Nouveau tirage, Sélectionner, etc.) ont désormais le halo arc-en-ciel animé — seuls les boutons Annuler/Fermer dans les modales restent sobres.
+**Technique** : `Index.html` — nouvelle règle CSS ciblant `button.secondary` dans `.tab-content`, `.settings-section`, `#lotBuilderSection`, `#historyContent`, `#notesContent`, `.panel-body`, `.tool-section` (exclusion des `.modal`) : pseudo-éléments `::before`/`::after` animés via `btn-hue-anim`, intensification au hover via transition sur `filter`, `opacity` et `transform`. Complète la classe `.btn-glow` déjà appliquée aux boutons Dupliquer.
 
 ## [v2.9.1] - 2026-08-02
 

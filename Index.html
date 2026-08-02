@@ -696,7 +696,81 @@
       100% { background-position: 0% 50%; }
     }
 
+    /* Extend glowing effect to all secondary buttons outside modals/toasts */
+    .tab-content button.secondary,
+    .settings-section button.secondary,
+    #lotBuilderSection button.secondary,
+    #historyContent button.secondary,
+    #notesContent button.secondary,
+    .panel-body button.secondary,
+    .tool-section button.secondary {
+      position: relative;
+      overflow: visible;
+      isolation: isolate;
+      z-index: 0;
+    }
+    .tab-content button.secondary::before,
+    .settings-section button.secondary::before,
+    #lotBuilderSection button.secondary::before,
+    #historyContent button.secondary::before,
+    #notesContent button.secondary::before,
+    .panel-body button.secondary::before,
+    .tool-section button.secondary::before {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      z-index: -1;
+      background: radial-gradient(
+        50% 50% at 50% 50%,
+        hsl(calc(var(--btn-hue) * 1deg) 100% 70%) 0%,
+        hsl(calc(var(--btn-hue) * 1deg) 100% 50%) 40%,
+        transparent 100%
+      );
+      animation: btn-hue-anim 4s linear infinite;
+      opacity: 0.55;
+      transition: opacity 0.45s ease;
+    }
+    .tab-content button.secondary::after,
+    .settings-section button.secondary::after,
+    #lotBuilderSection button.secondary::after,
+    #historyContent button.secondary::after,
+    #notesContent button.secondary::after,
+    .panel-body button.secondary::after,
+    .tool-section button.secondary::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      z-index: -2;
+      filter: blur(6px);
+      background: hsl(calc(var(--btn-hue) * 1deg) 100% 60%);
+      animation: btn-hue-anim 4s linear infinite;
+      transform: scaleX(1.72) scaleY(1.5);
+      opacity: 0.45;
+      transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s ease;
+    }
+    .tab-content button.secondary:hover::before,
+    .settings-section button.secondary:hover::before,
+    #lotBuilderSection button.secondary:hover::before,
+    #historyContent button.secondary:hover::before,
+    #notesContent button.secondary:hover::before,
+    .panel-body button.secondary:hover::before,
+    .tool-section button.secondary:hover::before { opacity: 0.9; }
+    .tab-content button.secondary:hover::after,
+    .settings-section button.secondary:hover::after,
+    #lotBuilderSection button.secondary:hover::after,
+    #historyContent button.secondary:hover::after,
+    #notesContent button.secondary:hover::after,
+    .panel-body button.secondary:hover::after,
+    .tool-section button.secondary:hover::after {
+      filter: blur(3px);
+      opacity: 0.85;
+      transform: scaleX(2.53) scaleY(2.2);
+    }
+
     /* ── FILTER PANEL V2 (Taste & Impeccable Chips) ── */
+
     .filter-panel {
       display: flex; flex-direction: column; gap: 18px;
       background: rgba(15, 20, 29, 0.65); 
