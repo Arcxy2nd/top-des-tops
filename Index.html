@@ -11526,23 +11526,19 @@
     actions.appendChild(subTopBtn);
     actions.appendChild(dupBtn); actions.appendChild(delBtn);
 
-    // ── Alt-Top Pill Button (Sublimé & repositionné en haut) ────────────
-    const altPill = document.createElement('div');
-    altPill.className = 'row-alt-pill';
-    altPill.title = 'Associer cette saisie à un Top Alternatif';
+    // ── Custom Alt-Top Picker (Refonte 100% sur mesure & positionnement bas-droite) ──
+    const customAltPicker = document.createElement('div');
+    customAltPicker.className = 'custom-alt-picker';
+    customAltPicker.style.cssText = 'position:relative; display:inline-block; user-select:none;';
 
     const altCb = document.createElement('input');
     altCb.type = 'checkbox'; altCb.className = 'row-alt-cb';
     altCb.style.display = 'none';
 
-    const altLabelSpan = document.createElement('span');
-    altLabelSpan.className = 'row-alt-label';
-    altLabelSpan.innerHTML = '⭐ Top Alt';
-
     const altCatSel = document.createElement('select');
     altCatSel.className = 'row-alt-select';
-    altCatSel.style.cssText = 'display:none; margin-left:6px; padding:2px 6px; border-radius:12px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.75rem; font-weight:600;';
-    
+    altCatSel.style.display = 'none';
+
     const populateAltSelect = () => {
       altCatSel.innerHTML = '';
       if (cachedAltCategories.length) {
@@ -11559,23 +11555,119 @@
     };
     populateAltSelect();
 
-    const updateAltPillState = () => {
-      const active = altCb.checked;
-      altPill.classList.toggle('active', active);
-      altCatSel.style.display = active ? 'inline-block' : 'none';
-      if (active) populateAltSelect();
+    const altBtn = document.createElement('button');
+    altBtn.type = 'button';
+    altBtn.className = 'alt-picker-btn';
+    altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+
+    const altBtnContent = document.createElement('span');
+    altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
+    altBtn.appendChild(altBtnContent);
+
+    const altMenu = document.createElement('div');
+    altMenu.className = 'alt-picker-menu';
+    altMenu.style.cssText = 'display:none; position:absolute; bottom:100%; right:0; margin-bottom:6px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid #ffd166; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;';
+
+    const updateAltPickerUI = () => {
+      const active = altCb.checked && altCatSel.value;
+      if (active) {
+        const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
+        const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
+        altBtn.className = 'alt-picker-btn active';
+        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px solid #ffd166; background:rgba(255, 209, 102, 0.22); color:#ffd166; font-size:0.8rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);';
+        altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
+      } else {
+        altBtn.className = 'alt-picker-btn';
+        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+        altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
+      }
     };
 
-    altPill.addEventListener('click', (e) => {
-      if (e.target === altCatSel) return;
-      altCb.checked = !altCb.checked;
-      updateAltPillState();
-      updateLotSummary();
+    const renderAltMenuOptions = () => {
+      altMenu.innerHTML = '';
+      if (!cachedAltCategories.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.cssText = 'padding:10px; font-size:0.78rem; color:var(--text-muted); text-align:center; font-style:italic;';
+        emptyMsg.textContent = 'Aucun Top alt configuré (Paramètres)';
+        altMenu.appendChild(emptyMsg);
+        return;
+      }
+
+      const optNone = document.createElement('div');
+      optNone.className = 'alt-picker-opt';
+      optNone.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.8rem; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--border); margin-bottom:4px;';
+      optNone.innerHTML = '🚫 <em>Aucun Top alt</em>';
+      optNone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        altCb.checked = false;
+        altCatSel.value = '';
+        updateAltPickerUI();
+        updateLotSummary();
+        altMenu.style.display = 'none';
+      });
+      altMenu.appendChild(optNone);
+
+      cachedAltCategories.forEach(ac => {
+        const opt = document.createElement('div');
+        opt.className = 'alt-picker-opt';
+        const isSelected = altCb.checked && altCatSel.value === ac.name;
+        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ' background:#ffd166; color:#121824; font-weight:800;' : ' color:var(--text);');
+        
+        const labelDiv = document.createElement('div');
+        labelDiv.style.cssText = 'display:flex; align-items:center; gap:6px;';
+        labelDiv.innerHTML = (ac.emoji ? ac.emoji + ' ' : '⭐ ') + escapeHtml(ac.name);
+        opt.appendChild(labelDiv);
+
+        if (isSelected) {
+          const checkSpan = document.createElement('span');
+          checkSpan.textContent = '✓';
+          opt.appendChild(checkSpan);
+        }
+
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          altCb.checked = true;
+          populateAltSelect();
+          altCatSel.value = ac.name;
+          updateAltPickerUI();
+          updateLotSummary();
+          altMenu.style.display = 'none';
+        });
+
+        altMenu.appendChild(opt);
+      });
+    };
+
+    altBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.classList.contains('alt-clear-btn')) {
+        altCb.checked = false;
+        altCatSel.value = '';
+        updateAltPickerUI();
+        updateLotSummary();
+        altMenu.style.display = 'none';
+        return;
+      }
+
+      if (!cachedAltCategories.length) {
+        showToast('Aucun Top alternatif configuré (Rendez-vous dans Paramètres)', 'error');
+        return;
+      }
+
+      const isVisible = altMenu.style.display === 'flex';
+      document.querySelectorAll('.alt-picker-menu').forEach(m => m.style.display = 'none');
+      if (!isVisible) {
+        renderAltMenuOptions();
+        altMenu.style.display = 'flex';
+      }
     });
 
-    altPill.appendChild(altCb);
-    altPill.appendChild(altLabelSpan);
-    altPill.appendChild(altCatSel);
+    document.addEventListener('click', () => { altMenu.style.display = 'none'; });
+
+    customAltPicker.appendChild(altCb);
+    customAltPicker.appendChild(altCatSel);
+    customAltPicker.appendChild(altBtn);
+    customAltPicker.appendChild(altMenu);
 
     // ── Groupe principal des Tops & Sous-Tops (positionnement sous le top principal) ──
     const topsGroup = document.createElement('div');
@@ -11643,18 +11735,17 @@
     topRow.appendChild(topsGroup);
     topRow.appendChild(actions);
 
-    // Rangée secondaire : date (à gauche) + raccourcis pts & Top Alt (à droite, au-dessus du barème)
+    // Rangée secondaire : date (à gauche) + raccourcis pts (à droite)
     const bottomRow = document.createElement('div');
     bottomRow.className = 'row-bottom';
     bottomRow.appendChild(dateCell);
+    bottomRow.appendChild(ptsToggle);
 
-    const bottomRightWrap = document.createElement('div');
-    bottomRightWrap.className = 'row-bottom-right-controls';
-    bottomRightWrap.style.cssText = 'display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end;';
-    bottomRightWrap.appendChild(ptsToggle);
-    bottomRightWrap.appendChild(altPill);
-
-    bottomRow.appendChild(bottomRightWrap);
+    // Emplacement bas-droite dédié au Top Alt (exactement au-dessus du Barème)
+    const bottomAltRow = document.createElement('div');
+    bottomAltRow.className = 'row-alt-slot';
+    bottomAltRow.style.cssText = 'display:flex; justify-content:flex-end; align-items:center; margin:4px 0 8px 0; padding-right:4px;';
+    bottomAltRow.appendChild(customAltPicker);
 
     // ── Barème rapide par Top ────────────────────────────────────────────
     const baremeRow = document.createElement('div');
@@ -11716,6 +11807,7 @@
 
     div.appendChild(topRow);
     div.appendChild(bottomRow);
+    div.appendChild(bottomAltRow);
     div.appendChild(baremeRow);
 
     // ── Historique rapide (joueur + Top) ─────────────────────────────────
@@ -11936,6 +12028,13 @@
     const initCatCol = categoryColor(initCategory);
     div.style.setProperty('--row-accent', initCatCol);
     refreshBaremeForTop(initCategory);
+    if (preset && (preset.altCategory || preset.isAlt)) {
+      altCb.checked = true;
+      populateAltSelect();
+      if (preset.altCategory) altCatSel.value = preset.altCategory;
+      updateAltPickerUI();
+    }
+
     refreshHistVisibility();
     updateLotSummary();
     if (animateFromBtn) floatPointsBadge(animateFromBtn, defaultPts);

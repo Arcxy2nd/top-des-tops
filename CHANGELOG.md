@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.7] - 2026-08-02
+
+### Modifié
+**Humanisé** : Refonte totale du sélecteur Top Alternatif avec un composant déroulant 100% sur-mesure (plus de sélecteur HTML natif) et positionnement exact dans le coin inférieur droit de la zone de date (au-dessus du barème).
+**Technique** : `Index.html` — création de `customAltPicker` dans `addEntryRow()` avec bouton pilule dynamique, popover sur mesure (`alt-picker-menu`), notification si aucun Top alt n'est configuré et positionnement dans `bottomAltRow` directement au-dessus de `baremeRow`.
+
 ## [v2.8.6] - 2026-08-02
 
 ### Modifié
