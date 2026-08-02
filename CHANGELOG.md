@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.3] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Repositionnement de la bannière des statistiques rapides au-dessus des onglets pour qu'elle reste visible partout, correction de l'affichage et du fonctionnement de l'onglet "Saisir un lot" (reconstitution de l'arborescence des sous-tops et du bouton Top Alternatif), et résolution du filtre de catégories lors du changement d'univers sur le Dashboard.
+**Technique** : `Index.html` — déplacement de `#quickStatsBar` hors de `#tab-dashboard` vers le conteneur principal ; correction du nettoyage `selectedCategoryChips` dans `_paintEntitiesUI` pour utiliser la liste active (`cachedAltCategories` ou `cachedCategories`) ; réorganisation de `addEntryRow()` pour assembler correctement `topRow` avec `topsGroup` et `altPill` sans détacher les sélecteurs ni appeler de références inexistantes.
+
 ## [v2.8.2] - 2026-08-02
 
 ### Corrigé

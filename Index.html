@@ -3748,6 +3748,43 @@
   <button type="button" class="mobile-cta-close" id="mobileCtaClose" aria-label="Fermer">✕</button>
 </div>
 
+<!-- ══ BANNIÈRE STATS RAPIDES (Présente partout) ════════════════════ -->
+<div id="quickStatsBar" class="quick-stats-bar" style="margin-bottom: 16px;">
+  <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
+    <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🏆 Leader</span>
+      <span class="qs-pill-value" id="qsLeaderValue">—</span>
+    </div>
+  </button>
+  <button type="button" class="qs-pill" id="qsGapPill" title="Voir le classement complet">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">📊 Écart</span>
+      <span class="qs-pill-value" id="qsGapValue">—</span>
+    </div>
+  </button>
+  <button type="button" class="qs-pill" id="qsMonthPill" title="Voir l'historique de ce mois-ci">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">📅 Ce mois-ci</span>
+      <span class="qs-pill-value" id="qsMonthValue">—</span>
+    </div>
+  </button>
+  <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
+    <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🕐 Dernier événement</span>
+      <span class="qs-pill-value" id="qsLastValue">—</span>
+    </div>
+  </button>
+  <button type="button" class="qs-pill qs-record" id="qsRecordPill" title="Voir le livre des records">
+    <img class="qs-avatar" id="qsRecordAvatar" src="" alt="" style="display:none;">
+    <div class="qs-pill-text">
+      <span class="qs-pill-label">🏅 Record absolu</span>
+      <span class="qs-pill-value" id="qsRecordValue">—</span>
+    </div>
+  </button>
+</div>
+
 <!-- Bottom nav fixe mobile (hors navbar pour éviter le piège backdrop-filter) -->
 <div class="mobile-bottom-nav" id="mobileBottomNav"></div>
 
@@ -3776,42 +3813,6 @@
 
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
-
-    <div id="quickStatsBar" class="quick-stats-bar" style="margin-bottom: 16px;">
-      <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
-        <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
-        <div class="qs-pill-text">
-          <span class="qs-pill-label">🏆 Leader</span>
-          <span class="qs-pill-value" id="qsLeaderValue">—</span>
-        </div>
-      </button>
-      <button type="button" class="qs-pill" id="qsGapPill" title="Voir le classement complet">
-        <div class="qs-pill-text">
-          <span class="qs-pill-label">📊 Écart</span>
-          <span class="qs-pill-value" id="qsGapValue">—</span>
-        </div>
-      </button>
-      <button type="button" class="qs-pill" id="qsMonthPill" title="Voir l'historique de ce mois-ci">
-        <div class="qs-pill-text">
-          <span class="qs-pill-label">📅 Ce mois-ci</span>
-          <span class="qs-pill-value" id="qsMonthValue">—</span>
-        </div>
-      </button>
-      <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
-        <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
-        <div class="qs-pill-text">
-          <span class="qs-pill-label">🕐 Dernier événement</span>
-          <span class="qs-pill-value" id="qsLastValue">—</span>
-        </div>
-      </button>
-      <button type="button" class="qs-pill qs-record" id="qsRecordPill" title="Voir le livre des records">
-        <img class="qs-avatar" id="qsRecordAvatar" src="" alt="" style="display:none;">
-        <div class="qs-pill-text">
-          <span class="qs-pill-label">🏅 Record absolu</span>
-          <span class="qs-pill-value" id="qsRecordValue">—</span>
-        </div>
-      </button>
-    </div>
 
     <!-- ══ BASCULE D'UNIVERS (Tops Principaux / Tops Alternatifs) ══ -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
@@ -8310,7 +8311,10 @@
 
     // Remove any players/categories that no longer exist from chip selection
     selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
-    selectedCategoryChips.forEach(n => { if (!cachedCategories.find(c => c.name === n)) selectedCategoryChips.delete(n); });
+    selectedCategoryChips.forEach(n => {
+      const list = (activeDashboardUniverse === 'alt') ? cachedAltCategories : cachedCategories;
+      if (!list.find(c => c.name === n)) selectedCategoryChips.delete(n);
+    });
     renderPlayerChips();
     renderCategoryChips();
 
@@ -11620,8 +11624,8 @@
     dragHandle.title = 'Glisser pour réorganiser';
     topRow.appendChild(dragHandle);
     topRow.appendChild(wrap);
-    topRow.appendChild(cSelWrap);
-    topRow.appendChild(customPtsInput);
+    topRow.appendChild(topsGroup);
+    topRow.appendChild(altPill);
     topRow.appendChild(actions);
 
     // Rangée secondaire : date + raccourcis pts (à droite, proches du total)
@@ -11860,8 +11864,6 @@
 
     div.appendChild(histRow);
     div.appendChild(descRowWrapper);
-    div.appendChild(subTopsList);
-    div.appendChild(altRowWrap);
     container.appendChild(div);
 
     // Valeurs initiales (preset ou premier item du cache)
