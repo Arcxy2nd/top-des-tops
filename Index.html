@@ -604,6 +604,98 @@
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
+    /* ── GLOWING SHADOW BUTTON ── */
+    @property --btn-hue {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 0;
+    }
+    @property --btn-rotate {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 0;
+    }
+    @property --btn-glow-opacity {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 0.55;
+    }
+    @property --btn-glow-blur {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 6;
+    }
+    @property --btn-glow-scale {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 1.5;
+    }
+
+    .btn-glow {
+      --btn-anim-speed: 4s;
+      --btn-interact-speed: 0.45s;
+      position: relative;
+      overflow: visible;
+      isolation: isolate;
+      border: none !important;
+      background: transparent !important;
+      z-index: 0;
+    }
+    .btn-glow::before {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      z-index: -1;
+      background: hsl(0deg 0% 16%) radial-gradient(
+        50% 50% at 50% 50%,
+        hsl(calc(var(--btn-hue) * 1deg) 100% 70%) 0%,
+        hsl(calc(var(--btn-hue) * 1deg) 100% 50%) 40%,
+        transparent 100%
+      );
+      animation:
+        btn-hue-anim var(--btn-anim-speed) linear infinite,
+        btn-rotate-bg var(--btn-anim-speed) linear infinite;
+      transition: opacity var(--btn-interact-speed) ease;
+      opacity: 0.7;
+    }
+    .btn-glow::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      z-index: -2;
+      filter: blur(calc(var(--btn-glow-blur) * 1px));
+      background: hsl(calc(var(--btn-hue) * 1deg) 100% 60%);
+      animation:
+        btn-hue-anim var(--btn-anim-speed) linear infinite;
+      transform: scaleX(calc(var(--btn-glow-scale) * 1.15)) scaleY(var(--btn-glow-scale));
+      opacity: var(--btn-glow-opacity);
+      transition:
+        --btn-glow-blur var(--btn-interact-speed) ease,
+        --btn-glow-opacity var(--btn-interact-speed) ease,
+        --btn-glow-scale var(--btn-interact-speed) ease;
+    }
+    .btn-glow:hover::before {
+      opacity: 1;
+    }
+    .btn-glow:hover::after {
+      --btn-glow-blur: 3;
+      --btn-glow-opacity: 0.9;
+      --btn-glow-scale: 2.2;
+    }
+    .btn-glow:active { transform: scale(0.96); }
+
+    @keyframes btn-hue-anim {
+      from { --btn-hue: 0; }
+      to   { --btn-hue: 360; }
+    }
+    @keyframes btn-rotate-bg {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     /* ── FILTER PANEL V2 (Taste & Impeccable Chips) ── */
     .filter-panel {
       display: flex; flex-direction: column; gap: 18px;
@@ -11701,7 +11793,7 @@
     topBar.appendChild(topBarSpacer);
 
     const dupBtn = document.createElement('button');
-    dupBtn.className = 'small secondary btn-dup';
+    dupBtn.className = 'small secondary btn-dup btn-glow';
     dupBtn.innerHTML = '📋 Dupliquer cette ligne';
     dupBtn.title = 'Dupliquer cette ligne';
     dupBtn.addEventListener('click', () => addEntryRow({
@@ -14307,7 +14399,7 @@
       actionsGroup.appendChild(editBtn);
 
       const dupRuleBtn = document.createElement('button');
-      dupRuleBtn.className = 'secondary small';
+      dupRuleBtn.className = 'secondary small btn-glow';
       dupRuleBtn.textContent = '📋'; dupRuleBtn.title = 'Dupliquer cette règle';
       dupRuleBtn.addEventListener('click', () => openDuplicateAutoRuleModal(rule));
       actionsGroup.appendChild(dupRuleBtn);

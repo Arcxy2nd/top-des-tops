@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v2.9.1] - 2026-08-02
+## [v2.9.2] - 2026-08-02
+
+### Modifié
+**Humanisé** : Les boutons "📋 Dupliquer cette ligne" et "📋 Dupliquer cette règle" arborent désormais un halo arc-en-ciel animé qui s'intensifie au survol, les rendant immédiatement repérables dans l'interface.
+**Technique** : `Index.html` — ajout de la classe `.btn-glow` sur `dupBtn` et `dupRuleBtn` ; nouveau bloc CSS `/* GLOWING SHADOW BUTTON */` avec `@property` custom (--btn-hue, --btn-glow-opacity, --btn-glow-blur, --btn-glow-scale), pseudo-éléments `::before`/`::after` animés via `@keyframes btn-hue-anim` (rotation de teinte 0→360°) et transition interactive au hover.
+
+## [v2.9.1] - 2026-08-02
 
 ### Corrigé
 **Humanisé** : Correction du problème structurel empêchant d'éditer, dupliquer ou supprimer la planification complète des règles d'automatisations dans les Paramètres.
