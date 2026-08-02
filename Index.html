@@ -896,13 +896,13 @@
     }
     /* .d-cell & .d-period : alignement strict 3 colonnes horizontales sans retour à la ligne */
     .d-cell {
-      display: flex; align-items: flex-start; flex-direction: row; flex-wrap: nowrap; gap: 8px; width: 100%;
+      display: flex !important; align-items: flex-start !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; width: 100% !important;
     }
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
     .d-period {
-      display: none; flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap; flex: 1; min-width: 0;
+      display: none; flex-direction: row !important; align-items: flex-start !important; gap: 8px !important; flex-wrap: nowrap !important; flex: 1 1 auto !important; min-width: 0 !important;
     }
     .row-tops-group {
       display: flex; flex-direction: column; gap: 6px;
@@ -1333,7 +1333,7 @@
     /* Mini-calendrier : positionné au centre (emplacement cercle vert) */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 3px 6px; flex: 1 1 360px; max-width: 440px; min-width: 280px; box-sizing: border-box;
+      padding: 3px 6px; flex: 1 1 auto; max-width: 380px; min-width: 250px; width: auto; box-sizing: border-box; flex-shrink: 1;
     }
     .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.72rem; }
     .d-cal-title { font-size: 0.72rem; font-weight: 700; color: var(--text); }
