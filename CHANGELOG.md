@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.1] - 2026-08-02
+
+### Corrigé
+**Humanisé** : Correction du groupement manuel d'entrées d'historique en lot, synchronisation des compteurs d'onglets (badge Historique et Notes) sur les versions mobile et ordinateur, et ajout du bouton d'association automatique des entrées identiques dans l'onglet des Tops Alternatifs.
+**Technique** : `Index.html` — ajout de l'écouteur `click` sur `#histBulkGroup` lié à `apiGroupRows`, mise à jour de `updateNavCount` pour cibler l'ensemble des éléments badges desktop/mobile via `querySelectorAll`, et intégration du bouton `#groupSimilarEntriesBtn` dans `#stab-alt-categories`.
+
 ## [v2.8.0] - 2026-08-02
 
 ### Modifié

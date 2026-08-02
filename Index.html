@@ -4053,6 +4053,9 @@
       <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">
         Deuxième univers de classement avec ses propres Tops (ex: Tops 1, 2, 3... ou sous-thématiques).
       </p>
+      <div style="margin-bottom: 12px;">
+        <button id="groupSimilarEntriesBtn" class="secondary small">🔗 Regrouper les entrées identiques en lot</button>
+      </div>
       <ul id="altCategoriesList" class="entity-list"></ul>
       <div class="add-form">
         <p class="add-form-label">Ajouter un Top Alternatif</p>
@@ -8038,16 +8041,21 @@
   }
 
   // ── MODAL ────────────────────────────────────────────────────────────
-  function updateNavCount(el, value) {
-    if (!el) return;
+  function updateNavCount(target, value) {
+    const elements = typeof target === 'string'
+      ? document.querySelectorAll('#' + target + ', [data-count-id="' + target + '"]')
+      : (target ? [target] : []);
+    if (!elements.length) return;
     const v = value ? String(value) : '';
-    if (el.textContent !== v) {
-      el.textContent = v;
-      el.classList.remove('pop');
-      void el.offsetWidth;
-      el.classList.add('pop');
-      setTimeout(() => el.classList.remove('pop'), 250);
-    }
+    elements.forEach(el => {
+      if (el.textContent !== v) {
+        el.textContent = v;
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+        setTimeout(() => el.classList.remove('pop'), 250);
+      }
+    });
   }
 
   function closeModal() {
@@ -12603,7 +12611,7 @@
       const total = res.total || 0;
       const totalEntries = res.totalEntries || total;
       totalHistoryEntries = totalEntries;
-      updateNavCount(document.getElementById('historyCount'), totalEntries || '');
+      updateNavCount('historyCount', totalEntries || '');
 
       const tbody = document.getElementById('historyTableBody');
       tbody.innerHTML = '';
@@ -13185,7 +13193,7 @@
     if (!blocksContainer) return;
     blocksContainer.innerHTML = '';
 
-    updateNavCount(document.getElementById('notesCount'), _allNotesRaw.length || '');
+    updateNavCount('notesCount', _allNotesRaw.length || '');
 
     const query = _notesSearchQuery.trim().toLowerCase();
     const filtered = query
@@ -14489,6 +14497,20 @@
     document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
     document.getElementById('histBulkAltLink').addEventListener('click', () => {
       openAltCategoryLinkModal(Array.from(histSelected));
+    });
+    document.getElementById('histBulkGroup').addEventListener('click', () => {
+      if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+      if (histSelected.size < 2) { showToast('Sélectionnez au moins 2 entrées à grouper.', 'warn'); return; }
+      if (!requireIdentity()) return;
+      openConfirmModal(`Grouper les ${histSelected.size} entrées sélectionnées dans un lot commun ?`, () => {
+        callServer('apiGroupRows', [Array.from(histSelected), _whoAmI], res => {
+          if (res.success) {
+            showToast(`✨ ${histSelected.size} entrées groupées avec succès !`, 'success');
+            toggleHistSelectMode(false);
+            applyFilters();
+          }
+        }, 'Groupement de la sélection');
+      });
     });
 
     const groupSimilarBtn = document.getElementById('groupSimilarEntriesBtn');
