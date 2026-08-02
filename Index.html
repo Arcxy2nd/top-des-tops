@@ -901,9 +901,9 @@
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    /* Panneau "Une période" : inline dans le flux HORIZONTAL (côté du modeSeg) */
+    /* Panneau "Une période" : 3 colonnes horizontales (1. Du/Au à gauche, 2. Calendrier élargi au milieu, 3. Boutons à droite) */
     .d-period {
-      display: none; flex-direction: column; gap: 6px; width: 420px; max-width: 100%;
+      display: none; flex-direction: row; align-items: flex-start; gap: 10px; max-width: 100%; flex-wrap: wrap;
     }
     .row-tops-group {
       display: flex; flex-direction: column; gap: 6px;
@@ -1334,40 +1334,35 @@
     .d-mode-seg .d-mode-btn:hover { color: var(--text); }
     .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
 
-    /* Mini-calendrier : allongé horizontalement et faible hauteur */
+    /* Mini-calendrier : élargi horizontalement et hauteur réduite de 2 lignes (15px/case) */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 4px 8px; width: 100%; max-width: 420px; box-sizing: border-box;
+      padding: 3px 6px; width: 480px; max-width: 100%; box-sizing: border-box; flex-shrink: 0;
     }
-    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; font-size: 0.76rem; }
-    .d-cal-title { font-size: 0.76rem; font-weight: 700; color: var(--text); }
-    .d-cal-nav, .d-cal-today { padding: 1px 6px; font-size: 0.7rem; min-height: 20px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.72rem; }
+    .d-cal-title { font-size: 0.72rem; font-weight: 700; color: var(--text); }
+    .d-cal-nav, .d-cal-today { padding: 0 5px; font-size: 0.68rem; min-height: 18px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
     .d-cal-nav:hover, .d-cal-today:hover { background: var(--accent); color: var(--on-accent); }
-    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: 0.7rem; }
-    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 1px 0; font-size: 0.65rem; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: 0.68rem; }
+    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 0; font-size: 0.62rem; }
     .d-cal-day {
-      width: 100%; min-width: 0; height: 20px; line-height: 20px; padding: 0;
+      width: 100%; min-width: 0; height: 15px; line-height: 15px; padding: 0;
       border: 1px solid transparent; background: transparent;
-      color: var(--text); font-family: inherit; font-size: 0.72rem; cursor: pointer;
-      border-radius: 4px; transition: background 0.1s;
+      color: var(--text); font-family: inherit; font-size: 0.66rem; cursor: pointer;
+      border-radius: 3px; transition: background 0.1s;
       display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     }
     .d-cal-day:hover { background: var(--btn-alt); }
     .d-cal-day.in-range { background: rgba(59, 130, 246, 0.25); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 800; }
-    .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); text-align: right; margin-top: 2px; }
+    .d-cal-hint { font-size: 0.64rem; color: var(--text-muted); text-align: center; margin-top: 2px; }
     .d-cal-day.is-today { border-color: var(--accent); font-weight: 700; }
     .d-cal-day.in-range { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
     /* Survol pendant la sélection : aperçu de la période avant le 2e clic */
     .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
-    .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; text-align: center; }
-    /* Saisie manuelle Du / Au sous le calendrier */
-    .d-cal-manual { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-    .d-cal-manual label { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; }
-    .d-cal-manual input[type="date"] {
-      flex: 1; min-width: 0; padding: 4px 6px; font-size: 0.72rem; min-height: 30px;
-    }
+    /* Saisie manuelle masquée dans le calendrier car déjà affichée à gauche */
+    .d-cal-manual { display: none; }
     .d-cal-today {
       background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
       color: var(--text); cursor: pointer; height: 28px; min-height: 0; padding: 0 8px;
@@ -11405,30 +11400,51 @@
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
-    // ── Panneau « Une période » (s'ouvre sur le côté avec mini-calendrier allongé) ───────────
+    // ── Panneau « Une période » (3 colonnes : 1. Du/Au à gauche, 2. Calendrier élargi au milieu, 3. Boutons à droite) ───────────
     const periodPanel = document.createElement('div');
     periodPanel.className = 'd-period';
 
-    const periodDates = document.createElement('div');
-    periodDates.style.cssText = 'display:flex; align-items:center; gap:4px; flex-wrap:wrap;';
-    const lblDu = document.createElement('span');
-    lblDu.style.cssText = 'font-size:0.78rem; color:var(--text-muted); font-weight:600;';
-    lblDu.textContent = 'Du';
-    const lblAu = document.createElement('span');
-    lblAu.style.cssText = 'font-size:0.78rem; color:var(--text-muted); font-weight:600;';
-    lblAu.textContent = 'au';
-    periodDates.appendChild(lblDu);
-    periodDates.appendChild(startInput);
-    periodDates.appendChild(lblAu);
-    periodDates.appendChild(endInput);
+    // 1. Colonne Gauche : Boutons / Champs "Du" et "Au"
+    const periodLeftCol = document.createElement('div');
+    periodLeftCol.className = 'd-period-left-col';
+    periodLeftCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex-shrink:0;';
 
+    const duWrap = document.createElement('div');
+    duWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+    const lblDu = document.createElement('span');
+    lblDu.style.cssText = 'font-size:0.72rem; color:var(--text-muted); font-weight:700;';
+    lblDu.textContent = '📅 Du :';
+    startInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600;';
+    duWrap.appendChild(lblDu);
+    duWrap.appendChild(startInput);
+
+    const auWrap = document.createElement('div');
+    auWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+    const lblAu = document.createElement('span');
+    lblAu.style.cssText = 'font-size:0.72rem; color:var(--text-muted); font-weight:700;';
+    lblAu.textContent = '📅 Au :';
+    endInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600;';
+    auWrap.appendChild(lblAu);
+    auWrap.appendChild(endInput);
+
+    periodLeftCol.appendChild(duWrap);
+    periodLeftCol.appendChild(auWrap);
+
+    // 2. Colonne Milieu : Mini-calendrier élargi et compact
     const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
+
+    // 3. Colonne Droite : Boutons de raccourcis (+3j, +7j, +14j...) + Mode de score (fillToggle) + Aperçu
+    const periodRightCol = document.createElement('div');
+    periodRightCol.className = 'd-period-right-col';
+    periodRightCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; min-width:145px; flex:1;';
 
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'row-shortcuts';
+    durationShortcuts.style.cssText = 'display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; width:100%;';
     [['+3 j', 3], ['+7 j', 7], ['+14 j', 14], ['+1 mois', 30]].forEach(([label, n]) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'row-shortcut'; b.textContent = label;
+      b.style.cssText = 'padding:4px 6px; font-size:0.72rem; text-align:center; font-weight:700; border-radius:6px; width:100%;';
       b.title = 'Période de ' + n + ' jours à partir du jour de début';
       b.addEventListener('click', () => {
         const base = startInput.value || toDateStr(new Date());
@@ -11444,13 +11460,15 @@
 
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
-    fillPreview.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic;';
+    fillPreview.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic; border-top:1px solid var(--border); padding-top:4px;';
 
-    periodPanel.appendChild(periodDates);
-    periodPanel.appendChild(cal); // Calendrier mini allongé et compact !
-    periodPanel.appendChild(durationShortcuts);
-    periodPanel.appendChild(fillToggle);
-    periodPanel.appendChild(fillPreview);
+    periodRightCol.appendChild(durationShortcuts);
+    periodRightCol.appendChild(fillToggle);
+    periodRightCol.appendChild(fillPreview);
+
+    periodPanel.appendChild(periodLeftCol);  // Col 1 : Du / Au à gauche
+    periodPanel.appendChild(cal);            // Col 2 : Calendrier au milieu
+    periodPanel.appendChild(periodRightCol); // Col 3 : Boutons & calcul à droite
 
     // Aperçu chiffré live : points de la ligne × période, selon le mode fill.
     function updateDatePreview() {
@@ -11482,9 +11500,11 @@
       periodPanel.style.display = range ? 'flex' : 'none';
       singlePanel.style.display = range ? 'none' : 'flex';
       if (range) {
+        duWrap.appendChild(startInput);
         if (!endInput.value) endInput.value = startInput.value;
         cal.refresh(); updateDatePreview();
       } else {
+        singlePanel.insertBefore(startInput, startShortcuts);
         endInput.value = '';
       }
     }
