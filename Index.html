@@ -11723,7 +11723,7 @@
       updateLotSummary();
     });
 
-    // Rangée principale : joueur, top principal, valeur pts, actions
+    // Rangée 1 : poignée, joueur, top principal, points sur mesure, boutons d'action
     const topRow = document.createElement('div');
     topRow.className = 'row-top';
     const dragHandle = document.createElement('div');
@@ -11735,17 +11735,18 @@
     topRow.appendChild(topsGroup);
     topRow.appendChild(actions);
 
-    // Rangée secondaire : date (à gauche) + raccourcis pts (à droite)
-    const bottomRow = document.createElement('div');
-    bottomRow.className = 'row-bottom';
-    bottomRow.appendChild(dateCell);
-    bottomRow.appendChild(ptsToggle);
+    // Rangée 2 : raccourcis de points rapides (1, 3, 5, 7, 10, 25, 50, 100)
+    const ptsRow = document.createElement('div');
+    ptsRow.className = 'row-pts-line';
+    ptsRow.style.cssText = 'display:flex; justify-content:flex-end; align-items:center; margin:6px 0;';
+    ptsRow.appendChild(ptsToggle);
 
-    // Emplacement bas-droite dédié au Top Alt (exactement au-dessus du Barème)
-    const bottomAltRow = document.createElement('div');
-    bottomAltRow.className = 'row-alt-slot';
-    bottomAltRow.style.cssText = 'display:flex; justify-content:flex-end; align-items:center; margin:4px 0 8px 0; padding-right:4px;';
-    bottomAltRow.appendChild(customAltPicker);
+    // Rangée 3 : date & raccourcis (à gauche) + Top Alt (en bas à droite, exactement au-dessus du barème)
+    const dateAltRow = document.createElement('div');
+    dateAltRow.className = 'row-date-alt-line';
+    dateAltRow.style.cssText = 'display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:6px;';
+    dateAltRow.appendChild(dateCell);
+    dateAltRow.appendChild(customAltPicker);
 
     // ── Barème rapide par Top ────────────────────────────────────────────
     const baremeRow = document.createElement('div');
@@ -11806,8 +11807,8 @@
     }
 
     div.appendChild(topRow);
-    div.appendChild(bottomRow);
-    div.appendChild(bottomAltRow);
+    div.appendChild(ptsRow);
+    div.appendChild(dateAltRow);
     div.appendChild(baremeRow);
 
     // ── Historique rapide (joueur + Top) ─────────────────────────────────

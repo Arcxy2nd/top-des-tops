@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.8] - 2026-08-02
+
+### Modifié
+**Humanisé** : Organisation de la carte de saisie en 3 rangées bien aérées : 1) Joueur, Top principal, Points et Actions de ligne ; 2) Raccourcis de points rapides (1 à 100) ; 3) Sélecteurs de date/raccourcis à gauche et **Top Alternatif** calé dans le coin inférieur droit (exactement au-dessus du Barème).
+**Technique** : `Index.html` — restructuration de `addEntryRow()` en rangées distinctes (`topRow`, `ptsRow`, `dateAltRow`), éliminant tout entassement visuel et garantissant l'alignement exact du bouton Top Alt dans l'emplacement bas-droite du composant.
+
 ## [v2.8.7] - 2026-08-02
 
 ### Modifié
