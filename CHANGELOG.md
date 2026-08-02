@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.11] - 2026-08-02
+
+### Modifié
+**Humanisé** : Retrait complet des badges automatiques d'intensité et de statut (type "👑 Domination", "🔥 Duel serré", "⚡ Top actif") affichés sur les cartes de commentaires par Top, pour une présentation plus sobre et épurée.
+**Technique** : `Index.html` — suppression de la génération du fragment `badgeHtml` et retrait de l'élément des cartes `.phrase-cat-card`.
+
 ## [v2.8.10] - 2026-08-02
 
 ### Corrigé

@@ -6772,23 +6772,12 @@
           el.style.setProperty('--phrase-color', col);
           el.style.animationDelay = (i * 0.05) + 's';
 
-          // Badge d'intensité de rivalité
-          let badgeHtml = '';
-          if (item.isTight) {
-            badgeHtml = '<div class="phrase-cat-badge tight">🔥 Duel serré</div>';
-          } else if (item.isDominant) {
-            badgeHtml = '<div class="phrase-cat-badge dominance">👑 Domination</div>';
-          } else if (item.categoryTotal === maxCategoryTotal && maxCategoryTotal > 0) {
-            badgeHtml = '<div class="phrase-cat-badge active-top">⚡ Top actif</div>';
-          }
-
           el.innerHTML =
             '<div class="phrase-cat-bg-avatar"></div>' +
             '<div class="phrase-cat-header">' +
               '<span>' + escapeHtml(item.cat.icon || '🎯') + '</span>' +
               '<span>' + escapeHtml(item.cat.name) + '</span>' +
             '</div>' +
-            badgeHtml +
             '<div class="phrase-cat-text">' + escapeHtml(item.text) + '</div>';
 
           const catPlayer = cachedPlayers.find(p => p.name === item.topPlayer);
