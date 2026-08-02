@@ -13715,7 +13715,7 @@
 
     const playerRS   = buildRichSelect({ type: 'player',   value: aPlay.value, onChange: function() {}, mixedState: aPlay.mixed });
     const categoryRS = buildRichSelect({ type: 'category', value: aCat.value,  onChange: function() {}, mixedState: aCat.mixed });
-    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: aSais.value, onChange: function() {}, nullable: true, mixedState: aSais.mixed });
+    const saiseurRS  = buildRichSelect({ type: 'saiseur', value: aSais.value, onChange: function() {}, nullable: true, mixedState: aSais.mixed });
     const descEditor = buildTextEditor({
       value: aDesc.mixed ? '' : (aDesc.value || ''),
       rows: 3,
@@ -13964,9 +13964,12 @@
 
     callServer('apiGetAutoRules', [], res => {
       renderAutoTriggerStatus(res.triggerInstalled);
-      renderAutoRules(res.rules);
+      renderAutoRules(Array.isArray(res.rules) ? res.rules : []);
       if (res.triggerError) showToast(res.triggerError, 'error');
-    }, 'Chargement des règles automatiques');
+    }, 'Chargement des r\u00e8gles automatiques', () => {
+      const c = document.getElementById('autoRulesList');
+      if (c) c.innerHTML = '<p style="color:var(--error);font-size:0.82rem;">Erreur lors du chargement. R\u00e9essayez.</p>';
+    });
   }
 
   function describeAutoRuleSchedule(rule) {
