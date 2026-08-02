@@ -3751,42 +3751,6 @@
 <!-- Bottom nav fixe mobile (hors navbar pour éviter le piège backdrop-filter) -->
 <div class="mobile-bottom-nav" id="mobileBottomNav"></div>
 
-<div id="quickStatsBar" class="quick-stats-bar">
-  <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
-    <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
-    <div class="qs-pill-text">
-      <span class="qs-pill-label">🏆 Leader</span>
-      <span class="qs-pill-value" id="qsLeaderValue">—</span>
-    </div>
-  </button>
-  <button type="button" class="qs-pill" id="qsGapPill" title="Voir le classement complet">
-    <div class="qs-pill-text">
-      <span class="qs-pill-label">📊 Écart</span>
-      <span class="qs-pill-value" id="qsGapValue">—</span>
-    </div>
-  </button>
-  <button type="button" class="qs-pill" id="qsMonthPill" title="Voir l'historique de ce mois-ci">
-    <div class="qs-pill-text">
-      <span class="qs-pill-label">📅 Ce mois-ci</span>
-      <span class="qs-pill-value" id="qsMonthValue">—</span>
-    </div>
-  </button>
-  <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
-    <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
-    <div class="qs-pill-text">
-      <span class="qs-pill-label">🕐 Dernier événement</span>
-      <span class="qs-pill-value" id="qsLastValue">—</span>
-    </div>
-  </button>
-  <button type="button" class="qs-pill qs-record" id="qsRecordPill" title="Voir le livre des records">
-    <img class="qs-avatar" id="qsRecordAvatar" src="" alt="" style="display:none;">
-    <div class="qs-pill-text">
-      <span class="qs-pill-label">🏅 Record absolu</span>
-      <span class="qs-pill-value" id="qsRecordValue">—</span>
-    </div>
-  </button>
-</div>
-
 <div class="container">
   <div id="toastContainer"></div>
 
@@ -3812,6 +3776,42 @@
 
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
+
+    <div id="quickStatsBar" class="quick-stats-bar" style="margin-bottom: 16px;">
+      <button type="button" class="qs-pill qs-leader" id="qsLeaderPill" title="Voir le classement complet">
+        <img class="qs-avatar" id="qsLeaderAvatar" src="" alt="" style="display:none;">
+        <div class="qs-pill-text">
+          <span class="qs-pill-label">🏆 Leader</span>
+          <span class="qs-pill-value" id="qsLeaderValue">—</span>
+        </div>
+      </button>
+      <button type="button" class="qs-pill" id="qsGapPill" title="Voir le classement complet">
+        <div class="qs-pill-text">
+          <span class="qs-pill-label">📊 Écart</span>
+          <span class="qs-pill-value" id="qsGapValue">—</span>
+        </div>
+      </button>
+      <button type="button" class="qs-pill" id="qsMonthPill" title="Voir l'historique de ce mois-ci">
+        <div class="qs-pill-text">
+          <span class="qs-pill-label">📅 Ce mois-ci</span>
+          <span class="qs-pill-value" id="qsMonthValue">—</span>
+        </div>
+      </button>
+      <button type="button" class="qs-pill qs-last" id="qsLastPill" title="Voir le dernier événement dans l'historique">
+        <img class="qs-avatar" id="qsLastAvatar" src="" alt="" style="display:none;">
+        <div class="qs-pill-text">
+          <span class="qs-pill-label">🕐 Dernier événement</span>
+          <span class="qs-pill-value" id="qsLastValue">—</span>
+        </div>
+      </button>
+      <button type="button" class="qs-pill qs-record" id="qsRecordPill" title="Voir le livre des records">
+        <img class="qs-avatar" id="qsRecordAvatar" src="" alt="" style="display:none;">
+        <div class="qs-pill-text">
+          <span class="qs-pill-label">🏅 Record absolu</span>
+          <span class="qs-pill-value" id="qsRecordValue">—</span>
+        </div>
+      </button>
+    </div>
 
     <!-- ══ BASCULE D'UNIVERS (Tops Principaux / Tops Alternatifs) ══ -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
