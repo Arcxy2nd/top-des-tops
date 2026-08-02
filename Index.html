@@ -11513,7 +11513,8 @@
       dateEnd:     rangeCb.checked ? endInput.value : '',
       fill:        fillToggle.dataset.fill,
       days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
-      description: descInput.value
+      description: descInput.value,
+      altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : ''
     }, dupBtn));
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.innerHTML = '✕'; delBtn.title = 'Supprimer cette ligne';
