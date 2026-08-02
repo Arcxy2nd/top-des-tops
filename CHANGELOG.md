@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.8.15] - 2026-08-02
+
+### Ajouté
+**Humanisé** : Les automatisations ont maintenant leur propre onglet dans les Paramètres — facile à trouver, impossible de les rater.
+**Technique** : `Index.html` — création de `stab-automations` (nouvel onglet Paramètres) contenant le formulaire de création de règles et la liste des règles existantes ; déclenchement de `loadAutoRules()` au clic sur cet onglet.
+
+**Humanisé** : Chaque règle automatique peut maintenant être dupliquée en un clic — pour créer rapidement une variante sans tout ressaisir.
+**Technique** : `Index.html` — ajout du bouton 📋 dans `renderAutoRules()` ; ajout de `openDuplicateAutoRuleModal(rule)` qui pré-remplit joueur/top/fréquence/description et appelle `apiAddAutoRule` pour créer la copie.
+
+### Supprimé
+**Humanisé** : L'outil "Scores aberrants" a été retiré des Outils — il était rarement utile et encombrait l'interface.
+**Technique** : `Index.html` — suppression de la carte `toolOutliersCard`, des fonctions `scanOutliers`, `getDismissedOutlierRowIndexes`, `dismissOutlierRowIndex`, de la constante `DISMISSED_OUTLIERS_KEY`, du listener `detectOutliersBtn` et du bouton correspondant dans le sommaire `toolsQuickNav`.
+
+### Modifié
+**Humanisé** : La section "Points automatiques" a été retirée de l'onglet Outils (où elle était cachée) et déplacée dans le nouvel onglet Automatisations.
+**Technique** : `Index.html` — retrait de `toolAutoCard` de `stab-tools` et de son `makeCollapsible`, branchement du chargement sur `stab-automations` dans `initSettingsTabs()`.
+
 ## [v2.8.14] - 2026-08-02
 
 ### Modifié

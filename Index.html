@@ -4014,6 +4014,7 @@
       <button class="settings-nav-btn" data-stab="stab-bareme">⚖️ Barème</button>
       <button class="settings-nav-btn" data-stab="stab-phrases">🎭 Commentaires</button>
       <button class="settings-nav-btn" data-stab="stab-tools">🔧 Outils</button>
+      <button class="settings-nav-btn" data-stab="stab-automations">🤖 Automatisations</button>
       <button class="settings-nav-btn" data-stab="stab-identity">🎨 Identité</button>
       <button class="settings-nav-btn" data-stab="stab-changelog">📋 Changelog</button>
     </div>
@@ -4110,10 +4111,8 @@
         <button data-target="toolLotsCard">🔗 Lots répartis</button>
         <button data-target="toolLegacyCard">⚠️ Groupes hérités</button>
         <button data-target="toolDuplicatesCard">🧬 Doublons</button>
-        <button data-target="toolOutliersCard">📈 Aberrants</button>
         <button data-target="toolMentionsCard">🏷️ Mentions</button>
         <button data-target="toolInactiveCard">💤 Inactifs</button>
-        <button data-target="toolAutoCard">🤖 Points auto</button>
       </div>
 
       <div class="card card-collapsible" id="toolHealthCard">
@@ -4180,14 +4179,7 @@
         <div id="duplicatesResults" class="detect-results"></div>
       </div>
 
-      <div class="card card-collapsible" id="toolOutliersCard">
-        <div class="card-collapse-header"><h2>📈 Scores aberrants</h2></div>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-          Repère les entrées dont les points s'écartent fortement des valeurs habituelles d'un Top (souvent une faute de frappe).
-        </p>
-        <button id="detectOutliersBtn" class="primary small">🔍 Scanner l'historique</button>
-        <div id="outliersResults" class="detect-results"></div>
-      </div>
+
 
       <div class="card card-collapsible" id="toolMentionsCard">
         <div class="card-collapse-header"><h2>🏷️ Mentions manquantes</h2></div>
@@ -4207,13 +4199,18 @@
         <div id="inactiveResults" style="margin-top:12px;"></div>
       </div>
 
-      <div class="card card-collapsible" id="toolAutoCard">
-        <div class="card-collapse-header"><h2>🤖 Points automatiques</h2></div>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-          Crée des règles qui ajoutent automatiquement des points à un joueur, selon la régularité de ton choix (tous les jours, certains jours de la semaine, ou tel jour du mois).
+
+    </div>
+
+    <!-- ─ Automatisations (Points automatiques) ─ -->
+    <div id="stab-automations" class="settings-tab-pane">
+      <div class="card">
+        <h2>🤖 Automatisations</h2>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 18px;line-height:1.5;">
+          Crée des règles qui ajoutent automatiquement des points à un joueur selon la régularité de ton choix (quotidien, hebdomadaire ou mensuel).
         </p>
-        <div class="auto-rules-card">
-        <div class="tool-action">
+
+        <div class="tool-action" style="margin-bottom:16px;">
           <div class="tool-action-info">
             <strong>Exécution automatique</strong>
             <span id="autoTriggerStatus">—</span>
@@ -4221,7 +4218,8 @@
           <button id="autoTriggerToggleBtn" class="secondary small">…</button>
         </div>
 
-        <div class="add-form" style="margin-top:14px;">
+        <h3 style="margin:0 0 10px;">＋ Nouvelle règle</h3>
+        <div class="add-form">
           <p class="add-form-label">Joueur</p>
           <div id="autoRulePlayerRS" class="rs-host"></div>
           <p class="add-form-label">Top (catégorie)</p>
@@ -4256,8 +4254,8 @@
           <button id="addAutoRuleBtn" class="primary small">＋ Créer la règle</button>
         </div>
 
+        <h3 style="margin:20px 0 10px;">📋 Règles existantes</h3>
         <div id="autoRulesList" class="auto-rules-list"></div>
-        </div>
       </div>
     </div>
 
@@ -4514,7 +4512,8 @@
         <p><strong>🎯 Tops :</strong> gérer les catégories (nom, description, emoji, couleur).</p>
         <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton flottant ⚖️ (raccourci clavier : <strong>?</strong>).</p>
         <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases. Les variables disponibles dans les phrases sont <code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>. Les pools <code>first</code>, <code>second</code>, <code>third</code>, <code>mid</code>, <code>last</code>, <code>tied</code>, <code>solo</code> permettent de cibler chaque position. Le pool <code>cat:NomDuTop</code> génère des commentaires spécifiques à un Top.</p>
-        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point, orphelines, en doublon ou aux scores aberrants, détection et fusion de lots répartis, gestion des groupes hérités, détection des joueurs inactifs, points automatiques, et un sommaire de navigation pour retrouver chaque outil rapidement.</p>
+        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point, orphelines ou en doublon, détection et fusion de lots répartis, gestion des groupes hérités, détection des joueurs inactifs, et un sommaire de navigation pour retrouver chaque outil rapidement.</p>
+        <p><strong>🤖 Automatisations :</strong> création, activation, édition, duplication et suppression de règles de points automatiques (quotidien, hebdomadaire, mensuel) pour chaque joueur et chaque Top.</p>
       </template>
 
       <template id="guideContent-notes">
@@ -5828,7 +5827,8 @@
         const target = btn.dataset.stab;
         document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
-        if (target === 'stab-tools') { loadDataHealth(); loadAutoRules(); }
+        if (target === 'stab-tools') { loadDataHealth(); }
+        if (target === 'stab-automations') { loadAutoRules(); }
         if (target === 'stab-identity') populateAppSettingsForm();
         if (target === 'stab-changelog') loadChangelog();
       });
@@ -14036,6 +14036,64 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
+  function openDuplicateAutoRuleModal(rule) {
+    if (!requireIdentity()) return;
+    const body = document.getElementById('modalBox');
+    body.innerHTML =
+      '<h3>📋 Dupliquer la règle automatique</h3>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Joueur</label><div id="mDupPlayerRS"></div></div>' +
+        '<div class="modal-field"><label>Top</label><div id="mDupCategoryRS"></div></div>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field"><label>Points</label><input type="number" id="mDupPoints" value="' + rule.points + '" min="1"></div>' +
+        '<div class="modal-field"><label>Fréquence</label><select id="mDupFreq">' +
+          '<option value="daily"' + (rule.frequency === 'daily' ? ' selected' : '') + '>Quotidien</option>' +
+          '<option value="weekly"' + (rule.frequency === 'weekly' ? ' selected' : '') + '>Hebdomadaire</option>' +
+          '<option value="monthly"' + (rule.frequency === 'monthly' ? ' selected' : '') + '>Mensuel</option>' +
+        '</select></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Description</label><input type="text" id="mDupDesc" value="' + escapeHtml(rule.description || '') + '"></div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mSaveDup" class="primary">Créer la copie</button>' +
+        '<button id="mCancelDup" class="secondary">Annuler</button>' +
+      '</div>';
+
+    const playerRS   = buildRichSelect({ type: 'player',   value: rule.player,   onChange: function() {} });
+    const categoryRS = buildRichSelect({ type: 'category', value: rule.category, onChange: function() {} });
+    document.getElementById('mDupPlayerRS').appendChild(playerRS);
+    document.getElementById('mDupCategoryRS').appendChild(categoryRS);
+
+    document.getElementById('mSaveDup').onclick = function() {
+      const pts = parseInt(document.getElementById('mDupPoints').value, 10);
+      const player = playerRS._getValue();
+      const category = categoryRS._getValue();
+      const frequency = document.getElementById('mDupFreq').value;
+      const description = document.getElementById('mDupDesc').value.trim();
+
+      if (!player)   { showToast('Joueur requis.', 'error'); return; }
+      if (!category) { showToast('Top requis.', 'error'); return; }
+      if (isNaN(pts) || pts < 1) { showToast('Points invalides.', 'error'); return; }
+
+      const newRule = {
+        player, category, points: pts, frequency, description,
+        interval:   rule.interval   || 1,
+        daysOfWeek: rule.daysOfWeek || [],
+        dayOfMonth: rule.dayOfMonth || null,
+        startDate:  new Date().toISOString().slice(0, 10)
+      };
+      closeModal();
+      callServer('apiAddAutoRule', [newRule, _whoAmI || ''], () => {
+        showToast('Règle dupliquée avec succès !', 'success');
+        loadAutoRules();
+      }, 'Duplication règle auto');
+    };
+    document.getElementById('mCancelDup').onclick = closeModal;
+    document.getElementById('modalBackdrop').style.display = 'flex';
+  }
+
   function renderAutoRules(rules) {
     const container = document.getElementById('autoRulesList');
     if (!rules.length) {
@@ -14078,9 +14136,15 @@
 
       const editBtn = document.createElement('button');
       editBtn.className = 'secondary small';
-      editBtn.textContent = '✏️'; editBtn.title = 'Éditer cette règle';
+      editBtn.textContent = '✏️'; editBtn.title = 'Modifier cette règle';
       editBtn.addEventListener('click', () => openEditAutoRuleModal(rule));
       actionsGroup.appendChild(editBtn);
+
+      const dupRuleBtn = document.createElement('button');
+      dupRuleBtn.className = 'secondary small';
+      dupRuleBtn.textContent = '📋'; dupRuleBtn.title = 'Dupliquer cette règle';
+      dupRuleBtn.addEventListener('click', () => openDuplicateAutoRuleModal(rule));
+      actionsGroup.appendChild(dupRuleBtn);
 
       const toggleBtn = document.createElement('button');
       toggleBtn.className = 'secondary small';
@@ -15931,10 +15995,8 @@
     makeCollapsible(document.getElementById('toolLotsCard'),   'tdt_collapsed_tool_lots');
     makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
-    makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');
     makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
-    makeCollapsible(document.getElementById('toolAutoCard'),       'tdt_collapsed_tool_auto');
     // Sommaire des outils : déplie la carte visée puis descend dessus.
     document.querySelectorAll('#toolsQuickNav button').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -15945,7 +16007,6 @@
       });
     });
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
-    document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
     document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
     // Hub Statistiques : une seule carte à onglets (Records / Tendances /
