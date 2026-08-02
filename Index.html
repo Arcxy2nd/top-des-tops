@@ -894,16 +894,12 @@
     .row-date-line {
       display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
-    /* .d-cell : conteneur flex ROW — le panneau période s'étend SUR LE CÔTÉ */
+    /* .d-cell & .d-period : alignement strict 3 colonnes horizontales sans retour à la ligne */
     .d-cell {
-      display: flex; align-items: flex-start; flex-direction: row; flex-wrap: wrap; gap: 8px;
+      display: flex; align-items: flex-start; flex-direction: row; flex-wrap: nowrap; gap: 8px; width: 100%;
     }
-    .d-single {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    }
-    /* Panneau "Une période" : 3 colonnes horizontales (1. Du/Au à gauche, 2. Calendrier élargi au milieu, 3. Boutons à droite) */
     .d-period {
-      display: none; flex-direction: row; align-items: flex-start; gap: 10px; max-width: 100%; flex-wrap: wrap;
+      display: none; flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap; flex: 1; min-width: 0;
     }
     .row-tops-group {
       display: flex; flex-direction: column; gap: 6px;
@@ -1334,10 +1330,10 @@
     .d-mode-seg .d-mode-btn:hover { color: var(--text); }
     .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
 
-    /* Mini-calendrier : élargi horizontalement et hauteur réduite de 2 lignes (15px/case) */
+    /* Mini-calendrier : positionné au centre (emplacement cercle vert) */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 3px 6px; width: 480px; max-width: 100%; box-sizing: border-box; flex-shrink: 0;
+      padding: 3px 6px; flex: 1 1 360px; max-width: 440px; min-width: 280px; box-sizing: border-box;
     }
     .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.72rem; }
     .d-cal-title { font-size: 0.72rem; font-weight: 700; color: var(--text); }
@@ -11407,14 +11403,14 @@
     // 1. Colonne Gauche : Boutons / Champs "Du" et "Au"
     const periodLeftCol = document.createElement('div');
     periodLeftCol.className = 'd-period-left-col';
-    periodLeftCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex-shrink:0;';
+    periodLeftCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex:0 0 auto; min-width:130px;';
 
     const duWrap = document.createElement('div');
     duWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
     const lblDu = document.createElement('span');
     lblDu.style.cssText = 'font-size:0.72rem; color:var(--text-muted); font-weight:700;';
     lblDu.textContent = '📅 Du :';
-    startInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600;';
+    startInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; width:100%; box-sizing:border-box;';
     duWrap.appendChild(lblDu);
     duWrap.appendChild(startInput);
 
@@ -11423,20 +11419,20 @@
     const lblAu = document.createElement('span');
     lblAu.style.cssText = 'font-size:0.72rem; color:var(--text-muted); font-weight:700;';
     lblAu.textContent = '📅 Au :';
-    endInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600;';
+    endInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; width:100%; box-sizing:border-box;';
     auWrap.appendChild(lblAu);
     auWrap.appendChild(endInput);
 
     periodLeftCol.appendChild(duWrap);
     periodLeftCol.appendChild(auWrap);
 
-    // 2. Colonne Milieu : Mini-calendrier élargi et compact
+    // 2. Colonne Milieu : Mini-calendrier (position Cercle Vert)
     const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
 
-    // 3. Colonne Droite : Boutons de raccourcis (+3j, +7j, +14j...) + Mode de score (fillToggle) + Aperçu
+    // 3. Colonne Droite : Boutons & Mode de score (position Cercle Bleu - aligné sous la 3e colonne de points)
     const periodRightCol = document.createElement('div');
     periodRightCol.className = 'd-period-right-col';
-    periodRightCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; min-width:145px; flex:1;';
+    periodRightCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; width:165px; flex:0 0 165px;';
 
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'row-shortcuts';
