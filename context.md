@@ -306,7 +306,7 @@ Le projet n'a pas de suite de tests automatisés. Vérifier les changements via 
 
 Toute modification livrée doit être commit **et systématiquement poussée (`git push`)**. Le push déclenche l'auto-sync GitHub Actions (§10) qui déploie automatiquement le code vers **les deux cibles simultanément (« Site tops » et « Tops RDS »)**. Un commit gardé en local ou non poussé prive les deux instances des mises à jour. Ne jamais oublier de push sur les deux cibles, et **ne jamais demander la permission de committer/pousser** — c'est systématique et obligatoire.
 
-**Deux comptes GitHub actifs sur la machine** (`Arcxy2nd` et `zebi-wouldik`) — avant tout `pull`/`push`/`commit` distant, vérifier le compte actif (`gh auth status`) et basculer sur `Arcxy2nd` si besoin (`gh auth switch --user Arcxy2nd`).
+**Compte GitHub officiel : `Arcxy2nd`** — Toujours utiliser `Arcxy2nd` pour toutes les opérations GitHub (`git push`, `gh`, etc.). Avant tout `pull`/`push`/`commit` distant, vérifier le compte actif via `gh auth status` et basculer sur `Arcxy2nd` si nécessaire (`gh auth switch --user Arcxy2nd`). Ne jamais utiliser d'autre compte (ex. `Arcxy3rd`).
 
 ### Pas de sondage en boucle (anti-polling / quota)
 

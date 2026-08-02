@@ -3,6 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
+
+## [v2.9.4] - 2026-08-02
+
+### Corrigé
+**Humanisé** : La bascule en mode "Tops Alternatifs" sur le Dashboard ne modifie désormais plus le reste du site (notamment la bannière de statistiques rapides globale en haut de page, qui conserve en permanence les scores des Tops Principaux).
+**Technique** : `Index.html` — modification de `loadQuickStats()` pour forcer l'appel serveur sur l'univers `'main'` (`apiGetQuickStats('main')`), garantissant que le bandeau `#quickStatsBar` reste ancré sur les statistiques globales du site indépendamment du mode d'affichage actif sur le Dashboard.
+
 ## [v2.9.3] - 2026-08-02
 
 ### Modifié

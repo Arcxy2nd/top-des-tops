@@ -5367,7 +5367,7 @@
     const recordValue  = document.getElementById('qsRecordValue');
     [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => skeletonizeText(el, 60));
 
-    callServer('apiGetQuickStats', [activeDashboardUniverse], res => {
+    callServer('apiGetQuickStats', ['main'], res => {
       const s = res.stats;
       const leaderAvatar = document.getElementById('qsLeaderAvatar');
       const lastAvatar   = document.getElementById('qsLastAvatar');
