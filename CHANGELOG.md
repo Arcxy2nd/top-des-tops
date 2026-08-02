@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.7.0] - 2026-08-02
+
+### Ajouté
+**Humanisé** : Arrivée des Tops Alternatifs pour gérer deux univers de classement en parallèle, avec possibilité d'ajouter des sous-tops secondaires à la saisie, de regrouper automatiquement les entrées identiques et de basculer l'affichage du Dashboard d'un clic.
+**Technique** : `Code.gs` — création des services `AltSettingsService` et `AltStorageService` (gestion de l'onglet `AltCategories`, requêtes analytics et endpoints `apiGetAltCategories`, `apiSaveAltCategories`, `apiGroupSimilarEntries`, `apiLinkHistoryRowsToAltCategory`, `apiGetAltAnalyticsData`). `Index.html` — onglet Paramètres `stab-alt-categories`, sélecteur d'univers `#dashboardUniverseSeg`, bouton `＋ Top supp.`, coche `⭐ Associer à un Top Alternatif` et modale d'affectation d'historique.
+
 ## [v2.6.2] - 2026-08-01
 
 ### Modifié
