@@ -860,22 +860,22 @@
       display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
     }
 
-    /* Rangée principale : 3 Colonnes (Joueur | Top principal | Points + Boutons rapides) */
+    /* ── LAYOUT FLUIDE & ADAPTATIF EN POURCENTAGES (25% | 50% | 25%) ── */
     .row-main {
-      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; width: 100%;
     }
-    /* Col 1 : Joueur */
+    /* Col 1 : Joueur (25%) */
     .row-main .player-sel-wrap {
-      flex: 1 1 28%; min-width: 130px;
+      flex: 1 1 25%; min-width: 120px;
     }
-    /* Col 2 : Top principal & sous-tops */
+    /* Col 2 : Top principal & sous-tops (50%) */
     .row-main-top-col {
-      flex: 2 1 38%; min-width: 160px;
+      flex: 2 1 50%; min-width: 160px;
       display: flex; flex-direction: column; gap: 6px;
     }
-    /* Col 3 : Points [pts] en haut + Boutons rapides 2x4 en dessous */
+    /* Col 3 : Points [pts] + Boutons rapides (25%) */
     .pts-box-group {
-      flex: 0 0 auto; min-width: 165px;
+      flex: 1 1 25%; min-width: 130px;
       display: flex; flex-direction: column; align-items: stretch; gap: 4px;
     }
     .pts-box-group .custom-pts-in {
@@ -890,19 +890,30 @@
       padding: 4px 0; text-align: center; font-size: 0.76rem; font-weight: 700;
     }
 
-    /* Rangée Date : à sa place d'origine sous la rangée principale */
+    /* Rangée Date adaptative */
     .row-date-line {
-      display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+      display: flex; align-items: flex-start; justify-content: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; width: 100%;
     }
-    /* .d-cell & .d-period : alignement strict 3 colonnes horizontales sans retour à la ligne */
     .d-cell {
-      display: flex !important; align-items: flex-start !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; width: 100% !important;
+      display: flex; align-items: flex-start; flex-direction: row; flex-wrap: wrap; gap: 8px; width: 100%;
     }
     .d-single {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
+    /* Panneau Période : Grille fluide alignée 25% | 50% | 25% */
     .d-period {
-      display: none; flex-direction: row !important; align-items: flex-start !important; gap: 8px !important; flex-wrap: nowrap !important; flex: 1 1 auto !important; min-width: 0 !important;
+      display: none; flex-direction: row; align-items: flex-start; gap: 8px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap;
+    }
+    .d-period-left-col {
+      flex: 1 1 22%; min-width: 110px; display: flex; flex-direction: column; gap: 4px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; box-sizing: border-box;
+    }
+    .d-cal {
+      flex: 2 1 50%; min-width: 210px; width: 100%; box-sizing: border-box;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px 6px;
+    }
+    .d-period-right-col {
+      flex: 1 1 25%; min-width: 130px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;
     }
     .row-tops-group {
       display: flex; flex-direction: column; gap: 6px;
