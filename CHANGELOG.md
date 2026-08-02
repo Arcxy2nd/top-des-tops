@@ -3,31 +3,29 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-
-## [v2.9.0] - 2026-08-02
+## [v2.9.0] - 2026-08-02
 
 ### Ajouté
-**Humanisé** : Version 2.9 ! Refonte complète de la ligne de saisie de lot pour une ergonomie ultra-fluide avec dimensions adaptatives et placement logique, et création de l'onglet dédié aux Automatisations.
-**Technique** : `Index.html` — refonte majeure du composant `addEntryRow()` et de ses règles CSS :
-- **Top bar** : intègre la poignée de réorganisation, le sélecteur `⭐ Top Alt`, et les boutons allongés `📋 Dupliquer cette ligne` et `✕ Supprimer cette ligne`.
-- **Rangée principale (3 colonnes fluides en % relatives)** : `Joueur` (30%), `Top & Points` (35%), et `Date` (30%) placées directement sur le même niveau (côte à côte).
-- **Points rapides** : organisés en grille 2 lignes de 4 boutons (`1 3 5 7` / `10 25 50 100`) positionnée sous les points et dictant la largeur de la section.
-- **Onglet Automatisations** : création de `stab-automations` dans les Paramètres avec duplication de règles en 1-clic (`openDuplicateAutoRuleModal`).
-
-### Supprimé
-**Humanisé** : Retrait de l'outil "Scores aberrants" devenu obsolète.
-**Technique** : `Index.html` — suppression de la carte `toolOutliersCard`, des fonctions `scanOutliers` et de ses listeners.
+**Humanisé** : Passage à la version 2.9 ! La ligne de saisie a été entièrement repensée pour être ultra-fluide, avec des dimensions adaptatives et un placement logique de chaque élément.
+**Technique** : `Index.html` — refonte majeure de l'ergonomie des lignes de lot (`addEntryRow`) :
+- **Top bar** : intègre la poignée de réorganisation, le sélecteur `⭐ Top Alt`, et les boutons allongés avec libellé complet `📋 Dupliquer cette ligne` et `✕ Supprimer cette ligne`.
+- **Rangée principale (3 colonnes fluides en % relatives)** : `Joueur` (30%), `Top principal & Points` (35%), et `Date` (30%) directement sur le côté (côte à côte).
+- **Points rapides** : réorganisés en une grille 2 lignes de 4 boutons (`1 3 5 7` / `10 25 50 100`) directement sous les points et dictant la largeur de la section.
+- **Onglet Automatisations** : déplacé dans son propre onglet dédié des Paramètres avec gestion complète et duplication 1-clic.
 
 ## [v2.8.1] - 2026-08-02
 
+### Modifié
+**Humanisé** : Consolidation du volet latéral de tchat sur PC (masqué sur mobile), nettoyage de la barre de navigation mobile et repositionnement du bandeau des statistiques rapides au-dessus des onglets.
+**Technique** : `Index.html` — fusion des règles CSS responsive de la navbar mobile, ancrage flex-sticky du tchat (`#chatSidePanel`), déplacement de `#quickStatsBar` hors des onglets et retrait des badges d'intensité sur les cartes de commentaires.
+
 ### Corrigé
-**Humanisé** : Nettoyage et stabilisation de l'interface : tchat ancré en sidebar fixe sur PC, simplification de la barre de navigation mobile (boutons 36px, masquage des labels superflus), et sécurisation des appels serveur.
-**Technique** : `Index.html` & `Code.gs` — correction des gardes-fous d'auteurs serveur (`requireAuthor`), masquage des badges d'intensité sur les cartes de commentaires, et fiabilisation du layout responsive.
+**Humanisé** : Résolution des blocages au chargement initial du Dashboard, fiabilisation des garde-fous serveur (GAS) et support des statistiques réactives lors des changements d'univers.
+**Technique** : `Code.gs` — correction des appels `requireAuthor` serveur et ajout du paramètre `universe` sur les endpoints analytics ; `Index.html` — sécurisation des gestionnaires `onError` et temporisation des requêtes de statistiques secondaires au démarrage.
 
 ## [v2.8.0] - 2026-08-02
 
-
-### Modifié
+### Ajouté
 **Humanisé** : Intégration d'un moteur Markdown GFM complet, refonte ergonomique de la Saisie de Lot (sous-tops sous le top principal et pilule interactive Top Alternatif), édition complète des automatisations et tchat ancré en panneau latéral / tiroir mobile.
 **Technique** : `Index.html` — réécriture de `renderMarkdown` avec support GFM (titres, gras, italique, barré, citations, tableaux, listes et blocs), isolation des puces du panneau de filtres selon l'univers actif, repositionnement des sous-tops dans `.row-tops-group`, création du bouton pilule `.row-alt-pill`, ajout de la modale `openEditAutoRuleModal`, remplacement du widget tchat flottant par `#chatSidePanel` et du bouton `#chatToggleBtn` dans la Top Bar.
 
@@ -37,118 +35,29 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Arrivée des Tops Alternatifs pour gérer deux univers de classement en parallèle, avec possibilité d'ajouter des sous-tops secondaires à la saisie, de regrouper automatiquement les entrées identiques et de basculer l'affichage du Dashboard d'un clic.
 **Technique** : `Code.gs` — création des services `AltSettingsService` et `AltStorageService` (gestion de l'onglet `AltCategories`, requêtes analytics et endpoints `apiGetAltCategories`, `apiSaveAltCategories`, `apiGroupSimilarEntries`, `apiLinkHistoryRowsToAltCategory`, `apiGetAltAnalyticsData`). `Index.html` — onglet Paramètres `stab-alt-categories`, sélecteur d'univers `#dashboardUniverseSeg`, bouton `＋ Top supp.`, coche `⭐ Associer à un Top Alternatif` et modale d'affectation d'historique.
 
-## [v2.6.2] - 2026-08-01
-
-### Modifié
-**Humanisé** : Retrait de l'action au clic de filtrage sur les cartes des Commentaires par Top afin d'éviter les interactions involontaires.
-**Technique** : `Index.html` — suppression du gestionnaire d'événements `click` sur `.phrase-cat-card` et de la classe CSS `.active-filter`.
-
-## [v2.6.1] - 2026-08-01
-
-### Ajouté
-**Humanisé** : Les cartes de "Commentaires par Top" affichent désormais des badges d'intensité (Duel serré, Domination, Top actif) et permettent de filtrer instantanément le Dashboard en cliquant directement sur le Top désiré.
-**Technique** : `Index.html` — calcul automatique des métriques de rivalité et de dominance par catégorie dans `renderPhrasesCard()`, ajout des badges sémantiques `.phrase-cat-badge`, et intégration du filtrage interactif `.phrase-cat-card.active-filter` lié à `selectedCategoryChips`.
-
 ## [v2.6.0] - 2026-07-31
 
 ### Modifié
 **Humanisé** : Refonte visuelle d'exception et mise en scène du Podium avec socles physiques 3D, badges Or/Argent/Bronze, affichage du total de points, métriques d'écart en temps réel et liste compacte enrichie.
 **Technique** : `Index.html` — restructuration du composant Podium avec la hiérarchie `.podium-column` (socles `.podium-step-base` et cartes `.phrase-podium-card`), styles métalliques Or/Argent/Bronze réactifs aux thèmes, et intégration dans `renderPhrasesCard()` des pilules de score (`.phrase-podium-score-chip`) et d'écart (`.phrase-podium-gap`).
 
-## [v2.5.5] - 2026-07-31
-
-### Modifié
-**Humanisé** : Structuration officielle et complète des 95+ versions historiques depuis la v0.1.0 jusqu'à aujourd'hui avec attribuage de numéros SemVer officiels et découpage en deux voix (Humanisé et Technique).
-**Technique** : `CHANGELOG.md` — conversion de toutes les sections `###` antérieures en en-têtes standard `## [vX.Y.Z] - YYYY-MM-DD` permettant au parseur `Index.html` d'isoler chaque version historique comme une carte dédiée et filtrable.
-
-## [v2.5.4] - 2026-07-31
-
-### Modifié
-**Humanisé** : Refonte esthétique complète de la page Changelog (fil conducteur temporel vertical, cartes glassmorphic avec effets de survol réactifs et ombres adaptatives, compteur dynamique de versions en temps réel et bouton de réinitialisation rapide).
-**Technique** : `Index.html` — ajout de la ligne temporelle CSS `.changelog-date-group::before`, des transitions de survol sur `.changelog-version-card`, de l'indicateur `#clResultCounter`, du mode vide interactif et de `window.resetChangelogFilters()`.
-
-## [v2.5.3] - 2026-07-31
-
-### Ajouté
-**Humanisé** : Ajout d'une barre de contrôle interactive sur la page du Changelog (recherche instantanée par mots-clés, filtrage par type de modification ✨/⚡/🐛/🗑️, bascule d'affichage Humanisé/Technique/Tous, tri chronologique et sélection par plage de versions).
-**Technique** : `Index.html` — intégration de la barre de filtres dans `#stab-changelog`, création du moteur de rendu réactif `renderChangelogView()`, de `initChangelogFilters()` et du remplissage automatique des sélecteurs de plage `populateVersionSelects()`.
-
-### Corrigé
-**Humanisé** : Harmonie parfaite des couleurs des boutons de filtres du Changelog avec les étiquettes des catégories du corps (Ajouté en vert, Modifié en bleu, Corrigé en orange, Supprimé en rouge).
-**Technique** : `Index.html` — création des règles CSS `.cl-cat-chip` basées sur les variables sémantiques `--success`, `--info`, `--warn`, `--error` et suppression des styles inlines incohérents.
-
-### Modifié
-**Humanisé** : Refactorisation complète du moteur d'affichage du Changelog pour garantir une modularité maximale, zéro duplication et un traitement instantané sans rechargement.
-**Technique** : `Index.html` — séparation de la logique selon les principes DRY/SOLID/KISS avec `parseRawChangelogMarkdown()`, `formatChangelogBody()` et `buildChangelogVersionCard()`.
-
-## [v2.5.2] - 2026-07-31
-
-### Corrigé
-**Humanisé** : Le changelog se charge à présent de manière fiable sans faire planter l'application même lorsque la liste des mises à jour devient très volumineuse.
-**Technique** : `Code.gs` — mise à jour de `apiGetChangelog()` avec découpage de la mise en cache (`CacheService`) par blocs de 90 Ko et sécurisation via `try/catch` pour éviter les exceptions de limite à 100 Ko. `tests/cache.test.js` & `tests/harness.js` — ajout du test unitaire et mise à jour du harnais.
-
-## [v2.5.1] - 2026-07-31
-
-### Modifié
-**Humanisé** : La barre supérieure a été rendue plus compacte et élégante, les boutons disposent d'un design affiné et les onglets sont subtilement séparés par de fines bordures verticales.
-**Technique** : `Index.html` — densification verticale de `.nav-container` et `.nav-btn` (`padding` et `min-height` réduits), ajout de séparateurs verticaux discrets (`.nav-btn:not(:last-child)::after`), et amélioration du style visuel des boutons de la top bar (`.nav-refresh-btn`, `.nav-bareme-btn`, `.who-am-i-btn`, `.theme-toggle`, `.layout-mode-toggle`).
-
 ## [v2.5.0] - 2026-07-31
 
-### Corrigé
-**Humanisé** : La barre supérieure et le bandeau de boutons sous le titre s'adaptent désormais parfaitement à 100% de la largeur de votre écran mobile sans déborder.
-**Technique** : `Index.html` — ajustement du CSS responsive pour `.navbar`, `.nav-container`, `.quick-stats-bar` et `.qs-pill` (`flex-wrap: wrap`, padding/gap compacts, flex 100% width) en mode `mobile-layout` et media query `<= 768px`.
-
-## [v2.4.2] - 2026-07-29
-
-### Modifié
-**Humanisé** : Les éléments de la légende du graphique original sont désormais entourés d'un contour sous forme de bouton pour les rendre clairement cliquables.
-**Technique** : `Index.html` — création du plugin canvas `buildLegendBorderPlugin()` qui dessine un contour pilule autour de chaque élément de la légende native Chart.js sans altérer la structure HTML ni le comportement d'origine.
-
-## [v2.4.1] - 2026-07-29
-
-### Modifié
-**Humanisé** : Rétablissement intégral du code original et parfaitement fonctionnel du graphique du Dashboard (menu, légende, tooltips interactifs, overlay d'émojis et visualisations d'origine).
-**Technique** : `Index.html` — Restauration complète à l'état propre d'origine précédant la tentative de refonte visuelle terminal.
+### Ajouté
+**Humanisé** : Ajout d'une barre de contrôle interactive et d'un fil conducteur temporel sur la page du Changelog (recherche instantanée par mots-clés, filtrage par type de modification ✨/⚡/🐛/🗑️, bascule d'affichage et sélecteurs de plage de versions).
+**Technique** : `Index.html` & `Code.gs` — intégration du moteur de rendu réactif `renderChangelogView()`, découpage du cache GitHub par blocs de 90 Ko dans `apiGetChangelog()` pour éviter la limite Apps Script, et structuration SemVer officielle des versions historiques.
 
 ## [v2.4.0] - 2026-07-29
 
-### Supprimé
-**Humanisé** : Suppression du fichier mobile dédié et de son bouton de redirection pour revenir à une page unique et uniforme sur tous les écrans.
-**Technique** : Suppression de `Mobile.html`, du bouton `#layoutModeToggle`, de la bannière `#mobileCtaBanner` et des fonctions JS associées dans `Index.html`.
-
 ### Modifié
-**Humanisé** : L'application s'affiche désormais sur une seule page qui s'adapte automatiquement à votre écran, que vous soyez sur ordinateur ou téléphone portable.
-**Technique** : `Code.gs` — simplification de `doGet()` pour retourner systématiquement `Index.html` ; `Index.html` — renforcement du CSS responsive et mise à jour de `context.md` et `tests/doget-routing.test.js`.
-
-## [v2.3.4] - 2026-07-28
-
-### Corrigé
-**Humanisé** : Autorisation des requêtes HTTP externes pour le chargement dynamique du Changelog depuis GitHub.
-**Technique** : `appsscript.json` — ajout du scope OAuth `https://www.googleapis.com/auth/script.external_request` dans `oauthScopes` pour permettre à `UrlFetchApp.fetch()` de fonctionner sans erreur de permission.
-
-## [v2.3.3] - 2026-07-28
-
-### Modifié
-**Humanisé** : Correction intégrale de l'affichage du Barème : ajout d'un système d'accordéons dépliables/enroulables par Top (avec chevrons), suppression de tout rognage de texte/badges de points, et marge de défilement généreuse en bas de volet.
-**Technique** : `Index.html` & `Mobile.html` — (1) Transformation de chaque section de Top en accordéon interactif au clic avec chevron (`▼` / `▶`). (2) Correction du rognage des pastilles de points et descriptions via `min-height: max-content`, `line-height: 1.45` et `overflow: visible`. (3) Ajout d'un padding de défilement (`padding-bottom: 90px`) dans `.bareme-body` et la modale mobile pour éliminer tout masquage.
-
-## [v2.3.2] - 2026-07-28
-
-### Ajouté
-**Humanisé** : Ajout d'un bouton d'accès rapide au Barème des Tops dans l'en-tête mobile permettant de consulter les règles de points en 1 tap.
-**Technique** : `Mobile.html` — ajout du bouton `#mBaremeQuickBtn` dans `.m-header-actions` et de la modale `openMBaremeQuickModal()`.
-
-## [v2.3.1] - 2026-07-28
-
-### Modifié
-**Humanisé** : Rétablissement du workflow de déploiement d'origine sur GitHub Actions (création d'un nouveau déploiement à chaque push avec désactivation du déploiement précédent).
-**Technique** : `.github/scripts/deploy-gas.sh` — retrait de la réutilisation de déploiement actif (`clasp deploy -i`) et retour au pattern `clasp undeploy` de la version antérieure.
+**Humanisé** : L'application s'affiche désormais sur une seule page réactive qui s'adapte automatiquement à tous les écrans (PC et mobile), avec contours interactifs sur la légende du graphique du Dashboard.
+**Technique** : Suppression de `Mobile.html` et bascule sur une page unique `Index.html` responsive via `doGet()`. Création du plugin canvas `buildLegendBorderPlugin()` pour les boutons de légende du graphique Chart.js.
 
 ## [v2.3.0] - 2026-07-28
 
 ### Ajouté
-**Humanisé** : Ajout d'un sous-onglet Changelog dans les Paramètres (sur PC et Mobile) permettant de consulter l'historique complet des mises à jour en direct depuis Git, avec un bouton d'actualisation et une mise en cache automatique.
+**Humanisé** : Consultation du Changelog Git en direct depuis les Paramètres et refonte complète de l'affichage du Barème avec un système d'accordéons dépliables par Top (avec chevrons).
+**Technique** : `Code.gs` — endpoint `apiGetChangelog()` interrogeant le dépôt GitHub avec cache `CacheService`. `Index.html` — accordéons interactifs `.bareme-quick-header` et ajustement du défilement sans rognage.t de consulter l'historique complet des mises à jour en direct depuis Git, avec un bouton d'actualisation et une mise en cache automatique.
 **Technique** : `Code.gs` — création de l'endpoint `apiGetChangelog()` interrogeant le dépôt GitHub avec cache 10 minutes (`CacheService`). `Index.html` & `Mobile.html` — ajout du sous-onglet `📋 Changelog` sous Paramètres, création des fonctions `renderChangelogMarkup()` / `loadChangelog()` / `renderMChangelogSettings()` pour parser et afficher dynamiquement le Markdown du changelog avec badges et catégories colorisées.
 
 ### Corrigé
