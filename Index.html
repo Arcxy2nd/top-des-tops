@@ -4535,6 +4535,10 @@
             <span class="hist-filter-label">Tops</span>
             <div class="hist-fchip-row" id="histCategoryChips"></div>
           </div>
+          <div class="hist-filter-row">
+            <span class="hist-filter-label">Tops Alt</span>
+            <div class="hist-fchip-row" id="histAltCategoryChips"></div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -4548,7 +4552,8 @@
         <div id="histBulkBar" class="hist-bulk-bar" style="display:none;">
           <span id="histBulkCount">0 sélectionné(s)</span>
           <button id="histBulkEdit" class="secondary">✏️ Modifier la sélection</button>
-          <button id="histBulkAltLink" class="primary small">⭐ Affecter au Top Alternatif</button>
+          <button id="histBulkAltLink" class="primary small">⭐ Affecter au Top Alt</button>
+          <button id="histBulkAltUnlink" class="secondary small">❌ Retirer du Top Alt</button>
           <button id="histBulkSelectAll" class="secondary small">Tout sélectionner</button>
           <button id="histBulkGroup" class="secondary small">🔗 Grouper</button>
           <button id="histBulkDelete" class="danger small">🗑️ Supprimer</button>
@@ -4825,7 +4830,18 @@
   let cachedPlayers    = [];
   let cachedCategories = [];
   let cachedAltCategories = [];
+  let cachedAltMap       = {}; // maps refHistoryRowId -> [altCategoryName, ...]
+  let selectedHistAltCategories = new Set();
   let activeDashboardUniverse = 'main'; // 'main' | 'alt'
+
+  function loadAltHistoryMap(callback) {
+    callServer('apiGetAltHistoryMap', [], res => {
+      if (res && res.success) {
+        cachedAltMap = res.altMap || {};
+      }
+      if (callback) callback();
+    }, 'Carte Tops Alternatifs', () => { if (callback) callback(); });
+  }
   let rowCounter       = 0;
   let currentHistoryPage = 1;
   let _histLoadedOnce = false;
@@ -8249,7 +8265,7 @@
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     box.innerHTML = '<h3>' + escapeHtml(context.title) + '</h3><div id="drilldownList" class="drilldown-list"><p class="text-muted">Chargement…</p></div>' +
-      '<div class="modal-actions"><button id="drilldownClose" class="secondary">Fermer</button></div>';
+      '<div class="modal-actions"><button id="drilldownAltAssign" class="primary small" style="display:none;">⭐ Affecter ces points au Top Alt</button><button id="drilldownClose" class="secondary">Fermer</button></div>';
     document.getElementById('drilldownClose').onclick = closeModal;
     document.getElementById('modalBackdrop').style.display = 'flex';
 
@@ -8265,6 +8281,17 @@
       list.innerHTML = logs.length
         ? logs.map(drilldownRowHtml).join('')
         : '<p class="text-muted">Aucune entrée trouvée.</p>';
+
+      if (logs.length) {
+        const altBtn = document.getElementById('drilldownAltAssign');
+        if (altBtn) {
+          altBtn.style.display = 'inline-block';
+          altBtn.onclick = () => {
+            const rowIndices = logs.map(l => l.rowIndex);
+            openUniversalAltPointPicker({ preselectedRowIndices: rowIndices });
+          };
+        }
+      }
     }, 'Chargement du détail');
   }
 
@@ -8281,50 +8308,360 @@
   }
 
   function openAltCategoryLinkModal(selectedRowIndices) {
-    if (!selectedRowIndices || !selectedRowIndices.length) return;
-    if (!requireIdentity()) return;
+    openUniversalAltPointPicker({ preselectedRowIndices: selectedRowIndices });
+  }
 
+  function openUniversalAltPointPicker(options = {}) {
+    if (!requireIdentity()) return;
     if (!cachedAltCategories.length) {
       showToast('Aucun Top alternatif configuré. Veuillez en ajouter dans Paramètres > Tops Alternatifs.', 'warn');
       return;
     }
 
+    callServer('apiGetFilteredLogs', [null, null, null, null], resHist => {
+      if (!resHist || !resHist.success) { showToast('Erreur lors du chargement des points.', 'error'); return; }
+      const allLogs = resHist.logs || [];
+      renderUniversalAltPointPickerModal(allLogs, options);
+    }, 'Chargement des points');
+  }
+
+  function renderUniversalAltPointPickerModal(allLogs, options = {}) {
     const box = document.getElementById('modalBox');
-    let optionsHtml = cachedAltCategories.map(c =>
+    box.classList.add('wide');
+
+    let selectedAltCat = options.targetAltCategory || (cachedAltCategories[0] ? cachedAltCategories[0].name : '');
+    const preselectedSet = new Set((options.preselectedRowIndices || []).map(r => r.toString()));
+
+    const altOptionsHtml = cachedAltCategories.map(c =>
+      `<option value="${escapeHtml(c.name)}" ${c.name === selectedAltCat ? 'selected' : ''}>${escapeHtml((c.emoji ? c.emoji + ' ' : '') + c.name)}</option>`
+    ).join('');
+
+    const playerOptionsHtml = '<option value="">Tous les joueurs</option>' + cachedPlayers.map(p =>
+      `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`
+    ).join('');
+
+    const catOptionsHtml = '<option value="">Tous les Tops principaux</option>' + cachedCategories.map(c =>
       `<option value="${escapeHtml(c.name)}">${escapeHtml((c.emoji ? c.emoji + ' ' : '') + c.name)}</option>`
     ).join('');
 
     box.innerHTML = `
-      <h3>⭐ Affecter au Top Alternatif</h3>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
-        Sélectionnez le Top Alternatif auquel lier les <strong>${selectedRowIndices.length}</strong> entrée(s) sélectionnée(s) :
-      </p>
-      <div style="margin-bottom:16px;">
-        <select id="mAltCatSelect" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
-          ${optionsHtml}
+      <h3>⭐ Affecter des points au Top Alternatif</h3>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Top Alternatif cible</label>
+          <select id="uPickerAltCatSelect" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+            ${altOptionsHtml}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Nouveau Top ?</label>
+          <button id="uPickerNewAltBtn" class="secondary small">+ Créer un Top Alt</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--border);">
+        <input type="text" id="uPickerSearch" placeholder="🔍 Rechercher..." style="flex:1;min-width:140px;padding:6px 10px;font-size:0.85rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+        <select id="uPickerPlayerFilter" style="padding:6px 8px;font-size:0.85rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+          ${playerOptionsHtml}
+        </select>
+        <select id="uPickerCatFilter" style="padding:6px 8px;font-size:0.85rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+          ${catOptionsHtml}
+        </select>
+        <select id="uPickerStatusFilter" style="padding:6px 8px;font-size:0.85rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+          <option value="">Tous les statuts</option>
+          <option value="unlinked">Pas encore liés à ce Top Alt</option>
+          <option value="linked">Déjà liés à ce Top Alt</option>
         </select>
       </div>
-      <div class="modal-actions">
-        <button id="mAltConfirm" class="primary">✓ Affecter</button>
-        <button id="mAltCancel" class="secondary">✕ Annuler</button>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="uPickerSelectAll" class="secondary small">Tout sélectionner (visibles)</button>
+          <button id="uPickerDeselectAll" class="secondary small">Décocher tout</button>
+        </div>
+        <span id="uPickerSelectionSummary" style="font-size:0.85rem;font-weight:600;color:var(--accent);">0 point(s) sélectionné(s)</span>
+      </div>
+
+      <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:4px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <thead style="position:sticky;top:0;background:var(--card);z-index:2;border-bottom:1px solid var(--border);">
+            <tr>
+              <th style="width:36px;padding:6px;text-align:center;"></th>
+              <th style="padding:6px;text-align:left;">Date</th>
+              <th style="padding:6px;text-align:left;">Joueur</th>
+              <th style="padding:6px;text-align:left;">Top Original</th>
+              <th style="padding:6px;text-align:left;">Pts</th>
+              <th style="padding:6px;text-align:left;">Description</th>
+              <th style="padding:6px;text-align:left;">Statut Alt</th>
+            </tr>
+          </thead>
+          <tbody id="uPickerTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button id="uPickerConfirmBtn" class="primary">✓ Affecter au Top Alternatif</button>
+        <button id="uPickerCancelBtn" class="secondary">✕ Annuler</button>
       </div>
     `;
 
-    document.getElementById('mAltCancel').onclick = closeModal;
-    document.getElementById('mAltConfirm').onclick = () => {
-      const altCat = document.getElementById('mAltCatSelect').value;
-      closeModal();
-      if (altCat) {
-        callServer('apiLinkHistoryRowsToAltCategory', [_whoAmI, selectedRowIndices, altCat], res => {
-          if (res.success) {
-            showToast(`⭐ ${res.linkedCount} entrée(s) liée(s) au Top Alternatif "${altCat}" !`, 'success');
-            toggleHistSelectMode(false);
-          }
-        }, 'Affectation Top Alternatif');
-      }
+    document.getElementById('modalBackdrop').style.display = 'flex';
+
+    const pickerSelectedSet = new Set(preselectedSet);
+
+    const updateSummary = () => {
+      let count = pickerSelectedSet.size;
+      let totalPts = 0;
+      allLogs.forEach(l => {
+        if (pickerSelectedSet.has(l.rowIndex.toString())) {
+          totalPts += (l.points || 0);
+        }
+      });
+      const sumEl = document.getElementById('uPickerSelectionSummary');
+      if (sumEl) sumEl.textContent = `${count} point(s) sélectionné(s) (${totalPts} pts total)`;
     };
 
+    const renderList = () => {
+      const searchVal = (document.getElementById('uPickerSearch').value || '').toLowerCase().trim();
+      const playerVal = document.getElementById('uPickerPlayerFilter').value;
+      const catVal    = document.getElementById('uPickerCatFilter').value;
+      const statusVal = document.getElementById('uPickerStatusFilter').value;
+      const currentAlt = document.getElementById('uPickerAltCatSelect').value;
+
+      const tbody = document.getElementById('uPickerTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const filtered = allLogs.filter(l => {
+        if (playerVal && l.player !== playerVal) return false;
+        if (catVal && l.category !== catVal) return false;
+        const altLinks = cachedAltMap[l.rowIndex.toString()] || [];
+        const isLinkedToCurrent = altLinks.includes(currentAlt);
+        if (statusVal === 'unlinked' && isLinkedToCurrent) return false;
+        if (statusVal === 'linked' && !isLinkedToCurrent) return false;
+        if (searchVal) {
+          const text = (l.player + ' ' + l.category + ' ' + (l.description || '')).toLowerCase();
+          if (!text.includes(searchVal)) return false;
+        }
+        return true;
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;">Aucun point trouvé pour ces filtres.</td></tr>';
+        updateSummary();
+        return;
+      }
+
+      filtered.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+        const rIdStr = l.rowIndex.toString();
+        const isChecked = pickerSelectedSet.has(rIdStr);
+        const altLinks = cachedAltMap[rIdStr] || [];
+
+        const d = new Date(l.date || l.timestamp);
+        const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+        const pColor = playerColor(l.player);
+        const playerObj = cachedPlayers.find(p => p.name === l.player);
+
+        let altBadgesHtml = '';
+        if (altLinks.length) {
+          altBadgesHtml = altLinks.map(al => {
+            const isCurr = al === currentAlt;
+            return `<span style="font-size:0.7rem;padding:2px 6px;border-radius:10px;background:${isCurr ? 'rgba(255,209,102,0.2)' : 'var(--btn-alt)'};color:${isCurr ? '#ffd166' : 'var(--text-muted)'};border:1px solid ${isCurr ? '#ffd166' : 'var(--border)'};margin-right:4px;">⭐ ${escapeHtml(al)}</span>`;
+          }).join('');
+        } else {
+          altBadgesHtml = '<span style="font-size:0.7rem;color:var(--text-muted);">—</span>';
+        }
+
+        tr.innerHTML = `
+          <td style="text-align:center;padding:6px;"><input type="checkbox" class="u-chk" data-row="${rIdStr}" ${isChecked ? 'checked' : ''}></td>
+          <td style="padding:6px;white-space:nowrap;">${dateStr}</td>
+          <td style="padding:6px;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+            <img src="${getAvatarUrl(l.player, playerObj ? playerObj.meta : '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+            <strong style="color:${pColor};">${escapeHtml(l.player)}</strong>
+          </td>
+          <td style="padding:6px;">${escapeHtml(catDisplay(l.category))}</td>
+          <td style="padding:6px;"><strong style="color:var(--accent);">${l.points} pts</strong></td>
+          <td style="padding:6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(l.description || '')}">${escapeHtml(l.description || '—')}</td>
+          <td style="padding:6px;">${altBadgesHtml}</td>
+        `;
+
+        const chk = tr.querySelector('.u-chk');
+        chk.addEventListener('change', () => {
+          if (chk.checked) pickerSelectedSet.add(rIdStr);
+          else pickerSelectedSet.delete(rIdStr);
+          updateSummary();
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      updateSummary();
+    };
+
+    document.getElementById('uPickerSearch').oninput = renderList;
+    document.getElementById('uPickerPlayerFilter').onchange = renderList;
+    document.getElementById('uPickerCatFilter').onchange = renderList;
+    document.getElementById('uPickerStatusFilter').onchange = renderList;
+    document.getElementById('uPickerAltCatSelect').onchange = renderList;
+
+    document.getElementById('uPickerSelectAll').onclick = () => {
+      document.querySelectorAll('.u-chk').forEach(c => {
+        c.checked = true;
+        pickerSelectedSet.add(c.dataset.row);
+      });
+      updateSummary();
+    };
+
+    document.getElementById('uPickerDeselectAll').onclick = () => {
+      document.querySelectorAll('.u-chk').forEach(c => c.checked = false);
+      pickerSelectedSet.clear();
+      updateSummary();
+    };
+
+    document.getElementById('uPickerNewAltBtn').onclick = () => {
+      closeModal();
+      addAltCategory();
+    };
+
+    document.getElementById('uPickerCancelBtn').onclick = closeModal;
+
+    document.getElementById('uPickerConfirmBtn').onclick = () => {
+      const targetAlt = document.getElementById('uPickerAltCatSelect').value;
+      if (!targetAlt) { showToast('Veuillez choisir un Top Alternatif.', 'error'); return; }
+      if (!pickerSelectedSet.size) { showToast('Veuillez sélectionner au moins un point.', 'warn'); return; }
+
+      const rowIndices = Array.from(pickerSelectedSet).map(r => parseInt(r, 10));
+      closeModal();
+
+      callServer('apiLinkHistoryRowsToAltCategory', [_whoAmI, rowIndices, targetAlt], res => {
+        if (res.success) {
+          showToast(`⭐ ${res.linkedCount} point(s) lié(s) au Top Alternatif "${targetAlt}" !`, 'success');
+          loadAltHistoryMap(() => {
+            if (document.getElementById('tab-history').classList.contains('active')) {
+              loadHistoryPage(currentHistoryPage || 1);
+            }
+            if (options.onComplete) options.onComplete();
+          });
+        }
+      }, 'Affectation Top Alternatif');
+    };
+
+    renderList();
+  }
+
+  function openAltCategoryManagerModal(altCategoryName) {
+    if (!requireIdentity()) return;
+    const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+
+    box.innerHTML = `
+      <h3>⭐ Gestion du Top Alternatif — ${escapeHtml(altCategoryName)}</h3>
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <button id="mAltMgrTabEntries" class="subtab-btn active">📜 Points inclus</button>
+        <button id="mAltMgrTabAdd" class="subtab-btn">+ Ajouter des points</button>
+      </div>
+      <div id="mAltMgrContent"></div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button id="mAltMgrCloseBtn" class="secondary">Fermer</button>
+      </div>
+    `;
+
     document.getElementById('modalBackdrop').style.display = 'flex';
+    document.getElementById('mAltMgrCloseBtn').onclick = closeModal;
+
+    const loadEntriesView = () => {
+      document.getElementById('mAltMgrTabEntries').classList.add('active');
+      document.getElementById('mAltMgrTabAdd').classList.remove('active');
+      const content = document.getElementById('mAltMgrContent');
+      content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Chargement des points...</div>';
+
+      callServer('apiGetAltCategoryDetails', [altCategoryName], res => {
+        if (!res.success) { content.innerHTML = '<div style="color:var(--error);">Erreur de chargement.</div>'; return; }
+        const entries = res.entries || [];
+        if (!entries.length) {
+          content.innerHTML = `
+            <div style="text-align:center;padding:30px;color:var(--text-muted);font-style:italic;">
+              Aucun point actuellement lié à ce Top Alternatif.<br><br>
+              <button id="mAltMgrAddFirstBtn" class="primary small">+ Ajouter des points existants</button>
+            </div>
+          `;
+          const addBtn = document.getElementById('mAltMgrAddFirstBtn');
+          if (addBtn) addBtn.onclick = () => openUniversalAltPointPicker({ targetAltCategory: altCategoryName, onComplete: () => openAltCategoryManagerModal(altCategoryName) });
+          return;
+        }
+
+        let totalPts = entries.reduce((sum, e) => sum + (e.points || 0), 0);
+        let html = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:0.85rem;color:var(--text-muted);"><strong>${entries.length}</strong> entrée(s) — Total: <strong style="color:var(--accent);">${totalPts} pts</strong></span>
+            <button id="mAltMgrAddMoreBtn" class="primary small">+ Ajouter des points</button>
+          </div>
+          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead style="position:sticky;top:0;background:var(--card);z-index:2;border-bottom:1px solid var(--border);">
+                <tr>
+                  <th style="padding:6px;text-align:left;">Date</th>
+                  <th style="padding:6px;text-align:left;">Joueur</th>
+                  <th style="padding:6px;text-align:left;">Pts</th>
+                  <th style="padding:6px;text-align:left;">Description</th>
+                  <th style="padding:6px;text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        entries.forEach(e => {
+          const d = new Date(e.date);
+          const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+          const pColor = playerColor(e.player);
+          const pl = cachedPlayers.find(p => p.name === e.player);
+          html += `
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px;">${dateStr}</td>
+              <td style="padding:6px;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+                <img src="${getAvatarUrl(e.player, pl ? pl.meta : '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+                <strong style="color:${pColor};">${escapeHtml(e.player)}</strong>
+              </td>
+              <td style="padding:6px;"><strong style="color:var(--accent);">${e.points} pts</strong></td>
+              <td style="padding:6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.description || '—')}</td>
+              <td style="padding:6px;text-align:right;">
+                <button class="small danger unlink-single-btn" data-ref="${escapeHtml(e.refHistoryRowId || e.rowIndex)}">❌ Retirer</button>
+              </td>
+            </tr>
+          `;
+        });
+
+        html += `</tbody></table></div>`;
+        content.innerHTML = html;
+
+        document.getElementById('mAltMgrAddMoreBtn').onclick = () => {
+          openUniversalAltPointPicker({ targetAltCategory: altCategoryName, onComplete: () => openAltCategoryManagerModal(altCategoryName) });
+        };
+
+        content.querySelectorAll('.unlink-single-btn').forEach(btn => {
+          btn.onclick = () => {
+            const refId = btn.dataset.ref;
+            openConfirmModal(`Retirer cette entrée du Top Alternatif "${altCategoryName}" ?`, () => {
+              callServer('apiUnlinkHistoryRowsFromAltCategory', [_whoAmI, [refId], altCategoryName], res => {
+                if (res.success) {
+                  showToast('Point retiré du Top Alternatif.', 'success');
+                  loadAltHistoryMap(() => openAltCategoryManagerModal(altCategoryName));
+                }
+              }, 'Désaffectation Top Alternatif');
+            });
+          };
+        });
+      }, 'Chargement points Alt');
+    };
+
+    document.getElementById('mAltMgrTabEntries').onclick = loadEntriesView;
+    document.getElementById('mAltMgrTabAdd').onclick = () => {
+      openUniversalAltPointPicker({ targetAltCategory: altCategoryName, onComplete: () => openAltCategoryManagerModal(altCategoryName) });
+    };
+
+    loadEntriesView();
   }
 
   function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor) {
@@ -8509,9 +8846,14 @@
         if (resAlt && resAlt.success) {
           cachedAltCategories = resAlt.altCategories || [];
           renderAltCategoriesList();
+          renderHistoryFilterChips();
           if (activeDashboardUniverse === 'alt') renderCategoryChips();
         }
       }, 'Tops alternatifs', () => { /* non-bloquant */ });
+
+      loadAltHistoryMap(() => {
+        renderHistoryFilterChips();
+      });
 
     }, 'Chargement settings', () => {
       // apiGetSettings a échoué : effacement des skeletons pour débloquer l'UI
@@ -8668,9 +9010,18 @@
             <div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(cat.description || '')}</div>
           </div>
         </div>
-        <button class="small danger delete-alt-cat-btn" data-name="${escapeHtml(cat.name)}">🗑️</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="small secondary manage-alt-pts-btn" data-name="${escapeHtml(cat.name)}">👁️ Gérer les points</button>
+          <button class="small danger delete-alt-cat-btn" data-name="${escapeHtml(cat.name)}">🗑️</button>
+        </div>
       `;
       ul.appendChild(li);
+    });
+
+    ul.querySelectorAll('.manage-alt-pts-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openAltCategoryManagerModal(btn.dataset.name);
+      });
     });
 
     ul.querySelectorAll('.delete-alt-cat-btn').forEach(btn => {
@@ -12823,6 +13174,41 @@
         currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
       }));
     });
+
+    const acContainer = document.getElementById('histAltCategoryChips');
+    if (acContainer) {
+      acContainer.innerHTML = '';
+      const allAlt = makeChip('Tous', selectedHistAltCategories.size === 0, null, () => {
+        selectedHistAltCategories.clear(); currentHistoryPage = 1; clearHistPrefetchCache();
+        renderHistoryFilterChips(); loadHistoryPage(1);
+      });
+      allAlt.classList.add('tous'); acContainer.appendChild(allAlt);
+
+      const anyAlt = makeChip('⭐ Tous Alt', selectedHistAltCategories.has('__ANY__'), '#ffd166', () => {
+        if (selectedHistAltCategories.has('__ANY__')) selectedHistAltCategories.delete('__ANY__');
+        else { selectedHistAltCategories.clear(); selectedHistAltCategories.add('__ANY__'); }
+        currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
+      });
+      acContainer.appendChild(anyAlt);
+
+      const noneAlt = makeChip('🚫 Non Alt', selectedHistAltCategories.has('__NONE__'), '#9aa5be', () => {
+        if (selectedHistAltCategories.has('__NONE__')) selectedHistAltCategories.delete('__NONE__');
+        else { selectedHistAltCategories.clear(); selectedHistAltCategories.add('__NONE__'); }
+        currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
+      });
+      acContainer.appendChild(noneAlt);
+
+      cachedAltCategories.forEach(ac => {
+        const active = selectedHistAltCategories.has(ac.name);
+        const color = ac.color || '#7c8cff';
+        const label = (ac.emoji ? ac.emoji + ' ' : '⭐ ') + ac.name;
+        acContainer.appendChild(makeChip(label, active, active ? color : null, () => {
+          if (selectedHistAltCategories.has(ac.name)) selectedHistAltCategories.delete(ac.name);
+          else { selectedHistAltCategories.clear(); selectedHistAltCategories.add(ac.name); }
+          currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
+        }));
+      });
+    }
   }
 
   function updateHistoryFilters() {
@@ -13212,6 +13598,30 @@
     const catCell = tr.insertCell();
     catCell.setAttribute('data-label', 'Top');
     catCell.appendChild(categoryPill(log.category));
+
+    const altList = cachedAltMap[log.rowIndex ? log.rowIndex.toString() : ''] || [];
+    if (altList.length) {
+      altList.forEach(altName => {
+        const altCatObj = cachedAltCategories.find(ac => ac.name === altName);
+        const altBadge = document.createElement('span');
+        altBadge.className = 'hist-pill alt-badge';
+        const altColor = altCatObj ? (altCatObj.color || '#7c8cff') : '#7c8cff';
+        const altEmoji = altCatObj ? (altCatObj.emoji || '⭐') : '⭐';
+        altBadge.style.setProperty('--pill-bg', tint(altColor, 0.15));
+        altBadge.style.setProperty('--pill-bd', altColor);
+        altBadge.style.color = altColor;
+        altBadge.style.marginLeft = '6px';
+        altBadge.style.cursor = 'pointer';
+        altBadge.innerHTML = `<span class="pill-emoji">${escapeHtml(altEmoji)}</span> ${escapeHtml(altName)}`;
+        altBadge.title = `Cliquer pour gérer ce Top Alternatif : ${altName}`;
+        altBadge.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAltCategoryManagerModal(altName);
+        });
+        catCell.appendChild(altBadge);
+      });
+    }
+
     if (log.description) {
       const SHORT_LIMIT = 55;
       const descEl = document.createElement('div');
@@ -14932,8 +15342,24 @@
     // ── History bulk selection ──
     document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
     document.getElementById('histBulkAltLink').addEventListener('click', () => {
-      openAltCategoryLinkModal(Array.from(histSelected));
+      openUniversalAltPointPicker({ preselectedRowIndices: Array.from(histSelected) });
     });
+    const histBulkAltUnlinkBtn = document.getElementById('histBulkAltUnlink');
+    if (histBulkAltUnlinkBtn) {
+      histBulkAltUnlinkBtn.addEventListener('click', () => {
+        if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
+        if (!requireIdentity()) return;
+        openConfirmModal(`Désaffecter les ${histSelected.size} entrée(s) sélectionnée(s) de leurs Tops Alternatifs ?`, () => {
+          callServer('apiUnlinkHistoryRowsFromAltCategory', [_whoAmI, Array.from(histSelected), null], res => {
+            if (res.success) {
+              showToast(`⭐ ${res.unlinkedCount} liaison(s) retirée(s) des Tops Alternatifs.`, 'success');
+              toggleHistSelectMode(false);
+              loadAltHistoryMap(() => loadHistoryPage(currentHistoryPage || 1));
+            }
+          }, 'Désaffectation Tops Alternatifs');
+        });
+      });
+    }
     document.getElementById('histBulkGroup').addEventListener('click', () => {
       if (!histSelected.size) { showToast('Aucune entrée sélectionnée.', 'error'); return; }
       if (histSelected.size < 2) { showToast('Sélectionnez au moins 2 entrées à grouper.', 'warn'); return; }
@@ -15117,6 +15543,14 @@
       const detailsText = document.createElement('span');
       detailsText.textContent = 'Lignes : ' + lot.rowIndexes.join(', ');
       details.appendChild(detailsText);
+
+      const altBtn = document.createElement('button');
+      altBtn.className = 'small primary';
+      altBtn.textContent = '⭐ Alt Top';
+      altBtn.addEventListener('click', () => {
+        openUniversalAltPointPicker({ preselectedRowIndices: lot.rowIndexes });
+      });
+      details.appendChild(altBtn);
 
       const dismissBtn = document.createElement('button');
       dismissBtn.className = 'small';

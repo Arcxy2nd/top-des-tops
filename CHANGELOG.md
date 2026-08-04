@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.3.5] - 2026-08-04
+## [v3.4.0] - 2026-08-04
+
+### Ajouté
+**Humanisé** : Gestion complète et universelle des points dans les Tops Alternatifs — ajout d'un sélecteur universel de points, de badges ⭐ dans l'historique, de filtres par Top Alt, d'une modale de gestion des points dans les Paramètres, et de raccourcis d'affectation depuis les outils de lots et les détails de graphiques.
+**Technique** : `Code.gs` — implémentation de `AltStorageService.getAltHistoryMap()`, `unlinkHistoryRowsFromAltCategory()`, `getAltCategoryDetails()`, et des fonctions API correspondantes (`apiGetAltHistoryMap`, `apiUnlinkHistoryRowsFromAltCategory`, `apiGetAltCategoryDetails`). `Index.html` — création des modales `openUniversalAltPointPicker` et `openAltCategoryManagerModal`, intégration des badges ⭐ dans l'historique et des filtres par puces.
+
+## [v3.3.5] - 2026-08-04
 
 ### Corrigé
 **Humanisé** : Exclusion stricte du bouton ⭐ Top Alt (`.alt-picker-btn`) du contour néon réactif, garantissant que seuls les contrôles gris neutres pur le reçoivent.

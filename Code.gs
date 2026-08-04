@@ -749,10 +749,11 @@ const StorageService = {
     });
   },
 
-  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir) {
+  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory) {
     const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
+    const altMap = filterAltCategory ? AltStorageService.getAltHistoryMap() : null;
     // Bornes parsées en heure locale serveur (GAS tourne en UTC) ; le frontend envoie YYYY-MM-DD.
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
@@ -762,6 +763,12 @@ const StorageService = {
       const rec = rows[i];
       if (hasPlayerFilter   && !filterPlayers.includes(rec.player))     continue;
       if (hasCategoryFilter && !filterCategories.includes(rec.category)) continue;
+      if (filterAltCategory && altMap) {
+        const altCats = altMap[rec.rowIndex.toString()] || [];
+        if (filterAltCategory === '__ANY__' && altCats.length === 0) continue;
+        if (filterAltCategory === '__NONE__' && altCats.length > 0) continue;
+        if (filterAltCategory !== '__ANY__' && filterAltCategory !== '__NONE__' && !altCats.includes(filterAltCategory)) continue;
+      }
       if (start && rec.date < start) continue;
       if (end   && rec.date > end)   continue;
       if (filterText) {
@@ -1078,6 +1085,27 @@ const AltStorageService = {
       .filter(Boolean);
   },
 
+  getAltHistoryMap() {
+    const logs = this.getAltLogs();
+    const map = {};
+    logs.forEach(l => {
+      if (l.refHistoryRowId) {
+        const ref = l.refHistoryRowId.toString();
+        if (!map[ref]) map[ref] = [];
+        if (!map[ref].includes(l.category)) {
+          map[ref].push(l.category);
+        }
+      }
+    });
+    return map;
+  },
+
+  getAltCategoryDetails(altCategory) {
+    const logs = this.getAltLogs();
+    if (!altCategory) return logs;
+    return logs.filter(l => l.category === altCategory);
+  },
+
   addAltEntries(entries) {
     if (!entries || !entries.length) return;
     const sheet = this._sheet();
@@ -1104,10 +1132,14 @@ const AltStorageService = {
     const rowMap = {};
     fullHistory.forEach(r => { rowMap[r.rowIndex] = r; });
 
+    // Existing ref IDs in this alt category for deduplication
+    const existingLogs = this.getAltLogs().filter(l => l.category === altCategory);
+    const existingRefs = new Set(existingLogs.map(l => l.refHistoryRowId ? l.refHistoryRowId.toString() : ''));
+
     const entriesToAdd = [];
     rowIndices.forEach(idx => {
       const histItem = rowMap[idx];
-      if (histItem) {
+      if (histItem && !existingRefs.has(histItem.rowIndex.toString())) {
         entriesToAdd.push({
           date: histItem.timestamp,
           player: histItem.player,
@@ -1125,6 +1157,38 @@ const AltStorageService = {
       this.addAltEntries(entriesToAdd);
     }
     return entriesToAdd.length;
+  },
+
+  unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, saiseur) {
+    if (!rowIndices || !rowIndices.length) return 0;
+    const sheet = this._sheet();
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return 0;
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+    const targetRefIds = new Set(rowIndices.map(r => r.toString()));
+
+    const rowsToDelete = [];
+    for (let i = values.length - 1; i >= 0; i--) {
+      const rowRefId = values[i][5] ? values[i][5].toString() : '';
+      const rowAltCat = values[i][2] ? values[i][2].toString() : '';
+      const altRowIndex = i + 2;
+
+      const matchesRef = targetRefIds.has(rowRefId) || targetRefIds.has(altRowIndex.toString());
+      const matchesCat = !altCategory || rowAltCat === altCategory;
+      if (matchesRef && matchesCat) {
+        rowsToDelete.push(altRowIndex);
+      }
+    }
+
+    rowsToDelete.forEach(rIdx => {
+      sheet.deleteRow(rIdx);
+    });
+
+    if (rowsToDelete.length) {
+      ConfigService.clearCache();
+    }
+    return rowsToDelete.length;
   }
 };
 
@@ -1994,11 +2058,11 @@ function apiGetFilteredLogs(players, categories, startDate, endDate) {
   } catch (e) { return fail(e); }
 }
 
-function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir) {
+function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory) {
   try {
     const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
     const categories = (filterCategories && filterCategories.length) ? filterCategories : null;
-    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null, sortDir || null);
+    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null, sortDir || null, filterAltCategory || null);
     return { success: true, logs: result.logs, total: result.total, totalEntries: result.totalEntries };
   } catch(e) { return fail(e); }
 }
@@ -2214,6 +2278,30 @@ function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
       AuditService.log(author, 'Affectation Top Alternatif', altCategory, count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
       return { success: true, linkedCount: count };
     });
+  } catch(e) { return fail(e); }
+}
+
+function apiUnlinkHistoryRowsFromAltCategory(author, rowIndices, altCategory) {
+  try {
+    requireAuthor(author);
+    return withLock(function() {
+      const count = AltStorageService.unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, author);
+      AuditService.log(author, 'Désaffectation Top Alternatif', altCategory || 'Tous', count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
+      return { success: true, unlinkedCount: count };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiGetAltHistoryMap() {
+  try {
+    return { success: true, altMap: AltStorageService.getAltHistoryMap() };
+  } catch(e) { return fail(e); }
+}
+
+function apiGetAltCategoryDetails(altCategory) {
+  try {
+    const entries = AltStorageService.getAltCategoryDetails(altCategory);
+    return { success: true, entries: entries };
   } catch(e) { return fail(e); }
 }
 
