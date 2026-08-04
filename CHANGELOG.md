@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.11] - 2026-08-04
+
+### Corrigé
+**Humanisé** : Exclusion stricte du contour néon sur l'ensemble des boutons de règles du barème (`.bq-btn`), du déclencheur du barème (`⚖️ Barème ▼`) et des boutons colorés/fonctionnels de l'interface. Seuls les contrôles gris neutres ("vanilla") le conservent.
+**Technique** : `Index.html` — restriction des sélecteurs CSS et du JS `initSpotlightCards()` avec l'invalidation `:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header)` pour empêcher le ciblage intempestif des boutons de règles et de barème.
+
 ## [v2.9.10] - 2026-08-04
 
 ### Corrigé
