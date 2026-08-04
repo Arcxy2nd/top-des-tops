@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.6] - 2026-08-04
+
+### Corrigé
+**Humanisé** : La jonction entre chaque carte de joueur du podium et sa marche a été unifiée en un seul bloc monobloc (retrait des coins arrrondis du bas et suppression du décalage), supprimant les zones transparentes indésirables.
+**Technique** : `Index.html` — modification de `.phrase-podium-card` (`border-radius: 16px 16px 0 0`, `border-bottom: none`), ajustement de `.podium-step-base` (`margin-top: 0`, `border-top: none`) et ajout des règles d'accentuation unifiée de couleur de bordure au survol (`.podium-column.rank-*:hover .podium-step-base`).
+
 ## [v2.9.5] - 2026-08-04
 
 ### Modifié
