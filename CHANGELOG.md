@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.8] - 2026-08-04
+
+### Modifié
+**Humanisé** : Le contour extérieur rouge des boutons et sélecteurs neutres ("vanilla") a été totalement supprimé au profit du contour néon cyan-blanc pur et lumineux au survol.
+**Technique** : `Index.html` — passage de la couleur de base du `radial-gradient` de rouge `rgba(255, 60, 95)` à un néon blanc/cyan neutre `rgba(255, 255, 255, 0.95)` / `rgba(160, 215, 255, 0.75)`, et ajout de `border-color: transparent !important` au survol pour annuler la bordure rouge/accent statique par défaut.
+
 ## [v2.9.7] - 2026-08-04
 
 ### Modifié

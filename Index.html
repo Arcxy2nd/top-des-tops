@@ -619,8 +619,8 @@
       padding: 1.5px;
       background: radial-gradient(
         160px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-        rgba(255, 60, 95, 0.95) 0%,
-        rgba(255, 60, 95, 0.5) 45%,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(160, 215, 255, 0.75) 45%,
         transparent 75%
       );
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -631,6 +631,26 @@
       transition: opacity 0.2s ease;
       animation: neonHueCycle 10s linear infinite;
       z-index: 2;
+    }
+    button.secondary:hover,
+    button:not(.primary):not(.danger):hover,
+    .qs-pill:hover,
+    .nav-btn:hover,
+    .nav-item:hover,
+    .subtab-btn:hover,
+    select:hover,
+    .custom-select-trigger:hover,
+    .fchip:hover,
+    .d-mode-btn:hover,
+    .chart-type-btn:hover,
+    .export-btn:hover,
+    .who-am-i-btn:hover,
+    .nav-refresh-btn:hover,
+    .nav-bareme-btn:hover,
+    .nav-chat-btn:hover,
+    .quick-btn:hover,
+    .fill-opt:hover {
+      border-color: transparent !important;
     }
     button.secondary:hover::before,
     button:not(.primary):not(.danger):hover::before,
