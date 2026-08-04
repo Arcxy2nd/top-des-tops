@@ -1796,19 +1796,30 @@
     .diff-del { color: var(--error); text-decoration: line-through; opacity: 0.75; }
     .diff-ins { color: var(--success); font-weight: 600; text-decoration: none; }
 
-    /* ── GUIDE TAB (Premium v2) ── */
+    /* ── GUIDE TAB (Premium v3 Desktop Responsive) ── */
     #tab-guide .card { padding: 0; overflow: hidden; }
     .guide-layout {
-      display: flex; min-height: 540px;
+      display: flex;
+      height: clamp(560px, calc(100vh - 180px), 960px);
+      position: relative;
     }
     /* Sidebar */
     .guide-sidebar {
-      width: 240px; flex-shrink: 0;
+      width: 250px; flex-shrink: 0;
       background: var(--btn-alt);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       padding: 20px 12px;
       gap: 4px;
+      overflow-y: auto;
+      user-select: none;
+    }
+    .guide-resizer {
+      width: 6px; cursor: col-resize; background: transparent; transition: background 0.15s;
+      flex-shrink: 0; z-index: 10; margin-left: -3px; margin-right: -3px;
+    }
+    .guide-resizer:hover, .guide-resizer.dragging {
+      background: var(--accent);
     }
     .guide-sidebar-title {
       font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
@@ -1824,13 +1835,13 @@
       background: transparent; border: none;
       cursor: pointer; font: inherit; color: var(--text-muted);
       font-size: 0.88rem; font-weight: 500; text-align: left; width: 100%;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
     }
     .guide-nav-btn .gnb-icon { font-size: 1.1rem; line-height: 1; width: 22px; text-align: center; flex-shrink: 0; }
-    .guide-nav-btn:hover { background: rgba(var(--accent-rgb, 255,71,87), 0.1); color: var(--text); }
+    .guide-nav-btn:hover { background: rgba(var(--accent-rgb, 255,71,87), 0.1); color: var(--text); transform: translateX(2px); }
     .guide-nav-btn.active {
       background: var(--accent); color: var(--on-accent);
-      font-weight: 700;
+      font-weight: 700; transform: translateX(0);
     }
     .guide-nav-group-label {
       font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em;
@@ -1840,58 +1851,66 @@
     /* Content pane */
     .guide-content-pane {
       flex: 1; overflow-y: auto;
-      padding: 28px 32px;
+      padding: 28px 36px;
       min-width: 0;
     }
     .guide-content-section { display: none; }
     .guide-content-section.active { display: block; }
     .guide-content-section h3 {
-      margin: 0 0 6px; font-size: 1.25rem;
+      margin: 0 0 6px; font-size: 1.3rem;
       display: flex; align-items: center; gap: 10px;
     }
     .guide-section-subtitle {
-      font-size: 0.85rem; color: var(--text-muted); margin: 0 0 20px;
+      font-size: 0.88rem; color: var(--text-muted); margin: 0 0 22px;
       padding-bottom: 16px; border-bottom: 1px solid var(--border);
     }
-    .guide-feature-list { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 10px; }
+    .guide-feature-list { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 12px; }
+    @media (min-width: 900px) {
+      .guide-feature-list {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;
+      }
+    }
     .guide-feature-item {
       display: flex; gap: 12px; align-items: flex-start;
-      background: rgba(0,0,0,0.12); border-radius: 10px;
-      padding: 12px 14px;
+      background: rgba(0,0,0,0.12); border-radius: 12px;
+      padding: 14px 16px;
       border: 1px solid var(--border);
+      transition: border-color 0.15s, transform 0.15s;
     }
-    .guide-feature-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 1px; }
+    .guide-feature-item:hover { border-color: rgba(var(--accent-rgb, 255,71,87), 0.35); transform: translateY(-1px); }
+    .guide-feature-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
     .guide-feature-body { flex: 1; min-width: 0; }
-    .guide-feature-body strong { display: block; color: var(--text); font-size: 0.9rem; margin-bottom: 2px; }
-    .guide-feature-body span { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+    .guide-feature-body strong { display: block; color: var(--text); font-size: 0.92rem; margin-bottom: 3px; }
+    .guide-feature-body span { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
     .guide-tip {
-      display: flex; gap: 10px; align-items: flex-start;
+      display: flex; gap: 12px; align-items: flex-start;
       background: rgba(var(--accent-rgb, 255,71,87), 0.08);
       border: 1px solid rgba(var(--accent-rgb, 255,71,87), 0.25);
-      border-radius: 10px; padding: 12px 14px;
-      font-size: 0.83rem; color: var(--text); line-height: 1.5;
-      margin-bottom: 18px;
+      border-radius: 12px; padding: 14px 16px;
+      font-size: 0.85rem; color: var(--text); line-height: 1.55;
+      margin-bottom: 20px; grid-column: 1 / -1;
     }
-    .guide-tip-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-    .guide-kbd-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-bottom: 18px; }
-    .guide-kbd-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .guide-tip-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .guide-kbd-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 20px; }
+    .guide-kbd-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
     .guide-kbd-table tr:last-child td { border-bottom: none; }
     .guide-kbd-table td:first-child { width: 50%; color: var(--text); font-weight: 500; }
     kbd {
-      display: inline-block; padding: 2px 7px; font-family: monospace; font-size: 0.8em;
+      display: inline-block; padding: 3px 8px; font-family: monospace; font-size: 0.82em;
       background: var(--btn-alt); border: 1px solid var(--border);
-      border-radius: 4px; box-shadow: 0 1px 0 var(--border);
+      border-radius: 5px; box-shadow: 0 1px 0 var(--border);
       color: var(--text);
     }
     .guide-subheading {
-      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase; color: var(--accent);
-      margin: 18px 0 8px;
+      margin: 20px 0 10px; grid-column: 1 / -1;
     }
     /* Mobile: stack layout */
     @media (max-width: 680px) {
-      .guide-layout { flex-direction: column; }
-      .guide-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 8px; }
+      .guide-layout { flex-direction: column; height: auto; }
+      .guide-sidebar { width: 100% !important; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 8px; }
+      .guide-resizer { display: none; }
       .guide-sidebar-title, .guide-sidebar-separator, .guide-nav-group-label { display: none; }
       .guide-nav-btn { width: auto; font-size: 0.78rem; padding: 6px 10px; }
       .guide-content-pane { padding: 18px 16px; }
@@ -4710,6 +4729,8 @@
           <button type="button" class="guide-nav-btn" data-section="raccourcis"><span class="gnb-icon">⌨️</span>Raccourcis clavier</button>
         </nav>
 
+        <div class="guide-resizer" id="guideResizer" title="Glisser pour redimensionner le menu"></div>
+
         <!-- ── Content pane ── -->
         <div class="guide-content-pane">
 
@@ -4990,6 +5011,7 @@
 <!-- ══ BARÈME DRAWER ═══════════════════════════════════════════ -->
 <div class="bareme-backdrop" id="baremeBackdrop"></div>
 <aside class="bareme-drawer" id="baremeDrawer" aria-label="Barème des Tops">
+  <div class="bareme-resizer" id="baremeResizer" title="Glisser pour redimensionner le panneau"></div>
   <div class="bareme-header">
     <div class="bareme-header-title">
       <h2>⚖️ Barème des Tops</h2>
@@ -15154,12 +15176,54 @@
     }
   }
 
+  // Helper générique pour redimensionnement par glisser-déplacer (Guide, Barème, Panels)
+  function setupResizable(triggerEl, containerEl, property, minSize, maxSize, storageKey, invertDirection) {
+    if (!triggerEl || !containerEl) return;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) containerEl.style[property] = saved + 'px';
+
+    let isDragging = false;
+    let startPos = 0;
+    let startSize = 0;
+
+    triggerEl.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      triggerEl.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'ew-resize';
+      startPos = e.clientX;
+      startSize = containerEl.offsetWidth;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const delta = invertDirection ? (startPos - e.clientX) : (e.clientX - startPos);
+      let newSize = Math.max(minSize, Math.min(maxSize, startSize + delta));
+      containerEl.style[property] = newSize + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      triggerEl.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      const current = parseInt(containerEl.style[property], 10);
+      if (!isNaN(current)) localStorage.setItem(storageKey, current);
+    });
+  }
+
   let guideInited = false;
   function initGuideAccordion() {
     if (guideInited) return;
     guideInited = true;
     const sidebar = document.querySelector('.guide-sidebar');
     if (!sidebar) return;
+    setupResizable(
+      document.getElementById('guideResizer'),
+      sidebar,
+      'width', 180, 480, 'tdt_guide_sidebar_width', false
+    );
     sidebar.addEventListener('click', (e) => {
       const btn = e.target.closest('.guide-nav-btn');
       if (!btn) return;
@@ -17150,7 +17214,16 @@
   let baremeEntries = null; // cache: array of {rowIndex, action, pts}
   let baremeActiveFilterCat = 'all';
 
+  let _baremeResizerInited = false;
   function openBareme() {
+    if (!_baremeResizerInited) {
+      _baremeResizerInited = true;
+      setupResizable(
+        document.getElementById('baremeResizer'),
+        document.getElementById('baremeDrawer'),
+        'width', 320, Math.floor(window.innerWidth * 0.85), 'tdt_bareme_drawer_width', true
+      );
+    }
     document.getElementById('baremeDrawer').classList.add('open');
     document.getElementById('baremeBackdrop').classList.add('open');
     document.getElementById('baremeBtn').setAttribute('aria-expanded', 'true');

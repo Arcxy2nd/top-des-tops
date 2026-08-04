@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.2] - 2026-08-05
+## [v3.4.3] - 2026-08-05
+
+### Modifié
+**Humanisé** : Optimisation de l'ergonomie sur grand écran — le menu du Guide s'adapte désormais dynamiquement à la hauteur de la fenêtre avec grille de cartes multi-colonnes sur grand écran, et les panneaux latéraux (Guide et Barème) sont désormais redimensionnables à la souris en glisser-déposer avec sauvegarde de la largeur préférée.
+**Technique** : `Index.html` — refonte CSS de `.guide-layout` (`height: clamp()`, layout responsive 2-colonnes `@media (min-width: 900px)`), ajout des séparateurs `.guide-resizer` et `.bareme-resizer`, et création de la fonction utilitaire JS `setupResizable()` avec persistance `localStorage`.
+
+## [v3.4.2] - 2026-08-05
 
 ### Corrigé
 **Humanisé** : La navigation par clics dans le menu latéral du Guide fonctionne désormais correctement pour basculer d'une section à l'autre dans la documentation.
