@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
   <base target="_top">
@@ -2412,9 +2412,23 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      gap: 12px;
-      padding: 16px 8px 8px 8px;
-      min-height: 200px;
+      gap: 14px;
+      padding: 24px 8px 8px 8px;
+      min-height: 280px;
+    }
+
+    /* Entry animations per rank */
+    @keyframes podiumDropIn {
+      from { opacity: 0; transform: translateY(-36px) scale(0.92); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes podiumSlideLeft {
+      from { opacity: 0; transform: translateX(-28px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes podiumSlideRight {
+      from { opacity: 0; transform: translateX(28px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
     .podium-column {
@@ -2424,61 +2438,65 @@
       align-items: stretch;
       min-width: 0;
       position: relative;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    .podium-column.rank-2 { animation: podiumSlideLeft  0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
+    .podium-column.rank-3 { animation: podiumSlideRight 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+    .podium-column.rank-1 { animation: podiumDropIn     0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both; }
     .podium-column:hover {
-      transform: translateY(-6px);
+      transform: translateY(-8px);
       z-index: 5;
     }
     .podium-column.first {
-      flex: 1.25;
+      flex: 1.3;
       z-index: 3;
     }
 
     .phrase-podium-card {
-      border-radius: 14px;
-      padding: 14px 12px;
+      border-radius: 16px;
+      padding: 16px 12px 14px;
       background: var(--card);
       border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 8px;
       position: relative;
       overflow: hidden;
       box-shadow: 0 4px 16px rgba(0,0,0,0.15);
       transition: box-shadow 0.25s ease, border-color 0.25s ease;
-      animation: phraseSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      text-align: center;
     }
 
     /* Thèmes Métalliques par Rang */
     .podium-column.rank-1 .phrase-podium-card {
       border: 1.5px solid rgba(255, 215, 0, 0.65);
-      background: linear-gradient(145deg, rgba(255, 215, 0, 0.12), rgba(255, 140, 0, 0.04) 70%, var(--card));
-      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.18);
+      background: linear-gradient(160deg, rgba(255, 215, 0, 0.11), rgba(255, 140, 0, 0.04) 70%, var(--card));
+      box-shadow: 0 8px 28px rgba(255, 215, 0, 0.2);
     }
     .podium-column.rank-1:hover .phrase-podium-card {
       border-color: #ffd700;
-      box-shadow: 0 12px 32px rgba(255, 215, 0, 0.32);
+      box-shadow: 0 14px 40px rgba(255, 215, 0, 0.38), 0 0 0 1px rgba(255,215,0,0.18);
     }
 
     .podium-column.rank-2 .phrase-podium-card {
       border: 1.5px solid rgba(192, 192, 192, 0.55);
-      background: linear-gradient(145deg, rgba(220, 225, 230, 0.09), rgba(160, 175, 190, 0.03) 70%, var(--card));
+      background: linear-gradient(160deg, rgba(220, 225, 230, 0.09), rgba(160, 175, 190, 0.03) 70%, var(--card));
       box-shadow: 0 6px 20px rgba(192, 192, 192, 0.12);
     }
     .podium-column.rank-2:hover .phrase-podium-card {
       border-color: #c0c0c0;
-      box-shadow: 0 10px 28px rgba(192, 192, 192, 0.25);
+      box-shadow: 0 12px 32px rgba(192, 192, 192, 0.28), 0 0 0 1px rgba(192,192,192,0.14);
     }
 
     .podium-column.rank-3 .phrase-podium-card {
       border: 1.5px solid rgba(205, 127, 50, 0.55);
-      background: linear-gradient(145deg, rgba(215, 145, 90, 0.09), rgba(160, 80, 20, 0.03) 70%, var(--card));
+      background: linear-gradient(160deg, rgba(215, 145, 90, 0.09), rgba(160, 80, 20, 0.03) 70%, var(--card));
       box-shadow: 0 6px 20px rgba(205, 127, 50, 0.12);
     }
     .podium-column.rank-3:hover .phrase-podium-card {
       border-color: #cd7f32;
-      box-shadow: 0 10px 28px rgba(205, 127, 50, 0.25);
+      box-shadow: 0 12px 32px rgba(205, 127, 50, 0.28), 0 0 0 1px rgba(205,127,50,0.14);
     }
 
     /* Socles (Marches de Podium) */
@@ -2495,26 +2513,26 @@
       overflow: hidden;
       border: 1px solid var(--border);
       border-top: none;
-      box-shadow: inset 0 2px 6px rgba(255,255,255,0.05);
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.05), 0 5px 14px rgba(0,0,0,0.28);
     }
     .podium-column.rank-1 .podium-step-base {
-      height: 46px;
-      background: linear-gradient(180deg, rgba(255, 215, 0, 0.25), rgba(218, 165, 32, 0.08));
-      border-color: rgba(255, 215, 0, 0.4);
+      height: 80px;
+      background: linear-gradient(180deg, rgba(255, 215, 0, 0.3), rgba(218, 165, 32, 0.08));
+      border-color: rgba(255, 215, 0, 0.45);
       color: #ffd700;
       font-size: 1.5rem;
     }
     .podium-column.rank-2 .podium-step-base {
-      height: 34px;
-      background: linear-gradient(180deg, rgba(192, 192, 192, 0.2), rgba(140, 150, 160, 0.06));
-      border-color: rgba(192, 192, 192, 0.35);
+      height: 55px;
+      background: linear-gradient(180deg, rgba(192, 192, 192, 0.22), rgba(140, 150, 160, 0.06));
+      border-color: rgba(192, 192, 192, 0.38);
       color: #d0d8e0;
       font-size: 1.25rem;
     }
     .podium-column.rank-3 .podium-step-base {
-      height: 26px;
-      background: linear-gradient(180deg, rgba(205, 127, 50, 0.2), rgba(140, 75, 25, 0.06));
-      border-color: rgba(205, 127, 50, 0.35);
+      height: 36px;
+      background: linear-gradient(180deg, rgba(205, 127, 50, 0.22), rgba(140, 75, 25, 0.06));
+      border-color: rgba(205, 127, 50, 0.38);
       color: #e59866;
       font-size: 1.1rem;
     }
@@ -2528,34 +2546,35 @@
     }
     .podium-step-crown {
       font-size: 0.95rem;
-      animation: crownBounce 2s ease-in-out infinite;
+      animation: crownBounce 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
     }
     @keyframes crownBounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
+      0%, 100% { transform: translateY(0) scale(1); }
+      40%       { transform: translateY(-4px) scale(1.18); }
+      65%       { transform: translateY(-2px) scale(1.08); }
     }
 
     .phrase-podium-header-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       gap: 6px;
     }
 
     .phrase-podium-medal {
-      font-size: 1.45rem;
+      font-size: 1.4rem;
       line-height: 1;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
-    .podium-column.first .phrase-podium-medal { font-size: 1.85rem; }
+    .podium-column.first .phrase-podium-medal { font-size: 1.8rem; }
 
     .phrase-podium-score-chip {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 8px;
+      padding: 3px 9px;
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: 800;
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--border);
@@ -2563,23 +2582,20 @@
     }
     .podium-column.first .phrase-podium-score-chip {
       font-size: 0.82rem;
-      padding: 4px 10px;
+      padding: 4px 11px;
       background: rgba(255, 215, 0, 0.16);
       border-color: rgba(255, 215, 0, 0.4);
       color: #ffd700;
     }
 
     .phrase-podium-player {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       font-size: 0.8rem;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--phrase-color, var(--text));
     }
-    .podium-column.first .phrase-podium-player { font-size: 0.92rem; }
+    .podium-column.first .phrase-podium-player { font-size: 0.9rem; }
 
     .phrase-podium-avatar-wrap {
       position: relative;
@@ -2587,24 +2603,49 @@
       flex-shrink: 0;
     }
     .phrase-podium-avatar {
-      width: 26px;
-      height: 26px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--phrase-color, var(--border));
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      border: 2.5px solid var(--phrase-color, var(--border));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transition: transform 0.25s ease;
     }
+    .podium-column:hover .phrase-podium-avatar { transform: scale(1.08); }
     .podium-column.first .phrase-podium-avatar {
-      width: 34px;
-      height: 34px;
-      border-width: 2.5px;
+      width: 64px;
+      height: 64px;
+      border-width: 3px;
       border-color: #ffd700;
+      animation: avatarPulse 2.5s ease-in-out infinite;
     }
+    @keyframes avatarPulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(255,215,0,0.18), 0 6px 20px rgba(255,215,0,0.28); }
+      50%       { box-shadow: 0 0 0 8px rgba(255,215,0,0.10), 0 6px 26px rgba(255,215,0,0.44); }
+    }
+
+    /* Barre de progression comparative */
+    .phrase-podium-progress {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .phrase-podium-progress-bar {
+      height: 100%;
+      width: var(--score-pct, 100%);
+      border-radius: 4px;
+      transition: width 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
+    }
+    .podium-column.rank-1 .phrase-podium-progress-bar { background: linear-gradient(90deg, #ffd700, #ffaa00); }
+    .podium-column.rank-2 .phrase-podium-progress-bar { background: linear-gradient(90deg, #c0c0c0, #909090); }
+    .podium-column.rank-3 .phrase-podium-progress-bar { background: linear-gradient(90deg, #cd7f32, #9a5518); }
 
     .phrase-podium-gap {
       font-size: 0.68rem;
       font-weight: 700;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 6px;
       width: fit-content;
     }
@@ -2620,22 +2661,25 @@
     }
 
     .phrase-podium-text {
-      font-size: 0.78rem;
+      font-size: 0.77rem;
       color: var(--text-muted);
       line-height: 1.4;
       font-style: italic;
       position: relative;
       z-index: 1;
       background: rgba(0,0,0,0.08);
-      padding: 8px 10px;
+      padding: 7px 10px;
       border-radius: 8px;
       border-left: 3px solid var(--phrase-color, var(--accent));
+      width: 100%;
+      box-sizing: border-box;
+      text-align: left;
     }
     body.light .phrase-podium-text {
       background: rgba(0,0,0,0.03);
     }
     .podium-column.first .phrase-podium-text {
-      font-size: 0.84rem;
+      font-size: 0.83rem;
       color: var(--text);
     }
 
@@ -2684,22 +2728,25 @@
     @media (max-width: 640px) {
       .phrases-podium {
         gap: 6px;
-        padding: 8px 4px;
+        padding: 10px 4px 4px 4px;
+        min-height: 200px;
       }
       .phrase-podium-card {
         padding: 10px 8px;
-        gap: 6px;
+        gap: 5px;
       }
       .phrase-podium-medal { font-size: 1.2rem; }
       .podium-column.first .phrase-podium-medal { font-size: 1.5rem; }
-      .phrase-podium-player { font-size: 0.7rem; gap: 4px; }
-      .podium-column.first .phrase-podium-player { font-size: 0.78rem; }
-      .phrase-podium-avatar { width: 20px; height: 20px; }
-      .podium-column.first .phrase-podium-avatar { width: 26px; height: 26px; }
-      .phrase-podium-score-chip { font-size: 0.68rem; padding: 2px 6px; }
-      .phrase-podium-text { font-size: 0.72rem; padding: 6px 8px; }
-      .podium-column.first .phrase-podium-text { font-size: 0.78rem; }
-      .podium-step-base { font-size: 1rem !important; height: 32px !important; }
+      .phrase-podium-player { font-size: 0.68rem; }
+      .podium-column.first .phrase-podium-player { font-size: 0.76rem; }
+      .phrase-podium-avatar { width: 32px; height: 32px; }
+      .podium-column.first .phrase-podium-avatar { width: 46px; height: 46px; }
+      .phrase-podium-score-chip { font-size: 0.66rem; padding: 2px 6px; }
+      .phrase-podium-text { font-size: 0.7rem; padding: 6px 8px; }
+      .podium-column.first .phrase-podium-text { font-size: 0.76rem; }
+      .podium-column.rank-1 .podium-step-base { height: 54px; font-size: 1.2rem; }
+      .podium-column.rank-2 .podium-step-base { height: 38px; font-size: 1rem; }
+      .podium-column.rank-3 .podium-step-base { height: 26px; font-size: 0.9rem; }
     }
 
     /* ── Commentaires par Top (section plate, toujours visible) ── */
@@ -6611,39 +6658,21 @@
         slots.filter(Boolean).forEach((p, vi) => {
           const color  = (typeof playerColor === 'function' ? playerColor(p.player) : null) || 'var(--accent)';
           const plData = cachedPlayers.find(pl => pl.name === p.player);
+          const pct    = leaderTotal > 0 ? Math.round((p.total / leaderTotal) * 100) : 100;
 
           // Colonne podium avec socle
           const col = document.createElement('div');
           col.className = `podium-column rank-${p.rank}` + (p.rank === 1 ? ' first' : '');
 
-          // Carte principale du joueur
+          // Carte principale (centrée)
           const el = document.createElement('div');
           el.className = 'phrase-podium-card';
           el.style.setProperty('--phrase-color', color);
-          el.style.animationDelay = (vi * 0.08) + 's';
+          el.style.setProperty('--score-pct', pct + '%');
 
-          // Ligne d'en-tête (Médaille + Badge de points)
-          const headRow = document.createElement('div');
-          headRow.className = 'phrase-podium-header-row';
-
-          const medal = document.createElement('div');
-          medal.className = 'phrase-podium-medal';
-          medal.textContent = p.emoji || (p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉');
-
-          const scoreChip = document.createElement('div');
-          scoreChip.className = 'phrase-podium-score-chip';
-          scoreChip.textContent = `${p.total.toLocaleString()} pts`;
-
-          headRow.appendChild(medal);
-          headRow.appendChild(scoreChip);
-
-          // Ligne joueur (Avatar cerclé + Nom)
-          const playerRow = document.createElement('div');
-          playerRow.className = 'phrase-podium-player';
-
+          // Avatar (large, centré en haut de carte)
           const avWrap = document.createElement('div');
           avWrap.className = 'phrase-podium-avatar-wrap';
-
           const avImg = document.createElement('img');
           avImg.className = 'phrase-podium-avatar';
           avImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
@@ -6651,11 +6680,27 @@
           avImg.alt = p.player;
           avWrap.appendChild(avImg);
 
-          const nameNode = document.createElement('span');
+          // Médaille (emoji centré)
+          const medal = document.createElement('div');
+          medal.className = 'phrase-podium-medal';
+          medal.textContent = p.emoji || (p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉');
+
+          // Nom du joueur (centré)
+          const nameNode = document.createElement('div');
+          nameNode.className = 'phrase-podium-player';
           nameNode.textContent = p.player;
 
-          playerRow.appendChild(avWrap);
-          playerRow.appendChild(nameNode);
+          // Badge de points
+          const scoreChip = document.createElement('div');
+          scoreChip.className = 'phrase-podium-score-chip';
+          scoreChip.textContent = `${p.total.toLocaleString()} pts`;
+
+          // Barre de progression comparative
+          const progressWrap = document.createElement('div');
+          progressWrap.className = 'phrase-podium-progress';
+          const progressBar = document.createElement('div');
+          progressBar.className = 'phrase-podium-progress-bar';
+          progressWrap.appendChild(progressBar);
 
           // Badge d'écart (Gap / Ahead)
           const gapBadge = document.createElement('div');
@@ -6672,7 +6717,7 @@
           // Citation / Phrase de commentaire
           const phraseText = document.createElement('div');
           phraseText.className = 'phrase-podium-text';
-          phraseText.textContent = `“ ${p.text} ”`;
+          phraseText.textContent = `" ${p.text} "`;
 
           // Filigrane d'avatar en fond
           const bgAvImg = document.createElement('img');
@@ -6682,15 +6727,17 @@
           bgAvImg.alt = '';
 
           el.appendChild(bgAvImg);
-          el.appendChild(headRow);
-          el.appendChild(playerRow);
+          el.appendChild(avWrap);
+          el.appendChild(medal);
+          el.appendChild(nameNode);
+          el.appendChild(scoreChip);
+          el.appendChild(progressWrap);
           el.appendChild(gapBadge);
           el.appendChild(phraseText);
 
           // Socle (Marche du Podium)
           const stepBase = document.createElement('div');
           stepBase.className = 'podium-step-base';
-
           const stepNum = document.createElement('div');
           stepNum.className = 'podium-step-number';
           if (p.rank === 1) {

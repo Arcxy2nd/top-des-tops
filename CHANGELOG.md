@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.5] - 2026-08-04
+
+### Modifié
+**Humanisé** : Le podium du Dashboard a été entièrement redessiné — les avatars sont maintenant bien plus grands (64px pour le 1er avec halo doré animé, 44px pour les autres), les colonnes s'animent depuis leur direction respective au chargement, les socles sont surélevés (80/55/36px) et une mini-barre de progression comparative s'affiche sous le score de chaque joueur.
+**Technique** : `Index.html` — CSS : alignement centré dans `.phrase-podium-card`, taille des avatars portée à 44px (64px pour `.rank-1` avec animation `avatarPulse`), animations d'entrée `podiumDropIn` / `podiumSlideLeft` / `podiumSlideRight`, socles 80/55/36px, `crownBounce` retravaillé, mini-barre `.phrase-podium-progress-bar` avec `--score-pct`. JS : restructuration du DOM dans `renderPhrasesCard` pour centrer avatar + médaille + nom + chip points + barre de progression.
+
 ## [v2.9.4] - 2026-08-02
 
 ### Corrigé
