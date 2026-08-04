@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.12] - 2026-08-04
+
+### Corrigé
+**Humanisé** : Exclusion stricte du bouton ⭐ Top Alt (`.alt-picker-btn`) du contour néon réactif, garantissant que seuls les contrôles gris neutres pur le reçoivent.
+**Technique** : `Index.html` — ajout de l'invalidation `:not(.alt-picker-btn)` sur les règles CSS néon et dans le sélecteur `initSpotlightCards()`.
+
 ## [v2.9.11] - 2026-08-04
 
 ### Corrigé

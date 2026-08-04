@@ -575,7 +575,7 @@
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
     /* ── CURSOR NEON BORDER (Strictly on Vanilla/Neutral controls) ── */
-    button.secondary:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header),
+    button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header),
     .qs-pill,
     .nav-btn,
     .nav-item,
@@ -584,7 +584,7 @@
     .custom-select-trigger {
       position: relative;
     }
-    button.secondary:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header)::before,
+    button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header)::before,
     .qs-pill::before,
     .nav-btn::before,
     .nav-item::before,
@@ -611,7 +611,7 @@
       animation: neonHueCycle 10s linear infinite;
       z-index: 2;
     }
-    button.secondary:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header):hover,
+    button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header):hover,
     .qs-pill:hover,
     .nav-btn:hover,
     .nav-item:hover,
@@ -620,11 +620,12 @@
     .custom-select-trigger:hover {
       border-color: transparent !important;
     }
-    button.secondary:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header):hover::before,
+    button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header):hover::before,
     .qs-pill:hover::before,
     .nav-btn:hover::before,
     .nav-item:hover::before,
     .subtab-btn:hover::before,
+    select:hover::before,
     .custom-select-trigger:hover::before {
       opacity: 1;
     }
@@ -14515,7 +14516,7 @@
 
   // ── GSAP & SPOTLIGHT INITIALIZATION (Taste, Hyperframes, React-Bits) ──
   function initSpotlightCards() {
-    const selector = 'button.secondary:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header), .qs-pill, .nav-btn, .nav-item, .subtab-btn, select, .custom-select-trigger';
+    const selector = 'button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header), .qs-pill, .nav-btn, .nav-item, .subtab-btn, select, .custom-select-trigger';
     const handleMouseMove = (e) => {
       const target = e.target.closest(selector);
       if (target) {
