@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.10] - 2026-08-04
+
+### Corrigé
+**Humanisé** : En version mobile, le titre textuel dans la barre supérieure est désormais automatiquement masqué au profit de l'icône/logo du site uniquement, libérant l'espace pour un alignement parfait de la barre de navigation.
+**Technique** : `Index.html` — ajout de `display: none !important` sur `.app-brand-title` en mobile (`body:not(.desktop-layout)` et `@media (max-width: 640px)`), ajout de l'élément de repli d'icône `#appBrandDefaultIcon` (`🏆`) et ajustement dans `applyAppBranding()` pour garantir l'affichage de l'icône seule en toutes circonstances.
+
 ## [v2.9.9] - 2026-08-04
 
 ### Corrigé

@@ -195,8 +195,9 @@
     .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 4px; flex-shrink: 0; }
     .app-brand-logo { width: 28px; height: 28px; border-radius: var(--radius-sm); object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .app-brand-title { font-weight: 900; font-size: 1rem; color: var(--accent); white-space: nowrap; letter-spacing: -0.02em; }
+    .app-brand-icon { font-size: 1.35rem; line-height: 1; user-select: none; display: inline-block; }
     @media (max-width: 640px) {
-      .app-brand-title { font-size: 0.88rem; }
+      .app-brand-title { display: none !important; }
     }
 
     .nav-chat-btn {
@@ -3776,12 +3777,7 @@
     height: 24px;
   }
   body:not(.desktop-layout) .app-brand-title {
-    font-size: 0.88rem;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90px;
+    display: none !important;
   }
 
   /* Groupe d'actions droite */
@@ -3891,6 +3887,7 @@
   <div class="nav-container">
     <div class="app-brand" id="appBrand">
       <img class="app-brand-logo" id="appBrandLogo" src="" alt="" style="display:none;">
+      <span class="app-brand-icon" id="appBrandDefaultIcon">🏆</span>
       <span class="app-brand-title" id="appBrandTitle">Tops des Tops</span>
     </div>
     <div class="nav-btn-group" id="desktopNavGroup"></div>
@@ -5404,12 +5401,18 @@
     document.title = _appSettings.appTitle;
     document.getElementById('appBrandTitle').textContent = _appSettings.appTitle;
     const logoImg = document.getElementById('appBrandLogo');
+    const defaultIcon = document.getElementById('appBrandDefaultIcon');
     if (_appSettings.logoUrl) {
       logoImg.src = _appSettings.logoUrl;
-      logoImg.onerror = () => { logoImg.style.display = 'none'; };
-      logoImg.style.display = '';
+      logoImg.onerror = () => { 
+        logoImg.style.display = 'none'; 
+        if (defaultIcon) defaultIcon.style.display = 'inline-block';
+      };
+      logoImg.style.display = 'inline-block';
+      if (defaultIcon) defaultIcon.style.display = 'none';
     } else {
       logoImg.style.display = 'none';
+      if (defaultIcon) defaultIcon.style.display = 'inline-block';
     }
   }
 
