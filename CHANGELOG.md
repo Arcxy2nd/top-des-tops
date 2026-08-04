@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.7] - 2026-08-04
+
+### Modifié
+**Humanisé** : Le contour néon réactif au curseur a été ciblé exclusivement sur les boutons et contrôles neutres ("vanilla" : sous-barre quick stats, onglets, sélecteurs, menus déroulants, filtres, boutons d'action simples). L'effet a été retiré des grandes cartes et panneaux de structure pour rendre l'interface plus épurée.
+**Technique** : `Index.html` — restriction des règles CSS néon spotlight et de la fonction `initSpotlightCards()` aux sélecteurs `button.secondary`, `button:not(.primary):not(.danger)`, `.qs-pill`, `.nav-btn`, `.nav-item`, `.subtab-btn`, `select`, `.custom-select-trigger`, `.fchip`, `.d-mode-btn`, `.chart-type-btn`, `.export-btn`, `.who-am-i-btn`, `.nav-refresh-btn`, `.nav-bareme-btn`, `.nav-chat-btn`, `.quick-btn`, `.fill-opt`. Retrait définitif de `.card::before`/`.after`, `.filter-panel` et `.modal-content`.
+
 ## [v2.9.6] - 2026-08-04
 
 ### Corrigé

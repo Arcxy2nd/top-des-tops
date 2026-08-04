@@ -490,43 +490,12 @@
                   border-color 0.25s ease, 
                   box-shadow 0.25s ease;
     }
-    .card::before, .spotlight-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      padding: 1px;
-      background: radial-gradient(
-        500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        var(--border-accent),
-        transparent 40%
-      );
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    .card::after, .spotlight-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: radial-gradient(
-        450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        var(--spotlight-color),
-        transparent 40%
-      );
-      pointer-events: none;
-      z-index: 0;
-    }
-    .card:hover::before, .spotlight-card:hover::before { opacity: 1; }
     .card:hover {
       border-color: var(--border-hover);
       box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.4);
       transform: translateY(-2px);
     }
+
     h2 { margin: 0 0 18px 0; font-size: 1.25rem; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
     h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin: 0 0 14px 0; }
 
@@ -604,11 +573,45 @@
     }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-    /* ── CURSOR NEON BORDER (Intense spotlight effect with slow hue cycling) ── */
-    .card, .spotlight-card, .qs-pill, .filter-panel, button, .fchip, .d-mode-btn, .export-btn, .chart-type-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .lot-row, .sub-top-item, .settings-section, .stat-card, .audit-card, .guide-card, .note-card, .modal-content, .phrase-item, .auto-rule-card, .custom-select-trigger, .nav-item, .subtab-btn {
+    /* ── CURSOR NEON BORDER (Strictly on Vanilla/Neutral controls) ── */
+    button.secondary,
+    button:not(.primary):not(.danger),
+    .qs-pill,
+    .nav-btn,
+    .nav-item,
+    .subtab-btn,
+    select,
+    .custom-select-trigger,
+    .fchip,
+    .d-mode-btn,
+    .chart-type-btn,
+    .export-btn,
+    .who-am-i-btn,
+    .nav-refresh-btn,
+    .nav-bareme-btn,
+    .nav-chat-btn,
+    .quick-btn,
+    .fill-opt {
       position: relative;
     }
-    .card::before, .spotlight-card::before, .qs-pill::before, .filter-panel::before, button::before, .fchip::before, .d-mode-btn::before, .export-btn::before, .chart-type-btn::before, .who-am-i-btn::before, .nav-refresh-btn::before, .nav-bareme-btn::before, .nav-chat-btn::before, .quick-btn::before, .lot-row::before, .sub-top-item::before, .settings-section::before, .stat-card::before, .audit-card::before, .guide-card::before, .note-card::before, .modal-content::before, .phrase-item::before, .auto-rule-card::before, .custom-select-trigger::before, .nav-item::before, .subtab-btn::before {
+    button.secondary::before,
+    button:not(.primary):not(.danger)::before,
+    .qs-pill::before,
+    .nav-btn::before,
+    .nav-item::before,
+    .subtab-btn::before,
+    select::before,
+    .custom-select-trigger::before,
+    .fchip::before,
+    .d-mode-btn::before,
+    .chart-type-btn::before,
+    .export-btn::before,
+    .who-am-i-btn::before,
+    .nav-refresh-btn::before,
+    .nav-bareme-btn::before,
+    .nav-chat-btn::before,
+    .quick-btn::before,
+    .fill-opt::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -629,7 +632,24 @@
       animation: neonHueCycle 10s linear infinite;
       z-index: 2;
     }
-    .card:hover::before, .spotlight-card:hover::before, .qs-pill:hover::before, .filter-panel:hover::before, button:hover::before, .fchip:hover::before, .d-mode-btn:hover::before, .export-btn:hover::before, .chart-type-btn:hover::before, .who-am-i-btn:hover::before, .nav-refresh-btn:hover::before, .nav-bareme-btn:hover::before, .nav-chat-btn:hover::before, .quick-btn:hover::before, .lot-row:hover::before, .sub-top-item:hover::before, .settings-section:hover::before, .stat-card:hover::before, .audit-card:hover::before, .guide-card:hover::before, .note-card:hover::before, .modal-content:hover::before, .phrase-item:hover::before, .auto-rule-card:hover::before, .custom-select-trigger:hover::before, .nav-item:hover::before, .subtab-btn:hover::before {
+    button.secondary:hover::before,
+    button:not(.primary):not(.danger):hover::before,
+    .qs-pill:hover::before,
+    .nav-btn:hover::before,
+    .nav-item:hover::before,
+    .subtab-btn:hover::before,
+    select:hover::before,
+    .custom-select-trigger:hover::before,
+    .fchip:hover::before,
+    .d-mode-btn:hover::before,
+    .chart-type-btn:hover::before,
+    .export-btn:hover::before,
+    .who-am-i-btn:hover::before,
+    .nav-refresh-btn:hover::before,
+    .nav-bareme-btn:hover::before,
+    .nav-chat-btn:hover::before,
+    .quick-btn:hover::before,
+    .fill-opt:hover::before {
       opacity: 1;
     }
     @keyframes neonHueCycle {
@@ -14517,7 +14537,7 @@
 
   // ── GSAP & SPOTLIGHT INITIALIZATION (Taste, Hyperframes, React-Bits) ──
   function initSpotlightCards() {
-    const selector = '.card, .spotlight-card, .qs-pill, .filter-panel, button, .fchip, .d-mode-btn, .export-btn, .chart-type-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .lot-row, .sub-top-item, .settings-section, .stat-card, .audit-card, .guide-card, .note-card, .modal-content, .phrase-item, .auto-rule-card, .custom-select-trigger, .nav-item, .subtab-btn';
+    const selector = 'button.secondary, button:not(.primary):not(.danger), .qs-pill, .nav-btn, .nav-item, .subtab-btn, select, .custom-select-trigger, .fchip, .d-mode-btn, .chart-type-btn, .export-btn, .who-am-i-btn, .nav-refresh-btn, .nav-bareme-btn, .nav-chat-btn, .quick-btn, .fill-opt';
     const handleMouseMove = (e) => {
       const target = e.target.closest(selector);
       if (target) {
