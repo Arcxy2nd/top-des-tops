@@ -15154,6 +15154,31 @@
     }
   }
 
+  let guideInited = false;
+  function initGuideAccordion() {
+    if (guideInited) return;
+    guideInited = true;
+    const sidebar = document.querySelector('.guide-sidebar');
+    if (!sidebar) return;
+    sidebar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.guide-nav-btn');
+      if (!btn) return;
+      const section = btn.dataset.section;
+      if (!section) return;
+      // Update active nav button
+      sidebar.querySelectorAll('.guide-nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Show target section, hide others
+      document.querySelectorAll('.guide-content-section').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('gsec-' + section);
+      if (target) {
+        target.classList.add('active');
+        const pane = document.querySelector('.guide-content-pane');
+        if (pane) pane.scrollTop = 0;
+      }
+    });
+  }
+
   function goToTab(tabId) {
     const targetTab = document.getElementById(tabId);
     if (!targetTab) return;
@@ -15374,26 +15399,7 @@
     });
 
     // ── GUIDE (panneau latéral + sections) ─────────────────────────────
-    let guideInited = false;
-    function initGuideAccordion() {
-      if (guideInited) return;
-      guideInited = true;
-      const sidebar = document.querySelector('.guide-sidebar');
-      if (!sidebar) return;
-      sidebar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.guide-nav-btn');
-        if (!btn) return;
-        const section = btn.dataset.section;
-        if (!section) return;
-        // Update active nav button
-        sidebar.querySelectorAll('.guide-nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Show target section, hide others
-        document.querySelectorAll('.guide-content-section').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById('gsec-' + section);
-        if (target) target.classList.add('active');
-      });
-    }
+    initGuideAccordion();
 
     document.getElementById('saveAppSettingsBtn').addEventListener('click', (e) => {
       if (!requireIdentity()) return;

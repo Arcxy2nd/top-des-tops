@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.1] - 2026-08-05
+## [v3.4.2] - 2026-08-05
+
+### Corrigé
+**Humanisé** : La navigation par clics dans le menu latéral du Guide fonctionne désormais correctement pour basculer d'une section à l'autre dans la documentation.
+**Technique** : `Index.html` — extraction de `initGuideAccordion()` au niveau du scope global JS et invocation dans `bindButtons()` et `goToTab('tab-guide')`.
+
+## [v3.4.1] - 2026-08-05
 
 ### Modifié
 **Humanisé** : Le guide d'utilisation du site a été entièrement mis à jour avec une nouvelle section dédiée aux Tops Alternatifs et l'actualisation de toutes les explications (podium 3D, automatisations, univers, tchat et sélection universelle).
