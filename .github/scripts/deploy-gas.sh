@@ -46,27 +46,15 @@ EOF
   local last_deployment_id
   last_deployment_id=$(echo "$old_deployment_ids" | tail -n1)
 
-  echo "== 3/4: Creating or updating deployment =="
+  echo "== 3/4: Creating new deployment and archiving previous deployments =="
   local deploy_output=""
   local new_deployment_id=""
 
-  # Attempt to update existing deployment first if available
-  if [ -n "${last_deployment_id:-}" ]; then
-    echo "Attempting to update existing deployment ($last_deployment_id)..."
-    deploy_output=$(clasp deploy -i "$last_deployment_id" -d "$DEPLOY_DESCRIPTION" 2>&1) || true
-    echo "$deploy_output"
-    if echo "$deploy_output" | grep -qE "Updated deployment|Deployed"; then
-      new_deployment_id="$last_deployment_id"
-    fi
-  fi
-
-  # If update didn't work or no prior deployment, create a new one
-  if [ -z "${new_deployment_id:-}" ]; then
-    echo "Creating new deployment..."
-    deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION" 2>&1) || true
-    echo "$deploy_output"
-    new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
-  fi
+  # ALWAYS create a brand new deployment
+  echo "Creating new deployment..."
+  deploy_output=$(clasp deploy --description "$DEPLOY_DESCRIPTION" 2>&1) || true
+  echo "$deploy_output"
+  new_deployment_id=$(echo "$deploy_output" | grep -oE 'Deployed [A-Za-z0-9_-]+' | awk '{print $2}' | tail -n1)
 
   if [ -z "${new_deployment_id:-}" ]; then
     echo "ERROR: could not parse the deployment ID from clasp deploy output for '$name'." >&2
@@ -74,11 +62,11 @@ EOF
     return 1
   fi
 
-  # Clean up any leftover old non-HEAD deployments other than the active one
+  # Archive/Undeploy ALL previous non-HEAD deployments
   if [ -n "${old_deployment_ids:-}" ]; then
     for old_id in $old_deployment_ids; do
       if [ "$old_id" != "$new_deployment_id" ]; then
-        echo "Undeploying obsolete deployment: $old_id"
+        echo "Archiving/Undeploying previous deployment: $old_id"
         clasp undeploy "$old_id" || echo "WARNING: undeploy failed for '$old_id', continuing anyway."
       fi
     done

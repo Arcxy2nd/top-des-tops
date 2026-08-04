@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v2.9.9] - 2026-08-04
+
+### Corrigé
+**Humanisé** : Le script de déploiement créé désormais systématiquement un NOUVEAU déploiement Web App et ARCHIVE/DÉSACTIVE obligatoirement l'ancien déploiement GAS (les anciens liens directes ne fonctionnent plus et renvoient vers le nouveau).
+**Technique** : `.github/scripts/deploy-gas.sh` — suppression du mode de mise à jour réutilisant `clasp deploy -i` ; force la création d'une nouvelle URL via `clasp deploy --description` suivie de l'invalidation/archivage de tous les anciens déploiements via `clasp undeploy <old_id>`, puis mise à jour de Short.io.
+
 ## [v2.9.8] - 2026-08-04
 
 ### Modifié
