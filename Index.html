@@ -1796,31 +1796,106 @@
     .diff-del { color: var(--error); text-decoration: line-through; opacity: 0.75; }
     .diff-ins { color: var(--success); font-weight: 600; text-decoration: none; }
 
-    /* ── GUIDE TAB ── */
-    .guide-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 14px;
+    /* ── GUIDE TAB (Premium v2) ── */
+    #tab-guide .card { padding: 0; overflow: hidden; }
+    .guide-layout {
+      display: flex; min-height: 540px;
     }
-    .guide-tile {
-      display: flex; align-items: center; gap: 14px;
-      background: var(--btn-alt); border: 1px solid var(--border); border-left: 4px solid var(--accent);
-      border-radius: 12px; padding: 16px 18px; cursor: pointer; text-align: left;
-      font: inherit; color: inherit; transition: transform 0.15s, box-shadow 0.15s;
+    /* Sidebar */
+    .guide-sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--btn-alt);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 20px 12px;
+      gap: 4px;
     }
-    .guide-tile:hover, .guide-tile:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
-    .guide-tile-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
-    .guide-tile-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
-    .guide-detail { border-left: 4px solid var(--accent); border-radius: 0 12px 12px 0; padding: 4px 0 4px 18px; }
-    .guide-back {
-      display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px;
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 14px; font-size: 0.85rem; font-weight: 600; color: var(--text); cursor: pointer;
+    .guide-sidebar-title {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+      color: var(--text-muted); text-transform: uppercase;
+      padding: 4px 10px 10px; margin: 0;
     }
-    .guide-back:hover { border-color: var(--accent); }
-    .guide-detail h3 { margin: 0 0 10px; font-size: 1.1rem; }
-    .guide-detail-body { font-size: 0.9rem; line-height: 1.7; color: var(--text-muted); }
-    .guide-detail-body p { margin: 0 0 8px; }
-    .guide-detail-body strong { color: var(--text); }
+    .guide-sidebar-separator {
+      height: 1px; background: var(--border); margin: 8px 4px;
+    }
+    .guide-nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 10px;
+      background: transparent; border: none;
+      cursor: pointer; font: inherit; color: var(--text-muted);
+      font-size: 0.88rem; font-weight: 500; text-align: left; width: 100%;
+      transition: background 0.15s, color 0.15s;
+    }
+    .guide-nav-btn .gnb-icon { font-size: 1.1rem; line-height: 1; width: 22px; text-align: center; flex-shrink: 0; }
+    .guide-nav-btn:hover { background: rgba(var(--accent-rgb, 255,71,87), 0.1); color: var(--text); }
+    .guide-nav-btn.active {
+      background: var(--accent); color: var(--on-accent);
+      font-weight: 700;
+    }
+    .guide-nav-group-label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-muted);
+      padding: 12px 12px 4px; opacity: 0.7;
+    }
+    /* Content pane */
+    .guide-content-pane {
+      flex: 1; overflow-y: auto;
+      padding: 28px 32px;
+      min-width: 0;
+    }
+    .guide-content-section { display: none; }
+    .guide-content-section.active { display: block; }
+    .guide-content-section h3 {
+      margin: 0 0 6px; font-size: 1.25rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .guide-section-subtitle {
+      font-size: 0.85rem; color: var(--text-muted); margin: 0 0 20px;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .guide-feature-list { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 10px; }
+    .guide-feature-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: rgba(0,0,0,0.12); border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+    }
+    .guide-feature-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 1px; }
+    .guide-feature-body { flex: 1; min-width: 0; }
+    .guide-feature-body strong { display: block; color: var(--text); font-size: 0.9rem; margin-bottom: 2px; }
+    .guide-feature-body span { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+    .guide-tip {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(var(--accent-rgb, 255,71,87), 0.08);
+      border: 1px solid rgba(var(--accent-rgb, 255,71,87), 0.25);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 0.83rem; color: var(--text); line-height: 1.5;
+      margin-bottom: 18px;
+    }
+    .guide-tip-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .guide-kbd-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-bottom: 18px; }
+    .guide-kbd-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .guide-kbd-table tr:last-child td { border-bottom: none; }
+    .guide-kbd-table td:first-child { width: 50%; color: var(--text); font-weight: 500; }
+    kbd {
+      display: inline-block; padding: 2px 7px; font-family: monospace; font-size: 0.8em;
+      background: var(--btn-alt); border: 1px solid var(--border);
+      border-radius: 4px; box-shadow: 0 1px 0 var(--border);
+      color: var(--text);
+    }
+    .guide-subheading {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--accent);
+      margin: 18px 0 8px;
+    }
+    /* Mobile: stack layout */
+    @media (max-width: 680px) {
+      .guide-layout { flex-direction: column; }
+      .guide-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 8px; }
+      .guide-sidebar-title, .guide-sidebar-separator, .guide-nav-group-label { display: none; }
+      .guide-nav-btn { width: auto; font-size: 0.78rem; padding: 6px 10px; }
+      .guide-content-pane { padding: 18px 16px; }
+    }
 
     /* ── EXPORT MODAL ── */
     .export-modal-overlay {
@@ -4607,89 +4682,209 @@
   <!-- ══ GUIDE ═════════════════════════════════════════════════════════ -->
   <div id="tab-guide" class="tab-content">
     <div class="card">
-      <h2>❓ Comment utiliser le site</h2>
+      <div class="guide-layout">
 
-      <div id="guideGrid" class="guide-grid">
-        <button type="button" class="guide-tile" data-guide="dashboard"><span class="guide-tile-icon">📊</span><span class="guide-tile-title">Dashboard</span></button>
-        <button type="button" class="guide-tile" data-guide="saisie"><span class="guide-tile-icon">✍️</span><span class="guide-tile-title">Saisir un Lot</span></button>
-        <button type="button" class="guide-tile" data-guide="parametres"><span class="guide-tile-icon">⚙️</span><span class="guide-tile-title">Paramètres</span></button>
-        <button type="button" class="guide-tile" data-guide="notes"><span class="guide-tile-icon">📝</span><span class="guide-tile-title">Notes</span></button>
-        <button type="button" class="guide-tile" data-guide="historique"><span class="guide-tile-icon">📜</span><span class="guide-tile-title">Historique</span></button>
-        <button type="button" class="guide-tile" data-guide="tchat"><span class="guide-tile-icon">💬</span><span class="guide-tile-title">Tchat</span></button>
-        <button type="button" class="guide-tile" data-guide="bareme"><span class="guide-tile-icon">⚖️</span><span class="guide-tile-title">Barème</span></button>
-        <button type="button" class="guide-tile" data-guide="alt"><span class="guide-tile-icon">⭐</span><span class="guide-tile-title">Tops Alternatifs</span></button>
-        <button type="button" class="guide-tile" data-guide="theme"><span class="guide-tile-icon">🎨</span><span class="guide-tile-title">Thème &amp; identité</span></button>
-      </div>
+        <!-- ── Sidebar navigation ── -->
+        <nav class="guide-sidebar" aria-label="Guide navigation">
+          <p class="guide-sidebar-title">❓ Guide d'utilisation</p>
 
-      <div id="guideDetail" class="guide-detail" style="display:none;">
-        <button type="button" id="guideBackBtn" class="guide-back">← Retour</button>
-        <h3 id="guideDetailTitle"></h3>
-        <div id="guideDetailBody" class="guide-detail-body"></div>
-      </div>
+          <div class="guide-nav-group-label">Onglets principaux</div>
+          <button type="button" class="guide-nav-btn active" data-section="dashboard"><span class="gnb-icon">📊</span>Dashboard</button>
+          <button type="button" class="guide-nav-btn" data-section="saisie"><span class="gnb-icon">✍️</span>Saisir un Lot</button>
+          <button type="button" class="guide-nav-btn" data-section="historique"><span class="gnb-icon">📜</span>Historique</button>
+          <button type="button" class="guide-nav-btn" data-section="notes"><span class="gnb-icon">📝</span>Notes</button>
+          <button type="button" class="guide-nav-btn" data-section="tchat"><span class="gnb-icon">💬</span>Tchat</button>
 
-      <template id="guideContent-dashboard">
-        <p>Page d'accueil de l'application. Tout en haut : le bandeau des <strong>statistiques rapides</strong> et la card <strong>🎭 Commentaires &amp; Podium</strong> — elle affiche le classement avec le podium 3D animé (avatars agrandis, halos lumineux Or/Argent/Bronze, mini-barres comparatives) et des phrases générées automatiquement.</p>
-        <p><strong>Univers (Tops Principaux vs ⭐ Tops Alternatifs) :</strong> le sélecteur d'univers en haut du Dashboard permet de basculer instantanément les graphiques et classements entre les Tops principaux et les Tops Alternatifs.</p>
-        <p><strong>Filtres &amp; Graphiques :</strong> filtres croisés par joueurs, Tops et période. Types de graphique : Empilé, Groupé, Courbes, Radar, Donut, Classement.</p>
-        <p><strong>Détail &amp; Drilldown :</strong> cliquer sur une barre ou tranche de graphique ouvre la liste détaillée des points avec un bouton <code>⭐ Affecter ces points au Top Alt</code> pour lier la sélection à un Top Alternatif.</p>
-        <p><strong>Export :</strong> boutons Infographie, CSV, Excel en haut à droite de la card graphique.</p>
-      </template>
+          <div class="guide-sidebar-separator"></div>
+          <div class="guide-nav-group-label">Paramètres</div>
+          <button type="button" class="guide-nav-btn" data-section="parametres"><span class="gnb-icon">⚙️</span>Vue d'ensemble</button>
+          <button type="button" class="guide-nav-btn" data-section="alt"><span class="gnb-icon">⭐</span>Tops Alternatifs</button>
+          <button type="button" class="guide-nav-btn" data-section="automatisations"><span class="gnb-icon">🤖</span>Automatisations</button>
+          <button type="button" class="guide-nav-btn" data-section="commentaires"><span class="gnb-icon">🎭</span>Commentaires</button>
+          <button type="button" class="guide-nav-btn" data-section="outils"><span class="gnb-icon">🔧</span>Outils de données</button>
 
-      <template id="guideContent-saisie">
-        <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne offre une disposition fluide à 3 colonnes : Joueur, Top principal &amp; Points, et Date.</p>
-        <p><strong>Raccourcis de points :</strong> grille de boutons rapides (1, 3, 5, 7 / 10, 25, 50, 100) pour cliquer en un instant, ou saisie manuelle de la valeur.</p>
-        <p><strong>Tops secondaires &amp; Alternatifs :</strong> ajoute un sous-top avec <code>＋ Top supp.</code> ou lie l'entrée à un Top Alternatif grâce au bouton pilule <code>⭐ Top Alt</code>.</p>
-        <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours en mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé) avec filtre par jours de la semaine.</p>
-        <p><strong>Actions de ligne :</strong> réorganisation par glisser-déposer (poignée ≡), boutons complets <code>📋 Dupliquer cette ligne</code> et <code>✕ Supprimer cette ligne</code>.</p>
-      </template>
+          <div class="guide-sidebar-separator"></div>
+          <div class="guide-nav-group-label">Divers</div>
+          <button type="button" class="guide-nav-btn" data-section="bareme"><span class="gnb-icon">⚖️</span>Barème</button>
+          <button type="button" class="guide-nav-btn" data-section="theme"><span class="gnb-icon">🎨</span>Thème &amp; Identité</button>
+          <button type="button" class="guide-nav-btn" data-section="raccourcis"><span class="gnb-icon">⌨️</span>Raccourcis clavier</button>
+        </nav>
 
-      <template id="guideContent-parametres">
-        <p>Six sous-onglets de configuration :</p>
-        <p><strong>👤 Joueurs :</strong> ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</p>
-        <p><strong>🎯 Tops :</strong> gérer les catégories principales (nom, description, emoji, couleur).</p>
-        <p><strong>⭐ Tops Alternatifs :</strong> créer et éditer les catégories alternes. Le bouton <strong>👁️ Gérer les points</strong> ouvre un tiroir dédié pour consulter les points inclus, les désaffecter (<code>❌ Retirer</code>) ou importer de nouveaux points existants.</p>
-        <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton ⚖️ (raccourci clavier : <strong>?</strong>).</p>
-        <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases avec variables (<code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>) et pools de position (<code>first</code> à <code>solo</code>, ou <code>cat:NomDuTop</code>).</p>
-        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage (zéros/orphelins/doublons), détection et fusion de lots répartis, gestion des groupes hérités et détection des joueurs inactifs.</p>
-        <p><strong>🤖 Automatisations :</strong> sous-onglet dédié pour créer, éditer (fréquence quotidienne/hebdo/mensuelle, jours, dates), dupliquer en 1 clic et activer/désactiver les règles de points automatiques.</p>
-      </template>
+        <!-- ── Content pane ── -->
+        <div class="guide-content-pane">
 
-      <template id="guideContent-notes">
-        <p>Espace de <strong>remarques libres</strong> par joueur. La barre rapide en haut permet d'ajouter une note en une seconde : choisis le joueur (chip), tape la note, appuie sur Entrée.</p>
-        <p>Les blocs par joueur en dessous montrent toutes ses notes avec date et option de suppression.</p>
-      </template>
+          <!-- Dashboard -->
+          <div class="guide-content-section active" id="gsec-dashboard">
+            <h3>📊 Dashboard</h3>
+            <p class="guide-section-subtitle">Page d'accueil principale — classement, graphiques et statistiques en un coup d'œil.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🏆</span><div class="guide-feature-body"><strong>Podium 3D animé</strong><span>Les 3 premiers s'affichent avec socles dorés/argentés/bronzés, avatars agrandis avec halos lumineux et mini-barres comparatives de score.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔀</span><div class="guide-feature-body"><strong>Bascule d'univers</strong><span>Le sélecteur en haut du Dashboard bascule instantanément entre <em>Tops Principaux</em> et <em>⭐ Tops Alternatifs</em> pour les graphiques, podium et classements.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📈</span><div class="guide-feature-body"><strong>6 types de graphique</strong><span>Empilé, Groupé, Courbes, Radar, Donut, Classement. Filtres croisés par joueurs, Tops et période.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔍</span><div class="guide-feature-body"><strong>Drilldown &amp; Affectation Alt</strong><span>Cliquer sur une barre ou tranche ouvre la liste détaillée. Bouton <code>⭐ Affecter ces points au Top Alt</code> disponible directement.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📤</span><div class="guide-feature-body"><strong>Export</strong><span>Infographie (PNG), CSV et Excel disponibles en haut à droite de la card graphique.</span></div></li>
+            </ul>
+            <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>Le bandeau de statistiques rapides (leader, gap, entrées du mois…) reste toujours ancré sur les Tops Principaux, même si le Dashboard affiche un univers Alternatif.</span></div>
+          </div>
 
-      <template id="guideContent-historique">
-        <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top principal, par recherche texte et par <strong>Tops Alternatifs</strong> (puces <em>Tous Alt</em>, <em>Non Alt</em> ou par Top Alt spécifique).</p>
-        <p><strong>Badges ⭐ Tops Alternatifs :</strong> chaque ligne liée à un Top Alternatif affiche un badge ⭐ coloré et cliquable pour ouvrir directement sa gestion.</p>
-        <p><strong>Regroupement automatique :</strong> les entrées identiques consécutives sont groupées. Clique sur un groupe pour le déplier.</p>
-        <p><strong>Mode sélection (☑) &amp; Affectation universelle :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, les grouper en lot, ou utiliser <code>⭐ Affecter au Top Alt</code> (ou <code>❌ Retirer du Top Alt</code>) via le sélecteur universel de points.</p>
-        <p><strong>🔍 Journal d'audit</strong> (sous-onglet) : historique de toutes les actions qui modifient des données (créations, éditions, suppressions), avec l'auteur, la cible et un résumé du changement.</p>
-      </template>
+          <!-- Saisie -->
+          <div class="guide-content-section" id="gsec-saisie">
+            <h3>✍️ Saisir un Lot</h3>
+            <p class="guide-section-subtitle">Enregistre des points pour un ou plusieurs joueurs en une seule soumission.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">👥</span><div class="guide-feature-body"><strong>Disposition 3 colonnes</strong><span>Chaque ligne = Joueur / Top principal &amp; Points / Date. Réorganise les lignes par glisser-déposer (poignée ≡).</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⚡</span><div class="guide-feature-body"><strong>Boutons rapides</strong><span>Grille 2×4 : 1, 3, 5, 7 / 10, 25, 50, 100 pts. Clique une valeur pour la saisir instantanément.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📅</span><div class="guide-feature-body"><strong>Plage de dates</strong><span>Répartir ou Répéter un score sur plusieurs jours. Filtre par jours de semaine (ex : Lun–Ven uniquement).</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⭐</span><div class="guide-feature-body"><strong>Tops secondaires &amp; Alternatifs</strong><span>Bouton <code>＋ Top supp.</code> pour ajouter un sous-top. Bouton pilule <code>⭐ Top Alt</code> pour lier directement à un Top Alternatif.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔗</span><div class="guide-feature-body"><strong>Grouper les lignes</strong><span>Le bouton <code>🔗 Grouper</code> lie les lignes d'un lot pour qu'elles apparaissent ensemble dans l'Historique.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📋</span><div class="guide-feature-body"><strong>Dupliquer / Supprimer</strong><span>Boutons dédiés sur chaque ligne pour copier ou retirer une saisie rapidement.</span></div></li>
+            </ul>
+            <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>Utilise <code>🔗 Grouper</code> pour regrouper plusieurs lignes en un seul lot cohérent visible dans l'Historique.</span></div>
+          </div>
 
-      <template id="guideContent-tchat">
-        <p>Widget de discussion accessible via le volet latéral ancré sur PC ou le bouton flottant 💬. Un clic maintenu déplace le bouton sur mobile.</p>
-        <p><strong>Markdown GFM</strong> complet dans les messages, mentions <code>@Joueur</code> et <code>#Top</code> avec autocomplétion, réponse à un message (aperçu cité), horodatage.</p>
-        <p>Chacun peut supprimer ses propres messages. L'app vérifie les nouveaux messages toutes les 4 secondes, avec badge de messages non lus quand le panneau est fermé.</p>
-      </template>
+          <!-- Historique -->
+          <div class="guide-content-section" id="gsec-historique">
+            <h3>📜 Historique</h3>
+            <p class="guide-section-subtitle">Toutes les entrées enregistrées, de la plus récente à la plus ancienne.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔎</span><div class="guide-feature-body"><strong>Filtres avancés</strong><span>Par joueur, par Top principal, par texte et par Tops Alternatifs (puces <em>Tous Alt</em>, <em>Non Alt</em> ou un Top Alt précis).</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⭐</span><div class="guide-feature-body"><strong>Badges Tops Alternatifs</strong><span>Chaque ligne liée à un Top Alt affiche un badge ⭐ coloré et cliquable pour ouvrir directement la gestion de ce Top Alt.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📦</span><div class="guide-feature-body"><strong>Regroupement automatique</strong><span>Les entrées identiques consécutives sont groupées en un seul bloc dépliable.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">☑️</span><div class="guide-feature-body"><strong>Mode sélection &amp; Actions de masse</strong><span>Coche des entrées pour : supprimer en bloc, assigner une description, grouper en lot, ou affecter/retirer d'un Top Alt via le sélecteur universel.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔍</span><div class="guide-feature-body"><strong>Journal d'audit</strong><span>Sous-onglet dédié listant toutes les modifications (créations, éditions, suppressions) avec auteur, cible et résumé.</span></div></li>
+            </ul>
+            <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>Utilise le filtre <em>⭐ Tous Alt</em> pour voir toutes les entrées déjà affectées à un Top Alternatif, et <em>🚫 Non Alt</em> pour les entrées encore non classifiées.</span></div>
+          </div>
 
-      <template id="guideContent-bareme">
-        <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans Paramètres → Barème. Aide-mémoire rapide accessible depuis n'importe quel onglet.</p>
-        <p>Raccourci clavier : <strong>?</strong></p>
-      </template>
+          <!-- Notes -->
+          <div class="guide-content-section" id="gsec-notes">
+            <h3>📝 Notes</h3>
+            <p class="guide-section-subtitle">Espace de remarques libres par joueur.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">⚡</span><div class="guide-feature-body"><strong>Barre de saisie rapide</strong><span>En haut de l'onglet : sélectionne le joueur (chip), tape la note et appuie sur <kbd>Entrée</kbd> pour l'ajouter en une seconde.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Blocs par joueur</strong><span>Toutes les notes de chaque joueur apparaissent regroupées avec date d'ajout et bouton de suppression.</span></div></li>
+            </ul>
+          </div>
 
-      <template id="guideContent-alt">
-        <p>Les <strong>Tops Alternatifs</strong> permettent de suivre des classements parallèles à l'univers principal (ex : mini-jeux, sous-défis, événements temporaires).</p>
-        <p><strong>Bascule d'univers :</strong> sur le Dashboard, le sélecteur <em>Tops Principaux / ⭐ Tops Alternatifs</em> permet de basculer instantanément les graphiques, le podium et les classements.</p>
-        <p><strong>Saisie &amp; Affectation :</strong> lors de la saisie d'un lot, utilise le bouton pilule <code>⭐ Top Alt</code>. Pour les points déjà enregistrés, utilise le sélecteur universel (<code>⭐ Affecter au Top Alt</code>) depuis l'Historique (mode sélection ☑), les détails de graphiques ou les Outils de lots.</p>
-        <p><strong>Badges &amp; Gestion :</strong> chaque point lié affiche un badge ⭐ coloré dans l'Historique. Dans Paramètres → ⭐ Tops Alternatifs, le bouton <strong>👁️ Gérer les points</strong> permet d'afficher la liste des points inclus, d'en retirer (<code>❌</code>) ou d'en importer de nouveaux.</p>
-      </template>
+          <!-- Tchat -->
+          <div class="guide-content-section" id="gsec-tchat">
+            <h3>💬 Tchat</h3>
+            <p class="guide-section-subtitle">Discussion en temps quasi-réel entre les membres.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🖥️</span><div class="guide-feature-body"><strong>Volet latéral / Bouton flottant</strong><span>Sur PC : panneau latéral ancré. Sur mobile : bouton flottant 💬 déplaçable par clic maintenu.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📝</span><div class="guide-feature-body"><strong>Markdown GFM complet</strong><span>Gras, italique, barré, listes, citations, blocs de code, tableaux… tout le Markdown GitHub est supporté.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🏷️</span><div class="guide-feature-body"><strong>Mentions &amp; Réponses</strong><span>Tape <code>@Joueur</code> ou <code>#Top</code> pour une autocomplétion. Réponds à un message avec aperçu du message cité.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔔</span><div class="guide-feature-body"><strong>Badge de messages non lus</strong><span>L'app vérifie les nouveaux messages toutes les 4 secondes. Un badge apparaît quand le panneau est fermé.</span></div></li>
+            </ul>
+          </div>
 
-      <template id="guideContent-theme">
-        <p><strong>Thème :</strong> bascule dark/light dans la barre de navigation, préférence mémorisée sur cet appareil.</p>
-        <p><strong>Qui suis-je ?</strong> Le sélecteur en haut à droite de la barre de navigation permet de choisir ton identité parmi les joueurs. Utile pour savoir qui a saisi les points ou écrit une note.</p>
-        <p><strong>Mot de passe :</strong> les identités marquées 🔒 sont protégées. Demande le mot de passe au gestionnaire du classeur — il se définit directement dans la colonne D de la feuille <em>Players</em> du Google Sheet (invisible dans l'app).</p>
-      </template>
+          <!-- Paramètres -->        
+          <div class="guide-content-section" id="gsec-parametres">
+            <h3>⚙️ Paramètres — Vue d'ensemble</h3>
+            <p class="guide-section-subtitle">Six sous-onglets pour tout configurer.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Joueurs</strong><span>Ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎯</span><div class="guide-feature-body"><strong>Tops principaux</strong><span>Gérer les catégories : nom, description, emoji et couleur d'affichage.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⭐</span><div class="guide-feature-body"><strong>Tops Alternatifs</strong><span>Créer et éditer les classements parallèles. Voir la section dédiée dans ce guide.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⚖️</span><div class="guide-feature-body"><strong>Barème</strong><span>Définir les règles de points par Top. Raccourci <kbd>?</kbd> pour l'ouvrir depuis n'importe quel onglet.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎭</span><div class="guide-feature-body"><strong>Commentaires</strong><span>Gérer les presets de phrases générées pour le podium et les classements.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔧</span><div class="guide-feature-body"><strong>Outils de données</strong><span>Nettoyage, détection d'anomalies, automatisations. Voir les sections dédiées.</span></div></li>
+            </ul>
+          </div>
+
+          <!-- Tops Alternatifs -->
+          <div class="guide-content-section" id="gsec-alt">
+            <h3>⭐ Tops Alternatifs</h3>
+            <p class="guide-section-subtitle">Classements parallèles à l'univers principal — mini-jeux, sous-défis, événements temporaires…</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔀</span><div class="guide-feature-body"><strong>Bascule d'univers</strong><span>Sur le Dashboard, le sélecteur <em>Tops Principaux / ⭐ Tops Alternatifs</em> bascule instantanément graphiques, podium et classements.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">✍️</span><div class="guide-feature-body"><strong>Lors de la saisie</strong><span>Utilise le bouton pilule <code>⭐ Top Alt</code> sur chaque ligne pour lier l'entrée dès sa création.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📜</span><div class="guide-feature-body"><strong>Depuis l'Historique</strong><span>Mode sélection ☑ → bouton <code>⭐ Affecter au Top Alt</code>. Ou retire via <code>❌ Retirer du Top Alt</code>.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📊</span><div class="guide-feature-body"><strong>Depuis les graphiques</strong><span>Drilldown d'un graphique → bouton <code>⭐ Affecter ces points au Top Alt</code> directement dans la liste détaillée.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔧</span><div class="guide-feature-body"><strong>Depuis les Outils</strong><span>Sur chaque lot détecté, un bouton <code>⭐ Alt Top</code> permet d'affecter tout le lot d'un coup.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">👁️</span><div class="guide-feature-body"><strong>Gestionnaire de points</strong><span>Paramètres → ⭐ Tops Alternatifs → bouton <code>👁️ Gérer les points</code> : consulte les points inclus, retire-en (<code>❌</code>) ou importe de nouveaux.</span></div></li>
+            </ul>
+            <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>Un même point de l'historique principal peut être lié à plusieurs Tops Alternatifs différents. La déduplication empêche de le lier deux fois au même Top Alt.</span></div>
+          </div>
+
+          <!-- Automatisations -->
+          <div class="guide-content-section" id="gsec-automatisations">
+            <h3>🤖 Automatisations</h3>
+            <p class="guide-section-subtitle">Paramètres → 🤖 Automatisations — règles de points déclenchées automatiquement.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">📅</span><div class="guide-feature-body"><strong>Fréquences</strong><span>Quotidien, hebdomadaire (jours de semaine choisis) ou mensuel (jour du mois). Date de démarrage configurable.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">✏️</span><div class="guide-feature-body"><strong>Édition complète</strong><span>Modifier joueur, Top, points, fréquence, jours et dates d'une règle existante depuis la modale d'édition.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📋</span><div class="guide-feature-body"><strong>Duplication en 1 clic</strong><span>Duplique une règle pour en créer une variante rapidement.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔛</span><div class="guide-feature-body"><strong>Activation / Désactivation</strong><span>Chaque règle peut être mise en pause sans la supprimer.</span></div></li>
+            </ul>
+            <div class="guide-tip"><span class="guide-tip-icon">⚠️</span><span>Les automatisations nécessitent que Google Apps Script soit autorisé à installer des déclencheurs. Un message d'erreur s'affiche si l'autorisation manque.</span></div>
+          </div>
+
+          <!-- Commentaires -->
+          <div class="guide-content-section" id="gsec-commentaires">
+            <h3>🎭 Commentaires</h3>
+            <p class="guide-section-subtitle">Paramètres → 🎭 Commentaires — personnalise les phrases du podium.</p>
+            <div class="guide-subheading">Variables disponibles</div>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔤</span><div class="guide-feature-body"><strong><code>{player}</code> <code>{pts}</code> <code>{gap}</code> <code>{behind}</code> <code>{rank}</code></strong><span>Nom du joueur, ses points, l'écart avec le voisin de rang, les points de retard sur le 1er, son rang.</span></div></li>
+            </ul>
+            <div class="guide-subheading">Pools de position</div>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎯</span><div class="guide-feature-body"><strong><code>first</code> / <code>second</code> / <code>third</code></strong><span>Phrases pour le 1er, 2e et 3e.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎯</span><div class="guide-feature-body"><strong><code>mid</code> / <code>last</code> / <code>tied</code> / <code>solo</code></strong><span>Milieu de classement, dernier, ex-æquo ou joueur seul.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🏷️</span><div class="guide-feature-body"><strong><code>cat:NomDuTop</code></strong><span>Génère des commentaires spécifiques à ce Top, affichés sous le classement global.</span></div></li>
+            </ul>
+          </div>
+
+          <!-- Outils -->
+          <div class="guide-content-section" id="gsec-outils">
+            <h3>🔧 Outils de données</h3>
+            <p class="guide-section-subtitle">Paramètres → 🔧 Outils — diagnostique et corrige les anomalies.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🩺</span><div class="guide-feature-body"><strong>Rapport de santé</strong><span>Compte les entrées à 0 point, orphelines et en doublon. Résumé global de l'état des données.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🗑️</span><div class="guide-feature-body"><strong>Nettoyage</strong><span>Supprime les entrées à 0 point ou orphelines, détecte et fusionne les doublons.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📦</span><div class="guide-feature-body"><strong>Lots répartis</strong><span>Détecte des chaînes de saisies identiques fractionnées sur plusieurs jours. Propose la fusion en un seul lot avec un bouton <code>⭐ Alt Top</code> intégré.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔗</span><div class="guide-feature-body"><strong>Groupes hérités</strong><span>Détecte et corrige les anciens identifiants de groupe au format déprécié.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">💤</span><div class="guide-feature-body"><strong>Joueurs inactifs</strong><span>Liste les joueurs sans entrée récente avec leur date de dernière activité.</span></div></li>
+            </ul>
+          </div>
+
+          <!-- Barème -->
+          <div class="guide-content-section" id="gsec-bareme">
+            <h3>⚖️ Barème</h3>
+            <p class="guide-section-subtitle">Aide-mémoire des règles de points, accessible depuis n'importe quel onglet.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">📋</span><div class="guide-feature-body"><strong>Panneau flottant</strong><span>Le bouton ⚖️ en bas à gauche liste toutes les règles définies dans Paramètres → Barème.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⌨️</span><div class="guide-feature-body"><strong>Raccourci clavier</strong><span>Appuie sur <kbd>?</kbd> depuis n'importe quel onglet pour ouvrir/fermer le panneau Barème.</span></div></li>
+            </ul>
+          </div>
+
+          <!-- Thème & Identité -->
+          <div class="guide-content-section" id="gsec-theme">
+            <h3>🎨 Thème &amp; Identité</h3>
+            <p class="guide-section-subtitle">Personnalise l'apparence et identifie-toi dans l'app.</p>
+            <ul class="guide-feature-list">
+              <li class="guide-feature-item"><span class="guide-feature-icon">🌙</span><div class="guide-feature-body"><strong>Dark / Light</strong><span>Bascule dans la barre de navigation. La préférence est mémorisée sur cet appareil.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Qui suis-je ?</strong><span>Le sélecteur en haut à droite permet de choisir ton identité parmi les joueurs. Utile pour attribuer les saisies et les notes.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔒</span><div class="guide-feature-body"><strong>Identités protégées</strong><span>Les identités marquées 🔒 demandent un mot de passe. Celui-ci se définit dans la colonne D de la feuille <em>Players</em> du Google Sheet.</span></div></li>
+            </ul>
+          </div>
+
+          <!-- Raccourcis clavier -->
+          <div class="guide-content-section" id="gsec-raccourcis">
+            <h3>⌨️ Raccourcis clavier</h3>
+            <p class="guide-section-subtitle">Navigue plus vite sans quitter le clavier.</p>
+            <table class="guide-kbd-table">
+              <tr><td>Ouvrir / Fermer le Barème</td><td><kbd>?</kbd></td></tr>
+              <tr><td>Valider un champ / ajouter une note</td><td><kbd>Entrée</kbd></td></tr>
+              <tr><td>Fermer une modale</td><td><kbd>Échap</kbd></td></tr>
+              <tr><td>Naviguer entre les champs de saisie</td><td><kbd>Tab</kbd></td></tr>
+            </table>
+            <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>D'autres raccourcis peuvent être ajoutés sur demande. N'hésite pas à consulter la section Paramètres → Outils pour les fonctions avancées.</span></div>
+          </div>
+
+        </div><!-- /.guide-content-pane -->
+      </div><!-- /.guide-layout -->
     </div>
   </div>
 
@@ -15177,6 +15372,29 @@
     document.querySelectorAll('.lot-sort-btn').forEach(btn => {
       btn.addEventListener('click', () => sortEntryRows(btn.dataset.sortCriterion));
     });
+
+    // ── GUIDE (panneau latéral + sections) ─────────────────────────────
+    let guideInited = false;
+    function initGuideAccordion() {
+      if (guideInited) return;
+      guideInited = true;
+      const sidebar = document.querySelector('.guide-sidebar');
+      if (!sidebar) return;
+      sidebar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.guide-nav-btn');
+        if (!btn) return;
+        const section = btn.dataset.section;
+        if (!section) return;
+        // Update active nav button
+        sidebar.querySelectorAll('.guide-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Show target section, hide others
+        document.querySelectorAll('.guide-content-section').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById('gsec-' + section);
+        if (target) target.classList.add('active');
+      });
+    }
+
     document.getElementById('saveAppSettingsBtn').addEventListener('click', (e) => {
       if (!requireIdentity()) return;
       const btn   = e.currentTarget;
@@ -15422,35 +15640,8 @@
     document.getElementById('detectLegacyGroupsBtn').addEventListener('click', scanLegacyGroups);
   }
 
-  // ── GUIDE (grille de cards → vue détail) ─────────────────────────────
-  const GUIDE_TITLES = {
-    dashboard: '📊 Dashboard', saisie: '✍️ Saisir un Lot', parametres: '⚙️ Paramètres',
-    notes: '📝 Notes', historique: '📜 Historique', tchat: '💬 Tchat',
-    bareme: '⚖️ Barème', alt: '⭐ Tops Alternatifs', theme: '🎨 Thème & identité'
-  };
-  let guideInited = false;
-  function initGuideAccordion() {
-    if (guideInited) return;
-    guideInited = true;
-    document.getElementById('guideGrid').addEventListener('click', (e) => {
-      const tile = e.target.closest('.guide-tile');
-      if (tile) openGuideDetail(tile.dataset.guide);
-    });
-    document.getElementById('guideBackBtn').addEventListener('click', closeGuideDetail);
-  }
-  function openGuideDetail(key) {
-    const tpl = document.getElementById('guideContent-' + key);
-    if (!tpl) return;
-    document.getElementById('guideDetailTitle').textContent = GUIDE_TITLES[key] || '';
-    document.getElementById('guideDetailBody').innerHTML = '';
-    document.getElementById('guideDetailBody').appendChild(tpl.content.cloneNode(true));
-    document.getElementById('guideGrid').style.display = 'none';
-    document.getElementById('guideDetail').style.display = 'block';
-  }
-  function closeGuideDetail() {
-    document.getElementById('guideDetail').style.display = 'none';
-    document.getElementById('guideGrid').style.display = 'grid';
-  }
+
+
 
   // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
   const DISMISSED_LOTS_KEY = 'tdt_dismissed_lots';
