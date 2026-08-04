@@ -4617,6 +4617,7 @@
         <button type="button" class="guide-tile" data-guide="historique"><span class="guide-tile-icon">📜</span><span class="guide-tile-title">Historique</span></button>
         <button type="button" class="guide-tile" data-guide="tchat"><span class="guide-tile-icon">💬</span><span class="guide-tile-title">Tchat</span></button>
         <button type="button" class="guide-tile" data-guide="bareme"><span class="guide-tile-icon">⚖️</span><span class="guide-tile-title">Barème</span></button>
+        <button type="button" class="guide-tile" data-guide="alt"><span class="guide-tile-icon">⭐</span><span class="guide-tile-title">Tops Alternatifs</span></button>
         <button type="button" class="guide-tile" data-guide="theme"><span class="guide-tile-icon">🎨</span><span class="guide-tile-title">Thème &amp; identité</span></button>
       </div>
 
@@ -4627,29 +4628,30 @@
       </div>
 
       <template id="guideContent-dashboard">
-        <p>Page d'accueil. Tout en haut : la card <strong>🎭 Commentaires</strong> — elle affiche en permanence le classement global avec des phrases générées automatiquement. Tu peux la replier en cliquant sur le bouton ▲ en haut à droite de la card.</p>
-        <p>En dessous : les <strong>filtres</strong> (joueurs, Tops, période), puis le <strong>graphique</strong>.</p>
-        <p><strong>Types de graphique :</strong> Empilé, Groupé, Courbes, Radar, Donut, Classement. Le Classement affiche les barres horizontales par joueur — survoler une barre met en évidence la bonne ligne.</p>
-        <p><strong>Commentaires par Top :</strong> si des phrases de catégorie sont configurées dans Paramètres → Commentaires, elles apparaissent sous le classement, triées par le score le plus élevé dans chaque Top.</p>
+        <p>Page d'accueil de l'application. Tout en haut : le bandeau des <strong>statistiques rapides</strong> et la card <strong>🎭 Commentaires &amp; Podium</strong> — elle affiche le classement avec le podium 3D animé (avatars agrandis, halos lumineux Or/Argent/Bronze, mini-barres comparatives) et des phrases générées automatiquement.</p>
+        <p><strong>Univers (Tops Principaux vs ⭐ Tops Alternatifs) :</strong> le sélecteur d'univers en haut du Dashboard permet de basculer instantanément les graphiques et classements entre les Tops principaux et les Tops Alternatifs.</p>
+        <p><strong>Filtres &amp; Graphiques :</strong> filtres croisés par joueurs, Tops et période. Types de graphique : Empilé, Groupé, Courbes, Radar, Donut, Classement.</p>
+        <p><strong>Détail &amp; Drilldown :</strong> cliquer sur une barre ou tranche de graphique ouvre la liste détaillée des points avec un bouton <code>⭐ Affecter ces points au Top Alt</code> pour lier la sélection à un Top Alternatif.</p>
         <p><strong>Export :</strong> boutons Infographie, CSV, Excel en haut à droite de la card graphique.</p>
       </template>
 
       <template id="guideContent-saisie">
-        <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne = un joueur, un Top, un score, une date.</p>
-        <p><strong>Raccourcis de points :</strong> les boutons rapides (1, 3, 5…) permettent de cliquer directement. Tu peux aussi saisir une valeur personnalisée.</p>
-        <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours. Mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé). Le filtre par jour de semaine permet de n'inclure que certains jours (ex : du lundi au vendredi).</p>
-        <p><strong>Boutons en bas :</strong> <em>＋ Ligne</em> ajoute une ligne, <em>🔗 Grouper</em> permet de lier des lignes en lot visible dans l'Historique, <em>✓ Inscrire le lot</em> enregistre tout.</p>
-        <p><strong>Dupliquer :</strong> bouton 📋 sur chaque ligne pour copier rapidement.</p>
+        <p>C'est ici qu'on <strong>enregistre des points</strong>. Chaque ligne offre une disposition fluide à 3 colonnes : Joueur, Top principal &amp; Points, et Date.</p>
+        <p><strong>Raccourcis de points :</strong> grille de boutons rapides (1, 3, 5, 7 / 10, 25, 50, 100) pour cliquer en un instant, ou saisie manuelle de la valeur.</p>
+        <p><strong>Tops secondaires &amp; Alternatifs :</strong> ajoute un sous-top avec <code>＋ Top supp.</code> ou lie l'entrée à un Top Alternatif grâce au bouton pilule <code>⭐ Top Alt</code>.</p>
+        <p><strong>Plage de dates :</strong> étale une entrée sur plusieurs jours en mode « Répéter » (même score chaque jour) ou « Répartir » (total divisé) avec filtre par jours de la semaine.</p>
+        <p><strong>Actions de ligne :</strong> réorganisation par glisser-déposer (poignée ≡), boutons complets <code>📋 Dupliquer cette ligne</code> et <code>✕ Supprimer cette ligne</code>.</p>
       </template>
 
       <template id="guideContent-parametres">
-        <p>Cinq sous-onglets :</p>
+        <p>Six sous-onglets de configuration :</p>
         <p><strong>👤 Joueurs :</strong> ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</p>
-        <p><strong>🎯 Tops :</strong> gérer les catégories (nom, description, emoji, couleur).</p>
-        <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton flottant ⚖️ (raccourci clavier : <strong>?</strong>).</p>
-        <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases. Les variables disponibles dans les phrases sont <code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>. Les pools <code>first</code>, <code>second</code>, <code>third</code>, <code>mid</code>, <code>last</code>, <code>tied</code>, <code>solo</code> permettent de cibler chaque position. Le pool <code>cat:NomDuTop</code> génère des commentaires spécifiques à un Top.</p>
-        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage des entrées à 0 point, orphelines ou en doublon, détection et fusion de lots répartis, gestion des groupes hérités, détection des joueurs inactifs, et un sommaire de navigation pour retrouver chaque outil rapidement.</p>
-        <p><strong>🤖 Automatisations :</strong> création, activation, édition, duplication et suppression de règles de points automatiques (quotidien, hebdomadaire, mensuel) pour chaque joueur et chaque Top.</p>
+        <p><strong>🎯 Tops :</strong> gérer les catégories principales (nom, description, emoji, couleur).</p>
+        <p><strong>⭐ Tops Alternatifs :</strong> créer et éditer les catégories alternes. Le bouton <strong>👁️ Gérer les points</strong> ouvre un tiroir dédié pour consulter les points inclus, les désaffecter (<code>❌ Retirer</code>) ou importer de nouveaux points existants.</p>
+        <p><strong>⚖️ Barème :</strong> définir des règles de points pour chaque Top (ex : « Ramener des chips = 3 pts »). Consultable à tout moment via le bouton ⚖️ (raccourci clavier : <strong>?</strong>).</p>
+        <p><strong>🎭 Commentaires :</strong> créer et éditer des presets de phrases avec variables (<code>{player}</code>, <code>{pts}</code>, <code>{gap}</code>, <code>{behind}</code>, <code>{rank}</code>) et pools de position (<code>first</code> à <code>solo</code>, ou <code>cat:NomDuTop</code>).</p>
+        <p><strong>🔧 Outils :</strong> rapport de santé des données, nettoyage (zéros/orphelins/doublons), détection et fusion de lots répartis, gestion des groupes hérités et détection des joueurs inactifs.</p>
+        <p><strong>🤖 Automatisations :</strong> sous-onglet dédié pour créer, éditer (fréquence quotidienne/hebdo/mensuelle, jours, dates), dupliquer en 1 clic et activer/désactiver les règles de points automatiques.</p>
       </template>
 
       <template id="guideContent-notes">
@@ -4658,21 +4660,29 @@
       </template>
 
       <template id="guideContent-historique">
-        <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top, ou par recherche texte.</p>
+        <p>Toutes les entrées enregistrées, de la plus récente à la plus ancienne. Filtre par joueur, par Top principal, par recherche texte et par <strong>Tops Alternatifs</strong> (puces <em>Tous Alt</em>, <em>Non Alt</em> ou par Top Alt spécifique).</p>
+        <p><strong>Badges ⭐ Tops Alternatifs :</strong> chaque ligne liée à un Top Alternatif affiche un badge ⭐ coloré et cliquable pour ouvrir directement sa gestion.</p>
         <p><strong>Regroupement automatique :</strong> les entrées identiques consécutives sont groupées. Clique sur un groupe pour le déplier.</p>
-        <p><strong>Mode sélection (☑) :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, ou les grouper en lot.</p>
+        <p><strong>Mode sélection (☑) &amp; Affectation universelle :</strong> cocher des entrées pour les supprimer en bloc, leur assigner une description commune, les grouper en lot, ou utiliser <code>⭐ Affecter au Top Alt</code> (ou <code>❌ Retirer du Top Alt</code>) via le sélecteur universel de points.</p>
         <p><strong>🔍 Journal d'audit</strong> (sous-onglet) : historique de toutes les actions qui modifient des données (créations, éditions, suppressions), avec l'auteur, la cible et un résumé du changement.</p>
       </template>
 
       <template id="guideContent-tchat">
-        <p>Widget flottant (bouton 💬), présent sur tous les onglets. Un clic maintenu déplace le bouton, un clic simple ouvre ou ferme le panneau.</p>
-        <p><strong>Markdown</strong> complet dans les messages, mentions <code>@Joueur</code> et <code>#Top</code> avec autocomplétion, réponse à un message (aperçu cité), horodatage.</p>
-        <p>Chacun peut supprimer ses propres messages. Pas de notification en temps réel : l'app vérifie les nouveaux messages toutes les 4 secondes, avec un badge de messages non lus quand le panneau est fermé.</p>
+        <p>Widget de discussion accessible via le volet latéral ancré sur PC ou le bouton flottant 💬. Un clic maintenu déplace le bouton sur mobile.</p>
+        <p><strong>Markdown GFM</strong> complet dans les messages, mentions <code>@Joueur</code> et <code>#Top</code> avec autocomplétion, réponse à un message (aperçu cité), horodatage.</p>
+        <p>Chacun peut supprimer ses propres messages. L'app vérifie les nouveaux messages toutes les 4 secondes, avec badge de messages non lus quand le panneau est fermé.</p>
       </template>
 
       <template id="guideContent-bareme">
         <p>Le bouton flottant en bas à gauche ouvre un panneau qui liste toutes les règles de points définies dans Paramètres → Barème. Aide-mémoire rapide accessible depuis n'importe quel onglet.</p>
         <p>Raccourci clavier : <strong>?</strong></p>
+      </template>
+
+      <template id="guideContent-alt">
+        <p>Les <strong>Tops Alternatifs</strong> permettent de suivre des classements parallèles à l'univers principal (ex : mini-jeux, sous-défis, événements temporaires).</p>
+        <p><strong>Bascule d'univers :</strong> sur le Dashboard, le sélecteur <em>Tops Principaux / ⭐ Tops Alternatifs</em> permet de basculer instantanément les graphiques, le podium et les classements.</p>
+        <p><strong>Saisie &amp; Affectation :</strong> lors de la saisie d'un lot, utilise le bouton pilule <code>⭐ Top Alt</code>. Pour les points déjà enregistrés, utilise le sélecteur universel (<code>⭐ Affecter au Top Alt</code>) depuis l'Historique (mode sélection ☑), les détails de graphiques ou les Outils de lots.</p>
+        <p><strong>Badges &amp; Gestion :</strong> chaque point lié affiche un badge ⭐ coloré dans l'Historique. Dans Paramètres → ⭐ Tops Alternatifs, le bouton <strong>👁️ Gérer les points</strong> permet d'afficher la liste des points inclus, d'en retirer (<code>❌</code>) ou d'en importer de nouveaux.</p>
       </template>
 
       <template id="guideContent-theme">
@@ -15416,7 +15426,7 @@
   const GUIDE_TITLES = {
     dashboard: '📊 Dashboard', saisie: '✍️ Saisir un Lot', parametres: '⚙️ Paramètres',
     notes: '📝 Notes', historique: '📜 Historique', tchat: '💬 Tchat',
-    bareme: '⚖️ Barème', theme: '🎨 Thème & identité'
+    bareme: '⚖️ Barème', alt: '⭐ Tops Alternatifs', theme: '🎨 Thème & identité'
   };
   let guideInited = false;
   function initGuideAccordion() {

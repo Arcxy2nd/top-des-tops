@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.0] - 2026-08-04
+## [v3.4.1] - 2026-08-05
+
+### Modifié
+**Humanisé** : Le guide d'utilisation du site a été entièrement mis à jour avec une nouvelle section dédiée aux Tops Alternatifs et l'actualisation de toutes les explications (podium 3D, automatisations, univers, tchat et sélection universelle).
+**Technique** : `Index.html` — ajout de la tuile et du template `guideContent-alt` dans `tab-guide`, enregistrement dans `GUIDE_TITLES`, et mise à jour des templates de guide Dashboard, Saisie, Paramètres, Historique et Tchat.
+
+## [v3.4.0] - 2026-08-04
 
 ### Ajouté
 **Humanisé** : Gestion complète et universelle des points dans les Tops Alternatifs — ajout d'un sélecteur universel de points, de badges ⭐ dans l'historique, de filtres par Top Alt, d'une modale de gestion des points dans les Paramètres, et de raccourcis d'affectation depuis les outils de lots et les détails de graphiques.
