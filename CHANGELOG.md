@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.1] - 2026-08-06
+## [v3.5.2] - 2026-08-06
+
+### Corrigé
+**Humanisé** : Empêchement de l'accumulation de caches vides ou corrompus dans le navigateur. Si une erreur réseau ou d'autorisation survenait temporairement, l'application ne verrouille plus l'affichage des joueurs et des Tops avec des listes vides.
+**Technique** : `Index.html` — `loadEntities()` vérifie désormais que les données `localStorage` sont des tableaux non vides (`cached.players.length > 0`) avant de les peindre, et `callServer()` vérifie `google.script.run` avant d'exécuter un appel serveur.
+
+## [v3.5.1] - 2026-08-06
 
 ### Corrigé
 **Humanisé** : Correction du bug d'affichage au lancement du site où les boutons du menu et l'interface restaient entièrement vides. La barre de navigation s'affiche désormais instantanément avec les onglets par défaut sans attendre la réponse du serveur, et tous les traitements de statistiques du Dashboard sont sécurisés.

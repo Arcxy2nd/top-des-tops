@@ -8441,6 +8441,11 @@
 
   // ── APPEL SERVEUR ────────────────────────────────────────────────────
   function callServer(fn, params, onSuccess, errorLabel, onError) {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      console.warn('google.script.run indisponible');
+      if (onError) onError('google.script.run indisponible');
+      return;
+    }
     let runner = google.script.run
       .withSuccessHandler(res => {
         if (res && res.success === false) {
@@ -9231,7 +9236,7 @@
     let paintedFromCache = false;
     try {
       const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
-      if (cached && cached.players && cached.categories) {
+      if (cached && Array.isArray(cached.players) && cached.players.length > 0 && Array.isArray(cached.categories) && cached.categories.length > 0) {
         cachedPlayers    = cached.players;
         cachedCategories = cached.categories;
         _paintEntitiesUI({ withDataLoad: false });
@@ -9245,11 +9250,15 @@
     }
 
     callServer('apiGetSettings', [], res => {
-      cachedPlayers    = res.players    || [];
-      cachedCategories = res.categories || [];
-      try {
-        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
-      } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
+      if (res && res.success !== false && (res.players || res.categories)) {
+        cachedPlayers    = res.players    || [];
+        cachedCategories = res.categories || [];
+        try {
+          if (cachedPlayers.length > 0 || cachedCategories.length > 0) {
+            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+          }
+        } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
+      }
 
       // Rendu complet immédiat avec chargement des données (applyFilters + loadQuickStats)
       _paintEntitiesUI({ withDataLoad: true });
