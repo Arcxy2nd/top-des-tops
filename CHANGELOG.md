@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.2] - 2026-08-06
+## [v3.5.3] - 2026-08-06
+
+### Corrigé
+**Humanisé** : Résolution définitive du blocage d'initialisation de l'interface au lancement. L'application démarre désormais de manière garantie, quels que soient le timing de chargement de l'iframe Google Apps Script ou les éléments dynamiques.
+**Technique** : `Index.html` — Remplacement de `window.onload` par une exécution immunisée `safeInitApp()` basée sur `document.readyState` et `DOMContentLoaded`. Sécurisation avec chaînage optionnel (`?.`) sur les écouteurs d'évènements du Barème.
+
+## [v3.5.2] - 2026-08-06
 
 ### Corrigé
 **Humanisé** : Empêchement de l'accumulation de caches vides ou corrompus dans le navigateur. Si une erreur réseau ou d'autorisation survenait temporairement, l'application ne verrouille plus l'affichage des joueurs et des Tops avec des listes vides.

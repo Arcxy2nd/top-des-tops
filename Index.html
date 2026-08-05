@@ -17223,7 +17223,7 @@
     loadHistoryPage(1);
   });
 
-  window.onload = () => {
+  function initApp() {
     renderNav();
     initNavHoverTip();
     initTheme();
@@ -17238,9 +17238,6 @@
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
-    // Le groupe (.detect-lot-head) garde la case comme seule cible : toute la
-    // ligne y sert déjà à ouvrir/fermer le détail. Les entrées individuelles
-    // à l'intérieur, elles, n'ont pas d'autre action — toute leur ligne compte.
     enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.detect-lot-head input[type="checkbox"]');
     enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.legacy-entry-cb', '.legacy-entry-row');
     bindExportButtons();
@@ -17266,8 +17263,6 @@
       }, 'Chargement preset actif');
     });
 
-    // Champs date/période par défaut du lot : interrupteur segmenté (même modèle
-    // que les lignes) + choix Répéter/Répartir en langage clair.
     (() => {
       const startEl    = document.getElementById('defaultStart');
       const endEl      = document.getElementById('defaultEnd');
@@ -17275,22 +17270,23 @@
       const modeRange  = document.getElementById('defaultModeRange');
       const rangeArea  = document.getElementById('defaultRangeArea');
       const fillSlot   = document.getElementById('defaultFillSlot');
-      startEl.value = toDateStr(new Date());
-      fillSlot.appendChild(createFillToggle('repeat'));
+      if (startEl) startEl.value = toDateStr(new Date());
+      if (fillSlot) fillSlot.appendChild(createFillToggle('repeat'));
       const setMode = (range) => {
-        modeRange.classList.toggle('active', range);
-        modeSingle.classList.toggle('active', !range);
-        rangeArea.style.display = range ? 'flex' : 'none';
-        if (range) { if (!endEl.value) endEl.value = startEl.value; }
-        else endEl.value = '';
+        if (modeRange) modeRange.classList.toggle('active', range);
+        if (modeSingle) modeSingle.classList.toggle('active', !range);
+        if (rangeArea) rangeArea.style.display = range ? 'flex' : 'none';
+        if (range) { if (endEl && startEl && !endEl.value) endEl.value = startEl.value; }
+        else if (endEl) endEl.value = '';
       };
-      modeSingle.addEventListener('click', () => setMode(false));
-      modeRange.addEventListener('click', () => setMode(true));
+      if (modeSingle) modeSingle.addEventListener('click', () => setMode(false));
+      if (modeRange)  modeRange.addEventListener('click', () => setMode(true));
     })();
 
-    // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value   = '';
+    const startEl = document.getElementById('startDate');
+    const endEl   = document.getElementById('endDate');
+    if (startEl) startEl.value = '';
+    if (endEl)   endEl.value   = '';
     buildRangePresets();
 
     lastRefreshTime = new Date();
@@ -17305,7 +17301,7 @@
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
     makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
-    // Sommaire des outils : déplie la carte visée puis descend dessus.
+
     document.querySelectorAll('#toolsQuickNav button').forEach(btn => {
       btn.addEventListener('click', () => {
         const card = document.getElementById(btn.dataset.target);
@@ -17314,13 +17310,13 @@
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
-    document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
-    document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
-    document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
-    // Hub Statistiques : une seule carte à onglets (Records / Tendances /
-    // Jour actif / Duo / Mentions), onglet actif mémorisé. Les graphiques
-    // Chart.js créés dans un volet masqué ont une taille nulle : resize()
-    // au moment où leur volet devient visible.
+    const dupBtn = document.getElementById('detectDuplicatesBtn');
+    if (dupBtn) dupBtn.addEventListener('click', scanDuplicates);
+    const menBtn = document.getElementById('detectMentionsBtn');
+    if (menBtn) menBtn.addEventListener('click', scanMentionFixes);
+    const inactBtn = document.getElementById('scanInactiveBtn');
+    if (inactBtn) inactBtn.addEventListener('click', scanInactivePlayers);
+
     const STATS_HUB_TAB_KEY = 'tdt_stats_hub_tab';
     function switchStatsHubPane(pane) {
       document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(b =>
@@ -17366,40 +17362,52 @@
       const savedPane = localStorage.getItem(STATS_HUB_TAB_KEY);
       if (savedPane && document.querySelector('#statsHubTabs [data-pane="' + savedPane + '"]')) switchStatsHubPane(savedPane);
     } catch {}
-    document.getElementById('trendsScopeToggle').addEventListener('click', e => {
-      if (!e.target.dataset.scope) return;
-      trendsScope = e.target.dataset.scope;
-      document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
-      renderTrends();
-    });
+    const scopeToggle = document.getElementById('trendsScopeToggle');
+    if (scopeToggle) {
+      scopeToggle.addEventListener('click', e => {
+        if (!e.target.dataset.scope) return;
+        trendsScope = e.target.dataset.scope;
+        document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
+        renderTrends();
+      });
+    }
 
-    document.getElementById('whoAmIBtn').addEventListener('click', e => {
-      e.stopPropagation();
-      const wrap = document.getElementById('whoAmIWrap');
-      const isOpen = wrap.classList.contains('open');
-      if (!isOpen) {
-        renderWhoAmI();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const dropdown = document.getElementById('whoAmIDropdown');
-        dropdown.style.top  = (rect.bottom + 6) + 'px';
-        dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
-        dropdown.style.width = '220px';
-      }
-      wrap.classList.toggle('open');
-    });
+    const waiBtn = document.getElementById('whoAmIBtn');
+    if (waiBtn) {
+      waiBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const wrap = document.getElementById('whoAmIWrap');
+        const isOpen = wrap.classList.contains('open');
+        if (!isOpen) {
+          renderWhoAmI();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const dropdown = document.getElementById('whoAmIDropdown');
+          if (dropdown) {
+            dropdown.style.top  = (rect.bottom + 6) + 'px';
+            dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
+            dropdown.style.width = '220px';
+          }
+        }
+        if (wrap) wrap.classList.toggle('open');
+      });
+    }
     document.addEventListener('click', () => {
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap) wrap.classList.remove('open');
     });
 
-    document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
-    document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
-    document.getElementById('identityPwdInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter') submitIdentityPwd();
-      if (e.key === 'Escape') closeIdentityPwdModal();
-    });
+    const pwdCancel = document.getElementById('identityPwdCancel');
+    if (pwdCancel) pwdCancel.addEventListener('click', closeIdentityPwdModal);
+    const pwdSubmit = document.getElementById('identityPwdSubmit');
+    if (pwdSubmit) pwdSubmit.addEventListener('click', submitIdentityPwd);
+    const pwdInput = document.getElementById('identityPwdInput');
+    if (pwdInput) {
+      pwdInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitIdentityPwd();
+        if (e.key === 'Escape') closeIdentityPwdModal();
+      });
+    }
 
-    // Close any open RichSelect when clicking outside
     document.addEventListener('mousedown', function(e) {
       if (!e.target.closest('.rich-select')) closeAllRichSelects();
     });
@@ -17408,10 +17416,22 @@
     loadEntities();
     loadAppBranding();
 
-    // Differ de 150ms le chargement des statistiques secondaires du Dashboard
-    // pour éviter d'inonder Google Apps Script de requêtes parallèles au démarrage
     setTimeout(refreshDashboardStats, 150);
-  };
+  }
+
+  let _appInited = false;
+  function safeInitApp() {
+    if (_appInited) return;
+    _appInited = true;
+    initApp();
+  }
+
+  window.onload = safeInitApp;
+  if (document.readyState !== 'loading') {
+    safeInitApp();
+  } else {
+    document.addEventListener('DOMContentLoaded', safeInitApp);
+  }
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────
   function loadBaremeSettings() {
@@ -17716,10 +17736,10 @@
   const openCloseBareme = () => {
     document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
   };
-  document.getElementById('baremeBtn').addEventListener('click', openCloseBareme);
-  document.getElementById('baremeBackdrop').addEventListener('click', closeBareme);
-  document.getElementById('baremeCloseBtn').addEventListener('click', closeBareme);
-  document.getElementById('baremeRefreshBtn').addEventListener('click', () => {
+  document.getElementById('baremeBtn')?.addEventListener('click', openCloseBareme);
+  document.getElementById('baremeBackdrop')?.addEventListener('click', closeBareme);
+  document.getElementById('baremeCloseBtn')?.addEventListener('click', closeBareme);
+  document.getElementById('baremeRefreshBtn')?.addEventListener('click', () => {
     baremeEntries = null; loadBareme();
   });
   const searchInputEl = document.getElementById('baremeSearchInput');
