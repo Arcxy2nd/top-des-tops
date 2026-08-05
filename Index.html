@@ -9164,6 +9164,10 @@
   // à la fois pour un rendu instantané depuis le cache et pour le rendu final avec les
   // données fraîches du serveur, afin de ne pas dupliquer cette longue séquence.
   function _paintEntitiesUI(opts) {
+    cachedPlayers       = cachedPlayers       || [];
+    cachedCategories    = cachedCategories    || [];
+    cachedAltCategories = cachedAltCategories || [];
+
     // opts = { withDataLoad: bool }
     // withDataLoad=false → mise à jour UI légère depuis le cache (pas de requêtes réseau supplémentaires)
     // withDataLoad=true  → déclenche aussi applyFilters/loadQuickStats après le rendu
@@ -9172,18 +9176,20 @@
     const auSel = document.getElementById('auditFilterAuthor');
     if (auSel) {
       while (auSel.options.length > 1) auSel.remove(1);
-      (cachedPlayers || []).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name; opt.textContent = p.name;
-        auSel.appendChild(opt);
+      cachedPlayers.forEach(p => {
+        if (p && p.name) {
+          const opt = document.createElement('option');
+          opt.value = p.name; opt.textContent = p.name;
+          auSel.appendChild(opt);
+        }
       });
     }
 
     // Remove any players/categories that no longer exist from chip selection
-    selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
+    selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p && p.name === n)) selectedPlayerChips.delete(n); });
     selectedCategoryChips.forEach(n => {
       const list = (activeDashboardUniverse === 'alt') ? cachedAltCategories : cachedCategories;
-      if (!list.find(c => c.name === n)) selectedCategoryChips.delete(n);
+      if (!list.find(c => c && c.name === n)) selectedCategoryChips.delete(n);
     });
     renderPlayerChips();
     renderCategoryChips();
@@ -10231,7 +10237,8 @@
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = 'var(--text-muted)';
+      const cColors = getChartColors();
+      ctx.fillStyle = cColors.muted || '#a0a0b0';
       ctx.textAlign = 'center';
       ctx.font = '14px sans-serif';
       ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
@@ -10592,7 +10599,8 @@
     if (!trendData || !trendData.labels || !trendData.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = 'var(--text-muted)';
+      const cColors = getChartColors();
+      ctx.fillStyle = cColors.muted || '#a0a0b0';
       ctx.textAlign = 'center';
       ctx.font = '14px sans-serif';
       ctx.fillText('Aucune donnée temporelle pour cette sélection.', ctx.canvas.width / 2, 40);
@@ -12098,10 +12106,15 @@
 
   function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
-    const es = container.querySelector('.empty-state');
-    if (es) es.remove();
+    cachedPlayers       = cachedPlayers       || [];
+    cachedCategories    = cachedCategories    || [];
+    cachedAltCategories = cachedAltCategories || [];
 
-    if (!cachedPlayers.length || (activeLotUniverse === 'alt' ? !cachedAltCategories.length : !cachedCategories.length)) {
+    const hasCategories = activeLotUniverse === 'alt'
+      ? cachedAltCategories.length > 0
+      : cachedCategories.length > 0;
+
+    if (!cachedPlayers.length || !hasCategories) {
       if (!container.querySelector('.empty-illustration')) {
         const p = document.createElement('div');
         p.className = 'empty-illustration';
@@ -12113,6 +12126,11 @@
       }
       return;
     }
+
+    const es = container.querySelector('.empty-state');
+    if (es) es.remove();
+    const ei = container.querySelector('.empty-illustration');
+    if (ei) ei.remove();
 
     rowCounter++;
     const div = document.createElement('div');
