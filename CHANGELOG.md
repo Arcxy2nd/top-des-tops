@@ -3,7 +3,14 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.5] - 2026-08-05
+## [v3.5.0] - 2026-08-06
+
+### Ajouté
+**Humanisé** : Il est désormais possible de saisir des points directement dans un Top Alternatif, sans qu'aucune entrée ne soit créée dans l'historique principal. Deux surfaces : un sélecteur d'univers en haut de l'onglet « Saisir un Lot » (bascule le constructeur en mode Alt, avec le sélecteur de Top remplacé par un sélecteur de Top Alternatif), et un bouton « ＋ Saisir Alt » qui apparaît sur le Dashboard quand l'univers Alt est actif (modale légère en un clic). Les entrées natives sont distinctes des entrées liées : elles affichent un badge ✏️ natif dans le gestionnaire Alt.
+**Technique** : `Code.gs` — `AltStorageService.addNativeAltEntries()` (validation joueur/altCat/pts, écriture dans `AltHistory` avec `refHistoryRowId` vide), `_parseAltHistoryRow` expose `isNative`, nouveau endpoint `apiAppendAltNativeBatch(author, entries)` avec audit `'Saisie native Alt'`. `Index.html` — variable `activeLotUniverse`, segmented control `#lotUniverseSeg` dans l'onglet Saisie, type `'altCategory'` dans `buildRichSelect` (peuple avec `cachedAltCategories`), branche Alt dans `submitBulk()`, fonction `openAltNativeQuickAddModal()` appelée par `#dashAltAddBtn` (visible seulement en mode Alt Dashboard), badge `✏️ natif` dans `openAltCategoryManagerModal` pour les entrées sans `refHistoryRowId`.
+
+## [v3.4.5] - 2026-08-05
+
 
 ### Corrigé
 **Humanisé** : La bascule vers les Tops Alternatifs sur le Dashboard ne recharge plus inutilement la bannière de statistiques rapides du haut de page, évitant ainsi tout clignotement intempestif.

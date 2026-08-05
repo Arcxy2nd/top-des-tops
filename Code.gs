@@ -1068,7 +1068,9 @@ const AltStorageService = {
       groupId: row[6] ? row[6].toString() : '',
       saiseur: row[7] ? row[7].toString() : '',
       hasEntities: !!(player && category),
-      pointsValid: !(isNaN(points) || points <= 0)
+      pointsValid: !(isNaN(points) || points <= 0),
+      // true when this entry was created directly in AltHistory, not derived from History
+      isNative: !(row[5] && row[5].toString().trim())
     };
   },
 
@@ -1124,6 +1126,40 @@ const AltStorageService = {
     });
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
     ConfigService.clearCache();
+  },
+
+  /**
+   * Appends native Alt entries (created directly in AltHistory, not derived from History).
+   * refHistoryRowId is intentionally left empty to distinguish them from linked entries.
+   */
+  addNativeAltEntries(entries) {
+    if (!entries || !entries.length) return 0;
+    const allPlayers    = SettingsService.getEntities('Players').map(p => p.name);
+    const allAltCats    = AltSettingsService.getAltCategories().map(c => c.name);
+    const sheet         = this._sheet();
+    const rows = [];
+    entries.forEach(e => {
+      if (!e.player || !allPlayers.includes(e.player)) throw new Error('Joueur invalide : ' + e.player);
+      if (!e.altCategory || !allAltCats.includes(e.altCategory)) throw new Error('Top Alternatif invalide : ' + e.altCategory);
+      const pts = parseInt(e.points, 10);
+      if (isNaN(pts) || pts < 1) throw new Error('Les points doivent être ≥ 1.');
+      const targetDate = e.date ? new Date(e.date) : new Date();
+      rows.push([
+        targetDate,
+        e.player,
+        e.altCategory,
+        pts,
+        e.description || '',
+        '',        // refHistoryRowId intentionally empty — marks entry as native
+        '',        // no groupId for native entries
+        e.saiseur || ''
+      ]);
+    });
+    if (rows.length) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
+      ConfigService.clearCache();
+    }
+    return rows.length;
   },
 
   linkHistoryRowsToAltCategory(rowIndices, altCategory, saiseur) {
@@ -2252,6 +2288,19 @@ function apiGetQuickStats(universe) {
 }
 
 // ── TOPS ALTERNATIFS & REGROUPEMENT AUTOMATIQUE API ───────────
+
+function apiAppendAltNativeBatch(author, entries) {
+  try {
+    requireAuthor(author);
+    if (!entries || !entries.length) return fail(new Error('Aucune entrée à enregistrer.'));
+    return withLock(function() {
+      const count = AltStorageService.addNativeAltEntries(entries);
+      AuditService.log(author, 'Saisie native Alt', entries.map(e => e.altCategory).join(', '),
+        count + ' entrée(s) saisie(s) directement dans Tops Alternatifs');
+      return { success: true, count: count };
+    });
+  } catch(e) { return fail(e); }
+}
 
 function apiGetAltCategories() {
   try {

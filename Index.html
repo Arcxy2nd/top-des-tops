@@ -4081,8 +4081,11 @@
         <button type="button" class="d-mode-btn active" id="univMainBtn">🏆 Tops Principaux</button>
         <button type="button" class="d-mode-btn" id="univAltBtn">⭐ Tops Alternatifs</button>
       </div>
-      <div id="univIndicator" style="font-size:0.8rem; font-weight:700; color:var(--accent);">
-        Mode actif : Tops Principaux
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="univIndicator" style="font-size:0.8rem; font-weight:700; color:var(--accent);">
+          Mode actif : Tops Principaux
+        </div>
+        <button type="button" id="dashAltAddBtn" class="primary small" style="display:none;" title="Saisir des points directement dans un Top Alternatif">＋ Saisir Alt</button>
       </div>
     </div>
 
@@ -4209,10 +4212,17 @@
 
   </div>
 
-  <!-- ══ SAISIE LOT ════════════════════════════════════════════════════ -->
   <div id="tab-inject" class="tab-content">
     <div class="card">
       <h2>✍️ Constructeur de Lot <span id="batchLineCount" style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:6px;"></span></h2>
+
+      <!-- ── Sélecteur d'univers de saisie ── -->
+      <div class="d-mode-seg" id="lotUniverseSeg" style="margin-bottom:14px;">
+        <button type="button" class="d-mode-btn active" id="lotModeMainBtn">🏆 Tops Principaux</button>
+        <button type="button" class="d-mode-btn" id="lotModeAltBtn">⭐ Tops Alternatifs</button>
+      </div>
+      <div id="lotUniverseHint" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;margin-top:-8px;display:none;">⭐ En mode Tops Alternatifs, les points sont enregistrés <strong>uniquement dans le classement Alt</strong> — aucune entrée ne sera créée dans l'historique principal.</div>
+
       <div style="margin-bottom:16px;">
         <label style="color:var(--text-muted); font-size:0.82rem; display:block; margin-bottom:6px;">
           Date / plage par défaut (nouvelles lignes)
@@ -5101,6 +5111,7 @@
   let cachedAltMap       = {}; // maps refHistoryRowId -> [altCategoryName, ...]
   let selectedHistAltCategories = new Set();
   let activeDashboardUniverse = 'main'; // 'main' | 'alt'
+  let activeLotUniverse = 'main';        // 'main' | 'alt'
 
   function loadAltHistoryMap(callback) {
     callServer('apiGetAltHistoryMap', [], res => {
@@ -7674,7 +7685,8 @@
     }
 
     function renderTrigger() {
-      var isCategory = (type === 'category');
+      var isCategory    = (type === 'category');
+      var isAltCategory = (type === 'altCategory');
       if (isMixed) {
         thumb.innerHTML = ''; thumb.className = 'rs-thumb'; thumb.style.background = '';
         label.textContent = '— Valeurs mixtes —';
@@ -7689,9 +7701,10 @@
         trigger.className = 'rs-trigger';
       } else {
         thumb.innerHTML = ''; thumb.className = 'rs-thumb'; thumb.style.background = '';
-        var first = isCategory
-          ? (cachedCategories[0] ? cachedCategories[0].name : '')
-          : (cachedPlayers[0]    ? cachedPlayers[0].name    : '');
+        var first;
+        if (isCategory) first = cachedCategories[0] ? cachedCategories[0].name : '';
+        else if (isAltCategory) first = cachedAltCategories[0] ? cachedAltCategories[0].name : '';
+        else first = cachedPlayers[0] ? cachedPlayers[0].name : '';
         label.textContent = first || '—';
         trigger.className = 'rs-trigger';
       }
@@ -7699,11 +7712,14 @@
 
     function buildPanel() {
       panel.innerHTML = '';
-      var isCategory = (type === 'category');
+      var isCategory    = (type === 'category');
+      var isAltCategory = (type === 'altCategory');
       var items = [];
       if (nullable) items.push({ val: null, isNull: true });
       if (isCategory) {
         cachedCategories.forEach(function(c) { items.push({ val: c.name }); });
+      } else if (isAltCategory) {
+        cachedAltCategories.forEach(function(c) { items.push({ val: c.name, emoji: c.emoji, color: c.color }); });
       } else {
         cachedPlayers.forEach(function(p) { items.push({ val: p.name }); });
       }
@@ -7723,11 +7739,22 @@
         optLabel.textContent = item.isNull ? '— inconnu —' : item.val;
         opt.appendChild(optThumb);
         opt.appendChild(optLabel);
-        if (isCategory && !item.isNull) {
-          var dot = document.createElement('span');
-          dot.className = 'rs-cat-dot';
-          dot.style.background = categoryColor(item.val);
-          opt.appendChild(dot);
+        if ((isCategory || isAltCategory) && !item.isNull) {
+          if (isAltCategory) {
+            var altDot = document.createElement('span');
+            altDot.className = 'rs-cat-dot';
+            altDot.style.background = item.color || '#ffd166';
+            var altEmoji = document.createElement('span');
+            altEmoji.style.cssText = 'font-size:0.9em;margin-right:2px;';
+            altEmoji.textContent = item.emoji || '⭐';
+            optLabel.prepend(altEmoji);
+            opt.appendChild(altDot);
+          } else {
+            var dot = document.createElement('span');
+            dot.className = 'rs-cat-dot';
+            dot.style.background = categoryColor(item.val);
+            opt.appendChild(dot);
+          }
         }
         opt.addEventListener('mousedown', function(e) {
           e.preventDefault();
@@ -8822,7 +8849,102 @@
     renderList();
   }
 
+  /**
+   * Modale légère de saisie rapide d'un point natif dans un Top Alternatif,
+   * accessible depuis le bouton ＋ Saisir Alt du Dashboard en mode Alt.
+   */
+  function openAltNativeQuickAddModal(prefillAltCategory) {
+    if (!requireIdentity()) return;
+    if (!cachedAltCategories.length) {
+      showToast('Aucun Top Alternatif configuré. Ajoutez-en dans Paramètres → ⭐ Tops Alternatifs.', 'error');
+      return;
+    }
+    const box = document.getElementById('modalBox');
+    box.classList.remove('wide', 'xl');
+
+    const today = toDateStr(new Date());
+
+    let altOpts = cachedAltCategories.map(ac =>
+      `<option value="${escapeHtml(ac.name)}" ${prefillAltCategory === ac.name ? 'selected' : ''}>${escapeHtml((ac.emoji ? ac.emoji + ' ' : '') + ac.name)}</option>`
+    ).join('');
+
+    let playerOpts = cachedPlayers.map((p, i) =>
+      `<option value="${escapeHtml(p.name)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+    ).join('');
+
+    box.innerHTML = `
+      <h3>⭐ Saisir des points Alt</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:-6px;margin-bottom:16px;">
+        Ces points seront enregistrés <strong>uniquement</strong> dans le classement Alternatif.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Joueur</label>
+          <select id="qaPlayerSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+            ${playerOpts}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Top Alternatif</label>
+          <select id="qaAltCatSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
+            ${altOpts}
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Points</label>
+            <input id="qaPtsInput" type="number" min="1" value="1" inputmode="numeric"
+              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-weight:700;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Date</label>
+            <input id="qaDateInput" type="date" value="${today}"
+              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Description <span style="opacity:0.6;">(optionnelle)</span></label>
+          <input id="qaDescInput" type="text" placeholder="Contexte, détail…"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:18px;">
+        <button id="qaConfirmBtn" class="primary">⭐ Enregistrer</button>
+        <button id="qaCancelBtn" class="secondary">Annuler</button>
+      </div>
+    `;
+
+    document.getElementById('modalBackdrop').style.display = 'flex';
+    document.getElementById('qaCancelBtn').onclick = closeModal;
+
+    document.getElementById('qaConfirmBtn').onclick = () => {
+      const player     = document.getElementById('qaPlayerSel').value;
+      const altCategory = document.getElementById('qaAltCatSel').value;
+      const pts        = parseInt(document.getElementById('qaPtsInput').value, 10);
+      const date       = document.getElementById('qaDateInput').value || today;
+      const desc       = document.getElementById('qaDescInput').value.trim();
+
+      if (!player)                     { showToast('Joueur requis.', 'error'); return; }
+      if (!altCategory)                { showToast('Top Alternatif requis.', 'error'); return; }
+      if (isNaN(pts) || pts < 1)       { showToast('Points invalides (≥ 1 requis).', 'error'); return; }
+
+      const btn = document.getElementById('qaConfirmBtn');
+      const restore = startBtnLoading(btn, 'Enregistrement…');
+      callServer('apiAppendAltNativeBatch', [_whoAmI || '', [{
+        player, altCategory, points: pts, date, description: desc, saiseur: _whoAmI || ''
+      }]], res => {
+        restore();
+        if (res.success) {
+          closeModal();
+          applyFilters();
+          showToast(`⭐ ${pts} pt(s) enregistré(s) pour ${player} dans "${altCategory}" !`, 'success');
+        }
+      }, 'Saisie rapide Alt', () => { restore(); });
+    };
+  }
+
   function openAltCategoryManagerModal(altCategoryName) {
+
     if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.remove('wide');
@@ -8889,21 +9011,26 @@
           const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
           const pColor = playerColor(e.player);
           const pl = cachedPlayers.find(p => p.name === e.player);
+          const isNative = !e.refHistoryRowId;
+          const nativeBadge = isNative
+            ? `<span title="Saisie directement dans ce Top Alternatif (pas dans l'historique principal)" style="font-size:0.7rem;background:rgba(124,140,255,0.15);color:#7c8cff;border:1px solid #7c8cff;border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;margin-left:4px;">✏️ natif</span>`
+            : '';
           html += `
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:6px;">${dateStr}</td>
               <td style="padding:6px;white-space:nowrap;display:flex;align-items:center;gap:6px;">
                 <img src="${getAvatarUrl(e.player, pl ? pl.meta : '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
-                <strong style="color:${pColor};">${escapeHtml(e.player)}</strong>
+                <strong style="color:${pColor};">${escapeHtml(e.player)}</strong>${nativeBadge}
               </td>
               <td style="padding:6px;"><strong style="color:var(--accent);">${e.points} pts</strong></td>
               <td style="padding:6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.description || '—')}</td>
               <td style="padding:6px;text-align:right;">
-                <button class="small danger unlink-single-btn" data-ref="${escapeHtml(e.refHistoryRowId || e.rowIndex)}">❌ Retirer</button>
+                <button class="small danger unlink-single-btn" data-ref="${escapeHtml(e.refHistoryRowId || String(e.rowIndex))}" data-native="${isNative ? '1' : '0'}">❌ Retirer</button>
               </td>
             </tr>
           `;
         });
+
 
         html += `</tbody></table></div>`;
         content.innerHTML = html;
@@ -12407,6 +12534,8 @@
     dragHandle.textContent = '⠿';
     dragHandle.title = 'Glisser pour réorganiser cette ligne';
     topBar.appendChild(dragHandle);
+    // Hide the per-row Alt picker when the whole lot is already in Alt mode
+    customAltPicker.style.display = activeLotUniverse === 'alt' ? 'none' : '';
     topBar.appendChild(customAltPicker); // ⭐ Top Alt dans la top bar !
 
     const topBarSpacer = document.createElement('span');
@@ -12778,15 +12907,25 @@
     });
     playerRsHost.appendChild(playerRS);
 
-    // Monte le RichSelect catégorie
+    // Monte le RichSelect catégorie (ou Top Alternatif en mode lot Alt)
+    const catRsType = activeLotUniverse === 'alt' ? 'altCategory' : 'category';
+    const initCatValue = activeLotUniverse === 'alt'
+      ? ((preset && preset.category) || (cachedAltCategories[0] && cachedAltCategories[0].name) || '')
+      : initCategory;
+    cSel.value = initCatValue;
     const categoryRS = buildRichSelect({
-      type: 'category',
-      value: initCategory || null,
+      type: catRsType,
+      value: initCatValue || null,
       onChange: function(v) {
         cSel.value = v || '';
-        const col = categoryColor(v || '');
-        div.style.setProperty('--row-accent', col);
-        refreshBaremeForTop(v || '');
+        if (activeLotUniverse === 'alt') {
+          const ac = cachedAltCategories.find(c => c.name === v);
+          div.style.setProperty('--row-accent', ac ? (ac.color || '#ffd166') : '#ffd166');
+        } else {
+          const col = categoryColor(v || '');
+          div.style.setProperty('--row-accent', col);
+          refreshBaremeForTop(v || '');
+        }
         refreshHistVisibility();
         updateLotSummary();
       }
@@ -12936,6 +13075,50 @@
 
   function submitBulk() {
     const rows = document.querySelectorAll('.entry-row');
+    // In Alt mode: collect entries for the native Alt batch (no History entry)
+    if (activeLotUniverse === 'alt') {
+      if (!cachedAltCategories.length) {
+        showToast('Aucun Top Alternatif configuré. Ajoutez-en dans Paramètres → ⭐ Tops Alternatifs.', 'error');
+        return;
+      }
+      const altItems = [];
+      rows.forEach(r => {
+        const pSel    = r.querySelector('.p-sel');
+        const cSel    = r.querySelector('.c-sel'); // in alt mode c-sel holds the alt category
+        const ptsEl   = r.querySelector('.custom-pts-in');
+        const dStart  = r.querySelector('.d-start');
+        const descEl  = r.querySelector('.desc-in');
+        if (pSel && cSel && ptsEl && dStart) {
+          const pts = parseInt(ptsEl.value, 10);
+          if (isNaN(pts) || pts < 1) { showToast('Points invalides sur une ligne (≥ 1 requis).', 'error'); return; }
+          altItems.push({
+            player:      pSel.value,
+            altCategory: cSel.value,
+            points:      pts,
+            date:        dStart.value || toDateStr(new Date()),
+            description: descEl ? descEl.value.trim() : '',
+            saiseur:     _whoAmI || ''
+          });
+        }
+      });
+      if (!altItems.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
+      if (!requireIdentity()) return;
+      const btn = document.getElementById('submitLotBtn');
+      const restore = startBtnLoading(btn, 'Écriture…');
+      callServer('apiAppendAltNativeBatch', [_whoAmI || '', altItems], res => {
+        restore();
+        if (res.success) {
+          flashSaved(btn);
+          document.getElementById('entryContainer').innerHTML = '';
+          addEntryRow();
+          updateLotSummary();
+          applyFilters();
+          showToast(`⭐ ${res.count} point(s) enregistré(s) dans les Tops Alternatifs !`, 'success');
+        }
+      }, 'Envoi lot Alt', () => { restore(); });
+      return;
+    }
+
     const items = [];
     rows.forEach(r => {
       const pSel = r.querySelector('.p-sel');
@@ -15524,6 +15707,56 @@
     });
     document.getElementById('submitLotBtn').addEventListener('click', submitBulk);
     document.getElementById('lotGroupModeBtn').addEventListener('click', enterLotGroupMode);
+
+    // ── Mode lot Alt / Principal ────────────────────────────────────────
+    (function() {
+      const lotMainBtn  = document.getElementById('lotModeMainBtn');
+      const lotAltBtn   = document.getElementById('lotModeAltBtn');
+      const lotHint     = document.getElementById('lotUniverseHint');
+      const submitBtn   = document.getElementById('submitLotBtn');
+      const batchHeader = document.querySelector('#tab-inject .batch-header');
+
+      function setLotUniverse(mode) {
+        activeLotUniverse = mode;
+        const isAlt = mode === 'alt';
+        lotMainBtn.classList.toggle('active', !isAlt);
+        lotAltBtn.classList.toggle('active',  isAlt);
+        if (lotHint) lotHint.style.display = isAlt ? '' : 'none';
+        if (submitBtn) submitBtn.textContent = isAlt ? '⭐ Inscrire dans les Tops Alternatifs' : '✓ Inscrire le lot';
+        if (batchHeader) {
+          const topHeader = batchHeader.children[1];
+          if (topHeader) topHeader.textContent = isAlt ? 'Top Alternatif' : 'Top';
+        }
+        // Rebuild all existing rows with the new RS type
+        const container = document.getElementById('entryContainer');
+        const presets = [];
+        container.querySelectorAll('.entry-row').forEach(r => {
+          const pSel  = r.querySelector('.p-sel');
+          const cSel  = r.querySelector('.c-sel');
+          const ptsEl = r.querySelector('.custom-pts-in');
+          const dStart = r.querySelector('.d-start');
+          const descEl = r.querySelector('.desc-in');
+          presets.push({
+            player: pSel ? pSel.value : '',
+            category: isAlt ? (cachedAltCategories[0] ? cachedAltCategories[0].name : '') : (cSel ? cSel.value : ''),
+            customPts: ptsEl ? ptsEl.value : '1',
+            date: dStart ? dStart.value : toDateStr(new Date()),
+            description: descEl ? descEl.value : ''
+          });
+        });
+        container.innerHTML = '';
+        if (presets.length) {
+          presets.forEach(p => addEntryRow(p));
+        } else {
+          addEntryRow();
+        }
+        updateLotSummary();
+      }
+
+      if (lotMainBtn) lotMainBtn.addEventListener('click', () => setLotUniverse('main'));
+      if (lotAltBtn)  lotAltBtn.addEventListener('click',  () => setLotUniverse('alt'));
+    })();
+
     document.getElementById('lotGroupApplyBtn').addEventListener('click', applyLotGroup);
     document.getElementById('lotGroupCancelBtn').addEventListener('click', exitLotGroupMode);
     document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
@@ -15560,6 +15793,7 @@
 
     const univMainBtn = document.getElementById('univMainBtn');
     const univAltBtn  = document.getElementById('univAltBtn');
+    const dashAltAddBtn = document.getElementById('dashAltAddBtn');
     if (univMainBtn && univAltBtn) {
       univMainBtn.addEventListener('click', () => {
         if (activeDashboardUniverse === 'main') return;
@@ -15567,6 +15801,7 @@
         univMainBtn.classList.add('active');
         univAltBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : Tops Principaux';
+        if (dashAltAddBtn) dashAltAddBtn.style.display = 'none';
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
@@ -15578,12 +15813,17 @@
         univAltBtn.classList.add('active');
         univMainBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : ⭐ Tops Alternatifs';
+        if (dashAltAddBtn) dashAltAddBtn.style.display = '';
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
         refreshDashboardStats();
       });
     }
+    if (dashAltAddBtn) {
+      dashAltAddBtn.addEventListener('click', () => openAltNativeQuickAddModal());
+    }
+
 
     document.getElementById('refreshHistoryBtn').addEventListener('click', () => {
       currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1);
