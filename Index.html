@@ -1070,17 +1070,24 @@
     }
     .modal-box {
       background: var(--card); padding: 24px;
-      border-radius: 16px; width: 100%; max-width: 380px;
-      max-height: 88vh; overflow-y: auto;
+      border-radius: 16px; width: 100%; max-width: 440px;
+      max-height: min(92vh, 900px); overflow-y: auto;
       border: 1px solid var(--border);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.55);
     }
-    .modal-box h3 { margin: 0 0 12px; font-size: 1rem; }
-    .modal-box p  { margin: 0 0 20px; line-height: 1.5; }
+    .modal-box h3 { margin: 0 0 14px; font-size: 1.05rem; font-weight: 800; }
+    .modal-box p  { margin: 0 0 20px; line-height: 1.55; }
     .modal-box input { margin-bottom: 10px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
     .modal-actions button { flex: 1; min-width: 120px; }
-    .modal-box.wide { max-width: 480px; }
+    /* Variantes de largeur */
+    .modal-box.wide { max-width: 600px; }
+    .modal-box.xl   { max-width: min(90vw, 860px); }
+    /* Sur desktop : les modales .wide et .xl exploitent l'espace disponible */
+    @media (min-width: 900px) {
+      .modal-box.wide { max-width: 680px; }
+      .modal-box.xl   { max-width: min(88vw, 1000px); }
+    }
     .modal-box .modal-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
     }
@@ -1096,6 +1103,18 @@
     .modal-color-swatch {
       width: 32px; height: 32px; border-radius: 8px;
       border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
+    }
+    /* Liste scrollable interne aux modales — exploite l'espace vertical dispo */
+    .modal-scroll-list {
+      max-height: min(380px, 42vh); overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg); padding: 4px;
+    }
+    @media (min-height: 750px) {
+      .modal-scroll-list { max-height: min(520px, 52vh); }
+    }
+    @media (min-height: 1000px) {
+      .modal-scroll-list { max-height: min(640px, 58vh); }
     }
 
     /* ── Identity password modal ── */
@@ -1293,19 +1312,41 @@
     .note-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }
 
     /* ── NOTES : un bloc par joueur ── */
-    .note-player-block {
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 14px; margin-bottom: 16px; background: rgba(0,0,0,0.10);
+    #notesBlocksContainer {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 16px;
     }
-    .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .npb-head img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
-    .npb-head .npb-name { font-weight: 700; font-size: 1.02rem; }
-    .npb-head .npb-count { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+    @media (min-width: 840px) {
+      #notesBlocksContainer {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1350px) {
+      #notesBlocksContainer {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .note-player-block {
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px; margin-bottom: 0; background: var(--card);
+      box-shadow: var(--glass-shadow);
+      display: flex; flex-direction: column;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .note-player-block:hover {
+      border-color: var(--border-hover);
+    }
+    .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .npb-head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .npb-head .npb-name { font-weight: 800; font-size: 1.05rem; }
+    .npb-head .npb-count { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-left: auto; background: var(--btn-alt); padding: 3px 8px; border-radius: var(--radius-full); }
     .npb-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .npb-add input[type="text"] { flex: 1; min-width: 180px; }
     .npb-date-field { width: 150px; flex-shrink: 0; }
-    .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-    .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 4px 2px; }
+    .npb-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; flex: 1; }
+    .npb-empty { color: var(--text-muted); font-style: italic; font-size: 0.84rem; padding: 6px 2px; }
 
     /* ── DESCRIPTION PAR LIGNE DE SAISIE ── */
     .row-desc { margin-top: 0; width: 100%; }
@@ -8436,6 +8477,7 @@
     box.innerHTML = '';
     box.style.maxWidth = '';
     box.classList.remove('wide');
+    box.classList.remove('xl');
   }
 
   function openLotRecapModal(plan) {
@@ -8490,7 +8532,8 @@
 
   function openChartDrilldown(context) {
     const box = document.getElementById('modalBox');
-    box.classList.add('wide');
+    box.classList.remove('wide');
+    box.classList.add('xl');
     box.innerHTML = '<h3>' + escapeHtml(context.title) + '</h3><div id="drilldownList" class="drilldown-list"><p class="text-muted">Chargement…</p></div>' +
       '<div class="modal-actions"><button id="drilldownAltAssign" class="primary small" style="display:none;">⭐ Affecter ces points au Top Alt</button><button id="drilldownClose" class="secondary">Fermer</button></div>';
     document.getElementById('drilldownClose').onclick = closeModal;
@@ -8554,7 +8597,8 @@
 
   function renderUniversalAltPointPickerModal(allLogs, options = {}) {
     const box = document.getElementById('modalBox');
-    box.classList.add('wide');
+    box.classList.remove('wide');
+    box.classList.add('xl');
 
     let selectedAltCat = options.targetAltCategory || (cachedAltCategories[0] ? cachedAltCategories[0].name : '');
     const preselectedSet = new Set((options.preselectedRowIndices || []).map(r => r.toString()));
@@ -8609,7 +8653,7 @@
         <span id="uPickerSelectionSummary" style="font-size:0.85rem;font-weight:600;color:var(--accent);">0 point(s) sélectionné(s)</span>
       </div>
 
-      <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:4px;">
+      <div class="modal-scroll-list">
         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
           <thead style="position:sticky;top:0;background:var(--card);z-index:2;border-bottom:1px solid var(--border);">
             <tr>
@@ -8781,7 +8825,8 @@
   function openAltCategoryManagerModal(altCategoryName) {
     if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
-    box.classList.add('wide');
+    box.classList.remove('wide');
+    box.classList.add('xl');
 
     box.innerHTML = `
       <h3>⭐ Gestion du Top Alternatif — ${escapeHtml(altCategoryName)}</h3>
@@ -8825,7 +8870,7 @@
             <span style="font-size:0.85rem;color:var(--text-muted);"><strong>${entries.length}</strong> entrée(s) — Total: <strong style="color:var(--accent);">${totalPts} pts</strong></span>
             <button id="mAltMgrAddMoreBtn" class="primary small">+ Ajouter des points</button>
           </div>
-          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);">
+          <div class="modal-scroll-list">
             <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
               <thead style="position:sticky;top:0;background:var(--card);z-index:2;border-bottom:1px solid var(--border);">
                 <tr>

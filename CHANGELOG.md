@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.3] - 2026-08-05
+## [v3.4.4] - 2026-08-05
+
+### Modifié
+**Humanisé** : Refonte complète de l'ergonomie et de la taille des modales de modification (notes, affectation des points aux Tops Alternatifs, édition groupée, drill-down des graphiques). Les modales profitent désormais du grand écran sur ordinateur (`max-width` étendu à 860px-1000px, hauteurs de listes dynamiques `modal-scroll-list`) et les bloc-notes par joueur s'organisent en grille responsive multi-colonnes.
+**Technique** : `Index.html` — ajout des variantes CSS `.modal-box.xl` et `.modal-scroll-list`, bascule des modales universelles d'affectation Alt, gestionnaire Alt et drilldown de graphiques vers `.xl`, correction du vidage de classe dans `closeModal()`, et réorganisation de `#notesBlocksContainer` en grille 1/2/3 colonnes avec CSS responsive `@media`.
+
+## [v3.4.3] - 2026-08-05
 
 ### Modifié
 **Humanisé** : Optimisation de l'ergonomie sur grand écran — le menu du Guide s'adapte désormais dynamiquement à la hauteur de la fenêtre avec grille de cartes multi-colonnes sur grand écran, et les panneaux latéraux (Guide et Barème) sont désormais redimensionnables à la souris en glisser-déposer avec sauvegarde de la largeur préférée.
