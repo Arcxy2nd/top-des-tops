@@ -3,23 +3,11 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.3] - 2026-08-06
+## [v3.5.1] - 2026-08-06
 
 ### Corrigé
-**Humanisé** : Résolution définitive du blocage d'initialisation de l'interface au lancement. L'application démarre désormais de manière garantie, quels que soient le timing de chargement de l'iframe Google Apps Script ou les éléments dynamiques.
-**Technique** : `Index.html` — Remplacement de `window.onload` par une exécution immunisée `safeInitApp()` basée sur `document.readyState` et `DOMContentLoaded`. Sécurisation avec chaînage optionnel (`?.`) sur les écouteurs d'évènements du Barème.
-
-## [v3.5.2] - 2026-08-06
-
-### Corrigé
-**Humanisé** : Empêchement de l'accumulation de caches vides ou corrompus dans le navigateur. Si une erreur réseau ou d'autorisation survenait temporairement, l'application ne verrouille plus l'affichage des joueurs et des Tops avec des listes vides.
-**Technique** : `Index.html` — `loadEntities()` vérifie désormais que les données `localStorage` sont des tableaux non vides (`cached.players.length > 0`) avant de les peindre, et `callServer()` vérifie `google.script.run` avant d'exécuter un appel serveur.
-
-## [v3.5.1] - 2026-08-06
-
-### Corrigé
-**Humanisé** : Correction du bug d'affichage au lancement du site où les boutons du menu et l'interface restaient entièrement vides. La barre de navigation s'affiche désormais instantanément avec les onglets par défaut sans attendre la réponse du serveur, et tous les traitements de statistiques du Dashboard sont sécurisés.
-**Technique** : `Index.html` — initialisation de `NAV_PAGES` avec la liste par défaut des onglets, invocation synchrone immédiate de `renderNav()` et `initNavHoverTip()` au lancement dans `window.onload`. Sécurisation défensive des réponses des endpoints (`apiGetNavPages`, `apiGetPlayerRecords`, `apiDetectDuplicates`, `apiDetectOutlierScores`, `apiGetInactivePlayers`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs`, `apiGetMentionStats`) contre les tableaux `undefined` et sélecteurs d'éléments optionnels du DOM.
+**Humanisé** : Résolution définitive de la panne d'interface qui rendait le site totalement vide (aucun onglet, aucun joueur, aucun contenu) depuis la 3.5.0. Les trois tentatives précédentes (3.5.1 à 3.5.3, annulées et remplacées par cette version) corrigeaient des symptômes côté navigateur sans s'attaquer à la vraie cause : le moteur de rendu de Google corrompait silencieusement le fichier de la page (trop volumineux) à chaque chargement, cassant le script en plein milieu.
+**Technique** : `Code.gs` — `doGet()` sert désormais `Index.html` via `HtmlService.createHtmlOutputFromFile()` au lieu de `createTemplateFromFile().evaluate()` : le moteur de template GAS, en évaluant le scriptlet `<?!= JSON.stringify(appUrl) ?>`, tronquait silencieusement environ 28 000 caractères du fichier livré (confirmé en comparant le script servi en production, via extraction directe du payload `goog.script.init`, au source versionné), provoquant une `Uncaught SyntaxError` bloquant tout le JavaScript de la page. `Index.html` — suppression de la variable `APP_URL` (jamais utilisée ailleurs dans le code) et de son scriptlet, rendant tout rendu templaté inutile.
 
 ## [v3.5.0] - 2026-08-06
 

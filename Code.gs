@@ -1637,18 +1637,12 @@ const AnalyticsService = {
  * ?view= on every link/bookmark they use afterwards.
  */
 function doGet(e) {
-  // Rendu templaté (pas createHtmlOutputFromFile) pour injecter l'adresse
-  // publique exacte du déploiement courant : une URL relative écrite depuis le
-  // client se résout contre l'origine du bac à sable Google (une adresse
-  // interne du type n-xxxx-script.googleusercontent.com), jamais contre
-  // l'adresse réelle du site — d'où les liens cassés observés en pratique.
-  const template = HtmlService.createTemplateFromFile('Index');
-  // Ne doit jamais faire échouer le chargement de la page : si l'autorisation
-  // du script venait à manquer pour une raison quelconque, le pire résultat
-  // acceptable est un bouton de bascule inerte, pas un site qui ne charge plus.
-  try { template.appUrl = ScriptApp.getService().getUrl(); }
-  catch (e) { template.appUrl = ''; }
-  return template.evaluate()
+  // createHtmlOutputFromFile (pas de rendu templaté) : Index.html ne contient
+  // plus aucun scriptlet <?  ?> à évaluer, et le moteur de template de GAS
+  // corrompt silencieusement les très gros fichiers HTML qui en contiennent
+  // (constaté en v3.5.0 : ~28 000 caractères tronqués côté serveur, provoquant
+  // une SyntaxError au chargement et une interface totalement vide).
+  return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Tops des Tops')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);

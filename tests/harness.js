@@ -97,11 +97,15 @@ function gasMocks() {
     HtmlService: {
       createHtmlOutputFromFile: name => ({
         _file: name,
+        _metaTag: null,
+        addMetaTag(name, content) { this._metaTag = { name, content }; return this; },
         setTitle() { return this; },
         setXFrameOptionsMode() { return this; }
       }),
       createHtmlOutput: html => ({
         _html: html,
+        _metaTag: null,
+        addMetaTag(name, content) { this._metaTag = { name, content }; return this; },
         setTitle() { return this; },
         setXFrameOptionsMode() { return this; }
       }),

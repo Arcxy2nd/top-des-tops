@@ -5092,15 +5092,6 @@
 </div>
 
 <script>
-  // Adresse publique exacte du déploiement courant, fournie par le serveur
-  // (ScriptApp.getService().getUrl() côté Code.gs) — nécessaire pour toute
-  // navigation vers l'autre fichier (?view=mobile/desktop) : une URL relative
-  // se résoudrait contre l'origine du bac à sable Google, pas contre celle-ci.
-  const APP_URL = <?!= JSON.stringify(appUrl) ?>;
-  // Le code JavaScript reste parfaitement identique car il gérait déjà bien la logique,
-  // Seules les requêtes ont besoin de réagir à la nouvelle disposition CSS.
-  // [Le reste du JavaScript du[cite: 1] est injecté ici à l'identique]
-
   // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────
   let currentChart     = null;
   let currentChartData = null;
@@ -7660,12 +7651,12 @@
     wrap.appendChild(trigger);
     wrap.appendChild(panel);
 
-    function makeThumb(container, val) {
+    function makeThumb(container, val, isCategory) {
       container.innerHTML = '';
       container.className = 'rs-thumb';
       container.style.background = '';
       if (!val) return;
-      if (type === 'category') {
+      if (isCategory) {
         var icon = catIcon(val);
         if (icon) {
           container.textContent = icon;
@@ -7673,15 +7664,6 @@
         } else {
           container.className = 'rs-thumb rs-thumb-dot';
           container.style.background = categoryColor(val);
-        }
-      } else if (type === 'altCategory') {
-        var altCat = cachedAltCategories.find(function(ac) { return ac.name === val; });
-        if (altCat && altCat.emoji) {
-          container.textContent = altCat.emoji;
-          container.className = 'rs-thumb rs-thumb-emoji';
-        } else {
-          container.className = 'rs-thumb rs-thumb-dot';
-          container.style.background = altCat ? (altCat.color || '#ffd166') : '#ffd166';
         }
       } else {
         var pData = cachedPlayers.find(function(p) { return p.name === val; });
@@ -7705,7 +7687,7 @@
         label.textContent = '— inconnu —';
         trigger.className = 'rs-trigger';
       } else if (curVal) {
-        makeThumb(thumb, curVal);
+        makeThumb(thumb, curVal, isCategory);
         label.textContent = curVal;
         trigger.className = 'rs-trigger';
       } else {
@@ -7739,7 +7721,7 @@
 
         var optThumb = document.createElement('span');
         if (!item.isNull) {
-          makeThumb(optThumb, item.val);
+          makeThumb(optThumb, item.val, isCategory);
         } else {
           optThumb.className = 'rs-thumb';
         }
@@ -8441,11 +8423,6 @@
 
   // ── APPEL SERVEUR ────────────────────────────────────────────────────
   function callServer(fn, params, onSuccess, errorLabel, onError) {
-    if (typeof google === 'undefined' || !google.script || !google.script.run) {
-      console.warn('google.script.run indisponible');
-      if (onError) onError('google.script.run indisponible');
-      return;
-    }
     let runner = google.script.run
       .withSuccessHandler(res => {
         if (res && res.success === false) {
@@ -9169,10 +9146,6 @@
   // à la fois pour un rendu instantané depuis le cache et pour le rendu final avec les
   // données fraîches du serveur, afin de ne pas dupliquer cette longue séquence.
   function _paintEntitiesUI(opts) {
-    cachedPlayers       = cachedPlayers       || [];
-    cachedCategories    = cachedCategories    || [];
-    cachedAltCategories = cachedAltCategories || [];
-
     // opts = { withDataLoad: bool }
     // withDataLoad=false → mise à jour UI légère depuis le cache (pas de requêtes réseau supplémentaires)
     // withDataLoad=true  → déclenche aussi applyFilters/loadQuickStats après le rendu
@@ -9181,20 +9154,18 @@
     const auSel = document.getElementById('auditFilterAuthor');
     if (auSel) {
       while (auSel.options.length > 1) auSel.remove(1);
-      cachedPlayers.forEach(p => {
-        if (p && p.name) {
-          const opt = document.createElement('option');
-          opt.value = p.name; opt.textContent = p.name;
-          auSel.appendChild(opt);
-        }
+      (cachedPlayers || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name; opt.textContent = p.name;
+        auSel.appendChild(opt);
       });
     }
 
     // Remove any players/categories that no longer exist from chip selection
-    selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p && p.name === n)) selectedPlayerChips.delete(n); });
+    selectedPlayerChips.forEach(n => { if (!cachedPlayers.find(p => p.name === n)) selectedPlayerChips.delete(n); });
     selectedCategoryChips.forEach(n => {
       const list = (activeDashboardUniverse === 'alt') ? cachedAltCategories : cachedCategories;
-      if (!list.find(c => c && c.name === n)) selectedCategoryChips.delete(n);
+      if (!list.find(c => c.name === n)) selectedCategoryChips.delete(n);
     });
     renderPlayerChips();
     renderCategoryChips();
@@ -9236,7 +9207,7 @@
     let paintedFromCache = false;
     try {
       const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
-      if (cached && Array.isArray(cached.players) && cached.players.length > 0 && Array.isArray(cached.categories) && cached.categories.length > 0) {
+      if (cached && cached.players && cached.categories) {
         cachedPlayers    = cached.players;
         cachedCategories = cached.categories;
         _paintEntitiesUI({ withDataLoad: false });
@@ -9250,15 +9221,11 @@
     }
 
     callServer('apiGetSettings', [], res => {
-      if (res && res.success !== false && (res.players || res.categories)) {
-        cachedPlayers    = res.players    || [];
-        cachedCategories = res.categories || [];
-        try {
-          if (cachedPlayers.length > 0 || cachedCategories.length > 0) {
-            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
-          }
-        } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
-      }
+      cachedPlayers    = res.players    || [];
+      cachedCategories = res.categories || [];
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+      } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
 
       // Rendu complet immédiat avec chargement des données (applyFilters + loadQuickStats)
       _paintEntitiesUI({ withDataLoad: true });
@@ -10246,8 +10213,7 @@
     if (!data || !data.labels || !data.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      const cColors = getChartColors();
-      ctx.fillStyle = cColors.muted || '#a0a0b0';
+      ctx.fillStyle = 'var(--text-muted)';
       ctx.textAlign = 'center';
       ctx.font = '14px sans-serif';
       ctx.fillText('Aucune donnée pour cette sélection.', ctx.canvas.width / 2, 40);
@@ -10608,8 +10574,7 @@
     if (!trendData || !trendData.labels || !trendData.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      const cColors = getChartColors();
-      ctx.fillStyle = cColors.muted || '#a0a0b0';
+      ctx.fillStyle = 'var(--text-muted)';
       ctx.textAlign = 'center';
       ctx.font = '14px sans-serif';
       ctx.fillText('Aucune donnée temporelle pour cette sélection.', ctx.canvas.width / 2, 40);
@@ -12115,31 +12080,18 @@
 
   function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
-    cachedPlayers       = cachedPlayers       || [];
-    cachedCategories    = cachedCategories    || [];
-    cachedAltCategories = cachedAltCategories || [];
+    const es = container.querySelector('.empty-state');
+    if (es) es.remove();
 
-    const hasCategories = activeLotUniverse === 'alt'
-      ? cachedAltCategories.length > 0
-      : cachedCategories.length > 0;
-
-    if (!cachedPlayers.length || !hasCategories) {
+    if (!cachedPlayers.length || !cachedCategories.length) {
       if (!container.querySelector('.empty-illustration')) {
         const p = document.createElement('div');
         p.className = 'empty-illustration';
-        const msg = activeLotUniverse === 'alt'
-          ? 'Ajoutez d\'abord des <strong>Tops Alternatifs</strong> dans <strong>Paramètres → ⭐ Tops Alternatifs</strong>.'
-          : 'Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.';
-        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">' + msg + '</div>';
+        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.</div>';
         container.appendChild(p);
       }
       return;
     }
-
-    const es = container.querySelector('.empty-state');
-    if (es) es.remove();
-    const ei = container.querySelector('.empty-illustration');
-    if (ei) ei.remove();
 
     rowCounter++;
     const div = document.createElement('div');
@@ -15368,14 +15320,7 @@
   // NAV_PAGES n'est plus une constante locale : elle vient du serveur
   // (apiGetNavPages, source commune avec Mobile.html) pour qu'ajouter/retirer un
   // onglet ne nécessite qu'une seule modification, côté Code.gs.
-  let NAV_PAGES = [
-    { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
-    { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
-    { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
-    { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
-    { id: 'tab-guide',     icon: '❓', label: 'Guide' },
-  ];
+  let NAV_PAGES = [];
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
@@ -15386,8 +15331,7 @@
   }
 
   function renderNav() {
-    const pages = Array.isArray(NAV_PAGES) ? NAV_PAGES : [];
-    const html = pages.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
+    const html = NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
     const desktopGroup = document.getElementById('desktopNavGroup');
     const mobileGroup  = document.getElementById('mobileBottomNav');
     if (desktopGroup) desktopGroup.innerHTML = html;
@@ -15559,11 +15503,9 @@
   }
 
   callServer('apiGetNavPages', [], res => {
-    if (res && Array.isArray(res.pages) && res.pages.length) {
-      NAV_PAGES = res.pages;
-      renderNav();
-      initNavHoverTip();
-    }
+    NAV_PAGES = res.pages;
+    renderNav();
+    initNavHoverTip();
   }, 'Chargement du menu');
 
 
@@ -16470,7 +16412,7 @@
     callServer('apiDetectDuplicates', [], res => {
       restore();
       const dismissed = getDismissedDuplicateKeys();
-      const duplicates = ((res && res.duplicates) || []).filter(d => !dismissed.has(String(d.keepRowIndex)));
+      const duplicates = res.duplicates.filter(d => !dismissed.has(String(d.keepRowIndex)));
       if (!duplicates.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun doublon détecté. Tout est propre ✅</p>';
         return;
@@ -16549,7 +16491,7 @@
     callServer('apiDetectOutlierScores', [], res => {
       restore();
       const dismissed = getDismissedOutlierRowIndexes();
-      const outliers = ((res && res.outliers) || []).filter(o => !dismissed.has(String(o.rowIndex)));
+      const outliers = res.outliers.filter(o => !dismissed.has(String(o.rowIndex)));
       if (!outliers.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
         return;
@@ -16635,7 +16577,7 @@
     const restore = startBtnLoading(btn, 'Scan…');
     callServer('apiScanUnmentionedNames', [], res => {
       restore();
-      const results = (res && res.results) || [];
+      const results = res.results || [];
       if (!results.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun nom non mentionné détecté. Tout est propre ✅</p>';
         return;
@@ -16710,11 +16652,11 @@
         const restore = startBtnLoading(applyBtn, 'Application…');
         callServer('apiApplyMentionFixes', [fixes, _whoAmI || ''], res => {
           restore();
-          if (res && res.success) {
+          if (res.success) {
             showToast(res.applied + ' correction(s) appliquée(s).', 'success');
             scanMentionFixes();
           } else {
-            showToast((res && res.error) || 'Erreur.', 'error');
+            showToast(res.error || 'Erreur.', 'error');
           }
         }, 'Application mentions', () => { restore(); showToast('Erreur lors de l\'application.', 'error'); });
       });
@@ -16727,9 +16669,7 @@
     showSkeleton(container, { rows: 3, height: 40 });
     callServer('apiGetInactivePlayers', [], res => {
       container.innerHTML = '';
-      const inactive = (res && res.inactive) || [];
-      const neverActive = (res && res.neverActive) || [];
-      inactive.forEach(item => {
+      res.inactive.forEach(item => {
         const row = document.createElement('div');
         row.className = 'tool-action';
         const p = cachedPlayers.find(pl => pl.name === item.player);
@@ -16748,7 +16688,7 @@
         row.appendChild(info);
         container.appendChild(row);
       });
-      neverActive.forEach(name => {
+      res.neverActive.forEach(name => {
         const row = document.createElement('div');
         row.className = 'tool-action';
         const p = cachedPlayers.find(pl => pl.name === name);
@@ -16767,7 +16707,7 @@
         row.appendChild(info);
         container.appendChild(row);
       });
-      if (!inactive.length && !neverActive.length) {
+      if (!res.inactive.length && !res.neverActive.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun joueur enregistré.</p>';
       }
     }, 'Chargement joueurs inactifs');
@@ -16884,11 +16824,10 @@
         hero.appendChild(trophy); hero.appendChild(av); hero.appendChild(b); hero.appendChild(pts);
         container.appendChild(hero);
       }
-      const records = (res && res.records) || [];
-      if (records.length) {
+      if (res.records.length) {
         const list = document.createElement('div');
         list.className = 'sr-list';
-        records.forEach((r, i) => {
+        res.records.forEach((r, i) => {
           list.appendChild(buildStatRow({
             rank: i + 1,
             playerName: r.player,
@@ -16924,16 +16863,14 @@
 
   function renderTrends() {
     if (!_trendsData) return;
-    const rows = (trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends) || [];
+    const rows = trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends;
     const empty = document.getElementById('trendsEmpty');
-    const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
+    const wrapper = document.getElementById('trendsChart').closest('.chart-wrapper');
     if (!rows.length) {
-      if (empty) empty.style.display = 'block';
-      if (wrapper) wrapper.style.display = 'none';
+      empty.style.display = 'block'; wrapper.style.display = 'none';
       return;
     }
-    if (empty) empty.style.display = 'none';
-    if (wrapper) wrapper.style.display = '';
+    empty.style.display = 'none'; wrapper.style.display = '';
 
     const sorted = rows.slice().sort((a, b) => b.changePct - a.changePct);
     const labels = sorted.map(r => trendsScope === 'category' ? r.category : r.player);
@@ -16978,15 +16915,12 @@
   function loadActiveWeekday() {
     callServer('apiGetActiveWeekday', [activeDashboardUniverse], res => {
       const empty = document.getElementById('weekdayEmpty');
-      const wrapper = document.getElementById('weekdayChart')?.closest('.chart-wrapper');
-      const byWeekday = (res && res.byWeekday) || [];
-      if (!res || !res.topWeekday || !byWeekday.length) {
-        if (empty) empty.style.display = 'block';
-        if (wrapper) wrapper.style.display = 'none';
+      const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
+      if (!res.topWeekday) {
+        empty.style.display = 'block'; wrapper.style.display = 'none';
         return;
       }
-      if (empty) empty.style.display = 'none';
-      if (wrapper) wrapper.style.display = '';
+      empty.style.display = 'none'; wrapper.style.display = '';
       const c = getChartColors();
       const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim();
 
@@ -16994,10 +16928,10 @@
       weekdayChartInstance = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: byWeekday.map(w => w.weekday),
+          labels: res.byWeekday.map(w => w.weekday),
           datasets: [{
-            data: byWeekday.map(w => w.count),
-            backgroundColor: byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
+            data: res.byWeekday.map(w => w.count),
+            backgroundColor: res.byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
             borderRadius: 4
           }]
         },
@@ -17028,14 +16962,13 @@
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetTopPlayerCategoryPairs', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      const pairs = (res && res.pairs) || [];
-      if (!pairs.length) {
+      if (!res.pairs.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
         return;
       }
       const list = document.createElement('div');
       list.className = 'sr-list';
-      pairs.forEach((pair, i) => {
+      res.pairs.forEach((pair, i) => {
         list.appendChild(buildStatRow({
           rank: i + 1,
           playerName: pair.player,
@@ -17067,34 +17000,30 @@
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetMentionStats', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      const mostMentioned  = (res && res.mostMentioned) || [];
-      const mostMentioning = (res && res.mostMentioning) || [];
-      const topDuo         = res && res.topDuo;
-
-      if (mostMentioned.length) {
+      if (res.mostMentioned.length) {
         const list = mentionSection(container, '📣', 'Les plus mentionnés');
-        mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
+        res.mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
           rank: i + 1, playerName: m.player, accent: playerColor(m.player),
           value: m.count, valueLabel: 'mentions'
         })));
       }
-      if (mostMentioning.length) {
+      if (res.mostMentioning.length) {
         const list = mentionSection(container, '✍️', 'Ceux qui mentionnent le plus');
-        mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
+        res.mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
           rank: i + 1, playerName: m.player, accent: playerColor(m.player),
           value: m.count, valueLabel: 'écrites'
         })));
       }
-      if (topDuo) {
+      if (res.topDuo) {
         const list = mentionSection(container, '🔗', 'Duo le plus complice');
         list.appendChild(buildStatRow({
           badge: '🤝',
-          playerName: topDuo.playerA, secondPlayer: topDuo.playerB,
-          accent: playerColor(topDuo.playerA),
-          value: topDuo.count, valueLabel: 'croisées'
+          playerName: res.topDuo.playerA, secondPlayer: res.topDuo.playerB,
+          accent: playerColor(res.topDuo.playerA),
+          value: res.topDuo.count, valueLabel: 'croisées'
         }));
       }
-      if (!mostMentioned.length && !mostMentioning.length && !topDuo) {
+      if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
       }
     }, 'Chargement mentions', err => {
@@ -17223,9 +17152,7 @@
     loadHistoryPage(1);
   });
 
-  function initApp() {
-    renderNav();
-    initNavHoverTip();
+  window.onload = () => {
     initTheme();
     initLayoutModeToggle();
     initSpotlightCards();
@@ -17238,6 +17165,9 @@
     bindButtons();
     enableDragMultiSelect(document.getElementById('historyTableBody'), 'input.hist-chk', 'tr');
     enableDragMultiSelect(document.getElementById('detectResults'), '.detect-lot-head input[type="checkbox"]');
+    // Le groupe (.detect-lot-head) garde la case comme seule cible : toute la
+    // ligne y sert déjà à ouvrir/fermer le détail. Les entrées individuelles
+    // à l'intérieur, elles, n'ont pas d'autre action — toute leur ligne compte.
     enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.detect-lot-head input[type="checkbox"]');
     enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.legacy-entry-cb', '.legacy-entry-row');
     bindExportButtons();
@@ -17263,6 +17193,8 @@
       }, 'Chargement preset actif');
     });
 
+    // Champs date/période par défaut du lot : interrupteur segmenté (même modèle
+    // que les lignes) + choix Répéter/Répartir en langage clair.
     (() => {
       const startEl    = document.getElementById('defaultStart');
       const endEl      = document.getElementById('defaultEnd');
@@ -17270,23 +17202,22 @@
       const modeRange  = document.getElementById('defaultModeRange');
       const rangeArea  = document.getElementById('defaultRangeArea');
       const fillSlot   = document.getElementById('defaultFillSlot');
-      if (startEl) startEl.value = toDateStr(new Date());
-      if (fillSlot) fillSlot.appendChild(createFillToggle('repeat'));
+      startEl.value = toDateStr(new Date());
+      fillSlot.appendChild(createFillToggle('repeat'));
       const setMode = (range) => {
-        if (modeRange) modeRange.classList.toggle('active', range);
-        if (modeSingle) modeSingle.classList.toggle('active', !range);
-        if (rangeArea) rangeArea.style.display = range ? 'flex' : 'none';
-        if (range) { if (endEl && startEl && !endEl.value) endEl.value = startEl.value; }
-        else if (endEl) endEl.value = '';
+        modeRange.classList.toggle('active', range);
+        modeSingle.classList.toggle('active', !range);
+        rangeArea.style.display = range ? 'flex' : 'none';
+        if (range) { if (!endEl.value) endEl.value = startEl.value; }
+        else endEl.value = '';
       };
-      if (modeSingle) modeSingle.addEventListener('click', () => setMode(false));
-      if (modeRange)  modeRange.addEventListener('click', () => setMode(true));
+      modeSingle.addEventListener('click', () => setMode(false));
+      modeRange.addEventListener('click', () => setMode(true));
     })();
 
-    const startEl = document.getElementById('startDate');
-    const endEl   = document.getElementById('endDate');
-    if (startEl) startEl.value = '';
-    if (endEl)   endEl.value   = '';
+    // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value   = '';
     buildRangePresets();
 
     lastRefreshTime = new Date();
@@ -17301,7 +17232,7 @@
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
     makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
-
+    // Sommaire des outils : déplie la carte visée puis descend dessus.
     document.querySelectorAll('#toolsQuickNav button').forEach(btn => {
       btn.addEventListener('click', () => {
         const card = document.getElementById(btn.dataset.target);
@@ -17310,13 +17241,13 @@
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
-    const dupBtn = document.getElementById('detectDuplicatesBtn');
-    if (dupBtn) dupBtn.addEventListener('click', scanDuplicates);
-    const menBtn = document.getElementById('detectMentionsBtn');
-    if (menBtn) menBtn.addEventListener('click', scanMentionFixes);
-    const inactBtn = document.getElementById('scanInactiveBtn');
-    if (inactBtn) inactBtn.addEventListener('click', scanInactivePlayers);
-
+    document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
+    document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
+    document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
+    // Hub Statistiques : une seule carte à onglets (Records / Tendances /
+    // Jour actif / Duo / Mentions), onglet actif mémorisé. Les graphiques
+    // Chart.js créés dans un volet masqué ont une taille nulle : resize()
+    // au moment où leur volet devient visible.
     const STATS_HUB_TAB_KEY = 'tdt_stats_hub_tab';
     function switchStatsHubPane(pane) {
       document.querySelectorAll('#statsHubTabs .stats-hub-tab').forEach(b =>
@@ -17362,52 +17293,40 @@
       const savedPane = localStorage.getItem(STATS_HUB_TAB_KEY);
       if (savedPane && document.querySelector('#statsHubTabs [data-pane="' + savedPane + '"]')) switchStatsHubPane(savedPane);
     } catch {}
-    const scopeToggle = document.getElementById('trendsScopeToggle');
-    if (scopeToggle) {
-      scopeToggle.addEventListener('click', e => {
-        if (!e.target.dataset.scope) return;
-        trendsScope = e.target.dataset.scope;
-        document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
-        renderTrends();
-      });
-    }
+    document.getElementById('trendsScopeToggle').addEventListener('click', e => {
+      if (!e.target.dataset.scope) return;
+      trendsScope = e.target.dataset.scope;
+      document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
+      renderTrends();
+    });
 
-    const waiBtn = document.getElementById('whoAmIBtn');
-    if (waiBtn) {
-      waiBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        const wrap = document.getElementById('whoAmIWrap');
-        const isOpen = wrap.classList.contains('open');
-        if (!isOpen) {
-          renderWhoAmI();
-          const rect = e.currentTarget.getBoundingClientRect();
-          const dropdown = document.getElementById('whoAmIDropdown');
-          if (dropdown) {
-            dropdown.style.top  = (rect.bottom + 6) + 'px';
-            dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
-            dropdown.style.width = '220px';
-          }
-        }
-        if (wrap) wrap.classList.toggle('open');
-      });
-    }
+    document.getElementById('whoAmIBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      const wrap = document.getElementById('whoAmIWrap');
+      const isOpen = wrap.classList.contains('open');
+      if (!isOpen) {
+        renderWhoAmI();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dropdown = document.getElementById('whoAmIDropdown');
+        dropdown.style.top  = (rect.bottom + 6) + 'px';
+        dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
+        dropdown.style.width = '220px';
+      }
+      wrap.classList.toggle('open');
+    });
     document.addEventListener('click', () => {
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap) wrap.classList.remove('open');
     });
 
-    const pwdCancel = document.getElementById('identityPwdCancel');
-    if (pwdCancel) pwdCancel.addEventListener('click', closeIdentityPwdModal);
-    const pwdSubmit = document.getElementById('identityPwdSubmit');
-    if (pwdSubmit) pwdSubmit.addEventListener('click', submitIdentityPwd);
-    const pwdInput = document.getElementById('identityPwdInput');
-    if (pwdInput) {
-      pwdInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitIdentityPwd();
-        if (e.key === 'Escape') closeIdentityPwdModal();
-      });
-    }
+    document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
+    document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
+    document.getElementById('identityPwdInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitIdentityPwd();
+      if (e.key === 'Escape') closeIdentityPwdModal();
+    });
 
+    // Close any open RichSelect when clicking outside
     document.addEventListener('mousedown', function(e) {
       if (!e.target.closest('.rich-select')) closeAllRichSelects();
     });
@@ -17416,22 +17335,10 @@
     loadEntities();
     loadAppBranding();
 
+    // Differ de 150ms le chargement des statistiques secondaires du Dashboard
+    // pour éviter d'inonder Google Apps Script de requêtes parallèles au démarrage
     setTimeout(refreshDashboardStats, 150);
-  }
-
-  let _appInited = false;
-  function safeInitApp() {
-    if (_appInited) return;
-    _appInited = true;
-    initApp();
-  }
-
-  window.onload = safeInitApp;
-  if (document.readyState !== 'loading') {
-    safeInitApp();
-  } else {
-    document.addEventListener('DOMContentLoaded', safeInitApp);
-  }
+  };
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────
   function loadBaremeSettings() {
@@ -17736,10 +17643,10 @@
   const openCloseBareme = () => {
     document.getElementById('baremeDrawer').classList.contains('open') ? closeBareme() : openBareme();
   };
-  document.getElementById('baremeBtn')?.addEventListener('click', openCloseBareme);
-  document.getElementById('baremeBackdrop')?.addEventListener('click', closeBareme);
-  document.getElementById('baremeCloseBtn')?.addEventListener('click', closeBareme);
-  document.getElementById('baremeRefreshBtn')?.addEventListener('click', () => {
+  document.getElementById('baremeBtn').addEventListener('click', openCloseBareme);
+  document.getElementById('baremeBackdrop').addEventListener('click', closeBareme);
+  document.getElementById('baremeCloseBtn').addEventListener('click', closeBareme);
+  document.getElementById('baremeRefreshBtn').addEventListener('click', () => {
     baremeEntries = null; loadBareme();
   });
   const searchInputEl = document.getElementById('baremeSearchInput');

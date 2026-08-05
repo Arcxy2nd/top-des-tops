@@ -9,19 +9,14 @@ test('doGet always serves Index.html regardless of ?view parameter', () => {
   assert.strictEqual(gas.doGet({ parameter: { view: 'desktop' } })._file, 'Index');
 });
 
-test('doGet injects the deployment\'s real public URL into the template (appUrl)', () => {
+// doGet uses createHtmlOutputFromFile (no server-side template evaluation):
+// GAS's template engine silently corrupts very large HTML files (confirmed in
+// production, see CHANGELOG v3.5.1), so Index.html no longer contains any
+// <?  ?> scriptlet and doGet has nothing left to inject.
+test('doGet sets the viewport meta tag without any template evaluation', () => {
   const gas = loadGas();
   const out = gas.doGet({ parameter: { view: 'desktop' } });
-  assert.strictEqual(out._appUrl, 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec');
   assert.deepStrictEqual(out._metaTag, { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' });
-});
-
-test('doGet still serves the page (with an empty appUrl) when ScriptApp.getService() is not authorized', () => {
-  const gas = loadGas();
-  gas.ScriptApp.getService = () => { throw new Error('Vous n\'êtes pas autorisé à appeler ScriptApp.getService.'); };
-  const out = gas.doGet({ parameter: { view: 'desktop' } });
-  assert.strictEqual(out._file, 'Index');
-  assert.strictEqual(out._appUrl, '');
 });
 
 // No auto-redirect page anymore: the sandboxed deployment silently blocks any
