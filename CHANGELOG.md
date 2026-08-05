@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.0] - 2026-08-06
+## [v3.5.1] - 2026-08-06
+
+### Corrigé
+**Humanisé** : Correction du bug d'affichage au lancement du site où les boutons du menu et l'interface restaient entièrement vides. La barre de navigation s'affiche désormais instantanément avec les onglets par défaut sans attendre la réponse du serveur, et tous les traitements de statistiques du Dashboard sont sécurisés.
+**Technique** : `Index.html` — initialisation de `NAV_PAGES` avec la liste par défaut des onglets, invocation synchrone immédiate de `renderNav()` et `initNavHoverTip()` au lancement dans `window.onload`. Sécurisation défensive des réponses des endpoints (`apiGetNavPages`, `apiGetPlayerRecords`, `apiDetectDuplicates`, `apiDetectOutlierScores`, `apiGetInactivePlayers`, `apiGetActiveWeekday`, `apiGetTopPlayerCategoryPairs`, `apiGetMentionStats`) contre les tableaux `undefined` et sélecteurs d'éléments optionnels du DOM.
+
+## [v3.5.0] - 2026-08-06
 
 ### Ajouté
 **Humanisé** : Il est désormais possible de saisir des points directement dans un Top Alternatif, sans qu'aucune entrée ne soit créée dans l'historique principal. Deux surfaces : un sélecteur d'univers en haut de l'onglet « Saisir un Lot » (bascule le constructeur en mode Alt, avec le sélecteur de Top remplacé par un sélecteur de Top Alternatif), et un bouton « ＋ Saisir Alt » qui apparaît sur le Dashboard quand l'univers Alt est actif (modale légère en un clic). Les entrées natives sont distinctes des entrées liées : elles affichent un badge ✏️ natif dans le gestionnaire Alt.

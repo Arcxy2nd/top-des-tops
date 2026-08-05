@@ -15359,7 +15359,14 @@
   // NAV_PAGES n'est plus une constante locale : elle vient du serveur
   // (apiGetNavPages, source commune avec Mobile.html) pour qu'ajouter/retirer un
   // onglet ne nécessite qu'une seule modification, côté Code.gs.
-  let NAV_PAGES = [];
+  let NAV_PAGES = [
+    { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
+    { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
+    { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
+    { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
+    { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
+    { id: 'tab-guide',     icon: '❓', label: 'Guide' },
+  ];
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
@@ -15370,7 +15377,8 @@
   }
 
   function renderNav() {
-    const html = NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
+    const pages = Array.isArray(NAV_PAGES) ? NAV_PAGES : [];
+    const html = pages.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
     const desktopGroup = document.getElementById('desktopNavGroup');
     const mobileGroup  = document.getElementById('mobileBottomNav');
     if (desktopGroup) desktopGroup.innerHTML = html;
@@ -15542,9 +15550,11 @@
   }
 
   callServer('apiGetNavPages', [], res => {
-    NAV_PAGES = res.pages;
-    renderNav();
-    initNavHoverTip();
+    if (res && Array.isArray(res.pages) && res.pages.length) {
+      NAV_PAGES = res.pages;
+      renderNav();
+      initNavHoverTip();
+    }
   }, 'Chargement du menu');
 
 
@@ -16451,7 +16461,7 @@
     callServer('apiDetectDuplicates', [], res => {
       restore();
       const dismissed = getDismissedDuplicateKeys();
-      const duplicates = res.duplicates.filter(d => !dismissed.has(String(d.keepRowIndex)));
+      const duplicates = ((res && res.duplicates) || []).filter(d => !dismissed.has(String(d.keepRowIndex)));
       if (!duplicates.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun doublon détecté. Tout est propre ✅</p>';
         return;
@@ -16530,7 +16540,7 @@
     callServer('apiDetectOutlierScores', [], res => {
       restore();
       const dismissed = getDismissedOutlierRowIndexes();
-      const outliers = res.outliers.filter(o => !dismissed.has(String(o.rowIndex)));
+      const outliers = ((res && res.outliers) || []).filter(o => !dismissed.has(String(o.rowIndex)));
       if (!outliers.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
         return;
@@ -16616,7 +16626,7 @@
     const restore = startBtnLoading(btn, 'Scan…');
     callServer('apiScanUnmentionedNames', [], res => {
       restore();
-      const results = res.results || [];
+      const results = (res && res.results) || [];
       if (!results.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun nom non mentionné détecté. Tout est propre ✅</p>';
         return;
@@ -16691,11 +16701,11 @@
         const restore = startBtnLoading(applyBtn, 'Application…');
         callServer('apiApplyMentionFixes', [fixes, _whoAmI || ''], res => {
           restore();
-          if (res.success) {
+          if (res && res.success) {
             showToast(res.applied + ' correction(s) appliquée(s).', 'success');
             scanMentionFixes();
           } else {
-            showToast(res.error || 'Erreur.', 'error');
+            showToast((res && res.error) || 'Erreur.', 'error');
           }
         }, 'Application mentions', () => { restore(); showToast('Erreur lors de l\'application.', 'error'); });
       });
@@ -16708,7 +16718,9 @@
     showSkeleton(container, { rows: 3, height: 40 });
     callServer('apiGetInactivePlayers', [], res => {
       container.innerHTML = '';
-      res.inactive.forEach(item => {
+      const inactive = (res && res.inactive) || [];
+      const neverActive = (res && res.neverActive) || [];
+      inactive.forEach(item => {
         const row = document.createElement('div');
         row.className = 'tool-action';
         const p = cachedPlayers.find(pl => pl.name === item.player);
@@ -16727,7 +16739,7 @@
         row.appendChild(info);
         container.appendChild(row);
       });
-      res.neverActive.forEach(name => {
+      neverActive.forEach(name => {
         const row = document.createElement('div');
         row.className = 'tool-action';
         const p = cachedPlayers.find(pl => pl.name === name);
@@ -16746,7 +16758,7 @@
         row.appendChild(info);
         container.appendChild(row);
       });
-      if (!res.inactive.length && !res.neverActive.length) {
+      if (!inactive.length && !neverActive.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun joueur enregistré.</p>';
       }
     }, 'Chargement joueurs inactifs');
@@ -16863,10 +16875,11 @@
         hero.appendChild(trophy); hero.appendChild(av); hero.appendChild(b); hero.appendChild(pts);
         container.appendChild(hero);
       }
-      if (res.records.length) {
+      const records = (res && res.records) || [];
+      if (records.length) {
         const list = document.createElement('div');
         list.className = 'sr-list';
-        res.records.forEach((r, i) => {
+        records.forEach((r, i) => {
           list.appendChild(buildStatRow({
             rank: i + 1,
             playerName: r.player,
@@ -16902,14 +16915,16 @@
 
   function renderTrends() {
     if (!_trendsData) return;
-    const rows = trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends;
+    const rows = (trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends) || [];
     const empty = document.getElementById('trendsEmpty');
-    const wrapper = document.getElementById('trendsChart').closest('.chart-wrapper');
+    const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
     if (!rows.length) {
-      empty.style.display = 'block'; wrapper.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      if (wrapper) wrapper.style.display = 'none';
       return;
     }
-    empty.style.display = 'none'; wrapper.style.display = '';
+    if (empty) empty.style.display = 'none';
+    if (wrapper) wrapper.style.display = '';
 
     const sorted = rows.slice().sort((a, b) => b.changePct - a.changePct);
     const labels = sorted.map(r => trendsScope === 'category' ? r.category : r.player);
@@ -16954,12 +16969,15 @@
   function loadActiveWeekday() {
     callServer('apiGetActiveWeekday', [activeDashboardUniverse], res => {
       const empty = document.getElementById('weekdayEmpty');
-      const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
-      if (!res.topWeekday) {
-        empty.style.display = 'block'; wrapper.style.display = 'none';
+      const wrapper = document.getElementById('weekdayChart')?.closest('.chart-wrapper');
+      const byWeekday = (res && res.byWeekday) || [];
+      if (!res || !res.topWeekday || !byWeekday.length) {
+        if (empty) empty.style.display = 'block';
+        if (wrapper) wrapper.style.display = 'none';
         return;
       }
-      empty.style.display = 'none'; wrapper.style.display = '';
+      if (empty) empty.style.display = 'none';
+      if (wrapper) wrapper.style.display = '';
       const c = getChartColors();
       const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim();
 
@@ -16967,10 +16985,10 @@
       weekdayChartInstance = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: res.byWeekday.map(w => w.weekday),
+          labels: byWeekday.map(w => w.weekday),
           datasets: [{
-            data: res.byWeekday.map(w => w.count),
-            backgroundColor: res.byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
+            data: byWeekday.map(w => w.count),
+            backgroundColor: byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
             borderRadius: 4
           }]
         },
@@ -17001,13 +17019,14 @@
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetTopPlayerCategoryPairs', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      if (!res.pairs.length) {
+      const pairs = (res && res.pairs) || [];
+      if (!pairs.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
         return;
       }
       const list = document.createElement('div');
       list.className = 'sr-list';
-      res.pairs.forEach((pair, i) => {
+      pairs.forEach((pair, i) => {
         list.appendChild(buildStatRow({
           rank: i + 1,
           playerName: pair.player,
@@ -17039,30 +17058,34 @@
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetMentionStats', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      if (res.mostMentioned.length) {
+      const mostMentioned  = (res && res.mostMentioned) || [];
+      const mostMentioning = (res && res.mostMentioning) || [];
+      const topDuo         = res && res.topDuo;
+
+      if (mostMentioned.length) {
         const list = mentionSection(container, '📣', 'Les plus mentionnés');
-        res.mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
+        mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
           rank: i + 1, playerName: m.player, accent: playerColor(m.player),
           value: m.count, valueLabel: 'mentions'
         })));
       }
-      if (res.mostMentioning.length) {
+      if (mostMentioning.length) {
         const list = mentionSection(container, '✍️', 'Ceux qui mentionnent le plus');
-        res.mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
+        mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
           rank: i + 1, playerName: m.player, accent: playerColor(m.player),
           value: m.count, valueLabel: 'écrites'
         })));
       }
-      if (res.topDuo) {
+      if (topDuo) {
         const list = mentionSection(container, '🔗', 'Duo le plus complice');
         list.appendChild(buildStatRow({
           badge: '🤝',
-          playerName: res.topDuo.playerA, secondPlayer: res.topDuo.playerB,
-          accent: playerColor(res.topDuo.playerA),
-          value: res.topDuo.count, valueLabel: 'croisées'
+          playerName: topDuo.playerA, secondPlayer: topDuo.playerB,
+          accent: playerColor(topDuo.playerA),
+          value: topDuo.count, valueLabel: 'croisées'
         }));
       }
-      if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
+      if (!mostMentioned.length && !mostMentioning.length && !topDuo) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
       }
     }, 'Chargement mentions', err => {
@@ -17192,6 +17215,8 @@
   });
 
   window.onload = () => {
+    renderNav();
+    initNavHoverTip();
     initTheme();
     initLayoutModeToggle();
     initSpotlightCards();
