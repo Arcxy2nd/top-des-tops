@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.4.4] - 2026-08-05
+## [v3.4.5] - 2026-08-05
+
+### Corrigé
+**Humanisé** : La bascule vers les Tops Alternatifs sur le Dashboard ne recharge plus inutilement la bannière de statistiques rapides du haut de page, évitant ainsi tout clignotement intempestif.
+**Technique** : `Index.html` — retrait de `loadQuickStats()` de la fonction `refreshDashboardStats()`, garantissant le maintien fixe du bandeau `quickStatsBar` sans requête réseau inutile lors du changement d'univers.
+
+## [v3.4.4] - 2026-08-05
 
 ### Modifié
 **Humanisé** : Refonte complète de l'ergonomie et de la taille des modales de modification (notes, affectation des points aux Tops Alternatifs, édition groupée, drill-down des graphiques). Les modales profitent désormais du grand écran sur ordinateur (`max-width` étendu à 860px-1000px, hauteurs de listes dynamiques `modal-scroll-list`) et les bloc-notes par joueur s'organisent en grille responsive multi-colonnes.
