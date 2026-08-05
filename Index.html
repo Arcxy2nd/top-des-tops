@@ -7660,12 +7660,12 @@
     wrap.appendChild(trigger);
     wrap.appendChild(panel);
 
-    function makeThumb(container, val, isCategory) {
+    function makeThumb(container, val) {
       container.innerHTML = '';
       container.className = 'rs-thumb';
       container.style.background = '';
       if (!val) return;
-      if (isCategory) {
+      if (type === 'category') {
         var icon = catIcon(val);
         if (icon) {
           container.textContent = icon;
@@ -7673,6 +7673,15 @@
         } else {
           container.className = 'rs-thumb rs-thumb-dot';
           container.style.background = categoryColor(val);
+        }
+      } else if (type === 'altCategory') {
+        var altCat = cachedAltCategories.find(function(ac) { return ac.name === val; });
+        if (altCat && altCat.emoji) {
+          container.textContent = altCat.emoji;
+          container.className = 'rs-thumb rs-thumb-emoji';
+        } else {
+          container.className = 'rs-thumb rs-thumb-dot';
+          container.style.background = altCat ? (altCat.color || '#ffd166') : '#ffd166';
         }
       } else {
         var pData = cachedPlayers.find(function(p) { return p.name === val; });
@@ -7696,7 +7705,7 @@
         label.textContent = '— inconnu —';
         trigger.className = 'rs-trigger';
       } else if (curVal) {
-        makeThumb(thumb, curVal, isCategory);
+        makeThumb(thumb, curVal);
         label.textContent = curVal;
         trigger.className = 'rs-trigger';
       } else {
@@ -7730,7 +7739,7 @@
 
         var optThumb = document.createElement('span');
         if (!item.isNull) {
-          makeThumb(optThumb, item.val, isCategory);
+          makeThumb(optThumb, item.val);
         } else {
           optThumb.className = 'rs-thumb';
         }
@@ -12092,11 +12101,14 @@
     const es = container.querySelector('.empty-state');
     if (es) es.remove();
 
-    if (!cachedPlayers.length || !cachedCategories.length) {
+    if (!cachedPlayers.length || (activeLotUniverse === 'alt' ? !cachedAltCategories.length : !cachedCategories.length)) {
       if (!container.querySelector('.empty-illustration')) {
         const p = document.createElement('div');
         p.className = 'empty-illustration';
-        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.</div>';
+        const msg = activeLotUniverse === 'alt'
+          ? 'Ajoutez d\'abord des <strong>Tops Alternatifs</strong> dans <strong>Paramètres → ⭐ Tops Alternatifs</strong>.'
+          : 'Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.';
+        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">' + msg + '</div>';
         container.appendChild(p);
       }
       return;
