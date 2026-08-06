@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.2] - 2026-08-06
+## [v3.5.3] - 2026-08-06
+
+### Modifié
+**Humanisé** : Réduction de la largeur excessive des boutons de navigation et des onglets par rapport aux emojis et aux badges de compteurs pour un rendu visuel plus compact et harmonieux.
+**Technique** : `Index.html` — suppression de `flex-grow: 2.6` sur `.nav-btn.active`, ajustement de `.nav-btn` (`padding: 6px 10px`, `flex: 0 0 auto`, `gap: 4px`), resserrement des marges des badges `.nav-count` (`margin-left: 4px`, `padding: 1px 6px`) et des onglets `.history-nav-btn`.
+
+## [v3.5.2] - 2026-08-06
 
 ### Corrigé
 **Humanisé** : Le correctif 3.5.1 n'était que la moitié de la solution — il éliminait un mécanisme suspect mais l'interface restait vide en production. En comparant le code réellement envoyé aux visiteurs à celui du dépôt, la vraie cause a été isolée avec certitude : lors de l'envoi vers Google, Google retire lui-même les commentaires du code, mais le fait de façon buguée sur un fichier de cette taille et casse la syntaxe. Le nettoyage se fait désormais nous-mêmes, en amont, avec une méthode fiable et vérifiée — Google n'a alors plus rien à casser.

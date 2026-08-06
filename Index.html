@@ -142,22 +142,24 @@
     .nav-btn-group {
       display: flex; align-items: center;
       flex: 1 1 auto; min-width: 0;
+      gap: 4px;
       overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
     .nav-btn-group::-webkit-scrollbar { display: none; }
     .nav-btn {
       position: relative;
       background: transparent; border: none;
-      color: var(--text-muted); font-size: 0.86rem;
-      padding: 10px 14px; cursor: pointer;
+      color: var(--text-muted); font-size: 0.84rem;
+      padding: 6px 10px; cursor: pointer;
       border-bottom: 3px solid transparent;
-      white-space: nowrap; min-height: 38px;
+      white-space: nowrap; min-height: 34px;
       font-weight: 600; 
-      transition: color 0.2s, flex-grow 0.3s ease, border-color 0.2s, transform 0.15s;
+      transition: color 0.2s, border-color 0.2s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       display: flex; align-items: center; justify-content: center;
-      flex: 1 1 0; min-width: max-content;
+      flex: 0 0 auto; min-width: max-content;
+      gap: 4px;
     }
     .nav-btn:not(:last-child)::after {
       content: "";
@@ -172,14 +174,13 @@
       color: var(--accent); 
       border-bottom-color: var(--accent); 
       font-weight: 700;
-      flex-grow: 2.6;
     }
     .nav-btn-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
     .nav-btn-label {
       display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
       transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
     }
-    .nav-btn.active .nav-btn-label { max-width: 160px; opacity: 1; margin-left: 8px; }
+    .nav-btn.active .nav-btn-label { max-width: 120px; opacity: 1; margin-left: 4px; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card-solid); color: var(--text);
@@ -1204,10 +1205,10 @@
 
     /* ── BADGE COMPTEUR NAV ── */
     .nav-count {
-      display: inline-block; margin-left: 6px;
+      display: inline-block; margin-left: 4px;
       background: var(--accent); color: var(--on-accent);
       font-size: 0.68rem; font-weight: 700;
-      border-radius: 10px; padding: 1px 7px; min-width: 18px;
+      border-radius: 10px; padding: 1px 6px; min-width: 16px;
       vertical-align: middle;
     }
     .nav-count:empty { display: none; }
@@ -3621,7 +3622,7 @@
     margin-bottom: 20px;
   }
   .history-nav-btn {
-    flex: 1; min-width: 80px; padding: 10px 8px;
+    flex: 0 0 auto; min-width: 0; padding: 6px 12px;
     border: none; border-radius: 11px; cursor: pointer;
     font-size: 0.82rem; font-weight: 600; white-space: nowrap;
     background: transparent; color: var(--text-muted);
