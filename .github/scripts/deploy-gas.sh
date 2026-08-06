@@ -15,6 +15,14 @@ fi
 # Apps Script deployment descriptions are short-lived UI labels; keep it tight.
 DEPLOY_DESCRIPTION=$(echo "${COMMIT_SUBJECT:0:60} ($SHORT_SHA)")
 
+# Strip JS comments from the .gs/.html files in this CI checkout (never the
+# git-tracked source) before pushing: Google's own comment-stripping, applied
+# server-side on push, corrupted a working file's syntax in production on a
+# large file (see CHANGELOG v3.5.1). Stripping comments ourselves first, with
+# a routine verified to only touch real comment text, makes that pass a no-op.
+echo "== 0/4: Stripping JS comments before push (see strip-comments.js) =="
+node .github/scripts/strip-comments.js
+
 deploy_one_target() {
   local name="$1"
   local script_id="$2"

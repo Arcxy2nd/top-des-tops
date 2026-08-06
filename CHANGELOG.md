@@ -3,7 +3,13 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.1] - 2026-08-06
+## [v3.5.2] - 2026-08-06
+
+### Corrigé
+**Humanisé** : Le correctif 3.5.1 n'était que la moitié de la solution — il éliminait un mécanisme suspect mais l'interface restait vide en production. En comparant le code réellement envoyé aux visiteurs à celui du dépôt, la vraie cause a été isolée avec certitude : lors de l'envoi vers Google, Google retire lui-même les commentaires du code, mais le fait de façon buguée sur un fichier de cette taille et casse la syntaxe. Le nettoyage se fait désormais nous-mêmes, en amont, avec une méthode fiable et vérifiée — Google n'a alors plus rien à casser.
+**Technique** : `.github/scripts/strip-comments.js` (nouveau) — retire les commentaires `//` et `/* */` de tous les fichiers `.gs`/`.html` juste avant `clasp push`, uniquement dans la copie éphémère du CI (jamais le dépôt source), avec une analyse consciente des chaînes/template literals (ne touche jamais le contenu entre guillemets ou backticks). `.github/scripts/deploy-gas.sh` — invoque ce nettoyage avant la boucle de déploiement des deux cibles. Comportement vérifié identique avant/après sur toute la suite de tests.
+
+## [v3.5.1] - 2026-08-06
 
 ### Corrigé
 **Humanisé** : Résolution définitive de la panne d'interface qui rendait le site totalement vide (aucun onglet, aucun joueur, aucun contenu) depuis la 3.5.0. Les trois tentatives précédentes (3.5.1 à 3.5.3, annulées et remplacées par cette version) corrigeaient des symptômes côté navigateur sans s'attaquer à la vraie cause : le moteur de rendu de Google corrompait silencieusement le fichier de la page (trop volumineux) à chaque chargement, cassant le script en plein milieu.
