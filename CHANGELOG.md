@@ -6,8 +6,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.5.3] - 2026-08-06
 
 ### Modifié
-**Humanisé** : Réduction de la largeur excessive des boutons de navigation et des onglets par rapport aux emojis et aux badges de compteurs pour un rendu visuel plus compact et harmonieux.
-**Technique** : `Index.html` — suppression de `flex-grow: 2.6` sur `.nav-btn.active`, ajustement de `.nav-btn` (`padding: 6px 10px`, `flex: 0 0 auto`, `gap: 4px`), resserrement des marges des badges `.nav-count` (`margin-left: 4px`, `padding: 1px 6px`) et des onglets `.history-nav-btn`.
+**Humanisé** : La surface cliquable des boutons de navigation s'étend désormais sur toute la hauteur de la barre supérieure, et l'espace entre les emojis et leurs pastilles de compteurs a été resserré au maximum.
+**Technique** : `Index.html` — alignement vertical `.nav-btn` sur toute la hauteur de `.nav-container` (`height: 100%`, `align-self: stretch`, padding ajusté `0 8px`), et resserrement de l'espacement avec les badges `.nav-count` (`margin-left: 2px`, `gap: 2px`).
 
 ## [v3.5.2] - 2026-08-06
 

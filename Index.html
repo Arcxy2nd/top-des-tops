@@ -137,12 +137,14 @@
     .nav-container {
       display: flex; min-width: 0;
       width: 100%; max-width: 1200px; gap: 6px;
-      align-items: center; padding: 4px 10px;
+      align-items: center; padding: 0 10px;
+      height: 46px;
     }
     .nav-btn-group {
-      display: flex; align-items: center;
+      display: flex; align-items: stretch;
+      align-self: stretch; height: 100%;
       flex: 1 1 auto; min-width: 0;
-      gap: 4px;
+      gap: 2px;
       overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
     .nav-btn-group::-webkit-scrollbar { display: none; }
@@ -150,21 +152,21 @@
       position: relative;
       background: transparent; border: none;
       color: var(--text-muted); font-size: 0.84rem;
-      padding: 6px 10px; cursor: pointer;
+      padding: 0 8px; cursor: pointer;
       border-bottom: 3px solid transparent;
-      white-space: nowrap; min-height: 34px;
+      white-space: nowrap; align-self: stretch; height: 100%;
       font-weight: 600; 
       transition: color 0.2s, border-color 0.2s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       display: flex; align-items: center; justify-content: center;
       flex: 0 0 auto; min-width: max-content;
-      gap: 4px;
+      gap: 2px;
     }
     .nav-btn:not(:last-child)::after {
       content: "";
       position: absolute; right: 0;
-      top: 28%; bottom: 28%;
+      top: 25%; bottom: 25%;
       width: 1px;
       background: color-mix(in srgb, var(--border) 40%, transparent);
       pointer-events: none;
@@ -180,7 +182,7 @@
       display: inline-block; max-width: 0; opacity: 0; overflow: hidden;
       transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
     }
-    .nav-btn.active .nav-btn-label { max-width: 120px; opacity: 1; margin-left: 4px; }
+    .nav-btn.active .nav-btn-label { max-width: 120px; opacity: 1; margin-left: 3px; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card-solid); color: var(--text);
@@ -1205,10 +1207,10 @@
 
     /* ── BADGE COMPTEUR NAV ── */
     .nav-count {
-      display: inline-block; margin-left: 4px;
+      display: inline-block; margin-left: 2px;
       background: var(--accent); color: var(--on-accent);
       font-size: 0.68rem; font-weight: 700;
-      border-radius: 10px; padding: 1px 6px; min-width: 16px;
+      border-radius: 10px; padding: 1px 5px; min-width: 16px;
       vertical-align: middle;
     }
     .nav-count:empty { display: none; }
