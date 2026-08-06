@@ -6,8 +6,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.5.3] - 2026-08-06
 
 ### Modifié
-**Humanisé** : La surface cliquable des boutons de navigation s'étend désormais sur toute la hauteur de la barre supérieure, et l'espace entre les emojis et leurs pastilles de compteurs a été resserré au maximum.
-**Technique** : `Index.html` — alignement vertical `.nav-btn` sur toute la hauteur de `.nav-container` (`height: 100%`, `align-self: stretch`, padding ajusté `0 8px`), et resserrement de l'espacement avec les badges `.nav-count` (`margin-left: 2px`, `gap: 2px`).
+**Humanisé** : La hauteur de la barre supérieure et la taille verticale des boutons de navigation ont été augmentées (hitbox verticale agrandie à 56px), et l'espace entre chaque emoji et sa pastille de compteur a été réduit au minimum.
+**Technique** : `Index.html` — augmentation de la hauteur `.nav-container` à `56px`, `min-height: 56px` et `padding: 12px 10px` sur `.nav-btn` pour une hitbox verticale étendue, et resserrement `gap: 2px` / `margin-left: 2px` sur `.nav-count`.
 
 ## [v3.5.2] - 2026-08-06
 
