@@ -14019,31 +14019,34 @@
     const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
     const dateFrom = (document.getElementById('historyDateFrom') || {}).value || '';
     const dateTo   = (document.getElementById('historyDateTo')   || {}).value || '';
+    // Chips are single-select (each handler clears the set before adding), so the
+    // server's scalar filterAltCategory is enough.
+    const altFilter = selectedHistAltCategories.size ? Array.from(selectedHistAltCategories)[0] : null;
     const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo);
 
     const prefetched = histPrefetchCache.get(key);
     if (prefetched) {
       histPrefetchCache.delete(key);
       _renderHistoryPage(page, prefetched);
-      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter);
       return;
     }
 
     showTableSkeleton(document.getElementById('historyTableBody'), histSelectMode ? 7 : 6, PAGE_SIZE);
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir], res => {
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter], res => {
       _renderHistoryPage(page, res);
-      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter);
     }, 'Chargement historique');
   }
 
   // Précharge silencieusement la page suivante (pas de skeleton, pas de toast d'erreur
   // visible) pour que le clic "suivant" soit instantané. N'écrase pas une entrée déjà
   // présente dans le cache (évite de reprécharger en boucle si l'utilisateur va-et-vient).
-  function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo) {
+  function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter) {
     const nextPage = page + 1;
     const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo);
     if (histPrefetchCache.has(key)) return;
-    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir],
+    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter],
       res => { histPrefetchCache.set(key, res); },
       null,
       // Pas de toast (échec silencieux pour l'utilisateur : la page suivante sera
