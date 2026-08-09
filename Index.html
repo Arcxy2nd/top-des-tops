@@ -5107,6 +5107,11 @@
   let activeDashboardUniverse = 'main'; // 'main' | 'alt'
   let activeLotUniverse = 'main';        // 'main' | 'alt'
 
+  // ── CONFIG ───────────────────────────────────────────────────────────
+  // Fallback accent for an Alt Top with no colour set in the Sheet. Mirrors the
+  // --alt-accent CSS variable; both must stay in sync.
+  const ALT_FALLBACK_COLOR = '#ffd166';
+
   function loadAltHistoryMap(callback) {
     callServer('apiGetAltHistoryMap', [], res => {
       if (res && res.success) {
@@ -12094,16 +12099,30 @@
     });
   }
 
+  function applyRowCategoryVisuals(div, categoryName, isAlt) {
+    if (isAlt) {
+      const ac = cachedAltCategories.find(c => c.name === categoryName);
+      div.style.setProperty('--row-accent', (ac && ac.color) || ALT_FALLBACK_COLOR);
+      return;
+    }
+    div.style.setProperty('--row-accent', categoryColor(categoryName || ''));
+    refreshBaremeForTop(categoryName || '');
+  }
+
   function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
     const es = container.querySelector('.empty-state');
     if (es) es.remove();
 
-    if (!cachedPlayers.length || !cachedCategories.length) {
+    const isAltRow = activeLotUniverse === 'alt';
+    const requiredTops = isAltRow ? cachedAltCategories : cachedCategories;
+    if (!cachedPlayers.length || !requiredTops.length) {
       if (!container.querySelector('.empty-illustration')) {
         const p = document.createElement('div');
         p.className = 'empty-illustration';
-        p.innerHTML = '<div class="emoji">🎮</div><div class="msg">Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.</div>';
+        p.innerHTML = isAltRow
+          ? '<div class="emoji">⭐</div><div class="msg">Ajoutez d\'abord des joueurs et des <strong>Tops Alternatifs</strong> dans <strong>Paramètres</strong>.</div>'
+          : '<div class="emoji">🎮</div><div class="msg">Ajoutez d\'abord des joueurs et des Tops dans <strong>Paramètres</strong>.</div>';
         container.appendChild(p);
       }
       return;
@@ -12925,14 +12944,9 @@
       value: initCatValue || null,
       onChange: function(v) {
         cSel.value = v || '';
-        if (activeLotUniverse === 'alt') {
-          const ac = cachedAltCategories.find(c => c.name === v);
-          div.style.setProperty('--row-accent', ac ? (ac.color || '#ffd166') : '#ffd166');
-        } else {
-          const col = categoryColor(v || '');
-          div.style.setProperty('--row-accent', col);
-          refreshBaremeForTop(v || '');
-        }
+        applyRowCategoryVisuals(div, v || '', isAltRow);
+        if (isAltRow) div.dataset.altUniverseCategory = v || '';
+        else          div.dataset.mainCategory        = v || '';
         refreshHistVisibility();
         updateLotSummary();
       }
@@ -12941,9 +12955,7 @@
 
     // Couleurs et avatar initiaux
     applyRowAvatar(initPlayer);
-    const initCatCol = categoryColor(initCategory);
-    div.style.setProperty('--row-accent', initCatCol);
-    refreshBaremeForTop(initCategory);
+    applyRowCategoryVisuals(div, initCatValue, isAltRow);
     if (preset && (preset.altCategory || preset.isAlt)) {
       altCb.checked = true;
       populateAltSelect();
