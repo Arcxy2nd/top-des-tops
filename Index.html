@@ -8863,14 +8863,6 @@
 
     const today = toDateStr(new Date());
 
-    let altOpts = cachedAltCategories.map(ac =>
-      `<option value="${escapeHtml(ac.name)}" ${prefillAltCategory === ac.name ? 'selected' : ''}>${escapeHtml((ac.emoji ? ac.emoji + ' ' : '') + ac.name)}</option>`
-    ).join('');
-
-    let playerOpts = cachedPlayers.map((p, i) =>
-      `<option value="${escapeHtml(p.name)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
-    ).join('');
-
     box.innerHTML = `
       <h3>⭐ Saisir des points Alt</h3>
       <p style="font-size:0.8rem;color:var(--text-muted);margin-top:-6px;margin-bottom:16px;">
@@ -8879,15 +8871,11 @@
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
           <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Joueur</label>
-          <select id="qaPlayerSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
-            ${playerOpts}
-          </select>
+          <div id="qaPlayerHost" class="rs-host qa-field"></div>
         </div>
         <div>
           <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Top Alternatif</label>
-          <select id="qaAltCatSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);">
-            ${altOpts}
-          </select>
+          <div id="qaAltCatHost" class="rs-host qa-field"></div>
         </div>
         <div style="display:flex;gap:10px;">
           <div style="flex:1;">
@@ -8914,31 +8902,34 @@
     `;
 
     document.getElementById('modalBackdrop').style.display = 'flex';
+
+    let qaPlayer = (cachedPlayers[0] && cachedPlayers[0].name) || '';
+    let qaAltCat = prefillAltCategory || (cachedAltCategories[0] && cachedAltCategories[0].name) || '';
+
+    document.getElementById('qaPlayerHost').appendChild(buildRichSelect({
+      type: 'player', value: qaPlayer, onChange: v => { qaPlayer = v || ''; }
+    }));
+    document.getElementById('qaAltCatHost').appendChild(buildRichSelect({
+      type: 'altCategory', value: qaAltCat, onChange: v => { qaAltCat = v || ''; }
+    }));
+
     document.getElementById('qaCancelBtn').onclick = closeModal;
 
     document.getElementById('qaConfirmBtn').onclick = () => {
-      const player     = document.getElementById('qaPlayerSel').value;
-      const altCategory = document.getElementById('qaAltCatSel').value;
-      const pts        = parseInt(document.getElementById('qaPtsInput').value, 10);
-      const date       = document.getElementById('qaDateInput').value || today;
-      const desc       = document.getElementById('qaDescInput').value.trim();
+      const pts  = parseInt(document.getElementById('qaPtsInput').value, 10);
+      const date = document.getElementById('qaDateInput').value || today;
+      const desc = document.getElementById('qaDescInput').value.trim();
 
-      if (!player)                     { showToast('Joueur requis.', 'error'); return; }
-      if (!altCategory)                { showToast('Top Alternatif requis.', 'error'); return; }
-      if (isNaN(pts) || pts < 1)       { showToast('Points invalides (≥ 1 requis).', 'error'); return; }
+      if (!qaPlayer)             { showToast('Joueur requis.', 'error'); return; }
+      if (!qaAltCat)             { showToast('Top Alternatif requis.', 'error'); return; }
+      if (isNaN(pts) || pts < 1) { showToast('Points invalides (≥ 1 requis).', 'error'); return; }
 
       const btn = document.getElementById('qaConfirmBtn');
-      const restore = startBtnLoading(btn, 'Enregistrement…');
-      callServer('apiAppendAltNativeBatch', [_whoAmI || '', [{
-        player, altCategory, points: pts, date, description: desc, saiseur: _whoAmI || ''
-      }]], res => {
-        restore();
-        if (res.success) {
-          closeModal();
-          applyFilters();
-          showToast(`⭐ ${pts} pt(s) enregistré(s) pour ${player} dans "${altCategory}" !`, 'success');
-        }
-      }, 'Saisie rapide Alt', () => { restore(); });
+      saveNativeAltEntries(
+        [{ player: qaPlayer, altCategory: qaAltCat, points: pts, date: date, description: desc, saiseur: _whoAmI || '' }],
+        btn,
+        () => closeModal()
+      );
     };
   }
 
