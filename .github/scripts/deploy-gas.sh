@@ -22,7 +22,7 @@ DEPLOY_DESCRIPTION=$(echo "${COMMIT_SUBJECT:0:60} ($SHORT_SHA)")
 # exits non-zero if the result no longer parses, so a scanner bug fails the build
 # instead of blanking the site.
 echo "== 0/4: Stripping JS comments before push (see strip-comments.js) =="
-node .github/scripts/strip-comments.js
+node .github/scripts/strip-comments.js || exit 1
 
 deploy_one_target() {
   local name="$1"

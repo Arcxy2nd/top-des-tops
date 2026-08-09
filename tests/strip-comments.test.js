@@ -45,3 +45,10 @@ test('preserves CRLF line endings on stripped lines', () => {
 test('throws instead of silently truncating on an unterminated block comment', () => {
   assert.throws(() => stripJsComments('let a = 1; /* never closed'), /non ferme|non fermé/);
 });
+
+test('treats division after ++ or -- as division, not a regex', () => {
+  const out = stripJsComments('let r = a++ / b; // gone\nlet s = c-- / d;\n');
+  assert.ok(out.includes('let r = a++ / b;'));
+  assert.ok(out.includes('let s = c-- / d;'));
+  assert.ok(!out.includes('gone'));
+});

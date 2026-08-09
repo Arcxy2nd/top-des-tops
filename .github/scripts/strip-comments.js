@@ -27,7 +27,13 @@ function opensRegex(emitted) {
   while (i >= 0 && /\s/.test(emitted[i])) i--;
   if (i < 0) return true;
   const c = emitted[i];
-  if (REGEX_PRECEDERS.has(c)) return true;
+  if (REGEX_PRECEDERS.has(c)) {
+    // A '/' right after '++' or '--' is division on the postfix/prefix
+    // result, not a regex opener -- REGEX_PRECEDERS only sees the last '+'
+    // or '-' and doesn't know it's the second half of the doubled operator.
+    if ((c === '+' || c === '-') && emitted[i - 1] === c) return false;
+    return true;
+  }
   if (!/[A-Za-z0-9_$]/.test(c)) return false;
   let j = i;
   while (j >= 0 && /[A-Za-z0-9_$]/.test(emitted[j])) j--;
