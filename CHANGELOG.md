@@ -3,22 +3,67 @@
 Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
-## [v3.5.3] - 2026-08-06
+
+## [v3.6.0] - 2026-08-09
+
+> Note de traçabilité : les numéros v3.5.1 à v3.5.3 ont été utilisés dans les sujets de trois commits abandonnés pendant l'épisode de l'interface vide. Les correctifs qui les ont remplacés sont documentés ci-dessous sous v3.5.4 à v3.5.6.
+
+### Corrigé
+**Humanisé** : En saisie de lot dans les Tops Alternatifs, une ligne mal remplie bloque désormais tout l'envoi au lieu d'être ignorée en silence pendant que les autres partaient quand même.
+**Technique** : `Index.html` — la branche Alt de `submitBulk()` collecte puis valide dans une boucle `for...of` ; le `return` dans le `forEach` n'écartait que la ligne fautive.
+
+**Humanisé** : Supprimer une entrée saisie directement dans un Top Alternatif ne risque plus d'effacer une autre entrée sans rapport, et la fenêtre de confirmation dit clairement que la suppression est définitive.
+**Technique** : `Code.gs` — `unlinkHistoryRowsFromAltCategory()` ne matche plus que la colonne `refHistoryRowId` ; nouvelle méthode `AltStorageService.deleteNativeAltEntry()` et endpoint `apiDeleteNativeAltEntry()` avec audit dédié. `Index.html` — le handler lit enfin `data-native`.
+
+**Humanisé** : En mode Tops Alternatifs, la couleur d'une ligne de saisie est la bonne dès sa création, et le constructeur reste utilisable même sans aucun Top principal configuré.
+**Technique** : `Index.html` — `applyRowCategoryVisuals()` extrait et appelé à l'initialisation comme dans `onChange` ; la garde de `addEntryRow()` teste `cachedAltCategories` en univers Alt.
+
+**Humanisé** : Basculer entre Tops Principaux et Tops Alternatifs dans le constructeur de lot ne détruit plus les Tops choisis ligne par ligne — l'aller-retour rend exactement ce qui avait été saisi.
+**Technique** : `Index.html` — chaque ligne mémorise `dataset.mainCategory` et `dataset.altUniverseCategory` ; `setLotUniverse()` reconstruit les presets à partir des deux.
+
+**Humanisé** : Les pastilles de filtre par Top Alternatif de l'onglet Historique filtrent enfin réellement le tableau.
+**Technique** : `Index.html` — `selectedHistAltCategories` est transmis en 9ᵉ argument (`filterAltCategory`) à `apiGetHistoryPage`, à l'appel principal comme au préchargement.
+
+**Humanisé** : Après avoir saisi des points Alt, les cartes Records et Tendances du Dashboard se mettent à jour sans recharger la page.
+**Technique** : `Index.html` — `saveNativeAltEntries()` appelle `refreshDashboardStats()` en plus de `applyFilters()` quand le Dashboard est en univers Alt.
+
+**Humanisé** : Une date invalide envoyée à la saisie Alt est refusée avec un message clair au lieu d'atterrir telle quelle dans la feuille.
+**Technique** : `Code.gs` — `addNativeAltEntries()` valide `new Date(e.date)` avant écriture.
+
+### Ajouté
+**Humanisé** : L'outil « Scores aberrants » annoncé dans la documentation existe enfin pour de vrai dans Paramètres → Outils.
+**Technique** : `Index.html` — card `#toolOutliersCard` avec `#detectOutliersBtn` et `#outliersResults`, et écouteur vers la fonction `scanOutliers()` qui était déjà implémentée mais orpheline.
+
+**Humanisé** : Une erreur de syntaxe dans la page ne peut plus passer inaperçue jusqu'en production : elle bloque désormais la livraison.
+**Technique** : `tests/check-html-syntax.js` (nouveau) et script npm `verify` ; `.github/scripts/strip-comments.js` reconnaît les expressions régulières, préserve les fins de ligne CRLF, refuse de s'exécuter hors CI sans `--force`, et re-parse chaque fichier qu'il réécrit avant de l'enregistrer. Couverture par `tests/strip-comments.test.js`.
+
+### Modifié
+**Humanisé** : La fenêtre de saisie rapide Alt affiche maintenant l'avatar de chaque joueur et l'emoji de chaque Top Alternatif, comme partout ailleurs dans l'application.
+**Technique** : `Index.html` — `openAltNativeQuickAddModal()` est bâtie sur `buildRichSelect()` au lieu de balises `<select>` nues, et passe par le chemin d'écriture unique `saveNativeAltEntries()`.
+
+**Humanisé** : Les couleurs des Tops Alternatifs suivent une seule référence au lieu de deux valeurs concurrentes selon l'écran, et les onglets de l'Historique redeviennent confortables à toucher au doigt.
+**Technique** : `Index.html` — variable CSS `--alt-accent` et constante `ALT_FALLBACK_COLOR`, `var(--info)` pour le badge natif, `min-height: var(--tap-min)` sur `.history-nav-btn` et les champs de la modale Alt.
+
+### Supprimé
+**Humanisé** : Retrait de morceaux de code qui n'étaient plus reliés à rien dans l'application.
+**Technique** : `Index.html` — `openAltCategoryLinkModal()`, `confirmGroupRows()`. `Code.gs` — `apiGetMobileBootstrap()`. `AutoPoints.gs` — `apiRunAutoRulesNow()`. `tests/harness.js` — listes d'exposition mises à jour.
+
+## [v3.5.6] - 2026-08-06
 
 ### Modifié
 **Humanisé** : La hauteur de la barre supérieure et la taille verticale des boutons de navigation ont été augmentées (hitbox verticale agrandie à 56px), et l'espace entre chaque emoji et sa pastille de compteur a été réduit au minimum.
 **Technique** : `Index.html` — augmentation de la hauteur `.nav-container` à `56px`, `min-height: 56px` et `padding: 12px 10px` sur `.nav-btn` pour une hitbox verticale étendue, et resserrement `gap: 2px` / `margin-left: 2px` sur `.nav-count`.
 
-## [v3.5.2] - 2026-08-06
+## [v3.5.5] - 2026-08-06
 
 ### Corrigé
-**Humanisé** : Le correctif 3.5.1 n'était que la moitié de la solution — il éliminait un mécanisme suspect mais l'interface restait vide en production. En comparant le code réellement envoyé aux visiteurs à celui du dépôt, la vraie cause a été isolée avec certitude : lors de l'envoi vers Google, Google retire lui-même les commentaires du code, mais le fait de façon buguée sur un fichier de cette taille et casse la syntaxe. Le nettoyage se fait désormais nous-mêmes, en amont, avec une méthode fiable et vérifiée — Google n'a alors plus rien à casser.
+**Humanisé** : Le correctif 3.5.4 n'était que la moitié de la solution — il éliminait un mécanisme suspect mais l'interface restait vide en production. En comparant le code réellement envoyé aux visiteurs à celui du dépôt, la vraie cause a été isolée avec certitude : lors de l'envoi vers Google, Google retire lui-même les commentaires du code, mais le fait de façon buguée sur un fichier de cette taille et casse la syntaxe. Le nettoyage se fait désormais nous-mêmes, en amont, avec une méthode fiable et vérifiée — Google n'a alors plus rien à casser.
 **Technique** : `.github/scripts/strip-comments.js` (nouveau) — retire les commentaires `//` et `/* */` de tous les fichiers `.gs`/`.html` juste avant `clasp push`, uniquement dans la copie éphémère du CI (jamais le dépôt source), avec une analyse consciente des chaînes/template literals (ne touche jamais le contenu entre guillemets ou backticks). `.github/scripts/deploy-gas.sh` — invoque ce nettoyage avant la boucle de déploiement des deux cibles. Comportement vérifié identique avant/après sur toute la suite de tests.
 
-## [v3.5.1] - 2026-08-06
+## [v3.5.4] - 2026-08-06
 
 ### Corrigé
-**Humanisé** : Résolution définitive de la panne d'interface qui rendait le site totalement vide (aucun onglet, aucun joueur, aucun contenu) depuis la 3.5.0. Les trois tentatives précédentes (3.5.1 à 3.5.3, annulées et remplacées par cette version) corrigeaient des symptômes côté navigateur sans s'attaquer à la vraie cause : le moteur de rendu de Google corrompait silencieusement le fichier de la page (trop volumineux) à chaque chargement, cassant le script en plein milieu.
+**Humanisé** : Résolution définitive de la panne d'interface qui rendait le site totalement vide (aucun onglet, aucun joueur, aucun contenu) depuis la 3.5.0. Les trois tentatives précédentes (commits étiquetés v3.5.1 à v3.5.3, abandonnées et remplacées par cette version, sans entrée de changelog propre) corrigeaient des symptômes côté navigateur sans s'attaquer à la vraie cause : le moteur de rendu de Google corrompait silencieusement le fichier de la page (trop volumineux) à chaque chargement, cassant le script en plein milieu.
 **Technique** : `Code.gs` — `doGet()` sert désormais `Index.html` via `HtmlService.createHtmlOutputFromFile()` au lieu de `createTemplateFromFile().evaluate()` : le moteur de template GAS, en évaluant le scriptlet `<?!= JSON.stringify(appUrl) ?>`, tronquait silencieusement environ 28 000 caractères du fichier livré (confirmé en comparant le script servi en production, via extraction directe du payload `goog.script.init`, au source versionné), provoquant une `Uncaught SyntaxError` bloquant tout le JavaScript de la page. `Index.html` — suppression de la variable `APP_URL` (jamais utilisée ailleurs dans le code) et de son scriptlet, rendant tout rendu templaté inutile.
 
 ## [v3.5.0] - 2026-08-06
