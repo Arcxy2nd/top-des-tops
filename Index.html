@@ -7664,6 +7664,7 @@
       container.className = 'rs-thumb';
       container.style.background = '';
       if (!val) return;
+      var isAltCategory = (type === 'altCategory');
       if (isCategory) {
         var icon = catIcon(val);
         if (icon) {
@@ -7672,6 +7673,16 @@
         } else {
           container.className = 'rs-thumb rs-thumb-dot';
           container.style.background = categoryColor(val);
+        }
+      } else if (isAltCategory) {
+        var altC = cachedAltCategories.find(function(c) { return c.name === val; });
+        var altIcon = (altC && altC.emoji) ? altC.emoji.trim() : '';
+        if (altIcon) {
+          container.textContent = altIcon;
+          container.className = 'rs-thumb rs-thumb-emoji';
+        } else {
+          container.className = 'rs-thumb rs-thumb-dot';
+          container.style.background = (altC && altC.color) || ALT_FALLBACK_COLOR;
         }
       } else {
         var pData = cachedPlayers.find(function(p) { return p.name === val; });
@@ -7739,21 +7750,14 @@
         opt.appendChild(optThumb);
         opt.appendChild(optLabel);
         if ((isCategory || isAltCategory) && !item.isNull) {
-          if (isAltCategory) {
-            var altDot = document.createElement('span');
-            altDot.className = 'rs-cat-dot';
-            altDot.style.background = item.color || '#ffd166';
-            var altEmoji = document.createElement('span');
-            altEmoji.style.cssText = 'font-size:0.9em;margin-right:2px;';
-            altEmoji.textContent = item.emoji || '⭐';
-            optLabel.prepend(altEmoji);
-            opt.appendChild(altDot);
-          } else {
-            var dot = document.createElement('span');
-            dot.className = 'rs-cat-dot';
-            dot.style.background = categoryColor(item.val);
-            opt.appendChild(dot);
-          }
+          // The emoji is already rendered by makeThumb() above (optThumb) for
+          // both category types — only the color-swatch accent belongs here.
+          // Prepending the emoji to the label too (as this block used to do
+          // for Alt categories) duplicated it visibly next to the thumb.
+          var dot = document.createElement('span');
+          dot.className = 'rs-cat-dot';
+          dot.style.background = isAltCategory ? (item.color || ALT_FALLBACK_COLOR) : categoryColor(item.val);
+          opt.appendChild(dot);
         }
         opt.addEventListener('mousedown', function(e) {
           e.preventDefault();
