@@ -35,7 +35,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Technique** : `Index.html` — card `#toolOutliersCard` avec `#detectOutliersBtn` et `#outliersResults`, et écouteur vers la fonction `scanOutliers()` qui était déjà implémentée mais orpheline.
 
 **Humanisé** : Une erreur de syntaxe dans la page ne peut plus passer inaperçue jusqu'en production : elle bloque désormais la livraison.
-**Technique** : `tests/check-html-syntax.js` (nouveau) et script npm `verify` ; `.github/scripts/strip-comments.js` reconnaît les expressions régulières, préserve les fins de ligne CRLF, refuse de s'exécuter hors CI sans `--force`, et re-parse chaque fichier qu'il réécrit avant de l'enregistrer. Couverture par `tests/strip-comments.test.js`.
+**Technique** : `tests/check-html-syntax.js` (nouveau) et script npm `verify` ; `.github/scripts/strip-comments.js` reconnaît les expressions régulières, préserve les fins de ligne CRLF, refuse de s'exécuter hors CI sans `--force`, et re-parse chaque fichier qu'il réécrit avant de l'enregistrer. `.github/scripts/deploy-gas.sh` propage désormais le code de sortie du nettoyeur (`|| exit 1`, le script tournant sous `set -uo pipefail` sans `-e`) et `.github/workflows/deploy-gas.yml` fixe explicitement `CI: true` — un fichier détecté cassé arrête le déploiement au lieu de partir en production. Couverture par `tests/strip-comments.test.js`.
 
 ### Modifié
 **Humanisé** : La fenêtre de saisie rapide Alt affiche maintenant l'avatar de chaque joueur et l'emoji de chaque Top Alternatif, comme partout ailleurs dans l'application.
