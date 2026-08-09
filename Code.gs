@@ -1162,6 +1162,38 @@ const AltStorageService = {
     return rows.length;
   },
 
+  /**
+   * Deletes one native AltHistory row (empty refHistoryRowId) by its sheet row
+   * index. The guard re-checks the row content because the index was captured
+   * when the manager modal rendered: another write may have shifted rows since.
+   */
+  deleteNativeAltEntry(rowIndex, altCategory, guard) {
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < 2) throw new Error('Ligne invalide.');
+    const sheet = this._sheet();
+    if (idx > sheet.getLastRow()) throw new Error("Cette entrée n'existe plus. Rechargez la liste.");
+
+    const row = sheet.getRange(idx, 1, 1, 8).getValues()[0];
+    if (row[5] && row[5].toString().trim()) {
+      throw new Error("Cette entrée est liée à l'historique principal : utilisez « Retirer ».");
+    }
+    if (altCategory && (row[2] ? row[2].toString() : '') !== altCategory) {
+      throw new Error("Cette entrée n'appartient pas à ce Top Alternatif.");
+    }
+    if (guard) {
+      if (guard.player && (row[1] ? row[1].toString() : '') !== guard.player) {
+        throw new Error("L'entrée a changé depuis l'affichage, rechargez la liste.");
+      }
+      if (guard.points != null && parseInt(row[3], 10) !== parseInt(guard.points, 10)) {
+        throw new Error("L'entrée a changé depuis l'affichage, rechargez la liste.");
+      }
+    }
+
+    sheet.deleteRow(idx);
+    ConfigService.clearCache();
+    return 1;
+  },
+
   linkHistoryRowsToAltCategory(rowIndices, altCategory, saiseur) {
     if (!rowIndices || !rowIndices.length || !altCategory) return 0;
     const fullHistory = StorageService.getFullHistoryRowsCached();
@@ -1210,7 +1242,9 @@ const AltStorageService = {
       const rowAltCat = values[i][2] ? values[i][2].toString() : '';
       const altRowIndex = i + 2;
 
-      const matchesRef = targetRefIds.has(rowRefId) || targetRefIds.has(altRowIndex.toString());
+      // Match the History row id column only: AltHistory row indexes are a
+      // different numbering, and accepting both deletes unrelated native rows.
+      const matchesRef = !!rowRefId && targetRefIds.has(rowRefId);
       const matchesCat = !altCategory || rowAltCat === altCategory;
       if (matchesRef && matchesCat) {
         rowsToDelete.push(altRowIndex);
@@ -2291,6 +2325,18 @@ function apiAppendAltNativeBatch(author, entries) {
       const count = AltStorageService.addNativeAltEntries(entries);
       AuditService.log(author, 'Saisie native Alt', entries.map(e => e.altCategory).join(', '),
         count + ' entrée(s) saisie(s) directement dans Tops Alternatifs');
+      return { success: true, count: count };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiDeleteNativeAltEntry(author, altCategory, rowIndex, guard) {
+  try {
+    requireAuthor(author);
+    return withLock(function() {
+      const count = AltStorageService.deleteNativeAltEntry(rowIndex, altCategory, guard);
+      AuditService.log(author, 'Suppression entrée Alt native', altCategory || '—',
+        'Entrée native supprimée définitivement (ligne ' + rowIndex + ')');
       return { success: true, count: count };
     });
   } catch(e) { return fail(e); }

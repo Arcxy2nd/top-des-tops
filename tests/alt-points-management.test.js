@@ -67,3 +67,62 @@ test('unlinkHistoryRowsFromAltCategory removes alt entries without touching main
   // Ensure main history remained untouched
   assert.strictEqual(history._grid.length, 2);
 });
+
+test('unlinkHistoryRowsFromAltCategory ignores AltHistory row indexes', () => {
+  const gas = loadGas();
+  // Row 2 of AltHistory is native (no ref). Unlinking History row 2 must not touch it.
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 7, 'Native', '', '', 'Admin'],
+    ['2026-08-01', 'Bob', 'Alt 1', 3, 'Linked', '2', '', 'Admin']
+  ]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  const unlinked = gas.AltStorageService.unlinkHistoryRowsFromAltCategory([2], 'Alt 1', 'Admin');
+  assert.strictEqual(unlinked, 1);
+
+  const remaining = gas.AltStorageService.getAltLogs();
+  assert.strictEqual(remaining.length, 1);
+  assert.strictEqual(remaining[0].description, 'Native');
+});
+
+test('deleteNativeAltEntry removes a native row and refuses a linked one', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 7, 'Native', '', '', 'Admin'],
+    ['2026-08-01', 'Bob', 'Alt 1', 3, 'Linked', '2', '', 'Admin']
+  ]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  assert.throws(
+    () => gas.AltStorageService.deleteNativeAltEntry(3, 'Alt 1', null),
+    /liee a l'historique principal|liée à l'historique principal/
+  );
+
+  const count = gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Alice', points: 7 });
+  assert.strictEqual(count, 1);
+
+  const remaining = gas.AltStorageService.getAltLogs();
+  assert.strictEqual(remaining.length, 1);
+  assert.strictEqual(remaining[0].description, 'Linked');
+});
+
+test('deleteNativeAltEntry refuses when the guard no longer matches the row', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 7, 'Native', '', '', 'Admin']
+  ]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  assert.throws(
+    () => gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Bob', points: 7 }),
+    /rechargez la liste/
+  );
+  assert.throws(
+    () => gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 2', { player: 'Alice', points: 7 }),
+    /n'appartient pas/
+  );
+  assert.strictEqual(gas.AltStorageService.getAltLogs().length, 1);
+});

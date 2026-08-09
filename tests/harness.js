@@ -158,6 +158,8 @@ function loadGas(extraMocks) {
     'apiSaveAltCategories: (typeof apiSaveAltCategories === "undefined" ? undefined : apiSaveAltCategories), ' +
     'apiDeleteAltCategory: (typeof apiDeleteAltCategory === "undefined" ? undefined : apiDeleteAltCategory), ' +
     'apiLinkHistoryRowsToAltCategory: (typeof apiLinkHistoryRowsToAltCategory === "undefined" ? undefined : apiLinkHistoryRowsToAltCategory), ' +
+    'apiAppendAltNativeBatch: (typeof apiAppendAltNativeBatch === "undefined" ? undefined : apiAppendAltNativeBatch), ' +
+    'apiDeleteNativeAltEntry: (typeof apiDeleteNativeAltEntry === "undefined" ? undefined : apiDeleteNativeAltEntry), ' +
     'apiGroupSimilarEntries: (typeof apiGroupSimilarEntries === "undefined" ? undefined : apiGroupSimilarEntries), ' +
     'apiGetAltAnalyticsData: (typeof apiGetAltAnalyticsData === "undefined" ? undefined : apiGetAltAnalyticsData), ' +
     'apiGetQuickStats: (typeof apiGetQuickStats === "undefined" ? undefined : apiGetQuickStats) };';
