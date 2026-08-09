@@ -12441,7 +12441,7 @@
     const altBtn = document.createElement('button');
     altBtn.type = 'button';
     altBtn.className = 'alt-picker-btn';
-    altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+    altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
 
     const altBtnContent = document.createElement('span');
     altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
@@ -12449,7 +12449,7 @@
 
     const altMenu = document.createElement('div');
     altMenu.className = 'alt-picker-menu';
-    altMenu.style.cssText = 'display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid #ffd166; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;';
+    altMenu.style.cssText = `display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid ${ALT_FALLBACK_COLOR}; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;`;
 
     const updateAltPickerUI = () => {
       const active = altCb.checked && altCatSel.value;
@@ -12457,11 +12457,11 @@
         const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
         const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
         altBtn.className = 'alt-picker-btn active';
-        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid #ffd166; background:rgba(255, 209, 102, 0.22); color:#ffd166; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);';
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${ALT_FALLBACK_COLOR}; background:rgba(255, 209, 102, 0.22); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);`;
         altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
       } else {
         altBtn.className = 'alt-picker-btn';
-        altBtn.style.cssText = 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:#ffd166; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;';
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
         altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
       }
     };
@@ -12494,7 +12494,7 @@
         const opt = document.createElement('div');
         opt.className = 'alt-picker-opt';
         const isSelected = altCb.checked && altCatSel.value === ac.name;
-        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ' background:#ffd166; color:#121824; font-weight:800;' : ' color:var(--text);');
+        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ` background:${ALT_FALLBACK_COLOR}; color:#121824; font-weight:800;` : ' color:var(--text);');
         
         const labelDiv = document.createElement('div');
         labelDiv.style.cssText = 'display:flex; align-items:center; gap:6px;';
