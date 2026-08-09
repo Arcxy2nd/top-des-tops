@@ -34,7 +34,8 @@
       --warn: #ffa502; 
       --info: #7c8cff; 
       --clean: #17a2b8;
-      --btn-alt: rgba(255, 255, 255, 0.07); 
+      --alt-accent: #ffd166;
+      --btn-alt: rgba(255, 255, 255, 0.07);
       --tap-min: 44px;
       --on-accent: #fff;
       --medal-gold: #ffd700; 
@@ -1063,6 +1064,10 @@
     .tool-action-info { flex: 1; min-width: 200px; }
     .tool-action-info strong { display: block; margin-bottom: 4px; }
     .tool-action-info span  { font-size: 0.82rem; color: var(--text-muted); }
+    .qa-field, .qa-input {
+      min-height: var(--tap-min);
+      box-sizing: border-box;
+    }
 
     /* ── MODAL ── */
     .modal-backdrop {
@@ -2398,7 +2403,7 @@
       border-radius: 12px;
       border: 1px dashed rgba(255, 209, 102, 0.5);
       background: rgba(255, 209, 102, 0.08);
-      color: #ffd166;
+      color: var(--alt-accent);
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
@@ -2410,14 +2415,14 @@
     }
     .row-alt-pill:hover {
       background: rgba(255, 209, 102, 0.18);
-      border-color: #ffd166;
+      border-color: var(--alt-accent);
       border-style: solid;
     }
     .row-alt-pill.active {
       background: rgba(255, 209, 102, 0.18);
-      color: #ffd166;
+      color: var(--alt-accent);
       font-weight: 700;
-      border: 1px solid #ffd166;
+      border: 1px solid var(--alt-accent);
       box-shadow: 0 0 10px rgba(255, 209, 102, 0.22);
     }
     .row-alt-select {
@@ -3625,6 +3630,7 @@
   }
   .history-nav-btn {
     flex: 0 0 auto; min-width: 0; padding: 6px 12px;
+    min-height: var(--tap-min);
     border: none; border-radius: 11px; cursor: pointer;
     font-size: 0.82rem; font-weight: 600; white-space: nowrap;
     background: transparent; color: var(--text-muted);
@@ -3678,7 +3684,7 @@
   .audit-cat-other  { color: var(--text-muted); background: rgba(255,255,255,0.04); }
   .audit-row td:last-child { min-width: var(--tap-min); }
   @media (max-width: 640px) {
-    .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; }
+    .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; min-height: var(--tap-min); }
   }
 
   /* ── ENTITY ITEMS — redesign ── */
@@ -8393,11 +8399,11 @@
     row.appendChild(allChip);
 
     const categoriesToRender = (activeDashboardUniverse === 'alt')
-      ? cachedAltCategories.map(ac => ({ name: ac.name, icon: ac.emoji || '⭐', color: ac.color || '#ffd166' }))
+      ? cachedAltCategories.map(ac => ({ name: ac.name, icon: ac.emoji || '⭐', color: ac.color || ALT_FALLBACK_COLOR }))
       : cachedCategories;
 
     categoriesToRender.forEach(c => {
-      const col = (activeDashboardUniverse === 'alt') ? (c.color || '#ffd166') : categoryColor(c.name);
+      const col = (activeDashboardUniverse === 'alt') ? (c.color || ALT_FALLBACK_COLOR) : categoryColor(c.name);
       const label = (c.icon ? c.icon + ' ' : '') + c.name;
       const chip = makeFilterChip(label, col, '', () => {
         if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
@@ -8769,7 +8775,7 @@
         if (altLinks.length) {
           altBadgesHtml = altLinks.map(al => {
             const isCurr = al === currentAlt;
-            return `<span style="font-size:0.7rem;padding:2px 6px;border-radius:10px;background:${isCurr ? 'rgba(255,209,102,0.2)' : 'var(--btn-alt)'};color:${isCurr ? '#ffd166' : 'var(--text-muted)'};border:1px solid ${isCurr ? '#ffd166' : 'var(--border)'};margin-right:4px;">⭐ ${escapeHtml(al)}</span>`;
+            return `<span style="font-size:0.7rem;padding:2px 6px;border-radius:10px;background:${isCurr ? 'rgba(255,209,102,0.2)' : 'var(--btn-alt)'};color:${isCurr ? ALT_FALLBACK_COLOR : 'var(--text-muted)'};border:1px solid ${isCurr ? ALT_FALLBACK_COLOR : 'var(--border)'};margin-right:4px;">⭐ ${escapeHtml(al)}</span>`;
           }).join('');
         } else {
           altBadgesHtml = '<span style="font-size:0.7rem;color:var(--text-muted);">—</span>';
@@ -8884,18 +8890,18 @@
         <div style="display:flex;gap:10px;">
           <div style="flex:1;">
             <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Points</label>
-            <input id="qaPtsInput" type="number" min="1" value="1" inputmode="numeric"
+            <input id="qaPtsInput" class="qa-input" type="number" min="1" value="1" inputmode="numeric"
               style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-weight:700;box-sizing:border-box;">
           </div>
           <div style="flex:1;">
             <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Date</label>
-            <input id="qaDateInput" type="date" value="${today}"
+            <input id="qaDateInput" class="qa-input" type="date" value="${today}"
               style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
           </div>
         </div>
         <div>
           <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Description <span style="opacity:0.6;">(optionnelle)</span></label>
-          <input id="qaDescInput" type="text" placeholder="Contexte, détail…"
+          <input id="qaDescInput" class="qa-input" type="text" placeholder="Contexte, détail…"
             style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
         </div>
       </div>
@@ -9007,7 +9013,7 @@
           const pl = cachedPlayers.find(p => p.name === e.player);
           const isNative = !!e.isNative;
           const nativeBadge = isNative
-            ? `<span title="Saisie directement dans ce Top Alternatif (pas dans l'historique principal)" style="font-size:0.7rem;background:rgba(124,140,255,0.15);color:#7c8cff;border:1px solid #7c8cff;border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;margin-left:4px;">✏️ natif</span>`
+            ? `<span title="Saisie directement dans ce Top Alternatif (pas dans l'historique principal)" style="font-size:0.7rem;background:color-mix(in srgb, var(--info) 15%, transparent);color:var(--info);border:1px solid var(--info);border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;margin-left:4px;">✏️ natif</span>`
             : '';
           html += `
             <tr style="border-bottom:1px solid var(--border);">
@@ -9407,7 +9413,7 @@
       const li = document.createElement('li');
       li.className = 'entity-item';
       const icon = cat.emoji || '🎯';
-      const color = cat.color || '#7c8cff';
+      const color = cat.color || ALT_FALLBACK_COLOR;
       li.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;flex:1;">
           <span style="font-size:1.2rem;">${escapeHtml(icon)}</span>
@@ -13683,7 +13689,7 @@
       });
       allAlt.classList.add('tous'); acContainer.appendChild(allAlt);
 
-      const anyAlt = makeChip('⭐ Tous Alt', selectedHistAltCategories.has('__ANY__'), '#ffd166', () => {
+      const anyAlt = makeChip('⭐ Tous Alt', selectedHistAltCategories.has('__ANY__'), ALT_FALLBACK_COLOR, () => {
         if (selectedHistAltCategories.has('__ANY__')) selectedHistAltCategories.delete('__ANY__');
         else { selectedHistAltCategories.clear(); selectedHistAltCategories.add('__ANY__'); }
         currentHistoryPage = 1; clearHistPrefetchCache(); renderHistoryFilterChips(); loadHistoryPage(1);
@@ -13699,7 +13705,7 @@
 
       cachedAltCategories.forEach(ac => {
         const active = selectedHistAltCategories.has(ac.name);
-        const color = ac.color || '#7c8cff';
+        const color = ac.color || ALT_FALLBACK_COLOR;
         const label = (ac.emoji ? ac.emoji + ' ' : '⭐ ') + ac.name;
         acContainer.appendChild(makeChip(label, active, active ? color : null, () => {
           if (selectedHistAltCategories.has(ac.name)) selectedHistAltCategories.delete(ac.name);
@@ -14107,7 +14113,7 @@
         const altCatObj = cachedAltCategories.find(ac => ac.name === altName);
         const altBadge = document.createElement('span');
         altBadge.className = 'hist-pill alt-badge';
-        const altColor = altCatObj ? (altCatObj.color || '#7c8cff') : '#7c8cff';
+        const altColor = altCatObj ? (altCatObj.color || ALT_FALLBACK_COLOR) : ALT_FALLBACK_COLOR;
         const altEmoji = altCatObj ? (altCatObj.emoji || '⭐') : '⭐';
         altBadge.style.setProperty('--pill-bg', tint(altColor, 0.15));
         altBadge.style.setProperty('--pill-bd', altColor);
