@@ -12938,8 +12938,10 @@
     // Both universes' choices ride along on the row so switching back and forth
     // is lossless: .c-sel can only hold the one currently displayed.
     const carriedMain = (preset && preset.mainCategory) || initCategory || '';
+    // Fallback only for the legacy row-duplicate button, which still builds its preset
+    // with the old `category` key; gated on isAltRow so a Main-universe duplicate doesn't seed altUniverseCategory.
     const carriedAlt  = (preset && preset.altUniverseCategory)
-      || (preset && preset.category)
+      || (isAltRow && preset && preset.category)
       || (cachedAltCategories[0] && cachedAltCategories[0].name) || '';
     div.dataset.mainCategory        = carriedMain;
     div.dataset.altUniverseCategory = carriedAlt;
