@@ -4,6 +4,8 @@
   "private": true,
   "description": "Suite de tests de la logique métier du backend Google Apps Script (Code.gs).",
   "scripts": {
-    "test": "node --test \"tests/*.test.js\""
+    "test": "node --test \"tests/*.test.js\"",
+    "check:html": "node tests/check-html-syntax.js",
+    "verify": "npm run check:html && npm test"
   }
 }
