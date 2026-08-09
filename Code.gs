@@ -1108,22 +1108,23 @@ const AltStorageService = {
     return logs.filter(l => l.category === altCategory);
   },
 
+  _buildAltRow(entry) {
+    return [
+      entry.date instanceof Date ? entry.date : (entry.date ? new Date(entry.date) : new Date()),
+      entry.player,
+      entry.category,
+      parseInt(entry.points, 10) || 0,
+      entry.description || '',
+      entry.refHistoryRowId ? entry.refHistoryRowId.toString() : '',
+      entry.groupId || '',
+      entry.saiseur || ''
+    ];
+  },
+
   addAltEntries(entries) {
     if (!entries || !entries.length) return;
     const sheet = this._sheet();
-    const rows = entries.map(e => {
-      const targetDate = e.date ? new Date(e.date) : new Date();
-      return [
-        targetDate,
-        e.player,
-        e.category,
-        parseInt(e.points, 10) || 0,
-        e.description || '',
-        e.refHistoryRowId ? e.refHistoryRowId.toString() : '',
-        e.groupId || '',
-        e.saiseur || ''
-      ];
-    });
+    const rows = entries.map(e => this._buildAltRow(e));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
     ConfigService.clearCache();
   },
@@ -1134,31 +1135,33 @@ const AltStorageService = {
    */
   addNativeAltEntries(entries) {
     if (!entries || !entries.length) return 0;
-    const allPlayers    = SettingsService.getEntities('Players').map(p => p.name);
-    const allAltCats    = AltSettingsService.getAltCategories().map(c => c.name);
-    const sheet         = this._sheet();
-    const rows = [];
-    entries.forEach(e => {
+    const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
+    const allAltCats = AltSettingsService.getAltCategories().map(c => c.name);
+    const sheet      = this._sheet();
+
+    // Validate everything before the single setValues(): a throw halfway must
+    // leave the sheet untouched, not half-written.
+    const rows = entries.map(e => {
       if (!e.player || !allPlayers.includes(e.player)) throw new Error('Joueur invalide : ' + e.player);
       if (!e.altCategory || !allAltCats.includes(e.altCategory)) throw new Error('Top Alternatif invalide : ' + e.altCategory);
       const pts = parseInt(e.points, 10);
       if (isNaN(pts) || pts < 1) throw new Error('Les points doivent être ≥ 1.');
       const targetDate = e.date ? new Date(e.date) : new Date();
-      rows.push([
-        targetDate,
-        e.player,
-        e.altCategory,
-        pts,
-        e.description || '',
-        '',        // refHistoryRowId intentionally empty — marks entry as native
-        '',        // no groupId for native entries
-        e.saiseur || ''
-      ]);
+      if (isNaN(targetDate.getTime())) throw new Error('Date invalide : ' + e.date);
+      return this._buildAltRow({
+        date: targetDate,
+        player: e.player,
+        category: e.altCategory,
+        points: pts,
+        description: e.description,
+        refHistoryRowId: '',   // empty marks the entry as native
+        groupId: '',
+        saiseur: e.saiseur
+      });
     });
-    if (rows.length) {
-      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
-      ConfigService.clearCache();
-    }
+
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
+    ConfigService.clearCache();
     return rows.length;
   },
 

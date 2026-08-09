@@ -126,3 +126,39 @@ test('deleteNativeAltEntry refuses when the guard no longer matches the row', ()
   );
   assert.strictEqual(gas.AltStorageService.getAltLogs().length, 1);
 });
+
+test('addNativeAltEntries writes an empty refHistoryRowId and flags the row as native', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([HEADER_ALT_HIST]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+  gas.SettingsService.getEntities = () => [{ name: 'Alice' }];
+  gas.AltSettingsService.getAltCategories = () => [{ name: 'Alt 1' }];
+
+  const count = gas.AltStorageService.addNativeAltEntries([
+    { player: 'Alice', altCategory: 'Alt 1', points: 5, date: '2026-08-01', description: 'Direct', saiseur: 'Alice' }
+  ]);
+  assert.strictEqual(count, 1);
+
+  const logs = gas.AltStorageService.getAltLogs();
+  assert.strictEqual(logs.length, 1);
+  assert.strictEqual(logs[0].refHistoryRowId, '');
+  assert.strictEqual(logs[0].isNative, true);
+  assert.strictEqual(logs[0].points, 5);
+});
+
+test('addNativeAltEntries rejects invalid player, alt category, points and date', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([HEADER_ALT_HIST]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+  gas.SettingsService.getEntities = () => [{ name: 'Alice' }];
+  gas.AltSettingsService.getAltCategories = () => [{ name: 'Alt 1' }];
+
+  const base = { player: 'Alice', altCategory: 'Alt 1', points: 5, date: '2026-08-01' };
+  assert.throws(() => gas.AltStorageService.addNativeAltEntries([Object.assign({}, base, { player: 'Ghost' })]), /Joueur invalide/);
+  assert.throws(() => gas.AltStorageService.addNativeAltEntries([Object.assign({}, base, { altCategory: 'Nope' })]), /Top Alternatif invalide/);
+  assert.throws(() => gas.AltStorageService.addNativeAltEntries([Object.assign({}, base, { points: 0 })]), /points doivent/);
+  assert.throws(() => gas.AltStorageService.addNativeAltEntries([Object.assign({}, base, { date: 'pas-une-date' })]), /Date invalide/);
+
+  // Nothing was written: validation runs before the single setValues() call.
+  assert.strictEqual(gas.AltStorageService.getAltLogs().length, 0);
+});
