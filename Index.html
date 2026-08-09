@@ -12935,9 +12935,16 @@
 
     // Monte le RichSelect catégorie (ou Top Alternatif en mode lot Alt)
     const catRsType = activeLotUniverse === 'alt' ? 'altCategory' : 'category';
-    const initCatValue = activeLotUniverse === 'alt'
-      ? ((preset && preset.category) || (cachedAltCategories[0] && cachedAltCategories[0].name) || '')
-      : initCategory;
+    // Both universes' choices ride along on the row so switching back and forth
+    // is lossless: .c-sel can only hold the one currently displayed.
+    const carriedMain = (preset && preset.mainCategory) || initCategory || '';
+    const carriedAlt  = (preset && preset.altUniverseCategory)
+      || (preset && preset.category)
+      || (cachedAltCategories[0] && cachedAltCategories[0].name) || '';
+    div.dataset.mainCategory        = carriedMain;
+    div.dataset.altUniverseCategory = carriedAlt;
+
+    const initCatValue = isAltRow ? carriedAlt : carriedMain;
     cSel.value = initCatValue;
     const categoryRS = buildRichSelect({
       type: catRsType,
@@ -15757,8 +15764,38 @@
       const batchHeader = document.querySelector('#tab-inject .batch-header');
 
       function setLotUniverse(mode) {
-        activeLotUniverse = mode;
         const isAlt = mode === 'alt';
+        if (activeLotUniverse === mode) return;
+
+        // Read the rows while activeLotUniverse still names the universe they
+        // were built for: .c-sel holds that universe's category, the dataset
+        // holds the other one.
+        const wasAlt = activeLotUniverse === 'alt';
+        const container = document.getElementById('entryContainer');
+        const presets = [];
+        container.querySelectorAll('.entry-row').forEach(r => {
+          const pSel   = r.querySelector('.p-sel');
+          const cSel   = r.querySelector('.c-sel');
+          const ptsEl  = r.querySelector('.custom-pts-in');
+          const dStart = r.querySelector('.d-start');
+          const descEl = r.querySelector('.desc-in');
+          const altCb  = r.querySelector('.row-alt-cb');
+          const altSel = r.querySelector('.row-alt-select');
+          presets.push({
+            player: pSel ? pSel.value : '',
+            mainCategory:        wasAlt ? (r.dataset.mainCategory || '') : (cSel ? cSel.value : ''),
+            altUniverseCategory: wasAlt ? (cSel ? cSel.value : '')       : (r.dataset.altUniverseCategory || ''),
+            // Row-level Alt picker (main universe only): its DOM is merely hidden
+            // in Alt mode, so its state survives and is worth carrying over.
+            isAlt: !!(altCb && altCb.checked),
+            altCategory: altSel ? altSel.value : '',
+            customPts: ptsEl ? ptsEl.value : '1',
+            date: dStart ? dStart.value : toDateStr(new Date()),
+            description: descEl ? descEl.value : ''
+          });
+        });
+
+        activeLotUniverse = mode;
         lotMainBtn.classList.toggle('active', !isAlt);
         lotAltBtn.classList.toggle('active',  isAlt);
         if (lotHint) lotHint.style.display = isAlt ? '' : 'none';
@@ -15767,29 +15804,10 @@
           const topHeader = batchHeader.children[1];
           if (topHeader) topHeader.textContent = isAlt ? 'Top Alternatif' : 'Top';
         }
-        // Rebuild all existing rows with the new RS type
-        const container = document.getElementById('entryContainer');
-        const presets = [];
-        container.querySelectorAll('.entry-row').forEach(r => {
-          const pSel  = r.querySelector('.p-sel');
-          const cSel  = r.querySelector('.c-sel');
-          const ptsEl = r.querySelector('.custom-pts-in');
-          const dStart = r.querySelector('.d-start');
-          const descEl = r.querySelector('.desc-in');
-          presets.push({
-            player: pSel ? pSel.value : '',
-            category: isAlt ? (cachedAltCategories[0] ? cachedAltCategories[0].name : '') : (cSel ? cSel.value : ''),
-            customPts: ptsEl ? ptsEl.value : '1',
-            date: dStart ? dStart.value : toDateStr(new Date()),
-            description: descEl ? descEl.value : ''
-          });
-        });
+
         container.innerHTML = '';
-        if (presets.length) {
-          presets.forEach(p => addEntryRow(p));
-        } else {
-          addEntryRow();
-        }
+        if (presets.length) presets.forEach(p => addEntryRow(p));
+        else addEntryRow();
         updateLotSummary();
       }
 
