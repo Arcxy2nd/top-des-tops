@@ -13080,6 +13080,25 @@
     return out;
   }
 
+  /**
+   * Single client-side write path for native Alt entries. The quick-add modal and
+   * the Alt branch of the lot builder both go through it so the server call, the
+   * toast and the post-write refresh cannot drift apart between the two surfaces.
+   */
+  function saveNativeAltEntries(entries, btn, onSuccess) {
+    if (!requireIdentity()) return;
+    const restore = startBtnLoading(btn, 'Enregistrement…');
+    callServer('apiAppendAltNativeBatch', [_whoAmI || '', entries], res => {
+      restore();
+      if (!res.success) return;
+      const total = entries.reduce((sum, e) => sum + e.points, 0);
+      showToast(`⭐ ${total} pt(s) enregistré(s) dans les Tops Alternatifs !`, 'success');
+      applyFilters();
+      if (activeDashboardUniverse === 'alt') refreshDashboardStats();
+      if (onSuccess) onSuccess(res);
+    }, 'Saisie native Alt', () => { restore(); });
+  }
+
   function submitBulk() {
     const rows = document.querySelectorAll('.entry-row');
     // In Alt mode: collect entries for the native Alt batch (no History entry)
@@ -13090,39 +13109,41 @@
       }
       const altItems = [];
       rows.forEach(r => {
-        const pSel    = r.querySelector('.p-sel');
-        const cSel    = r.querySelector('.c-sel'); // in alt mode c-sel holds the alt category
-        const ptsEl   = r.querySelector('.custom-pts-in');
-        const dStart  = r.querySelector('.d-start');
-        const descEl  = r.querySelector('.desc-in');
-        if (pSel && cSel && ptsEl && dStart) {
-          const pts = parseInt(ptsEl.value, 10);
-          if (isNaN(pts) || pts < 1) { showToast('Points invalides sur une ligne (≥ 1 requis).', 'error'); return; }
-          altItems.push({
-            player:      pSel.value,
-            altCategory: cSel.value,
-            points:      pts,
-            date:        dStart.value || toDateStr(new Date()),
-            description: descEl ? descEl.value.trim() : '',
-            saiseur:     _whoAmI || ''
-          });
-        }
+        const pSel   = r.querySelector('.p-sel');
+        const cSel   = r.querySelector('.c-sel'); // in alt mode c-sel holds the alt category
+        const ptsEl  = r.querySelector('.custom-pts-in');
+        const dStart = r.querySelector('.d-start');
+        const descEl = r.querySelector('.desc-in');
+        if (!pSel || !cSel || !ptsEl || !dStart) return;
+        altItems.push({
+          player:      pSel.value,
+          altCategory: cSel.value,
+          points:      parseInt(ptsEl.value, 10),
+          date:        dStart.value || toDateStr(new Date()),
+          description: descEl ? descEl.value.trim() : '',
+          saiseur:     _whoAmI || ''
+        });
       });
       if (!altItems.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
-      if (!requireIdentity()) return;
-      const btn = document.getElementById('submitLotBtn');
-      const restore = startBtnLoading(btn, 'Écriture…');
-      callServer('apiAppendAltNativeBatch', [_whoAmI || '', altItems], res => {
-        restore();
-        if (res.success) {
-          flashSaved(btn);
-          document.getElementById('entryContainer').innerHTML = '';
-          addEntryRow();
-          updateLotSummary();
-          applyFilters();
-          showToast(`⭐ ${res.count} point(s) enregistré(s) dans les Tops Alternatifs !`, 'success');
+
+      // Validate after collection so an invalid row aborts the whole batch
+      // instead of being dropped while the rest is written.
+      for (const item of altItems) {
+        if (!item.player)      { showToast('Joueur manquant sur une ligne.', 'error'); return; }
+        if (!item.altCategory) { showToast('Top Alternatif manquant sur une ligne.', 'error'); return; }
+        if (isNaN(item.points) || item.points < 1) {
+          showToast('Points invalides sur une ligne (≥ 1 requis).', 'error');
+          return;
         }
-      }, 'Envoi lot Alt', () => { restore(); });
+      }
+
+      const btn = document.getElementById('submitLotBtn');
+      saveNativeAltEntries(altItems, btn, () => {
+        flashSaved(btn);
+        document.getElementById('entryContainer').innerHTML = '';
+        addEntryRow();
+        updateLotSummary();
+      });
       return;
     }
 
