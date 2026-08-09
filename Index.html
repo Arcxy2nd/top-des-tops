@@ -4396,6 +4396,7 @@
         <button data-target="toolLotsCard">🔗 Lots répartis</button>
         <button data-target="toolLegacyCard">⚠️ Groupes hérités</button>
         <button data-target="toolDuplicatesCard">🧬 Doublons</button>
+        <button data-target="toolOutliersCard">📈 Scores aberrants</button>
         <button data-target="toolMentionsCard">🏷️ Mentions</button>
         <button data-target="toolInactiveCard">💤 Inactifs</button>
       </div>
@@ -4464,7 +4465,14 @@
         <div id="duplicatesResults" class="detect-results"></div>
       </div>
 
-
+      <div class="card card-collapsible" id="toolOutliersCard">
+        <div class="card-collapse-header"><h2>📈 Scores aberrants</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Détecte les entrées dont le nombre de points s'écarte fortement de la valeur habituelle du Top — le plus souvent une faute de frappe à la saisie. Une entrée écartée n'est plus proposée.
+        </p>
+        <button id="detectOutliersBtn" class="primary small">🔍 Scanner l'historique</button>
+        <div id="outliersResults" class="detect-results"></div>
+      </div>
 
       <div class="card card-collapsible" id="toolMentionsCard">
         <div class="card-collapse-header"><h2>🏷️ Mentions manquantes</h2></div>
@@ -17303,6 +17311,7 @@
     makeCollapsible(document.getElementById('toolLotsCard'),   'tdt_collapsed_tool_lots');
     makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
+    makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');
     makeCollapsible(document.getElementById('toolMentionsCard'),   'tdt_collapsed_tool_mentions');
     makeCollapsible(document.getElementById('toolInactiveCard'),   'tdt_collapsed_tool_inactive');
     // Sommaire des outils : déplie la carte visée puis descend dessus.
@@ -17315,6 +17324,7 @@
       });
     });
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
+    document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
     document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
     // Hub Statistiques : une seule carte à onglets (Records / Tendances /
