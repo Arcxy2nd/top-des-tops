@@ -8621,10 +8621,6 @@
     document.getElementById('modalBackdrop').style.display = 'flex';
   }
 
-  function openAltCategoryLinkModal(selectedRowIndices) {
-    openUniversalAltPointPicker({ preselectedRowIndices: selectedRowIndices });
-  }
-
   function openUniversalAltPointPicker(options = {}) {
     if (!requireIdentity()) return;
     if (!cachedAltCategories.length) {
@@ -13336,28 +13332,6 @@
   function updateHistBulkBar() {
     const count = document.getElementById('histBulkCount');
     if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '') + ' sur cette page';
-  }
-
-  function confirmGroupRows() {
-    if (!requireIdentity()) return;
-    if (histSelected.size < 2) { showToast('Sélectionnez au moins 2 entrées pour créer un groupe.', 'error'); return; }
-    const indexes = [...histSelected];
-    openConfirmModal(
-      'Grouper ces ' + indexes.length + ' entrées ensemble ?',
-      () => {
-        buzz();
-        callServer('apiGroupRows', [indexes, _whoAmI || ''], res => {
-          if (res.success) {
-            histSelected.clear();
-            toggleHistSelectMode(false);
-            showToast('Groupe créé.', 'success');
-            loadHistoryPage(currentHistoryPage);
-          } else {
-            showToast(res.error || 'Erreur lors du groupement.', 'error');
-          }
-        }, 'Création groupe');
-      }
-    );
   }
 
   function confirmBulkDelete() {

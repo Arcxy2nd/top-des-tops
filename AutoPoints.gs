@@ -364,13 +364,3 @@ function apiSetAutoTrigger(enabled, author) {
     });
   } catch (e) { return fail(e); }
 }
-
-function apiRunAutoRulesNow(author) {
-  try {
-    requireAuthor(author);
-    return withLock(() => {
-      const result = AutoPointsService.runDue(author);
-      return { success: true, result };
-    });
-  } catch (e) { return fail(e); }
-}
