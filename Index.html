@@ -9005,7 +9005,7 @@
           const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
           const pColor = playerColor(e.player);
           const pl = cachedPlayers.find(p => p.name === e.player);
-          const isNative = !e.refHistoryRowId;
+          const isNative = !!e.isNative;
           const nativeBadge = isNative
             ? `<span title="Saisie directement dans ce Top Alternatif (pas dans l'historique principal)" style="font-size:0.7rem;background:rgba(124,140,255,0.15);color:#7c8cff;border:1px solid #7c8cff;border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;margin-left:4px;">✏️ natif</span>`
             : '';
@@ -9019,7 +9019,11 @@
               <td style="padding:6px;"><strong style="color:var(--accent);">${e.points} pts</strong></td>
               <td style="padding:6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.description || '—')}</td>
               <td style="padding:6px;text-align:right;">
-                <button class="small danger unlink-single-btn" data-ref="${escapeHtml(e.refHistoryRowId || String(e.rowIndex))}" data-native="${isNative ? '1' : '0'}">❌ Retirer</button>
+                <button class="small danger unlink-single-btn"
+                  data-ref="${escapeHtml(e.refHistoryRowId || String(e.rowIndex))}"
+                  data-native="${isNative ? '1' : '0'}"
+                  data-player="${escapeHtml(e.player)}"
+                  data-points="${e.points}">${isNative ? '🗑️ Supprimer' : '❌ Retirer'}</button>
               </td>
             </tr>
           `;
@@ -9035,14 +9039,23 @@
 
         content.querySelectorAll('.unlink-single-btn').forEach(btn => {
           btn.onclick = () => {
-            const refId = btn.dataset.ref;
-            openConfirmModal(`Retirer cette entrée du Top Alternatif "${altCategoryName}" ?`, () => {
-              callServer('apiUnlinkHistoryRowsFromAltCategory', [_whoAmI, [refId], altCategoryName], res => {
+            const refId    = btn.dataset.ref;
+            const isNative = btn.dataset.native === '1';
+            const message  = isNative
+              ? `Supprimer définitivement cette entrée ? Elle n'existe que dans le Top Alternatif "${altCategoryName}", aucune copie ne subsiste dans l'historique principal.`
+              : `Retirer cette entrée du Top Alternatif "${altCategoryName}" ?`;
+            openConfirmModal(message, () => {
+              const fn   = isNative ? 'apiDeleteNativeAltEntry' : 'apiUnlinkHistoryRowsFromAltCategory';
+              const args = isNative
+                ? [_whoAmI, altCategoryName, refId, { player: btn.dataset.player, points: parseInt(btn.dataset.points, 10) }]
+                : [_whoAmI, [refId], altCategoryName];
+              const label = isNative ? 'Suppression entrée Alt native' : 'Désaffectation Top Alternatif';
+              callServer(fn, args, res => {
                 if (res.success) {
-                  showToast('Point retiré du Top Alternatif.', 'success');
+                  showToast(isNative ? 'Entrée Alt supprimée définitivement.' : 'Point retiré du Top Alternatif.', 'success');
                   loadAltHistoryMap(() => openAltCategoryManagerModal(altCategoryName));
                 }
-              }, 'Désaffectation Top Alternatif');
+              }, label);
             });
           };
         });
