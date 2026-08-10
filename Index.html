@@ -12289,7 +12289,6 @@
       return;
     }
     div.style.setProperty('--row-accent', categoryColor(categoryName || ''));
-    refreshBaremeForTop(categoryName || '');
   }
 
   function addEntryRow(preset, animateFromBtn) {
@@ -13137,6 +13136,7 @@
       onChange: function(v) {
         cSel.value = v || '';
         applyRowCategoryVisuals(div, v || '', isAltRow);
+        if (!isAltRow) refreshBaremeForTop(v || '');
         if (isAltRow) div.dataset.altUniverseCategory = v || '';
         else          div.dataset.mainCategory        = v || '';
         refreshHistVisibility();
@@ -13148,6 +13148,7 @@
     // Couleurs et avatar initiaux
     applyRowAvatar(initPlayer);
     applyRowCategoryVisuals(div, initCatValue, isAltRow);
+    if (!isAltRow) refreshBaremeForTop(initCatValue);
     if (preset && (preset.altCategory || preset.isAlt)) {
       altCb.checked = true;
       populateAltSelect();
@@ -17570,14 +17571,31 @@
       if (!e.target.closest('.rich-select')) closeAllRichSelects();
     });
 
-    renderWhoAmI();
-    loadEntities();
-    loadAppBranding();
-
-    // Differ de 150ms le chargement des statistiques secondaires du Dashboard
-    // pour éviter d'inonder Google Apps Script de requêtes parallèles au démarrage
-    setTimeout(refreshDashboardStats, 150);
+    bootDataLoad();
   };
+
+  // Data loading used to be the last instruction of a ~1,800-line init
+  // function: any exception in an earlier event-listener wire-up left the
+  // Dashboard in an endless skeleton. Each step is isolated so that one
+  // breaking doesn't take the others down with it.
+  function bootDataLoad() {
+    const steps = [
+      ['identité',    renderWhoAmI],
+      ['entités',     loadEntities],
+      ['branding',    loadAppBranding],
+      // Delay the Dashboard's secondary stats by 150ms to avoid flooding
+      // Google Apps Script with parallel requests at startup.
+      ['statistiques', () => setTimeout(refreshDashboardStats, 150)]
+    ];
+    steps.forEach(([label, step]) => {
+      try {
+        step();
+      } catch (err) {
+        console.error('bootDataLoad/' + label, err);
+        showGlobalError('Échec du démarrage (' + label + ') : ' + ((err && err.message) || err));
+      }
+    });
+  }
 
   // ── BARÈME SETTINGS ─────────────────────────────────────────────────
   function loadBaremeSettings() {

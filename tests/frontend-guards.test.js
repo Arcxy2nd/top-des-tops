@@ -121,3 +121,24 @@ test('showSkeleton leaves a container alone once it has been filled', () => {
   timers[0].fn();
   assert.strictEqual(container.innerHTML, '<div class="sr-list">Contenu réel</div>');
 });
+
+test('applyRowCategoryVisuals does not reference refreshBaremeForTop from its own scope', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const sandbox = {
+    cachedAltCategories: [],
+    ALT_FALLBACK_COLOR: '#ffd166',
+    categoryColor: () => '#ff0000'
+    // refreshBaremeForTop is intentionally NOT defined here: applyRowCategoryVisuals
+    // must not call it directly, since in the real file it only exists inside
+    // addEntryRow's closure and is unreachable from here — this reproduces the
+    // exact production ReferenceError if the old code path is still present.
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    extractFunction(html, 'applyRowCategoryVisuals') +
+    "\nthis.__apply = applyRowCategoryVisuals;",
+    sandbox
+  );
+  const div = { style: { setProperty() {} } };
+  assert.doesNotThrow(() => sandbox.__apply(div, 'Some Category', false));
+});
