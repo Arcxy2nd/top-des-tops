@@ -22,13 +22,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install clasp
         run: npm install -g @google/clasp
 
       - name: Restore clasp credentials
         run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Strip comments from the deployable files
+        env:
+          CI: true
+        run: node .github/scripts/strip-comments.js
+
+      - name: Verify the stripped code
+        run: npm run verify
 
       - name: Push and redeploy all targets
         env:
