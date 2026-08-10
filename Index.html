@@ -5166,15 +5166,18 @@
   let totalHistoryEntries = 0;
   let lastRefreshTime  = null;
   const PAGE_SIZE = 20;
-  // Préchargement client de la page suivante de l'Historique : clé = "page|joueurs|catégories|texte".
-  // Vidée à chaque changement de filtre/texte (les points d'entrée qui rechargent déjà
-  // la page 1 après une mutation la vident aussi, via clearHistPrefetchCache()).
+  // Préchargement client de la page suivante de l'Historique. La clé porte TOUS
+  // les critères envoyés au serveur : une clé incomplète fait rendre la page
+  // suivante d'un filtre sous un autre.
   const histPrefetchCache = new Map();
   let _histSortDir = 'desc'; // 'desc' = plus récents d'abord (défaut) | 'asc' = plus anciens d'abord
-  function histPrefetchKey(page, players, cats, text, dateFrom, dateTo) {
-    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '') + '|' + _histSortDir;
+  // Vider la Map ne rappelle pas une requête déjà partie : sa réponse écrirait
+  // dans le cache fraîchement vidé. La génération permet de la jeter à l'arrivée.
+  let _histPrefetchGeneration = 0;
+  function histPrefetchKey(page, players, cats, text, dateFrom, dateTo, altFilter) {
+    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '') + '|' + _histSortDir + '|' + (altFilter || '');
   }
-  function clearHistPrefetchCache() { histPrefetchCache.clear(); }
+  function clearHistPrefetchCache() { histPrefetchCache.clear(); _histPrefetchGeneration++; }
   const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
 
   // History bulk-selection state
@@ -14080,7 +14083,7 @@
     // Chips are single-select (each handler clears the set before adding), so the
     // server's scalar filterAltCategory is enough.
     const altFilter = selectedHistAltCategories.size ? Array.from(selectedHistAltCategories)[0] : null;
-    const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo);
+    const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter);
 
     const prefetched = histPrefetchCache.get(key);
     if (prefetched) {
@@ -14102,10 +14105,11 @@
   // présente dans le cache (évite de reprécharger en boucle si l'utilisateur va-et-vient).
   function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter) {
     const nextPage = page + 1;
-    const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo);
+    const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter);
     if (histPrefetchCache.has(key)) return;
+    const generation = _histPrefetchGeneration;
     callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter],
-      res => { histPrefetchCache.set(key, res); },
+      res => { if (generation === _histPrefetchGeneration) histPrefetchCache.set(key, res); },
       null,
       // Pas de toast (échec silencieux pour l'utilisateur : la page suivante sera
       // rechargée normalement au clic) — mais on garde une trace en console pour
