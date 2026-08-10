@@ -8,8 +8,8 @@ const vm     = require('node:vm');
 
 const INDEX = path.join(__dirname, '..', 'Index.html');
 
-// Extrait une fonction nommée du <script> inline de Index.html, du mot-clé
-// `function` jusqu'à son accolade fermante, en comptant les accolades.
+// Extracts a named function from Index.html's inline <script>, from the
+// `function` keyword to its closing brace, by counting braces.
 function extractFunction(source, name) {
   const start = source.indexOf('function ' + name + '(');
   assert.notStrictEqual(start, -1, name + ' introuvable dans Index.html');
@@ -37,8 +37,8 @@ function loadCallServer() {
   return { callServer: sandbox.__callServer, toasts, errors, sandbox };
 }
 
-// Reproduit le contrat de google.script.run : les gestionnaires sont posés par
-// chaînage, l'appel de la fonction déclenche la réponse.
+// Mirrors the google.script.run contract: handlers are attached by chaining,
+// then calling the function triggers the response.
 function fakeRunner(response) {
   const state = { success: null, failure: null };
   const runner = {

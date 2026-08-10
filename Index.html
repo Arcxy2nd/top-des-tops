@@ -8489,9 +8489,9 @@
           return;
         }
         if (!onSuccess) return;
-        // google.script.run avale toute exception levée ici : sans ce try, un
-        // gestionnaire qui casse laisse le squelette tourner à l'infini, sans
-        // toast, sans état d'erreur et sans trace — c'était la panne du Dashboard.
+        // google.script.run swallows any exception thrown here: without this try,
+        // a broken handler leaves the skeleton spinning forever, with no toast,
+        // no error state, and no trace — this was the Dashboard outage.
         try {
           onSuccess(res);
         } catch (err) {
