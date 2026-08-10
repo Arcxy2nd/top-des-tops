@@ -1092,6 +1092,22 @@
       min-height: var(--tap-min);
       padding: 0 18px;
     }
+    .load-stalled {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .load-stalled button {
+      min-height: var(--tap-min);
+      padding: 0 18px;
+    }
 
     /* ── MODAL ── */
     .modal-backdrop {
@@ -5150,6 +5166,14 @@
   let activeDashboardUniverse = 'main'; // 'main' | 'alt'
   let activeLotUniverse = 'main';        // 'main' | 'alt'
 
+  // Tunable frontend values. No constant of this kind may be hardcoded
+  // directly in the logic (context.md §8).
+  const CONFIG = {
+    // An Apps Script round-trip rarely exceeds 5s; past 15s, the zone is
+    // considered abandoned rather than merely slow.
+    SKELETON_TIMEOUT_MS: 15000
+  };
+
   // ── CONFIG ───────────────────────────────────────────────────────────
   // Fallback accent for an Alt Top with no colour set in the Sheet. Mirrors the
   // --alt-accent CSS variable; both must stay in sync.
@@ -7900,7 +7924,7 @@
   // sans en-tête, listes, grilles de stats). Le contenu réel, une fois arrivé,
   // écrase innerHTML normalement — pas besoin de fonction hideSkeleton dédiée.
   function showSkeleton(container, opts) {
-    // À l'appelant de choisir un tag compatible avec le conteneur (ex: 'li' pour <ul>/<ol>, 'div' sinon).
+    // The caller picks a tag compatible with the container (e.g. 'li' for <ul>/<ol>, 'div' otherwise).
     if (!container) return;
     opts = opts || {};
     const rows       = opts.rows || 3;
@@ -7912,6 +7936,21 @@
       html += '<' + tag + ' class="skeleton' + extraClass + '" style="height:' + height + 'px;margin-bottom:8px;"></' + tag + '>';
     }
     container.innerHTML = html;
+
+    // A skeleton is never a final state: if it's still there past the delay,
+    // the response is never coming (call never sent, broken handler, silent
+    // server). Without this guard the user sees an endless animation and the
+    // app says nothing — this was the Dashboard outage.
+    if (container.__skeletonWatchdog) clearTimeout(container.__skeletonWatchdog);
+    container.__skeletonWatchdog = setTimeout(() => {
+      container.__skeletonWatchdog = null;
+      if (container.innerHTML.indexOf('class="skeleton') === -1) return;
+      container.innerHTML =
+        '<div class="load-stalled">' +
+        '<span>⏱️ Chargement interrompu — cette carte n\'a pas reçu de réponse.</span>' +
+        '<button type="button" class="primary small" onclick="location.reload()">↻ Recharger la page</button>' +
+        '</div>';
+    }, CONFIG.SKELETON_TIMEOUT_MS);
   }
 
   // Pour un tableau : les <tr> doivent contenir un <td colspan> valide, showSkeleton
