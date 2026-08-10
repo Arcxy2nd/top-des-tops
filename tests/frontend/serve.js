@@ -20,8 +20,8 @@ function buildGas() {
 function servePage(res) {
   const html = fs.readFileSync(path.join(ROOT, 'Index.html'), 'utf8');
   const stub = fs.readFileSync(STUB_PATH, 'utf8');
-  // Le préambule doit précéder tout script de la page : Index.html appelle
-  // google.script.run depuis window.onload, mais aussi au fil du parsing.
+  // The preamble must precede every script on the page: Index.html calls
+  // google.script.run from window.onload, but also during parsing.
   const injected = html.replace('<head>', '<head>\n<script>\n' + stub + '\n</script>');
   if (injected === html) throw new Error('Index.html: balise <head> introuvable, injection impossible');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -39,8 +39,8 @@ function handleCall(gas, body, res) {
   }
   const fn = gas[parsed.fn];
   if (typeof fn !== 'function') {
-    // Un nom absent du harness n'est pas la même panne qu'un nom absent de Code.gs :
-    // le dire explicitement évite de confondre trou d'outillage et bug applicatif.
+    // A name missing from the harness is not the same failure as a name missing from Code.gs:
+    // stating it explicitly avoids confusing a tooling gap with an application bug.
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false, error: 'non exposée par le harness : ' + parsed.fn }));
     return;

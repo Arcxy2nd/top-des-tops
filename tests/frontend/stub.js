@@ -1,7 +1,7 @@
-// Injecté dans <head> par serve.js. Reproduit la seule API que Index.html
-// consomme du côté Google : google.script.run et son couple de gestionnaires.
-// Les erreurs sont poussées dans window.__frontErrors ET dans document.title :
-// le titre est la seule voie de sortie lisible par un client HTTP sans DevTools.
+// Injected into <head> by serve.js. Reproduces the only API that Index.html
+// consumes on the Google side: google.script.run and its pair of handlers.
+// Errors are pushed into window.__frontErrors AND into document.title:
+// the title is the only output channel readable by an HTTP client without DevTools.
 (function () {
   window.__frontErrors = [];
   window.__frontCalls  = [];
@@ -37,8 +37,8 @@
                 if (failureHandler) failureHandler(new Error(payload.error));
                 return;
               }
-              // Une exception jetée ici par le code de l'app est exactement la panne
-              // recherchée : la capturer explicitement, google.script.run l'avale.
+              // An exception thrown here by the app's code is exactly the failure
+              // we're looking for: catch it explicitly, since google.script.run would swallow it.
               try {
                 if (successHandler) successHandler(payload.value);
               } catch (err) {

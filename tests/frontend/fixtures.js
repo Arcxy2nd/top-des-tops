@@ -2,9 +2,9 @@
 
 const { makeSheet } = require('../harness.js');
 
-// Les données reproduisent la forme relevée en production le 2026-08-10 (7 joueurs,
-// plusieurs Tops, entrées étalées sur deux mois) : une feuille de deux lignes ne
-// déclenche ni la pagination, ni les agrégats, ni les bornes de cache.
+// The data reproduces the shape observed in production on 2026-08-10 (7 players,
+// several Tops, entries spread over two months): a two-row sheet does not
+// trigger pagination, aggregates, or cache limits.
 const PLAYERS = [
   ['Safir',   'https://example.invalid/a.jpg', '#ff858f', ''],
   ['Ilker',   'https://example.invalid/b.jpg', '#00ffaa', ''],
@@ -26,8 +26,8 @@ function historyRows() {
   const rows = [];
   const players = PLAYERS.map(p => p[0]);
   const cats = CATEGORIES.map(c => c[0]);
-  // 84 entrées sur juin/juillet/août : assez pour peupler records, tendances,
-  // jour le plus actif et duos fréquents, qui restent vides sur un jeu trop petit.
+  // 84 entries across June/July/August: enough to populate records, trends,
+  // most active day, and frequent duos, which stay empty on a dataset that's too small.
   for (let d = 1; d <= 28; d++) {
     for (let k = 0; k < 3; k++) {
       const month = ['06', '07', '08'][k];
