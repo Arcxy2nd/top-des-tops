@@ -8486,8 +8486,18 @@
         if (res && res.success === false) {
           showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
-        } else {
-          if (onSuccess) onSuccess(res);
+          return;
+        }
+        if (!onSuccess) return;
+        // google.script.run avale toute exception levée ici : sans ce try, un
+        // gestionnaire qui casse laisse le squelette tourner à l'infini, sans
+        // toast, sans état d'erreur et sans trace — c'était la panne du Dashboard.
+        try {
+          onSuccess(res);
+        } catch (err) {
+          console.error('callServer/' + fn, err);
+          showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
+          if (onError) onError(err);
         }
       })
       .withFailureHandler(err => {
