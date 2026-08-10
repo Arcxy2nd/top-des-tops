@@ -1108,6 +1108,32 @@
       min-height: var(--tap-min);
       padding: 0 18px;
     }
+    .global-error-banner {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      padding: 10px 14px;
+      background: var(--card);
+      border-top: 1.5px solid var(--error);
+      color: var(--text);
+      font-size: 0.82rem;
+      line-height: 1.4;
+      max-height: 30vh;
+      overflow-y: auto;
+    }
+    .global-error-banner .geb-close {
+      float: right;
+      min-height: var(--tap-min);
+      min-width: var(--tap-min);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
 
     /* ── MODAL ── */
     .modal-backdrop {
@@ -4022,6 +4048,11 @@
   </style>
 </head>
 <body>
+  <div id="globalErrorBanner" class="global-error-banner" role="alert" aria-live="assertive">
+    <button type="button" class="geb-close" id="globalErrorClose" title="Masquer">✕</button>
+    <strong>⚠️ Erreur technique</strong>
+    <div id="globalErrorText"></div>
+  </div>
 
 <nav class="navbar">
   <div class="nav-container">
@@ -7918,6 +7949,29 @@
     if (!m) return 'rgba(255,255,255,' + alpha + ')';
     return 'rgba(' + parseInt(m[1],16) + ',' + parseInt(m[2],16) + ',' + parseInt(m[3],16) + ',' + alpha + ')';
   }
+
+  // An exception outside any callServer handler (event listener, timer, boot
+  // code) left no visible trace: the outage then looked like a frozen screen,
+  // impossible to diagnose remotely since the code runs inside an
+  // inaccessible Google iframe. The banner makes the message readable in place.
+  function showGlobalError(message) {
+    const banner = document.getElementById('globalErrorBanner');
+    const text   = document.getElementById('globalErrorText');
+    if (!banner || !text) return;
+    const line = document.createElement('div');
+    line.textContent = message;
+    text.appendChild(line);
+    banner.style.display = 'block';
+  }
+
+  window.addEventListener('error', e => {
+    showGlobalError((e.message || 'Erreur inconnue') + ' — ' + (e.filename || '?') + ':' + (e.lineno || 0));
+  });
+
+  window.addEventListener('unhandledrejection', e => {
+    const reason = e.reason;
+    showGlobalError('Promesse rejetée : ' + ((reason && reason.message) || String(reason)));
+  });
 
   // ── SKELETONS (feedback de chargement générique) ─────────────────────
   // Remplace tout le contenu d'un conteneur par N blocs de squelette (tableaux
@@ -15770,6 +15824,8 @@
   // ── BOUTONS ───────────────────────────────────────────────────────────
   function bindButtons() {
     bindChartRetry();
+    const gebClose = document.getElementById('globalErrorClose');
+    if (gebClose) gebClose.onclick = () => { document.getElementById('globalErrorBanner').style.display = 'none'; };
     // Chart.js dessine lui-même un point/curseur actif sur le canvas pendant le
     // survol (indépendant de la bulle #chartCustomTooltip) ; masquer la bulle ne
     // l'efface pas. Il faut explicitement vider les éléments actifs du graphique
