@@ -4,6 +4,32 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.7.0] - 2026-08-10
+
+### Corrigé
+**Humanisé** : Quand le graphique du Dashboard ne peut rien afficher, il le dit maintenant clairement — « aucune donnée pour cette sélection » ou un message d'erreur avec un bouton Réessayer — au lieu de laisser une zone vide sans explication.
+**Technique** : `Index.html` — panneau `#chartState` et fonction `showChartState(state, message)` ; la branche « aucune donnée » de `renderChart()` n'écrit plus dans le canevas (`ctx.fillStyle = 'var(--text-muted)'` était silencieusement ignoré par le canevas, le texte était peint en noir sur fond sombre) et les quatre gestionnaires d'erreur de `applyFilters()` affichent l'état d'erreur au lieu d'un conteneur vide.
+
+**Humanisé** : Les couleurs des Tops Alternatifs sont enfin lisibles en thème clair, et leur menu déroulant n'apparaît plus en sombre au milieu d'une page claire.
+**Technique** : `Index.html` — `--alt-accent` et `--alt-accent-rgb` déclinées dans `body.light`, les onze `rgba(255, 209, 102, …)` remplacés par `rgba(var(--alt-accent-rgb), …)`, et `var(--bg-card, #1e2533)` — dont la variable n'était définie nulle part — remplacé par `var(--card-solid)`.
+
+**Humanisé** : En changeant rapidement de filtre par Top Alternatif dans l'Historique, la page suivante ne peut plus afficher les lignes du filtre précédent.
+**Technique** : `Index.html` — `histPrefetchKey()` prend le filtre Alt en 7ᵉ paramètre, et un compteur de génération jette les réponses de préchargement déjà parties au moment d'un changement de filtre.
+
+**Humanisé** : Supprimer une entrée saisie directement dans un Top Alternatif est désormais annulable depuis le journal d'audit, et ne peut plus effacer une autre entrée du même joueur au même score.
+**Technique** : `Code.gs` — `deleteNativeAltEntry()` retourne la ligne supprimée, `apiDeleteNativeAltEntry()` enregistre un instantané `{ sheet: 'altHistory', op: 'delete', before }` et aligne ses arguments sur la signature d'`AuditService.log()` ; le garde anti-obsolescence contrôle aussi la date.
+
+### Ajouté
+**Humanisé** : Une erreur de logique ne peut plus atteindre le site : les tests s'exécutent automatiquement à chaque livraison, sur le code exact qui part chez Google.
+**Technique** : `.github/workflows/deploy-gas.yml` — le nettoyage des commentaires devient une étape du workflow, suivie de `npm run verify` avant le déploiement ; Node passe de 20 à 22 (le glob littéral de `node --test` n'est pris en charge qu'à partir de la 22, sous la 20 l'étape n'aurait trouvé aucun test).
+
+**Humanisé** : L'application signale désormais dans son journal technique quand son cache interne est trop plein pour fonctionner, au lieu de l'abandonner sans rien dire.
+**Technique** : `Code.gs` — `_logCacheSkip()` tracé sur les deux caches de l'historique complet lorsqu'une charge dépasse `CONFIG.CACHE_MAX_BYTES`.
+
+### Modifié
+**Humanisé** : La librairie de graphiques est figée à une version précise : une mise à jour majeure ne peut plus casser le Dashboard des deux sites sans prévenir.
+**Technique** : `Index.html` — `chart.js` épinglé à `4.5.1` ; `renderChart()` et `renderTrendChart()` affichent une erreur lisible si la librairie n'a pas pu être chargée. `context.md` §2 corrigé : le projet a bien des dépendances CDN externes, contrairement à ce qu'il affirmait.
+
 ## [v3.6.0] - 2026-08-09
 
 > Note de traçabilité : les numéros v3.5.1 à v3.5.3 ont été utilisés dans les sujets de trois commits abandonnés pendant l'épisode de l'interface vide. Les correctifs qui les ont remplacés sont documentés ci-dessous sous v3.5.4 à v3.5.6.
