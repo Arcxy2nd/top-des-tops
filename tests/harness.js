@@ -152,7 +152,7 @@ function loadGas(extraMocks) {
     'apiGetAppSettings, apiSaveAppSettings, apiSaveTooltipStyle, apiVerifyIdentity, apiRemoveFromGroup, ' +
     'AutoPointsService, apiGetAutoRules, apiAddAutoRule, apiUpdateAutoRule, apiDeleteAutoRule, apiSetAutoTrigger, NAV_PAGES, apiGetNavPages, doGet, ' +
     'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +
-    'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, apiGetFilteredLogs, ScriptApp, ' +
+    'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, apiGetFilteredData, apiGetFilteredLogs, ScriptApp, ' +
     'apiScanUnmentionedNames, apiApplyMentionFixes, apiGetMentionStats, apiGetChangelog, ' +
     'apiGetAltCategories: (typeof apiGetAltCategories === "undefined" ? undefined : apiGetAltCategories), ' +
     'apiSaveAltCategories: (typeof apiSaveAltCategories === "undefined" ? undefined : apiSaveAltCategories), ' +

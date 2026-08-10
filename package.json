@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
     "check:html": "node tests/check-html-syntax.js",
-    "verify": "npm run check:html && npm test"
+    "verify": "npm run check:html && npm test",
+    "serve:front": "node tests/frontend/serve.js"
   }
 }
