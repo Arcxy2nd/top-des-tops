@@ -35,6 +35,7 @@
       --info: #7c8cff; 
       --clean: #17a2b8;
       --alt-accent: #ffd166;
+      --alt-accent-rgb: 255, 209, 102;
       --btn-alt: rgba(255, 255, 255, 0.07);
       --tap-min: 44px;
       --on-accent: #fff;
@@ -64,6 +65,8 @@
       --warn: #d97706; 
       --info: #4f5fd6; 
       --clean: #0e7490;
+      --alt-accent: #b8860b;
+      --alt-accent-rgb: 184, 134, 11;
       --btn-alt: rgba(0, 0, 0, 0.05);
       --spotlight-color: rgba(0, 0, 0, 0.03);
       --glass-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
@@ -2422,8 +2425,8 @@
       gap: 6px;
       padding: 4px 10px;
       border-radius: 12px;
-      border: 1px dashed rgba(255, 209, 102, 0.5);
-      background: rgba(255, 209, 102, 0.08);
+      border: 1px dashed rgba(var(--alt-accent-rgb), 0.5);
+      background: rgba(var(--alt-accent-rgb), 0.08);
       color: var(--alt-accent);
       font-size: 0.78rem;
       font-weight: 700;
@@ -2435,21 +2438,21 @@
       box-sizing: border-box;
     }
     .row-alt-pill:hover {
-      background: rgba(255, 209, 102, 0.18);
+      background: rgba(var(--alt-accent-rgb), 0.18);
       border-color: var(--alt-accent);
       border-style: solid;
     }
     .row-alt-pill.active {
-      background: rgba(255, 209, 102, 0.18);
+      background: rgba(var(--alt-accent-rgb), 0.18);
       color: var(--alt-accent);
       font-weight: 700;
       border: 1px solid var(--alt-accent);
-      box-shadow: 0 0 10px rgba(255, 209, 102, 0.22);
+      box-shadow: 0 0 10px rgba(var(--alt-accent-rgb), 0.22);
     }
     .row-alt-select {
       background: var(--bg);
       color: var(--text);
-      border: 1px solid rgba(255, 209, 102, 0.6);
+      border: 1px solid rgba(var(--alt-accent-rgb), 0.6);
       border-radius: 8px;
       padding: 2px 6px;
       font-size: 0.78rem;
@@ -8808,7 +8811,7 @@
         if (altLinks.length) {
           altBadgesHtml = altLinks.map(al => {
             const isCurr = al === currentAlt;
-            return `<span style="font-size:0.7rem;padding:2px 6px;border-radius:10px;background:${isCurr ? 'rgba(255,209,102,0.2)' : 'var(--btn-alt)'};color:${isCurr ? ALT_FALLBACK_COLOR : 'var(--text-muted)'};border:1px solid ${isCurr ? ALT_FALLBACK_COLOR : 'var(--border)'};margin-right:4px;">⭐ ${escapeHtml(al)}</span>`;
+            return `<span style="font-size:0.7rem;padding:2px 6px;border-radius:10px;background:${isCurr ? 'rgba(var(--alt-accent-rgb), 0.2)' : 'var(--btn-alt)'};color:${isCurr ? ALT_FALLBACK_COLOR : 'var(--text-muted)'};border:1px solid ${isCurr ? ALT_FALLBACK_COLOR : 'var(--border)'};margin-right:4px;">⭐ ${escapeHtml(al)}</span>`;
           }).join('');
         } else {
           altBadgesHtml = '<span style="font-size:0.7rem;color:var(--text-muted);">—</span>';
@@ -12518,7 +12521,7 @@
     const altBtn = document.createElement('button');
     altBtn.type = 'button';
     altBtn.className = 'alt-picker-btn';
-    altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
+    altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
 
     const altBtnContent = document.createElement('span');
     altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
@@ -12526,7 +12529,7 @@
 
     const altMenu = document.createElement('div');
     altMenu.className = 'alt-picker-menu';
-    altMenu.style.cssText = `display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--bg-card, #1e2533); border:1.5px solid ${ALT_FALLBACK_COLOR}; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;`;
+    altMenu.style.cssText = `display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--card-solid); border:1.5px solid ${ALT_FALLBACK_COLOR}; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;`;
 
     const updateAltPickerUI = () => {
       const active = altCb.checked && altCatSel.value;
@@ -12534,11 +12537,11 @@
         const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
         const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
         altBtn.className = 'alt-picker-btn active';
-        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${ALT_FALLBACK_COLOR}; background:rgba(255, 209, 102, 0.22); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(255, 209, 102, 0.3);`;
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${ALT_FALLBACK_COLOR}; background:rgba(var(--alt-accent-rgb), 0.22); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(var(--alt-accent-rgb), 0.3);`;
         altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
       } else {
         altBtn.className = 'alt-picker-btn';
-        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(255, 209, 102, 0.5); background:rgba(255, 209, 102, 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
         altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
       }
     };
