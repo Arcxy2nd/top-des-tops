@@ -10779,12 +10779,11 @@
     if (!trendData || !trendData.labels || !trendData.labels.length) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = 'var(--text-muted)';
-      ctx.textAlign = 'center';
-      ctx.font = '14px sans-serif';
-      ctx.fillText('Aucune donnée temporelle pour cette sélection.', ctx.canvas.width / 2, 40);
+      showChartState('empty', 'Aucune donnée temporelle pour cette sélection. Élargissez la période ou retirez des filtres.');
       return;
     }
+
+    showChartState('hidden');
 
     const c = getChartColors();
     let players = Object.keys(trendData.series);
