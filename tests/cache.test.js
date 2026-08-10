@@ -231,3 +231,28 @@ test('apiGetChangelog handles large responses by chunking cache and falling back
   assert.strictEqual(res2.content, largeContent);
   assert.strictEqual(fetchCount, 1);
 });
+
+test('a payload above CACHE_MAX_BYTES is not cached, and the skip is traced', () => {
+  const gas = loadGas();
+  const skips = [];
+  gas.Logger.log = m => skips.push(String(m));
+
+  // Two rows are far below the ceiling: the cache must be used and stay silent.
+  const history = makeSheet([HEADER,
+    [D('2026-08-01'), 'Alice', 'Jeux', 5, 'ok', ''],
+    [D('2026-08-02'), 'Bob',   'Jeux', 3, 'ok', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history });
+  gas.StorageService.getAllLogs();
+  assert.strictEqual(skips.length, 0, 'a small payload must not log a skip');
+
+  // Force the ceiling down so the same payload is now oversized. A write bumps
+  // the cache version too: the small payload is already cached under the old
+  // version, and a stale hit would skip the put/skip logic entirely.
+  gas.CONFIG.CACHE_MAX_BYTES = 1;
+  gas.withLock(() => ({ ok: true }));
+  gas.ConfigService.clearCache();
+  gas.StorageService.getAllLogs();
+  assert.ok(skips.length >= 1, 'an oversized payload must log a skip');
+  assert.match(skips[0], /cache skip/);
+});

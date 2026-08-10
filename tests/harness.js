@@ -140,7 +140,7 @@ function loadGas(extraMocks) {
   const autoPointsCode = fs.readFileSync(path.join(__dirname, '..', 'AutoPoints.gs'), 'utf8');
   const sandbox = Object.assign(gasMocks(), extraMocks || {});
   vm.createContext(sandbox);
-  const epilogue = '\n;this.__exports = { ConfigService, AuditService, SettingsService, StorageService, ' +
+  const epilogue = '\n;this.__exports = { CONFIG, Logger, ConfigService, AuditService, SettingsService, StorageService, ' +
     'NotesService, AnalyticsService, BaremeService, PhrasesService, SettingsSheetService, withLock, ' +
     'AltSettingsService, AltStorageService, ' +
     'apiDetectDistributedLots, apiDetectLegacyGroups, apiAddBulkPlan, apiUpdateHistoryEntry, ' +

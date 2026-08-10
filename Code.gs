@@ -57,6 +57,17 @@ function apiGetNavPages() {
   } catch(e) { return fail(e); }
 }
 
+/**
+ * A payload above CACHE_MAX_BYTES is dropped by every cache.put guard. Silent
+ * dropping means the whole cross-request cache can be inactive in production
+ * while the tests — which run on two-row fixtures — stay green.
+ */
+function _logCacheSkip(key, size) {
+  if (typeof Logger !== 'undefined' && Logger.log) {
+    Logger.log('cache skip ' + key + ' ' + size + ' > ' + CONFIG.CACHE_MAX_BYTES);
+  }
+}
+
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
 const ConfigService = (() => {
   let _cache = null;
@@ -687,6 +698,7 @@ const StorageService = {
     const result = this._readFullHistoryRows();
     const serial = JSON.stringify(result.map(r => Object.assign({}, r, { date: r.date.toISOString() })));
     if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    else _logCacheSkip(key, serial.length);
     return result;
   },
 
@@ -715,6 +727,7 @@ const StorageService = {
         t: l.timestamp.getTime(), p: l.player, c: l.category, pts: l.points
       })));
       if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+      else _logCacheSkip(key, serial.length);
     }
 
     ConfigService.setLogsCache(result);
