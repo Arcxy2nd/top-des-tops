@@ -53,10 +53,10 @@ Hébergée sur **Google Apps Script** — pas de serveur, pas de base de donnée
 | Backend     | Google Apps Script (`.gs`) |
 | Frontend    | HTML/CSS/JS (`.html`)     |
 | Stockage    | Google Sheets             |
-| Graphiques  | Chart.js (embarqué)       |
+| Graphiques  | Chart.js 4.5.1 (CDN jsDelivr, version figée) |
 | Déploiement | Web App GAS (`/exec` URL) |
 
-Pas de build, pas de framework, pas de dépendances npm. Le HTML est servi directement par GAS via `HtmlService`.
+Pas de build, pas de framework, aucune dépendance npm à l'exécution. Deux librairies sont chargées depuis un CDN dans `<head>` (Chart.js, GSAP) et trois à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
 
 ---
 
