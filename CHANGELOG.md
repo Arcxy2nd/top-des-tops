@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.8.1] - 2026-08-11
+
+### Corrigé
+**Humanisé** : L'outil de test qui permet d'ouvrir l'application sur un ordinateur ne connaissait que 55 des 78 fonctions du serveur. Les écrans qui dépendaient des 23 autres — le graphique en courbes, le classement, l'historique, les notes, le barème, le tchat — affichaient un message d'erreur qui n'avait rien à voir avec un vrai défaut de l'application. On pouvait donc croire à des pannes inexistantes, et surtout ne pas voir les vraies. Ces six écrans se testent maintenant normalement.
+**Technique** : `tests/harness.js` — la liste d'exports tenue à la main dans l'épilogue du bac à sable est remplacée par `buildEpilogue(source)`, qui découvre toutes les déclarations `function api*` de `Code.gs` et `AutoPoints.gs` par balayage et les expose systématiquement ; `EXPORTED_GLOBALS` ne conserve que les services et constantes, qui ne suivent pas ce motif de nommage. Chaque nom est protégé par un garde `typeof`, l'absence d'un symbole ne fait donc plus échouer le chargement entier.
+
+### Ajouté
+**Humanisé** : Un test automatique vérifie désormais que l'outil de test connaît bien toutes les fonctions du serveur. Le décalage qui vient d'être corrigé ne peut plus réapparaître en silence à la prochaine fonctionnalité.
+**Technique** : `tests/frontend-guards.test.js` — le test « the harness exposes every server function Index.html calls » extrait les 78 noms passés à `callServer()` dans `Index.html` et échoue si `loadGas()` n'en expose pas un.
+
+**Humanisé** : L'application va être reprise onglet par onglet, chacun examiné à fond puis corrigé et livré séparément. La procédure suivie et le suivi de l'avancement sont écrits noir sur blanc.
+**Technique** : `docs/superpowers/plans/2026-08-11-audit-onglet-par-onglet.md` — protocole en 5 phases (cartographie, sonde comportementale en navigateur, conseil à 5 rôles, vérification adversariale, correction TDD et livraison), grille d'audit à 5 axes, registre des 7 cibles et ligne de base mesurée. `docs/superpowers/plans/2026-08-11-audit-dashboard.md` — passe 1 en cours.
+
 ## [v3.8.0] - 2026-08-10
 
 ### Corrigé

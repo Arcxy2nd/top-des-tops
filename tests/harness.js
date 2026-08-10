@@ -134,36 +134,39 @@ function gasMocks() {
   };
 }
 
+// Services and constants tests reach for by name. Every `api*` endpoint is added
+// automatically by buildEpilogue, so a new endpoint never has to be listed here.
+const EXPORTED_GLOBALS = [
+  'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
+  'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
+  'AltSettingsService', 'AltStorageService', 'AutoPointsService',
+  'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp'
+];
+
+/**
+ * Builds the export epilogue by scanning the sources for `function api*`
+ * declarations. A hand-maintained list silently desynchronises from the code:
+ * an endpoint absent from it makes the browser harness answer "not exposed",
+ * which reads like an application failure during an audit.
+ */
+function buildEpilogue(source) {
+  const endpoints = [...new Set(
+    [...source.matchAll(/^function\s+(api[A-Za-z0-9_]*)\s*\(/gm)].map(m => m[1])
+  )];
+  const entries = EXPORTED_GLOBALS.concat(endpoints)
+    .map(name => name + ': (typeof ' + name + ' === "undefined" ? undefined : ' + name + ')')
+    .join(', ');
+  return '\n;this.__exports = { ' + entries + ' };';
+}
+
 /** Loads Code.gs into a fresh sandbox and returns its services + tested endpoints. */
 function loadGas(extraMocks) {
   const code = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
   const autoPointsCode = fs.readFileSync(path.join(__dirname, '..', 'AutoPoints.gs'), 'utf8');
   const sandbox = Object.assign(gasMocks(), extraMocks || {});
   vm.createContext(sandbox);
-  const epilogue = '\n;this.__exports = { CONFIG, Logger, ConfigService, AuditService, SettingsService, StorageService, ' +
-    'NotesService, AnalyticsService, BaremeService, PhrasesService, SettingsSheetService, withLock, ' +
-    'AltSettingsService, AltStorageService, ' +
-    'apiDetectDistributedLots, apiDetectLegacyGroups, apiAddBulkPlan, apiUpdateHistoryEntry, ' +
-    'apiGetAuditLog, apiUndoAuditEntry, apiFixZeroPoints, apiDeleteOrphans, apiUpdateBulkEntries, ' +
-    'apiDeleteHistoryEntries, apiUpdateHistoryDescription, apiManageEntity, apiSetColor, ' +
-    'apiAddBaremeEntry, apiUpdateBaremeEntry, apiDeleteBaremeEntry, ' +
-    'apiAddNote, apiDeleteNote, apiEditNote, ' +
-    'apiAddPhrase, apiSavePhrasesBatch, apiUpdatePhrase, apiDeletePhrase, apiDeletePreset, apiRenamePreset, ' +
-    'apiGetAppSettings, apiSaveAppSettings, apiSaveTooltipStyle, apiVerifyIdentity, apiRemoveFromGroup, ' +
-    'AutoPointsService, apiGetAutoRules, apiAddAutoRule, apiUpdateAutoRule, apiDeleteAutoRule, apiSetAutoTrigger, NAV_PAGES, apiGetNavPages, doGet, ' +
-    'apiDetectDuplicates, apiDetectOutlierScores, apiGetInactivePlayers, apiGetPlayerRecords, ' +
-    'apiGetTrends, apiGetActiveWeekday, apiGetTopPlayerCategoryPairs, apiGetFilteredData, apiGetFilteredLogs, ScriptApp, ' +
-    'apiScanUnmentionedNames, apiApplyMentionFixes, apiGetMentionStats, apiGetChangelog, ' +
-    'apiGetAltCategories: (typeof apiGetAltCategories === "undefined" ? undefined : apiGetAltCategories), ' +
-    'apiSaveAltCategories: (typeof apiSaveAltCategories === "undefined" ? undefined : apiSaveAltCategories), ' +
-    'apiDeleteAltCategory: (typeof apiDeleteAltCategory === "undefined" ? undefined : apiDeleteAltCategory), ' +
-    'apiLinkHistoryRowsToAltCategory: (typeof apiLinkHistoryRowsToAltCategory === "undefined" ? undefined : apiLinkHistoryRowsToAltCategory), ' +
-    'apiAppendAltNativeBatch: (typeof apiAppendAltNativeBatch === "undefined" ? undefined : apiAppendAltNativeBatch), ' +
-    'apiDeleteNativeAltEntry: (typeof apiDeleteNativeAltEntry === "undefined" ? undefined : apiDeleteNativeAltEntry), ' +
-    'apiGroupSimilarEntries: (typeof apiGroupSimilarEntries === "undefined" ? undefined : apiGroupSimilarEntries), ' +
-    'apiGetAltAnalyticsData: (typeof apiGetAltAnalyticsData === "undefined" ? undefined : apiGetAltAnalyticsData), ' +
-    'apiGetQuickStats: (typeof apiGetQuickStats === "undefined" ? undefined : apiGetQuickStats) };';
-  vm.runInContext(code + '\n' + autoPointsCode + epilogue, sandbox, { filename: 'Code.gs+AutoPoints.gs' });
+  const source = code + '\n' + autoPointsCode;
+  vm.runInContext(source + buildEpilogue(source), sandbox, { filename: 'Code.gs+AutoPoints.gs' });
   return sandbox.__exports;
 }
 

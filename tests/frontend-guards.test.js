@@ -142,3 +142,23 @@ test('applyRowCategoryVisuals does not reference refreshBaremeForTop from its ow
   const div = { style: { setProperty() {} } };
   assert.doesNotThrow(() => sandbox.__apply(div, 'Some Category', false));
 });
+
+test('the harness exposes every server function Index.html calls', () => {
+  const { loadGas } = require('./harness.js');
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const called = [...new Set(
+    [...html.matchAll(/callServer\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1])
+  )].sort();
+
+  assert.ok(called.length > 50, 'l’extraction des appels a échoué : ' + called.length + ' trouvés');
+
+  const gas = loadGas();
+  const missing = called.filter(name => typeof gas[name] !== 'function');
+
+  assert.deepStrictEqual(
+    missing, [],
+    // A function missing here is invisible to the browser harness: the tab that
+    // calls it renders an error state that has nothing to do with the app.
+    'fonctions appelées par Index.html mais absentes du harness : ' + missing.join(', ')
+  );
+});

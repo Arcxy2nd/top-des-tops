@@ -36,8 +36,8 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 
 | # | Cible | Zone `Index.html` | État | Version livrée | Plan |
 |---|-------|-------------------|------|----------------|------|
-| 0 | Ligne de base (outillage) | — | ⬜ à faire | — | — |
-| 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | ⬜ à faire | — | — |
+| 0 | Ligne de base (outillage) | — | ✅ livré | — | ci-dessous |
+| 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | 🔄 en cours | — | — |
 | 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4741-4845) | ⬜ à faire | — | — |
 | 3 | ✍️ Saisir un Lot | `#tab-inject` (l. 4300-4367) | ⬜ à faire | — | — |
 | 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4368-4726) | ⬜ à faire | — | — |
