@@ -100,8 +100,8 @@ test('deleteNativeAltEntry removes a native row and refuses a linked one', () =>
     /liee a l'historique principal|liée à l'historique principal/
   );
 
-  const count = gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Alice', points: 7 });
-  assert.strictEqual(count, 1);
+  const removed = gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Alice', points: 7 });
+  assert.strictEqual(removed[1], 'Alice');
 
   const remaining = gas.AltStorageService.getAltLogs();
   assert.strictEqual(remaining.length, 1);
@@ -161,4 +161,37 @@ test('addNativeAltEntries rejects invalid player, alt category, points and date'
 
   // Nothing was written: validation runs before the single setValues() call.
   assert.strictEqual(gas.AltStorageService.getAltLogs().length, 0);
+});
+
+test('deleteNativeAltEntry returns the removed row so the deletion can be undone', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 7, 'Native', '', '', 'Admin']
+  ]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  const removed = gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Alice', points: 7 });
+  assert.ok(Array.isArray(removed), 'the removed row must be returned');
+  assert.strictEqual(removed.length, 8);
+  assert.strictEqual(removed[1], 'Alice');
+  assert.strictEqual(removed[3], 7);
+  assert.strictEqual(gas.AltStorageService.getAltLogs().length, 0);
+});
+
+test('deleteNativeAltEntry refuses when the guard date no longer matches', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 1, 'Premier', '', '', 'Admin'],
+    ['2026-08-02', 'Alice', 'Alt 1', 1, 'Second',  '', '', 'Admin']
+  ]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  // Same player, same points: only the date tells the two rows apart.
+  assert.throws(
+    () => gas.AltStorageService.deleteNativeAltEntry(2, 'Alt 1', { player: 'Alice', points: 1, date: '2026-08-02' }),
+    /rechargez la liste/
+  );
+  assert.strictEqual(gas.AltStorageService.getAltLogs().length, 2);
 });

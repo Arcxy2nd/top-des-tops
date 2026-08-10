@@ -9059,7 +9059,8 @@
                   data-ref="${escapeHtml(e.refHistoryRowId || String(e.rowIndex))}"
                   data-native="${isNative ? '1' : '0'}"
                   data-player="${escapeHtml(e.player)}"
-                  data-points="${e.points}">${isNative ? '🗑️ Supprimer' : '❌ Retirer'}</button>
+                  data-points="${e.points}"
+                  data-date="${escapeHtml(e.date ? String(e.date).slice(0, 10) : '')}">${isNative ? '🗑️ Supprimer' : '❌ Retirer'}</button>
               </td>
             </tr>
           `;
@@ -9083,7 +9084,7 @@
             openConfirmModal(message, () => {
               const fn   = isNative ? 'apiDeleteNativeAltEntry' : 'apiUnlinkHistoryRowsFromAltCategory';
               const args = isNative
-                ? [_whoAmI, altCategoryName, refId, { player: btn.dataset.player, points: parseInt(btn.dataset.points, 10) }]
+                ? [_whoAmI, altCategoryName, refId, { player: btn.dataset.player, points: parseInt(btn.dataset.points, 10), date: btn.dataset.date }]
                 : [_whoAmI, [refId], altCategoryName];
               const label = isNative ? 'Suppression entrée Alt native' : 'Désaffectation Top Alternatif';
               callServer(fn, args, res => {

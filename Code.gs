@@ -1197,17 +1197,20 @@ const AltStorageService = {
       throw new Error("Cette entrée n'appartient pas à ce Top Alternatif.");
     }
     if (guard) {
-      if (guard.player && (row[1] ? row[1].toString() : '') !== guard.player) {
-        throw new Error("L'entrée a changé depuis l'affichage, rechargez la liste.");
-      }
-      if (guard.points != null && parseInt(row[3], 10) !== parseInt(guard.points, 10)) {
-        throw new Error("L'entrée a changé depuis l'affichage, rechargez la liste.");
+      const stale = "L'entrée a changé depuis l'affichage, rechargez la liste.";
+      if (guard.player && (row[1] ? row[1].toString() : '') !== guard.player) throw new Error(stale);
+      if (guard.points != null && parseInt(row[3], 10) !== parseInt(guard.points, 10)) throw new Error(stale);
+      // Player + points alone do not identify a row: "Alice / 1 pt" repeats by
+      // design in a scores app, so a shifted index would pass the guard.
+      if (guard.date) {
+        const rowDate = row[0] instanceof Date ? _dayKey(row[0]) : String(row[0] || '').slice(0, 10);
+        if (rowDate !== String(guard.date).slice(0, 10)) throw new Error(stale);
       }
     }
 
     sheet.deleteRow(idx);
     ConfigService.clearCache();
-    return 1;
+    return row;
   },
 
   linkHistoryRowsToAltCategory(rowIndices, altCategory, saiseur) {
@@ -2324,10 +2327,12 @@ function apiDeleteNativeAltEntry(author, altCategory, rowIndex, guard) {
   try {
     requireAuthor(author);
     return withLock(function() {
-      const count = AltStorageService.deleteNativeAltEntry(rowIndex, altCategory, guard);
+      const removed = AltStorageService.deleteNativeAltEntry(rowIndex, altCategory, guard);
+      const summary = (removed[1] || '?') + ' — ' + (removed[3] || 0) + ' pt(s)';
       AuditService.log(author, 'Suppression entrée Alt native', altCategory || '—',
-        'Entrée native supprimée définitivement (ligne ' + rowIndex + ')');
-      return { success: true, count: count };
+        summary, '', 'Entrée native supprimée définitivement',
+        { sheet: 'altHistory', op: 'delete', before: removed });
+      return { success: true, count: 1 };
     });
   } catch(e) { return fail(e); }
 }
