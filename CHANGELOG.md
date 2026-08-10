@@ -4,6 +4,25 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.8.0] - 2026-08-10
+
+### Corrigé
+**Humanisé** : Le Dashboard restait bloqué sur des animations de chargement sans fin (graphique principal et bandeau de stats rapides). La cause a été trouvée par mesure directe — en rejouant les vraies données de production contre le code local — puis corrigée : chaque carte affiche maintenant son contenu normalement.
+**Technique** : `Index.html` — `applyRowCategoryVisuals()` appelait `refreshBaremeForTop()`, qui n'existe que dans la fermeture (closure) de `addEntryRow()` et lui est donc inaccessible : `ReferenceError` systématique dès qu'un joueur et un Top réels existent, interrompant `_paintEntitiesUI()` avant `applyFilters()`/`loadQuickStats()`. L'appel est retiré de `applyRowCategoryVisuals()` et déplacé, gardé par `if (!isAltRow)`, aux deux points d'appel réels (dans `addEntryRow()`, où `refreshBaremeForTop` est réellement visible). Le chargement des données passe en outre par `bootDataLoad()`, dont chaque étape (`renderWhoAmI`, `loadEntities`, `loadAppBranding`, `refreshDashboardStats`) est isolée par son propre `try/catch`, au lieu d'être la suite non protégée d'une initialisation de ~1 800 lignes.
+
+**Humanisé** : Quand une carte n'arrive pas à s'afficher, l'application le dit désormais au lieu de laisser une animation tourner indéfiniment.
+**Technique** : `Index.html` — `callServer()` entoure `onSuccess` d'un `try/catch` (une exception y était avalée par `google.script.run`, sans toast ni état d'erreur), et `showSkeleton()` arme un chien de garde `CONFIG.SKELETON_TIMEOUT_MS` qui remplace un squelette figé par un message et un bouton de rechargement.
+
+**Humanisé** : Sur le graphique en courbes, le message « aucune donnée » est enfin lisible, et un ancien message ne reste plus affiché par-dessus le graphique.
+**Technique** : `Index.html` — `renderTrendChart()` utilise `showChartState('empty', …)` au lieu de peindre du texte dans le canevas avec une variable CSS (dernière occurrence du défaut corrigé en v3.7.0 pour `renderChart()`), et appelle `showChartState('hidden')` sur son chemin de succès.
+
+### Ajouté
+**Humanisé** : Une erreur technique s'affiche maintenant dans un bandeau au bas de la page au lieu de rester invisible.
+**Technique** : `Index.html` — `#globalErrorBanner`, `showGlobalError(message)` et écouteurs `error` / `unhandledrejection`.
+
+**Humanisé** : L'interface peut désormais être testée sur un ordinateur, hors de Google, ce qui permet de voir les erreurs qui étaient jusqu'ici invisibles à distance.
+**Technique** : `tests/frontend/` (`serve.js`, `stub.js`, `fixtures.js`) — serveur `node:http` servant `Index.html` avec un `google.script.run` de substitution branché sur le vrai `Code.gs` via `tests/harness.js` ; script npm `serve:front`. `tests/frontend-guards.test.js` couvre les trois garde-fous.
+
 ## [v3.7.0] - 2026-08-10
 
 ### Corrigé
