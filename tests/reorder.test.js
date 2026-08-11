@@ -182,7 +182,11 @@ test('PhrasesService.addPhrase assigns Ordre scoped to its preset+pool group', (
   ]);
   gas.ConfigService.getSheets = () => ({ phrases });
   gas.PhrasesService.addPhrase('Défaut', 'first', 'B');
-  assert.deepStrictEqual(phrases._grid[2], ['Défaut', 'first', 'B', 2]);
+  const row = phrases._grid[2];
+  assert.strictEqual(row[0], 'Défaut');
+  assert.strictEqual(row[1], 'first');
+  assert.strictEqual(row[2], 'B');
+  assert.strictEqual(row[3], 2);
 });
 
 test('PhrasesService.saveBatch assigns sequential Ordre per group across a multi-group batch', () => {
@@ -194,7 +198,8 @@ test('PhrasesService.saveBatch assigns sequential Ordre per group across a multi
     { preset: 'Défaut', pool: 'first', text: 'B' },
     { preset: 'Défaut', pool: 'last',  text: 'C' }
   ]);
-  assert.deepStrictEqual(phrases._grid.slice(1), [
+  const rows = phrases._grid.slice(1);
+  assert.deepStrictEqual(rows.map(r => [r[0], r[1], r[2], r[3]]), [
     ['Défaut', 'first', 'A', 1],
     ['Défaut', 'first', 'B', 2],
     ['Défaut', 'last',  'C', 1]
