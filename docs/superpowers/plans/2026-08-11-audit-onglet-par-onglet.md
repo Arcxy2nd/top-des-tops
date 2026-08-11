@@ -31,6 +31,22 @@ Ces contraintes s'appliquent à **toutes** les tâches de **tous** les plans dé
 
 ---
 
+## Garde-fous — protection des données réelles
+
+**Un joueur a été perdu suite à une passe d'audit et a dû être ressaisi manuellement.** Ces garde-fous sont des règles dures, pas des recommandations — elles s'appliquent à **toutes** les passes présentes et futures, en particulier toute passe touchant Paramètres/Joueurs/Tops (CRUD d'entités) ou les outils de nettoyage.
+
+1. **Toute manipulation destructive pendant la sonde (phase 2) se fait exclusivement contre le harness local** (`tests/frontend/serve.js` + fixtures), jamais contre l'URL `/exec` déployée ni contre un Sheet réel. Avant toute action de suppression/renommage/fusion testée dans le navigateur, vérifier explicitement que l'URL chargée est `http://localhost:<port>/…` — jamais un domaine `script.google.com` ou un lien short.io de production. Si un test doit absolument être fait en conditions réelles, il faut le dire explicitement à l'utilisateur et obtenir son accord avant d'agir, comme pour toute action irréversible.
+
+2. **`SettingsService.deleteEntity()` et `renameEntity()` (Code.gs) n'ont aucune sauvegarde de sheet dédiée**, contrairement aux opérations de nettoyage de l'Historique qui appellent `_backupHistory()` avant toute suppression (Code.gs:912-918). La seule récupération possible pour un Joueur/Top supprimé ou mal renommé passe par le bouton « ↩️ Annuler » du Journal d'audit — qui dépend d'un snapshot correct, d'un `AuditLog` non purgé, et d'un identifiant de ligne qui n'a pas bougé entre-temps. **Avant qu'une passe future ne touche à `apiManageEntity`, `deleteEntity`, ou `renameEntity`, évaluer l'ajout d'un mécanisme de sauvegarde symétrique à `_backupHistory()` pour les feuilles Players/Categories** (ex. `_backupEntitySheet(type)` copiant la feuille avant toute suppression/renommage) — c'est un manque structurel confirmé, pas une supposition.
+
+3. **Avant tout `git push` d'une passe qui modifie une fonction touchant la suppression, le renommage, la fusion ou le nettoyage d'entités (Joueurs/Tops) ou de leurs données associées** (`apiManageEntity`, `deleteEntity`, `renameEntity`, `fixZeroPoints`, `deleteOrphans`, `apiGroupSimilarEntries`, `apiDetectDuplicates`/suppression des doublons, tout outil du sous-onglet 🔧 Outils) — **s'arrêter et présenter explicitement à l'utilisateur, en langage clair, ce que la modification change dans le comportement de suppression/renommage, et attendre une confirmation avant de pousser.** Ceci est une exception ciblée à la règle « ne jamais demander la permission de committer/pousser » de `context.md` §8 — elle ne s'applique qu'à ce périmètre précis (CRUD/nettoyage d'entités), pas au reste des livraisons.
+
+4. **Toute passe touchant ce périmètre ajoute un test de non-régression Node** qui vérifie qu'une entité qui ne devait pas être touchée par l'opération testée survit intacte (nom, avatar/emoji, couleur) — pas seulement que l'entité ciblée est correctement modifiée. Un test qui ne vérifie que le cas nominal ne suffit pas ici.
+
+5. **Après toute correction touchant ce périmètre, la sonde comportementale (phase 2) inclut explicitement un scénario « avant/après » sur la liste complète des entités** (compter les joueurs et Tops avant l'action, recompter après, comparer un par un) — pas seulement vérifier que l'action ciblée a fonctionné.
+
+---
+
 ## Registre des passes
 
 Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent tôt.
