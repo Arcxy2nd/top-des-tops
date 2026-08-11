@@ -14,6 +14,7 @@
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
+const crypto = require('crypto');
 
 /** A minimal in-memory stand-in for a Google Sheet. grid[0] is the header row. */
 function makeSheet(grid) {
@@ -94,6 +95,14 @@ function gasMocks() {
     LockService: {
       getScriptLock: () => ({ waitLock: () => true, releaseLock: () => {} })
     },
+    // Real Apps Script provides Utilities as a built-in global; it is absent from
+    // this sandbox by default, which made ChatService.postMessage() (the only
+    // caller of Utilities.getUuid) throw "Utilities is not defined" in every test
+    // and in the frontend preview harness alike, undetected because no test ever
+    // exercised it.
+    Utilities: {
+      getUuid: () => crypto.randomUUID()
+    },
     HtmlService: {
       createHtmlOutputFromFile: name => ({
         _file: name,
@@ -139,7 +148,7 @@ function gasMocks() {
 const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
   'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
-  'AltSettingsService', 'AltStorageService', 'AutoPointsService',
+  'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp'
 ];
 

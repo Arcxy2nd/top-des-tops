@@ -502,6 +502,12 @@ const SettingsService = {
       // renaming a player would silently orphan their notes (invisible in the
       // UI, which only ever groups by currently-known player names).
       this._renameInColumn(ConfigService.getSheets().notes, 2, oldName, newName);
+      // Chat messages reference their author by name (column 3, "Auteur") — without
+      // this, a renamed player's old messages keep the stale name: unmatched by
+      // cachedPlayers (generic avatar/color fallback) and unrecognized by the
+      // author === _whoAmI check, silently losing the ability to delete their own
+      // past messages.
+      this._renameInColumn(ConfigService.getSheets().chat, 3, oldName, newName);
       return;
     }
 

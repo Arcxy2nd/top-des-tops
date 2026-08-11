@@ -114,7 +114,7 @@ Fichier HTML/CSS/JS monofichier.
 
 ### Tchat flottant
 
-Pas un onglet — un widget global (bouton 💬 + panneau) superposé à toutes les pages, présent en dehors du système d'onglets. Le bouton se déplace par glisser (clic/tap maintenu), position mémorisée en localStorage ; un clic simple ouvre/ferme le panneau. Markdown complet, mentions `@Joueur` et `#Top` (avec autocomplétion), réponse à un message (aperçu cité), horodatage, suppression de ses propres messages uniquement. Stockage dans la feuille `Chat` (auto-créée) via `ChatService`. Pas de push serveur possible (GAS) : sondage toutes les 4s, avec badge de messages non lus quand le panneau est fermé.
+Pas un onglet — un widget global (bouton 💬 `#chatToggleBtn` + panneau `#chatSidePanel`) superposé à toutes les pages, en dehors du système d'onglets. Desktop : bouton dans la navbar, panneau latéral sticky. Mobile : bouton flottant rond au-dessus de la barre de nav du bas, panneau plein écran. Un clic sur le bouton ouvre/ferme le panneau ; l'état ouvert/fermé est mémorisé en localStorage. Markdown complet, mentions `@Joueur` et `#Top` (avec autocomplétion), réponse à un message (aperçu cité avec avatar), horodatage, suppression de ses propres messages uniquement. Stockage dans la feuille `Chat` (auto-créée) via `ChatService`. Pas de push serveur possible (GAS) : sondage adaptatif (4s panneau ouvert / 20s fermé), avec badge de messages non lus quand le panneau est fermé.
 
 ### Types de graphique (Dashboard)
 

@@ -188,3 +188,30 @@ test('SettingsService.renameEntity propagates a player rename to their Notes, le
   assert.strictEqual(notesValues[1][1], 'Alicia', 'la note d\'Alice doit maintenant référencer Alicia');
   assert.strictEqual(notesValues[2][1], 'Bob', 'la note de Bob ne doit pas être touchée par le renommage d\'Alice');
 });
+
+// Régression : renameEntity() propage déjà le renommage d'un Joueur à
+// History/AutoRules/Notes, mais jamais à la feuille Chat — l'auteur d'un
+// message tchat gardait l'ancien nom après un renommage, perdant son avatar/
+// couleur (plus retrouvé dans la liste des joueurs actifs) et la possibilité
+// de supprimer ses propres anciens messages (comparaison whoAmI === author).
+test('SettingsService.renameEntity propagates a player rename to their Chat messages, leaving other authors untouched', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '#ff0000', ''],
+    ['Bob', '', '#00ff00', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  const chat = makeSheet([
+    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
+    ['m1', new Date('2026-01-01'), 'Alice', 'Message d\'Alice', ''],
+    ['m2', new Date('2026-01-02'), 'Bob', 'Message de Bob', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat });
+
+  gas.SettingsService.renameEntity('Players', 'Alice', 'Alicia', '', '');
+
+  const chatValues = chat.getDataRange().getValues();
+  assert.strictEqual(chatValues[1][2], 'Alicia', 'le message d\'Alice doit maintenant référencer Alicia');
+  assert.strictEqual(chatValues[2][2], 'Bob', 'le message de Bob ne doit pas être touché par le renommage d\'Alice');
+});

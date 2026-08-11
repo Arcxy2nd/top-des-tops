@@ -232,7 +232,7 @@
       padding: 6px 12px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.05);
+      background: transparent;
       color: var(--text);
       font-size: 0.82rem;
       font-weight: 700;
@@ -250,8 +250,8 @@
       border-color: var(--accent);
     }
     .chat-badge {
-      background: #ff4757;
-      color: #fff;
+      background: var(--error);
+      color: var(--on-accent);
       font-size: 0.7rem;
       font-weight: 800;
       border-radius: 10px;
@@ -288,13 +288,42 @@
       flex: 1 1 0;
       min-width: 0;
     }
-    /* Sur tous les layouts non-desktop : panneau invisible (pas de FAB dans le DOM) */
-    body:not(.desktop-layout) .chat-side-panel {
-      display: none !important;
+    /* ── TCHAT EN MOBILE-LAYOUT : bouton flottant + panneau plein écran ──
+       Restaure l'accès au Tchat perdu à la fusion Mobile.html→Index.html
+       (l'ancien widget flottant `#mChatFab` n'a jamais été reconstruit dans le
+       layout unique). Réutilise le même bouton/panneau que le desktop (mêmes
+       éléments, même JS openChatPanel/closeChatPanel) — seule la présentation
+       change : bouton rond au-dessus de la barre de nav du bas, panneau en
+       plein écran plutôt qu'en colonne latérale. */
+    body.mobile-layout .nav-chat-btn {
+      display: flex;
+      position: fixed;
+      right: 16px;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+      z-index: 500;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 50%;
+      justify-content: center;
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
     }
-    /* Bouton chat navbar : masqué hors desktop (le panel n'existe pas en mobile) */
-    body:not(.desktop-layout) .nav-chat-btn {
-      display: none !important;
+    body.mobile-layout .nav-chat-btn .chat-btn-label { display: none; }
+    body.mobile-layout .nav-chat-btn .chat-badge {
+      position: absolute; top: -4px; right: -4px; margin-left: 0;
+      border: 2px solid var(--bg);
+    }
+    body.mobile-layout .chat-side-panel {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      border-radius: 0;
+      z-index: 2000;
     }
 
     /* Boutons contrôles droite */
@@ -2172,26 +2201,7 @@
     .md-mention-item.md-mention-active { background: rgba(255,255,255,0.06); }
 
 
-    /* ── TCHAT FLOTTANT (bouton déplaçable, accessible depuis tous les onglets) ── */
-    .chat-fab {
-      position: fixed; right: 24px; bottom: 24px; z-index: 9500;
-      width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--accent); color: var(--on-accent); font-size: 1.5rem; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;
-      touch-action: none; user-select: none;
-    }
-    .chat-fab:active { cursor: grabbing; }
-    .chat-fab-badge {
-      position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
-      border-radius: 10px; background: var(--error); color: var(--on-accent); font-size: 0.68rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
-    }
-    .chat-panel {
-      position: fixed; right: 24px; bottom: 92px; z-index: 9499;
-      width: 360px; max-width: calc(100vw - 32px); max-height: min(70vh, 560px);
-      display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.4); overflow: hidden;
-    }
+    /* ── TCHAT (panneau latéral, accessible depuis tous les onglets) ── */
     .chat-panel-header {
       display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
       font-weight: 700; border-bottom: 1px solid var(--border); flex-shrink: 0;
@@ -2213,6 +2223,7 @@
       border-left: 3px solid var(--border); padding: 2px 0 2px 8px; margin: 4px 0; cursor: pointer;
       max-width: 100%; overflow: hidden;
     }
+    .chat-msg-reply-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .chat-msg-reply strong { color: var(--text); }
     .chat-msg-reply span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .chat-msg-reply.deleted { font-style: italic; }
@@ -2226,11 +2237,17 @@
       display: flex; align-items: center; gap: 10px; background: var(--btn-alt);
       border-radius: 8px; padding: 6px 10px; margin: 0 12px 8px; font-size: 0.8rem; flex-shrink: 0;
     }
+    .chat-reply-banner-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .chat-reply-banner-snippet { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .chat-composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
-    .chat-composer textarea { flex: 1; resize: vertical; min-height: 40px; max-height: 120px; }
+    /* Pas de max-height ici : autoGrowTextarea() (JS) gère déjà dynamiquement la
+       hauteur et le overflow-y — un plafond CSS indépendant coupait l'affichage
+       avant que le JS ne pense devoir activer le défilement (texte invisible
+       sans scrollbar sur un message de 5 à 8 lignes). */
+    .chat-composer textarea { flex: 1; resize: vertical; min-height: 40px; }
     .chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px 0; }
+    .chat-empty.chat-error { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 
     /* ── RICH SELECT ── */
     .rich-select {
@@ -4192,6 +4209,7 @@
     </div>
     <div id="chatMessages" class="chat-messages"></div>
     <div id="chatReplyBanner" class="chat-reply-banner" style="display:none;">
+      <img id="chatReplyBannerAvatar" class="chat-reply-banner-avatar" alt="">
       <div class="chat-reply-banner-text">
         <span>↩ Réponse à <strong id="chatReplyBannerAuthor"></strong></span>
         <span id="chatReplyBannerSnippet" class="chat-reply-banner-snippet"></span>
@@ -4199,7 +4217,7 @@
       <button id="chatReplyBannerCancel" class="small" title="Annuler la réponse">✕</button>
     </div>
     <div class="chat-composer">
-      <textarea id="chatInput" rows="2" placeholder="Écris un message… (@joueur, #top, markdown)"></textarea>
+      <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message… (@joueur, #top, markdown)"></textarea>
       <button id="chatSendBtn" class="primary">Envoyer</button>
     </div>
   </aside>
@@ -7412,10 +7430,10 @@
   }
 
   // ── TCHAT FLOTTANT ─────────────────────────────────────────────────
-  // Widget global (bouton + panneau), pas un onglet : accessible depuis n'importe
-  // quelle page de l'app. Le bouton se déplace au clic-maintenu-glisser (souris et
-  // tactile via Pointer Events) ; un simple clic (sans déplacement) ouvre/ferme
-  // le panneau. La position choisie est mémorisée en localStorage.
+  // Widget global (bouton #chatToggleBtn dans la navbar + panneau latéral
+  // #chatSidePanel), pas un onglet : accessible depuis n'importe quelle page.
+  // Un clic sur le bouton ouvre/ferme le panneau ; son état ouvert/fermé est
+  // mémorisé en localStorage (CHAT_PANEL_OPEN_KEY) pour survivre à un reload.
   let _chatMessages = [];
   let _chatLoadedOnce = false;
   let _chatReplyTo = null; // { id, author, text } ou null
@@ -7425,7 +7443,12 @@
   let _chatInputFit = null;
   let _chatUnreadCount = 0;
   let _chatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
-  const CHAT_FAB_POS_KEY = 'tdt_chat_fab_pos';
+  // Ids de tous les messages déjà vus au moins une fois (confirmés par le serveur),
+  // pour compter les non-lus par id réel plutôt que par une comparaison de longueur
+  // totale — un ajout+suppression compensés entre deux sondages laisse la longueur
+  // inchangée mais doit quand même compter comme un message jamais vu.
+  let _chatSeenIds = new Set();
+  const CHAT_PANEL_OPEN_KEY = 'tdt_chat_panel_open';
 
   function formatChatTime(iso) {
     if (!iso) return { short: '', title: '' };
@@ -7481,6 +7504,7 @@
       actions.appendChild(replyBtn);
       if (msg.author === _whoAmI) {
         const delBtn = document.createElement('button');
+        delBtn.className = 'danger';
         delBtn.textContent = '🗑️';
         delBtn.title = 'Supprimer';
         delBtn.addEventListener('click', () => {
@@ -7488,8 +7512,10 @@
           openConfirmModal('Supprimer ce message ?', () => {
             buzz();
             callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
-              _chatMessages = _chatMessages.filter(m => m.id !== msg.id);
-              renderChatMessages(false);
+              // Recharge depuis le serveur plutôt que de simplement retirer le
+              // message en local : d'autres messages peuvent citer celui-ci en
+              // réponse, et seul le serveur sait recalculer replyToDeleted pour eux.
+              loadChat();
             }, 'Suppression message');
           });
         });
@@ -7505,7 +7531,20 @@
       if (msg.replyToDeleted) {
         reply.innerHTML = '<span>Message supprimé</span>';
       } else {
-        reply.innerHTML = '<strong>' + escapeHtml(msg.replyToAuthor) + '</strong><span>' + escapeHtml(chatSnippet(msg.replyToText, 60)) + '</span>';
+        const replyPlayer = cachedPlayers.find(p => p.name === msg.replyToAuthor);
+        const replyImg = document.createElement('img');
+        replyImg.className = 'chat-msg-reply-avatar';
+        replyImg.src = getAvatarUrl(msg.replyToAuthor, replyPlayer ? replyPlayer.meta : '');
+        replyImg.alt = '';
+        replyImg.onerror = () => { replyImg.src = getAvatarUrl(msg.replyToAuthor, ''); };
+        reply.appendChild(replyImg);
+        const replyStrong = document.createElement('strong');
+        replyStrong.textContent = msg.replyToAuthor;
+        replyStrong.style.color = playerColor(msg.replyToAuthor);
+        reply.appendChild(replyStrong);
+        const replySpan = document.createElement('span');
+        replySpan.textContent = chatSnippet(msg.replyToText, 60);
+        reply.appendChild(replySpan);
         reply.addEventListener('click', () => {
           const target = document.getElementById('chat-msg-' + msg.replyToId);
           if (target) {
@@ -7530,7 +7569,15 @@
     const container = document.getElementById('chatMessages');
     if (!container) return;
     container.innerHTML = '';
-    const all = _chatMessages.concat(_chatPendingSends);
+    // Un envoi optimiste peut arriver côté serveur (et être ramené par le sondage
+    // périodique indépendant, pollChat()) avant que le callback de succès du POST
+    // d'origine n'ait retiré l'entrée de _chatPendingSends — sans ce filtre, le
+    // même message s'affiche brièvement deux fois (une fois confirmé, une fois
+    // "en attente").
+    const pendingStillOwed = _chatPendingSends.filter(p => !_chatMessages.some(m =>
+      m.author === p.author && m.text === p.text && (m.replyToId || '') === (p.replyToId || '')
+    ));
+    const all = _chatMessages.concat(pendingStillOwed);
     if (!all.length) {
       container.innerHTML = '<div class="chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
     } else {
@@ -7541,7 +7588,12 @@
 
   function setChatReplyTo(msg) {
     _chatReplyTo = { id: msg.id, author: msg.author, text: msg.text };
+    const player = cachedPlayers.find(p => p.name === msg.author);
+    const avatar = document.getElementById('chatReplyBannerAvatar');
+    avatar.src = getAvatarUrl(msg.author, player ? player.meta : '');
+    avatar.onerror = () => { avatar.src = getAvatarUrl(msg.author, ''); };
     document.getElementById('chatReplyBannerAuthor').textContent = msg.author;
+    document.getElementById('chatReplyBannerAuthor').style.color = playerColor(msg.author);
     document.getElementById('chatReplyBannerSnippet').textContent = chatSnippet(msg.text, 80);
     document.getElementById('chatReplyBanner').style.display = 'flex';
     document.getElementById('chatInput').focus();
@@ -7565,6 +7617,7 @@
 
   function openChatPanel() {
     _chatPanelOpen = true;
+    localStorage.setItem(CHAT_PANEL_OPEN_KEY, '1');
     const panel = document.getElementById('chatSidePanel');
     if (panel) panel.style.display = 'flex';
     const btn = document.getElementById('chatToggleBtn');
@@ -7577,6 +7630,7 @@
 
   function closeChatPanel() {
     _chatPanelOpen = false;
+    localStorage.removeItem(CHAT_PANEL_OPEN_KEY);
     const panel = document.getElementById('chatSidePanel');
     if (panel) panel.style.display = 'none';
     const btn = document.getElementById('chatToggleBtn');
@@ -7590,29 +7644,49 @@
 
   function initChatWidget() {
     const btn = document.getElementById('chatToggleBtn');
-    if (btn) btn.addEventListener('click', toggleChatPanel);
     const closeBtn = document.getElementById('chatPanelClose');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const input = document.getElementById('chatInput');
+    const replyCancelBtn = document.getElementById('chatReplyBannerCancel');
+    const messagesEl = document.getElementById('chatMessages');
+    if (btn) btn.addEventListener('click', toggleChatPanel);
     if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
-    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
-    attachMentionAutocomplete(document.getElementById('chatInput'));
-    _chatInputFit = autoGrowTextarea(document.getElementById('chatInput'), 0.3);
-    document.getElementById('chatInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-    });
-    document.getElementById('chatReplyBannerCancel').addEventListener('click', clearChatReplyTo);
-    document.getElementById('chatMessages').addEventListener('scroll', function() {
-      _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
-    });
-    loadChat();
+    if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
+    if (input) {
+      attachMentionAutocomplete(input);
+      _chatInputFit = autoGrowTextarea(input, 0.3);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+      });
+    }
+    if (replyCancelBtn) replyCancelBtn.addEventListener('click', clearChatReplyTo);
+    if (messagesEl) {
+      messagesEl.addEventListener('scroll', function() {
+        _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
+      });
+    }
+    if (localStorage.getItem(CHAT_PANEL_OPEN_KEY) === '1' && btn && getComputedStyle(btn).display !== 'none') {
+      openChatPanel();
+    } else {
+      loadChat();
+    }
     scheduleChatPoll();
   }
 
   function loadChat() {
     callServer('apiGetChatMessages', [], res => {
       _chatMessages = res.messages || [];
+      res.messages.forEach(m => _chatSeenIds.add(m.id));
       _chatLoadedOnce = true;
       renderChatMessages(true);
-    }, 'Chargement du tchat');
+    }, 'Chargement du tchat', () => {
+      const container = document.getElementById('chatMessages');
+      if (container && !_chatLoadedOnce) {
+        container.innerHTML = '<div class="chat-empty chat-error">Impossible de charger le tchat. <button id="chatRetryBtn" class="small">Réessayer</button></div>';
+        const retryBtn = document.getElementById('chatRetryBtn');
+        if (retryBtn) retryBtn.addEventListener('click', loadChat);
+      }
+    });
   }
 
   // Sondage adaptatif & pause quand l'onglet est inactif :
@@ -7642,10 +7716,14 @@
       _chatPollInFlight = false;
       const fresh = res.messages || [];
       const prevLastId = _chatMessages.length ? _chatMessages[_chatMessages.length - 1].id : null;
-      const newCount = fresh.length - _chatMessages.length;
       const changed = fresh.length !== _chatMessages.length ||
         (fresh.length && prevLastId !== fresh[fresh.length - 1].id);
       if (!changed) return;
+      // Compte les non-lus par id jamais vu plutôt que par écart de longueur totale :
+      // un message ajouté puis retiré (le sien ou un autre) entre deux sondages peut
+      // laisser la longueur inchangée alors qu'un message réel n'a jamais été vu.
+      const newCount = fresh.filter(m => !_chatSeenIds.has(m.id)).length;
+      fresh.forEach(m => _chatSeenIds.add(m.id));
       _chatMessages = fresh;
       if (_chatPanelOpen) {
         renderChatMessages(false);
@@ -15960,6 +16038,16 @@
     const saved = localStorage.getItem('tdt_forced_layout');
     const initialMobile = saved ? (saved === 'mobile') : mq.matches;
     applyLayout(initialMobile);
+
+    // Réévalue la disposition quand la fenêtre franchit le seuil 768px (dock vers
+    // un second écran, sortie du mode réduit, rotation de tablette) — sans ce
+    // listener, une page chargée sous 768px restait figée en mobile-layout même
+    // agrandie ensuite, rendant entre autres le Tchat inaccessible jusqu'au reload.
+    // Ignoré si l'utilisateur a explicitement forcé une disposition via le bouton.
+    mq.addEventListener('change', e => {
+      if (localStorage.getItem('tdt_forced_layout')) return;
+      applyLayout(e.matches);
+    });
 
     btn.addEventListener('click', () => {
       const currentlyMobile = document.body.classList.contains('mobile-layout') ||

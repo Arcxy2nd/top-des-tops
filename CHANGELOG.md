@@ -4,6 +4,35 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.13.0] - 2026-08-11
+
+### Corrigé
+**Humanisé** : Sur mobile, le Tchat était devenu complètement inaccessible — ni bouton ni panneau nulle part — depuis la fusion en un seul fichier responsive. Il revient sous forme d'un bouton rond au-dessus de la barre de navigation du bas, ouvrant un panneau en plein écran. Par ailleurs, si la fenêtre était agrandie après un chargement en petit format (sortie de mode réduit, changement d'écran), l'application restait figée en disposition mobile — y compris pour tout le reste de l'app, pas seulement le Tchat — jusqu'à un rechargement complet de la page.
+**Technique** : `Index.html` — nouvelles règles `body.mobile-layout .nav-chat-btn`/`.chat-side-panel` (bouton flottant + panneau plein écran, réutilisant `openChatPanel`/`closeChatPanel` existants) remplaçant le blocage `display:none !important` inconditionnel hors desktop. `initLayoutModeToggle()` écoute désormais `matchMedia('(max-width:768px)').addEventListener('change', ...)` pour réévaluer la disposition à chaque franchissement du seuil, sauf si l'utilisateur l'a explicitement forcée via le bouton PC/Mobile.
+
+**Humanisé** : Après la suppression d'un message auquel on avait répondu, la citation affichée dans la réponse restait figée sur son ancien contenu au lieu de basculer sur « Message supprimé » — jusqu'à un rechargement complet de la page.
+**Technique** : `Index.html` — la suppression d'un message tchat recharge désormais la liste depuis le serveur (`loadChat()`) au lieu de simplement retirer le message en local, pour que les citations d'autres messages soient recalculées.
+
+**Humanisé** : Renommer un Joueur dans Paramètres laissait ses anciens messages du tchat attribués à son ancien nom — avatar générique, et il ne pouvait plus supprimer ses propres messages passés.
+**Technique** : `Code.gs` — `SettingsService.renameEntity()` propage désormais le renommage d'un Joueur à la colonne `Auteur` de la feuille `Chat`, comme c'était déjà fait pour `History`/`AutoRules`/`Notes`.
+
+**Humanisé** : Un message pouvait apparaître brièvement en double (une fois grisé « en cours d'envoi », une fois confirmé) si le sondage automatique du tchat récupérait le message tout juste envoyé avant la confirmation du serveur. Et le badge de messages non lus pouvait, dans de rares cas, ne pas s'incrémenter alors qu'un message venait bien d'arriver.
+**Technique** : `Index.html` — `renderChatMessages()` déduplique désormais les envois optimistes contre les messages déjà confirmés (auteur + texte + réponse-à) avant affichage. `pollChat()` compte les non-lus par identifiant de message jamais vu plutôt que par différence de longueur totale, qui pouvait rester inchangée sur un ajout+suppression compensés.
+
+**Humanisé** : Un message tapé sur plusieurs lignes (5 à 8 environ) pouvait avoir sa fin invisible dans la zone de saisie du tchat, sans barre de défilement pour la retrouver — le texte partait bien en entier au serveur, mais restait caché à l'écran pendant la frappe.
+**Technique** : `Index.html` — retrait du `max-height: 120px` fixe sur `.chat-composer textarea`, qui entrait en conflit avec le plafond dynamique déjà géré par `autoGrowTextarea()`.
+
+**Humanisé** : Dans le tchat, l'avatar du joueur cité n'apparaissait ni dans la citation d'une réponse ni dans le bandeau « Répondre à » au-dessus de la zone de saisie — juste le nom, sans image.
+**Technique** : `Index.html` — avatar + couleur du joueur ajoutés à la citation (`buildChatMessageEl`) et au bandeau de réponse (`setChatReplyTo`), alignés sur le traitement de l'auteur direct d'un message.
+
+### Modifié
+**Humanisé** : Le bouton de suppression d'un message tchat a maintenant le même style rouge « action destructrice » que partout ailleurs dans l'app, pour le distinguer clairement du bouton Répondre à côté. Le panneau du tchat garde désormais son état ouvert/fermé d'une session à l'autre, comme le thème ou la disposition. Les couleurs du badge de non-lus et du bouton tchat de la barre de navigation passent par les variables de thème au lieu d'être codées en dur (aucun changement visuel).
+**Technique** : `Index.html` — classe `danger` sur le bouton de suppression (`buildChatMessageEl`) ; état `_chatPanelOpen` persisté en `localStorage` (`tdt_chat_panel_open`) et relu au chargement ; `.chat-badge`/`.nav-chat-btn` utilisent `var(--error)`/`var(--on-accent)`/`var(--btn-alt)` au lieu de couleurs hexadécimales fixes. Ajout de `maxlength="2000"` sur le champ de saisie, reflétant la limite déjà appliquée côté serveur.
+
+### Supprimé
+**Humanisé** : Nettoyage de code mort issu de l'ancien widget tchat flottant (remplacé il y a plusieurs versions par le panneau actuel), sans impact visible.
+**Technique** : `Index.html` — retrait des règles CSS `.chat-fab`/`.chat-fab-badge`/`.chat-panel` et de la constante JS `CHAT_FAB_POS_KEY`, tous confirmés inutilisés.
+
 ## [v3.12.0] - 2026-08-11
 
 ### Corrigé
