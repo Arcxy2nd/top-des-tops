@@ -6119,10 +6119,12 @@
   // Construit une ligne de phrase éditable (texte + boutons ✏️/🗑️).
   // Partagé à l'identique par les blocs « par rang » et « par Top ».
   // `displayLabel` est optionnel (utilisé seulement pour les pools de catégorie).
-  function buildPhraseEditRow(entry, presetName, pool, displayLabel) {
+  function buildPhraseEditRow(entry, presetName, pool, displayLabel, poolContainer) {
     const row = document.createElement('div');
     row.className = 'phrase-edit-item';
+    row.dataset.rowIndex = entry.rowIndex;
     row.innerHTML =
+      '<span class="reorder-handle" title="Glisser pour réorganiser">⠿</span>' +
       '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
       '<div class="phrase-edit-btns">' +
         '<button class="secondary small" title="Modifier">✏️</button>' +
@@ -6132,6 +6134,13 @@
       openPhraseModal(entry, presetName, pool, displayLabel));
     row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
       deletePhraseWithUndo(entry, presetName));
+    attachReorderHandle(row.querySelector('.reorder-handle'), row, poolContainer, '.phrase-edit-item', () => {
+      const orderedRowIndexes = Array.from(poolContainer.querySelectorAll('.phrase-edit-item')).map(el => Number(el.dataset.rowIndex));
+      callServer('apiReorderPhrases', [presetName, pool, orderedRowIndexes, _whoAmI || ''], res => {
+        _customPhrases = res.phrases;
+        renderPoolList(presetName);
+      }, 'Réordonner phrases', () => renderPoolList(presetName));
+    }, () => requireIdentity());
     return row;
   }
 
@@ -6207,7 +6216,7 @@
       }
     } else {
       entries.forEach(entry =>
-        block.appendChild(buildPhraseEditRow(entry, presetName, pool)));
+        block.appendChild(buildPhraseEditRow(entry, presetName, pool, undefined, block)));
     }
     return block;
   }
