@@ -928,6 +928,14 @@
     .row-drag-handle:active { cursor: grabbing; }
     .entry-row.row-dragging { opacity: 0.4; }
     .entry-row.row-drop-target { border-top: 2px solid var(--accent); }
+    .reorder-handle {
+      cursor: grab; color: var(--text-muted); font-size: 1rem; user-select: none;
+      padding: 0 6px; display: flex; align-items: center; flex-shrink: 0;
+      touch-action: none;
+    }
+    .reorder-handle:active { cursor: grabbing; }
+    .reorder-dragging { opacity: 0.5; }
+    body.reorder-active { cursor: grabbing; }
 
     /* ── LAYOUT INTERNE LIGNE (top bar + contenu) ── */
 
@@ -8726,6 +8734,54 @@
         if (onError) onError(err);
       });
     runner[fn](...params);
+  }
+
+  // ── REORDER (glisser-déposer manuel, souris + tactile) ──────────────────
+  // Composant partagé pour Joueurs, Catégories, Barème (par Top) et Phrases (par
+  // pool). Distinct du drag&drop de "Saisir un Lot" (attachRowDragEvents) : celui-ci
+  // unifie souris et tactile via les Pointer Events, et déplace des lignes issues
+  // de listes indépendantes plutôt que des lignes d'un même tableau de saisie.
+  function buildReorderHandle() {
+    const h = document.createElement('span');
+    h.className = 'reorder-handle';
+    h.textContent = '⠿';
+    h.title = 'Glisser pour réorganiser';
+    return h;
+  }
+
+  function attachReorderHandle(handleEl, itemEl, container, itemSelector, onDrop, canStart) {
+    let dragging = false;
+    const onMove = (e) => {
+      if (!dragging) return;
+      const siblings = Array.from(container.querySelectorAll(itemSelector)).filter(el => el !== itemEl);
+      const y = e.clientY;
+      let target = null;
+      for (const el of siblings) {
+        const rect = el.getBoundingClientRect();
+        if (y < rect.top + rect.height / 2) { target = el; break; }
+      }
+      if (target) container.insertBefore(itemEl, target);
+      else container.appendChild(itemEl);
+    };
+    const finish = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      itemEl.classList.remove('reorder-dragging');
+      document.body.classList.remove('reorder-active');
+      try { handleEl.releasePointerCapture(e.pointerId); } catch (_) {}
+      onDrop();
+    };
+    handleEl.addEventListener('pointerdown', (e) => {
+      if (canStart && !canStart()) return;
+      e.preventDefault();
+      dragging = true;
+      itemEl.classList.add('reorder-dragging');
+      document.body.classList.add('reorder-active');
+      try { handleEl.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    handleEl.addEventListener('pointermove', onMove);
+    handleEl.addEventListener('pointerup', finish);
+    handleEl.addEventListener('pointercancel', finish);
   }
 
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
