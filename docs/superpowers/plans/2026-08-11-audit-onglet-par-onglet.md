@@ -2,7 +2,7 @@
 
 > **Pour les agents :** ce document n'est pas un plan d'implémentation. C'est le **protocole** d'une passe d'audit et le **registre de suivi** des passes. Chaque passe produit son propre plan d'implémentation dans `docs/superpowers/plans/2026-08-11-audit-<cible>.md`, écrit avec `superpowers:writing-plans` et exécuté avec `superpowers:executing-plans`.
 
-**Objectif :** faire passer chaque onglet de l'application, un par un, d'un état « accumulé sans direction » à un état vérifié — sans bug connu, sans friction d'usage connue, sans dette de code connue — en livrant une version déployée par onglet.
+**Objectif :** faire passer chaque onglet de l'application, un par un, d'un état « accumulé sans direction » à un état vérifié — sans bug connu, sans friction d'usage connue, sans dette de code connue — en livrant une version déployée par onglet. Une passe ne se limite pas à corriger ce qui est cassé : partout où l'onglet est **améliorable** (ergonomie, praticité, logique d'usage, style, intuitivité — les quatre critères de `context.md` §7), l'améliorer fait partie du travail, pas seulement le réparer.
 
 **Approche :** une passe = 5 phases (cartographie → sonde comportementale → conseil à 5 → vérification adversariale → correction & livraison). Le protocole est fixe ; le plan produit à chaque passe est spécifique à l'onglet. Ce document est **évolutif** : la section « Registre des passes » et la section « Leçons » se remplissent au fil de l'eau, et le protocole lui-même peut être amendé si une passe révèle qu'il laisse passer quelque chose.
 
@@ -16,6 +16,7 @@ Ces contraintes s'appliquent à **toutes** les tâches de **tous** les plans dé
 
 - **Aucune réécriture.** On répare et on assainit ; on ne refond pas l'architecture. `Index.html` et `Code.gs` restent monofichiers.
 - **Périmètre de correction :** bugs + ergonomie + qualité de code interne. Pas de refonte visuelle d'un écran sans accord explicite.
+- **Améliorer, pas seulement corriger.** Une friction d'usage, une interaction peu logique, un manque d'intuitivité ou un détail de style en retrait du reste de l'app n'ont pas besoin d'être un « bug » pour justifier une tâche de correction — voir « Améliorations » en phases 3 à 5. La limite reste la même que pour les bugs : pas de refonte visuelle d'un écran sans accord explicite, et aucune réécriture d'architecture.
 - **Identité obligatoire** — toute action modifiant des données passe par `requireIdentity()`.
 - **Journal obligatoire** — toute action modifiant des données appelle `AuditService.log()` avec auteur, action, cible, résumé.
 - **Avatar partout** — tout nom de joueur affiché est accompagné de son avatar.
@@ -65,10 +66,13 @@ Les chiffres, listes, classements et graphiques affichés correspondent aux donn
 Identité avant édition · trace au journal d'audit · avatar sur chaque nom · couleurs issues des données · variables CSS · thème clair **et** sombre · mobile ≤ 768 px · exhaustivité (une fonctionnalité posée sur un type de champ est posée sur **toutes** ses instances).
 
 ### Axe 4 — Utilisable
-Nombre de clics pour l'action la plus fréquente de l'onglet · feedback immédiat sur chaque action · messages d'erreur lisibles et actionnables · hiérarchie visuelle · états vides explicites · possibilité d'annuler une action destructrice.
+Nombre de clics pour l'action la plus fréquente de l'onglet · feedback immédiat sur chaque action · messages d'erreur lisibles et actionnables · hiérarchie visuelle · états vides explicites · possibilité d'annuler une action destructrice. Cet axe ne s'arrête pas à « est-ce cassé ? » — il demande aussi « est-ce que ça pourrait être plus ergonomique, plus pratique, plus intuitif, alors même que rien n'est cassé ? ».
 
 ### Axe 5 — Code sain
 Code mort · duplication (≥ 3 lignes répétées) · erreurs avalées en silence · variables ou fonctions référencées hors de leur portée · constantes en dur qui devraient être en `CONFIG` · fonctions trop longues à responsabilité multiple · gestion d'erreur absente sur un appel serveur.
+
+### Améliorations (transverse aux 5 axes)
+En plus de chercher des défauts, chaque membre du conseil (phase 3) note ce qui, sur son axe, est **améliorable sans être cassé** : une interaction qui fonctionne mais reste peu logique, un style visuel en retrait du reste de l'app, un manque d'intuitivité, une praticité perfectible. Ces pistes suivent un circuit plus léger que les défauts (phase 4 : jugées raisonnables ou écartées, pas « prouvées » comme un bug) mais sont traitées en phase 5 au même titre — voir le détail dans chaque phase.
 
 ---
 
@@ -112,11 +116,9 @@ Pour la cible, exécuter et consigner :
 
 ### Phase 3 — Conseil à 5
 
-Cinq membres, un par axe de la grille, aveugles les uns aux autres. Aucun fournisseur externe n'étant configuré sur cette machine (ni clé API, ni CLI, ni `jq`), le conseil tourne en **mode local** : cinq sous-agents Claude, chacun contraint à un seul angle.
+Cinq membres, un par axe de la grille, aveugles les uns aux autres. Aucun fournisseur externe n'étant configuré sur cette machine (ni clé API, ni CLI, ni `jq`), **et** aucun des 5 rôles du protocole n'existant dans le catalogue de rôles du plugin `claude-council` (`correctness`/`data-truth`/`house-rules`/`ergonomics`/`code-quality` ne font pas partie de ses 8 rôles fixes), le conseil ne passe pas par `/claude-council:ask` mais s'instancie **directement** : cinq sous-agents (outil Agent, `run_in_background`, un par axe, aveugles les uns aux autres), chacun avec la consigne suivante, adaptée à la cible et jointe à la carte + aux relevés du plan de l'onglet :
 
-```bash
-/claude-council:ask --local --roles=correctness,data-truth,house-rules,ergonomics,code-quality --file=docs/superpowers/plans/2026-08-11-audit-<cible>.md "Audit de l'onglet <cible> de top-des-tops. La carte de la zone et les relevés d'exécution sont dans le fichier joint. Chaque membre ne traite que son axe et rend une liste numérotée de défauts, chacun avec : symptôme observable, emplacement précis (fichier:ligne), gravité, et ce qui prouverait qu'il est réel."
-```
+> Audit de l'onglet <cible> de top-des-tops, axe <axe assigné> uniquement. La carte de la zone et les relevés d'exécution sont dans le plan joint. Rends deux listes numérotées : (1) des **défauts** — chacun avec symptôme observable, emplacement précis (fichier:ligne), gravité, et ce qui prouverait qu'il est réel ; (2) des **améliorations** — rien n'est cassé, mais ce serait plus ergonomique, plus pratique, plus logique dans son usage, plus intuitif, ou plus cohérent en style avec le reste de l'app — chacune avec emplacement précis et la raison concrète pour laquelle c'est mieux, pas juste une préférence.
 
 Les cinq rôles correspondent aux cinq axes :
 
@@ -128,21 +130,23 @@ Les cinq rôles correspondent aux cinq axes :
 | `ergonomics` | 4 — Utilisable |
 | `code-quality` | 5 — Code sain |
 
-**Sortie :** section « Défauts candidats » du plan de l'onglet — union des cinq listes, doublons fusionnés, aucun tri ni filtrage à ce stade.
+**Sortie :** deux sections du plan de l'onglet — « Défauts candidats » et « Améliorations candidates » — union des cinq listes de chaque catégorie, doublons fusionnés, aucun tri ni filtrage à ce stade.
 
 ### Phase 4 — Vérification adversariale
 
-Un défaut candidat n'entre au plan de correction que s'il est **prouvé**. Pour chacun, dans l'ordre :
+**Défauts** — un défaut candidat n'entre au plan de correction que s'il est **prouvé**. Pour chacun, dans l'ordre :
 
 1. **Le reproduire** — dans le navigateur si c'est un défaut de comportement, par un test Node qui échoue si c'est un défaut de logique backend.
 2. **Ou le prouver dans le code** — citer les lignes exactes qui rendent le défaut inévitable (par exemple : une fonction appelée hors de la portée où elle est définie).
 3. **Sinon, le rejeter** — et écrire le rejet avec sa raison. Un défaut rejeté reste consigné : il documente ce qui a été regardé et écarté, ce qui évite de le re-signaler à la passe suivante.
 
-**Sortie :** section « Défauts confirmés » (avec la preuve pour chacun) et section « Écartés » (avec la raison) du plan de l'onglet.
+**Améliorations** — circuit plus léger, pas de preuve de bug à apporter : retenue si elle respecte les contraintes globales (pas de refonte visuelle sans accord, pas de réécriture d'architecture) et si la raison donnée est concrète et vérifiable sur la cible réelle (pas une simple préférence esthétique non justifiée) ; sinon écartée avec la raison, même logique de traçabilité que les défauts.
+
+**Sortie :** « Défauts confirmés » (avec la preuve), « Améliorations retenues » (avec la justification), et « Écartés » (défauts et améliorations rejetés, avec la raison) du plan de l'onglet.
 
 ### Phase 5 — Correction & livraison
 
-Le plan de l'onglet passe en mode tâches. Une tâche par défaut confirmé, ou par groupe de défauts qui partagent la même cause. Chaque tâche suit le cycle TDD :
+Le plan de l'onglet passe en mode tâches. Une tâche par défaut confirmé ou amélioration retenue, ou par groupe qui partage la même cause. Chaque tâche de correction de défaut suit le cycle TDD ; une tâche d'amélioration pure (sans bug à reproduire) est vérifiée par la sonde comportementale plutôt que par un test qui échouerait sans code à casser au préalable :
 
 1. Écrire le test qui échoue (Node pour la logique, garde-fou dans `tests/frontend-guards.test.js` pour le frontend).
 2. Le lancer, vérifier qu'il échoue pour la bonne raison.
