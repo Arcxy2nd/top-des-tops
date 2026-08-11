@@ -1912,7 +1912,7 @@ const BaremeService = {
     const cache = ConfigService.getSheets();
     if (cache.bareme) return cache.bareme;
     const sheet = cache.spreadsheet.insertSheet('Bareme');
-    sheet.appendRow(['Top', 'Action', 'Points']);
+    sheet.appendRow(['Top', 'Action', 'Points', 'Ordre']);
     ConfigService.clearCache();
     return ConfigService.getSheets().bareme;
   },
@@ -1928,14 +1928,16 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
-    const result = data.slice(1)
-      .filter(r => r[0] !== "" && r[0] !== undefined)
-      .map((r, i) => ({
-        rowIndex: i + 2,
-        top:      r[0].toString(),
-        action:   r[1] ? r[1].toString() : "",
-        pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0
-      }));
+    let rows = data.slice(1)
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
+      .filter(x => x.r[0] !== "" && x.r[0] !== undefined);
+    rows = _sortByOrdreOrOriginal(rows, x => x.r[3]);
+    const result = rows.map(x => ({
+      rowIndex: x.rowIndex,
+      top:      x.r[0].toString(),
+      action:   x.r[1] ? x.r[1].toString() : "",
+      pts:      x.r[2] !== "" && x.r[2] !== undefined ? Number(x.r[2]) : 0
+    }));
     const serial = JSON.stringify(result);
     if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
@@ -1944,7 +1946,10 @@ const BaremeService = {
   addEntry(top, action, pts) {
     if (!top   || !top.trim())    throw new Error("Top manquant.");
     if (!action || !action.trim()) throw new Error("Action vide.");
-    this._getOrCreateSheet().appendRow([top.trim(), action.trim(), Number(pts) || 0]);
+    const sheet = this._getOrCreateSheet();
+    const data  = sheet.getDataRange().getValues();
+    const nextOrdre = data.slice(1).filter(r => r[0] === top.trim()).length + 1;
+    sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0, nextOrdre]);
     _bumpBaremeVersion();
   },
 
@@ -1960,6 +1965,23 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     sheet.deleteRow(rowIndex);
+    _bumpBaremeVersion();
+  },
+
+  reorderEntries(topName, orderedRowIndexes) {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) throw new Error("Feuille Bareme introuvable.");
+    const data = sheet.getDataRange().getValues();
+    const groupRows = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === topName) groupRows.push(i + 1);
+    }
+    const wanted = orderedRowIndexes.map(Number);
+    const isPermutation = wanted.length === groupRows.length &&
+      groupRows.every(r => wanted.includes(r)) &&
+      new Set(wanted).size === wanted.length;
+    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux règles existantes de ce Top.");
+    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 4).setValue(i + 1));
     _bumpBaremeVersion();
   }
 };
@@ -2073,6 +2095,20 @@ function apiAddBaremeEntry(top, action, pts, author) {
       AuditService.log(author, 'Règle ajoutée', 'Barème', '', after, '',
         { sheet: 'bareme', op: 'insert', rowIndex: sheet.getLastRow(),
           after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
+      ConfigService.clearCache();
+      return { success: true, entries: BaremeService.getEntries() };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiReorderBareme(topName, orderedRowIndexes, author) {
+  try {
+    requireAuthor(author);
+    if (!topName) throw new Error("Top manquant.");
+    if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
+    return withLock(() => {
+      BaremeService.reorderEntries(topName, orderedRowIndexes);
+      AuditService.log(author, 'Ordre modifié', 'Barème: ' + topName, '', orderedRowIndexes.join(' → '), '', null);
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });

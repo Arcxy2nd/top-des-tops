@@ -101,3 +101,62 @@ test('apiReorderEntities requires an author and logs to AuditLog', () => {
   assert.strictEqual(res.success, true);
   assert.strictEqual(auditLog._grid.length, 2); // header + 1 log row
 });
+
+test('BaremeService.getEntries sorts by Ordre and keeps rowIndex pointing at the real sheet row', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'Gagne',  5, 2],
+    ['Jeux', 'Perd',  -2, 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ bareme });
+  const entries = gas.BaremeService.getEntries();
+  assert.deepStrictEqual(entries.map(e => e.action), ['Perd', 'Gagne']);
+  assert.strictEqual(entries[0].rowIndex, 3); // "Perd" is physically on sheet row 3
+  assert.strictEqual(entries[1].rowIndex, 2); // "Gagne" is physically on sheet row 2
+});
+
+test('BaremeService.addEntry assigns Ordre scoped to its own Top group', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux',  'Gagne', 5, 1],
+    ['Défis', 'Réussi', 3, 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ bareme });
+  gas.BaremeService.addEntry('Jeux', 'Perd', -2);
+  const row = bareme._grid[3];
+  assert.strictEqual(row[0], 'Jeux');
+  assert.strictEqual(row[1], 'Perd');
+  assert.strictEqual(row[2], -2);
+  assert.strictEqual(row[3], 2); // 2nd entry within "Jeux", not 3rd overall
+});
+
+test('BaremeService.reorderEntries only touches rows within the given Top group', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux',  'A', 1, 1],
+    ['Jeux',  'B', 2, 2],
+    ['Défis', 'C', 3, 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ bareme });
+  gas.BaremeService.reorderEntries('Jeux', [3, 2]); // rowIndex 3 = "B", rowIndex 2 = "A" -> new order B, A
+  const entries = gas.BaremeService.getEntries();
+  assert.deepStrictEqual(entries.filter(e => e.top === 'Jeux').map(e => e.action), ['B', 'A']);
+  assert.strictEqual(entries.find(e => e.top === 'Défis').action, 'C'); // untouched
+});
+
+test('apiReorderBareme rejects a rowIndex list that does not match the Top group', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'A', 1, 1],
+    ['Jeux', 'B', 2, 2]
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ bareme, auditLog });
+  gas.ConfigService.clearCache = () => {};
+  const res = gas.apiReorderBareme('Jeux', [2], 'Alice'); // missing row 3
+  assert.strictEqual(res.success, false);
+});
