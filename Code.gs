@@ -380,6 +380,20 @@ const AuditService = (() => {
   return { log, undo };
 })();
 
+// ─── ORDRE (manual reorder) HELPER ──────────────────────────────────────────────
+/**
+ * Sorts `items` by a numeric Ordre value if every item has one (stable sort,
+ * ties broken by original position); otherwise returns `items` unchanged. Never
+ * writes anything — callers that need to persist a repaired Ordre do so
+ * themselves, inside their own withLock() (see apiRepairOrder).
+ */
+function _sortByOrdreOrOriginal(items, getOrdre) {
+  const parsed = items.map((item, i) => ({ item, i, ordre: Number(getOrdre(item)) }));
+  const allValid = parsed.every(x => Number.isFinite(x.ordre) && x.ordre > 0);
+  if (!allValid) return items;
+  return parsed.sort((a, b) => (a.ordre - b.ordre) || (a.i - b.i)).map(x => x.item);
+}
+
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
 const SettingsService = {
   VALID_TYPES:   ['Players', 'Categories'],
@@ -395,9 +409,11 @@ const SettingsService = {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     if (!sheet) return [];
     const data  = sheet.getDataRange().getValues();
-    const result = data.slice(1).filter(r => r[0]).map(r => {
+    let rows = data.slice(1).filter(r => r[0]);
+    rows = _sortByOrdreOrOriginal(rows, r => r[4]);
+    const result = rows.map(r => {
       if (type === 'Players') {
-        // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client)
+        // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client) | [4] Ordre
         return {
           name:  r[0].toString(),
           meta:  r[1] ? r[1].toString() : "",
@@ -406,7 +422,7 @@ const SettingsService = {
           hasPassword: !!(r[3] && r[3].toString().trim())
         };
       } else {
-        // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color
+        // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color | [4] Ordre
         return {
           name:  r[0].toString(),
           meta:  r[1] ? r[1].toString() : "",
@@ -430,10 +446,11 @@ const SettingsService = {
     if (data.some((row, i) => i > 0 && row[0] === name)) {
       throw new Error(`${name} existe déjà.`);
     }
+    const nextOrdre = data.slice(1).filter(r => r[0]).length + 1;
     if (type === 'Players') {
-      sheet.appendRow([name, meta || "", ""]);
+      sheet.appendRow([name, meta || "", "", "", nextOrdre]);
     } else {
-      sheet.appendRow([name, meta || "", icon || "", ""]);
+      sheet.appendRow([name, meta || "", icon || "", "", nextOrdre]);
     }
     _bumpSettingsVersion();
   },
@@ -556,6 +573,22 @@ const SettingsService = {
       }
     }
     throw new Error(`Joueur "${name}" introuvable.`);
+  },
+
+  reorderEntities(type, orderedNames) {
+    const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    const data  = sheet.getDataRange().getValues();
+    const names = data.slice(1).filter(r => r[0]).map(r => r[0]);
+    const isPermutation = orderedNames.length === names.length &&
+      names.every(n => orderedNames.includes(n)) &&
+      new Set(orderedNames).size === orderedNames.length;
+    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux éléments existants.");
+    orderedNames.forEach((name, i) => {
+      const rowIdx0 = data.findIndex(r => r[0] === name);
+      if (rowIdx0 === -1) return;
+      sheet.getRange(rowIdx0 + 1, 5).setValue(i + 1);
+    });
+    _bumpSettingsVersion();
   }
 };
 
@@ -2147,6 +2180,21 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
             before: beforeRow.slice(0, numCols), after: afterRow.slice(0, numCols) } : null);
       }
 
+      ConfigService.clearCache();
+      return { success: true };
+    });
+  } catch(e) { return fail(e); }
+}
+
+function apiReorderEntities(type, orderedNames, author) {
+  try {
+    requireAuthor(author);
+    if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
+    if (!Array.isArray(orderedNames) || !orderedNames.length) throw new Error("Liste d'ordre invalide.");
+    return withLock(() => {
+      SettingsService.reorderEntities(type, orderedNames);
+      const label = type === 'Players' ? 'Joueurs' : 'Tops';
+      AuditService.log(author, 'Ordre modifié', label, '', orderedNames.join(' → '), '', null);
       ConfigService.clearCache();
       return { success: true };
     });
