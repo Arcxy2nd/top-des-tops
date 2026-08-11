@@ -181,9 +181,8 @@ test('getDataHealth counts zero-point rows and orphans without modifying data', 
     [D('2026-01-03'), 'Ghost', 'Jeux',    5, '', ''], // orphan player
     [D('2026-01-04'), 'A',     'Inconnu', 5, '', '']  // orphan category
   ]);
-  // Players/Categories sheets have NO header row (entities start at row 1).
-  const players    = makeSheet([['A', '', '']]);
-  const categories = makeSheet([['Jeux', '', '', '']]);
+  const players    = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', '']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Jeux', '', '', '']]);
   gas.ConfigService.getSheets = () => ({ history, players, categories });
 
   const h = gas.StorageService.getDataHealth();

@@ -57,8 +57,8 @@ test('apiDetectOutlierScores flags an entry far above its category average, igno
 
 test('apiGetInactivePlayers separates never-active players and sorts the rest by days since last entry', () => {
   const gas = loadGas();
-  const players    = makeSheet([['A', '', ''], ['B', '', ''], ['C', '', '']]);
-  const categories = makeSheet([['Jeux', '', '', '']]);
+  const players    = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', ''], ['C', '', '']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Jeux', '', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2020-01-01', 'A', 'Jeux', 5),

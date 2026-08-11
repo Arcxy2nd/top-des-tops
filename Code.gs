@@ -395,7 +395,7 @@ const SettingsService = {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     if (!sheet) return [];
     const data  = sheet.getDataRange().getValues();
-    const result = data.filter(r => r[0]).map(r => {
+    const result = data.slice(1).filter(r => r[0]).map(r => {
       if (type === 'Players') {
         // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client)
         return {

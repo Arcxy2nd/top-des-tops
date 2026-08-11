@@ -4,6 +4,37 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.8.2] - 2026-08-11
+
+### Corrigé
+**Humanisé** : Un clic sur « Appliquer » dans les filtres du Dashboard cassait systématiquement l'affichage du graphique — les données étaient bien chargées, mais un message d'erreur s'affichait par-dessus. Le même défaut touchait aussi le simple fait de changer une date dans les filtres. Corrigé aux trois endroits.
+**Technique** : `Index.html` — `applyFiltersBtn` (click), `startDate` et `endDate` (change) appelaient `applyFilters` directement comme gestionnaire d'événement ; l'objet `Event` du DOM était donc passé comme premier argument (`onDone`), que la fonction essayait ensuite d'exécuter comme un callback (`TypeError: onDone is not a function`). Les trois branchements enveloppent maintenant l'appel (`() => applyFilters()`).
+
+**Humanisé** : Un faux joueur et une fausse catégorie, tous deux nommés « Name », apparaissaient partout dans l'application (filtres, classement, Paramètres, Historique, tchat, saisie de lot…). En plus d'être visible, ce fantôme faussait certains calculs : il pouvait passer devant un vrai joueur à égalité à 0 point dans le bandeau de stats, s'insérer comme rang fictif dans le graphique Classement et l'export Excel, et provoquer un graphique en Donut vide au premier affichage.
+**Technique** : `Code.gs` — `SettingsService.getEntities()` lisait `sheet.getDataRange().getValues()` sans exclure la ligne d'en-tête des feuilles Players/Categories (`Name | Avatar URL | Hex color | Password`), donc `r[0]` valant littéralement `"Name"` passait le filtre `data.filter(r => r[0])`. Ligne d'en-tête désormais exclue via `data.slice(1)`. Les fixtures de test qui simulaient (à tort) des feuilles sans en-tête ont été corrigées pour refléter la vraie structure du Sheet.
+
+**Humanisé** : En passant l'application en thème clair, le fond de la page et les champs de date restaient noirs alors que tout le reste (cartes, textes) devenait bien clair.
+**Technique** : `Index.html` — les règles CSS de `body` et des champs de formulaire (`input`/`select`/`textarea`) transitionnaient leur `background`, mais Chromium ne réévalue jamais une transition dont le seul changement vient d'une custom property CSS (`var(--bg)` changeant via la classe `body.light`) — la couleur reste figée à la valeur du premier rendu. `background-color` est retiré des listes de `transition` (le changement de thème est désormais instantané sur ces deux règles au lieu d'être animé).
+
+**Humanisé** : Après une panne du serveur au moment d'un rafraîchissement, le bouton « Rafraîchir les données » restait bloqué en chargement pour toujours, sans aucune explication. Le Podium, lui, restait figé en squelette de chargement 15 secondes avant d'afficher un message générique.
+**Technique** : `Index.html` — `loadEntities()` a un chemin d'erreur sur `apiGetSettings` qui oubliait d'appeler `onDone()`, empêchant le compteur `pending` de `globalRefresh()` de jamais atteindre 0. Le chargement du Podium (`apiGetActivePhrasePreset`) n'avait, lui, aucun gestionnaire d'erreur du tout. Les deux appellent désormais leur callback / affichent un message immédiat en cas d'échec.
+
+**Humanisé** : Quand un filtre ne laisse plus aucune donnée pour le Podium, la carte restait vide sans explication — elle ressemblait à un bug d'affichage plutôt qu'à un simple « rien à montrer ».
+**Technique** : `Index.html` — `clearPhrasesCard()` insérait un `<div class="phrases-empty" id="phrasesEmptyState" style="display:none;">` sans texte ni affichage : la fonctionnalité était prête (CSS, icône) mais jamais branchée. Elle affiche désormais le même message que les autres états vides de l'onglet.
+
+**Humanisé** : Une panne du serveur sur les panneaux Tendances et Jour actif affichait exactement le même message qu'un « vraiment aucune donnée » — impossible de distinguer les deux, et aucun moyen de réessayer.
+**Technique** : `Index.html` — `loadTrends()` et `loadActiveWeekday()` distinguent désormais « Données indisponibles. » (échec serveur) de leur texte d'origine pour le cas réellement vide. Les panneaux Records, Duos et Mentions, qui n'avaient qu'un message d'erreur statique, ont maintenant un bouton « ↻ Réessayer » (nouvelle fonction partagée `renderRetryableError`), comme le graphique principal.
+
+### Modifié
+**Humanisé** : Les couleurs argent et bronze du Podium ne correspondaient pas à celles utilisées dans le panneau Records du même onglet — deux nuances différentes pour le même rang.
+**Technique** : `Index.html` — `--medal-silver` et `--medal-bronze` alignées sur les teintes déjà utilisées par le thème métallique du Podium (`#c0c0c0`, `#cd7f32`), qui devient la référence puisque `--medal-*` y était l'exception plutôt que la règle.
+
+**Humanisé** : Une teinte orange codée en dur (le palier « incandescent » du tooltip personnalisé du graphique) et le dégradé des pastilles de filtre actives ne suivaient pas les variables de thème comme leurs voisins.
+**Technique** : `Index.html` — nouvelle variable sémantique `--blaze` remplaçant le `#ffb347` en dur dans `.pv-blaze` et l'animation `ctt-blaze-pulse` ; `.fchip.active`/`.fchip-all.active` utilisent `var(--accent-hover)` au lieu de `#ff6b81` en dur.
+
+**Humanisé** : Nettoyage de code sans impact visible — deux petites duplications en moins dans le Dashboard.
+**Technique** : `Index.html` — le bloc de gestion d'erreur des 4 branches d'`applyFilters()` est factorisé dans `onChartError`, et la branche `trend` de `renderChartControls()` réutilise le tableau `sortChoices` déjà déclaré au lieu de le recopier.
+
 ## [v3.8.1] - 2026-08-11
 
 ### Corrigé

@@ -37,7 +37,7 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 | # | Cible | Zone `Index.html` | État | Version livrée | Plan |
 |---|-------|-------------------|------|----------------|------|
 | 0 | Ligne de base (outillage) | — | ✅ livré | — | ci-dessous |
-| 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | 🔄 en cours | — | — |
+| 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | ✅ livré | v3.8.2 | [2026-08-11-audit-dashboard.md](2026-08-11-audit-dashboard.md) |
 | 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4741-4845) | ⬜ à faire | — | — |
 | 3 | ✍️ Saisir un Lot | `#tab-inject` (l. 4300-4367) | ⬜ à faire | — | — |
 | 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4368-4726) | ⬜ à faire | — | — |
@@ -223,7 +223,13 @@ Aucun défaut préexistant bloquant. Toute erreur console apparue lors d'une pas
 
 Ce que les passes apprennent — sur l'application, et sur ce protocole. Rempli au fil de l'eau ; une leçon qui se répète devient une règle des « Contraintes globales ».
 
-_(vide — première passe non commencée)_
+**Passe 1 (Dashboard) :**
+
+- **Les rôles du conseil sont un vocabulaire de plugin, pas celui du protocole.** `claude-council` ne connaît que 8 rôles fixes (`security`, `performance`, `maintainability`, `devil`…) — aucun des 5 rôles du protocole (`correctness`/`data-truth`/`house-rules`/`ergonomics`/`code-quality`) n'existe dans son catalogue, la commande échouerait telle quelle. Contournement qui a marché : instancier les 5 membres directement (Agent, un par axe, en parallèle, aveugles les uns aux autres) plutôt que de forcer le mapping sur les rôles existants du plugin.
+- **Un « clic » simulé en JS n'est pas un clic.** `element.click()` peut ne pas déclencher la même chaîne d'événements qu'un vrai clic utilisateur pour certains contrôles (cf. R6, finalement écarté après reproduction au clic réel via le tool `computer`) — toujours revérifier au clic réel avant de conclure à un défaut de comportement.
+- **Un défaut CSS peut se cacher dans l'interaction `transition` + `var()`, pas dans la couleur elle-même.** R7 (fond de page figé en sombre après bascule de thème) n'était pas un problème de cascade de variables — `--bg` se mettait bien à jour — mais un comportement du moteur de rendu : une transition posée sur une propriété dont le seul changement vient d'une custom property CSS ne se redéclenche jamais, la valeur reste figée à celle du premier rendu. Reproduit et confirmé y compris sur un cas minimal isolé, indépendant de ce projet. Fix : ne jamais mettre `background`/`background-color` dans une liste `transition` quand cette couleur dépend uniquement d'une classe de thème.
+- **Les fixtures de test peuvent encoder une hypothèse fausse et la rendre invisible.** Neuf fichiers de test simulaient les feuilles Players/Categories **sans** ligne d'en-tête (`storage.test.js` allait jusqu'à le documenter en commentaire : « Players/Categories sheets have NO header row »), alors que la vraie structure du Sheet (`context.md` §3) en a toujours une. Corriger R4 sans corriger les fixtures aurait cassé 10 tests pour la mauvaise raison. Une suite verte ne garantit la réalité que si les fixtures reflètent la vraie forme des données.
+- **Un serveur de prévisualisation gardé ouvert entre deux corrections sert du code et un cache obsolètes.** Après avoir corrigé `SettingsService.getEntities()` (R4), le fantôme « Name » restait visible dans le navigateur — pas un défaut du fix, mais le process Node du harness qui gardait en mémoire l'ancien `Code.gs` require()-é une fois, plus un cache applicatif (`CacheService` simulé) jamais invalidé entre les deux versions. Un redémarrage complet du serveur de prévisualisation a suffi. À refaire systématiquement après toute correction backend testée en navigateur.
 
 ---
 

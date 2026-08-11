@@ -10,7 +10,7 @@ const mk = (d, p, c, pts, desc) => [D(d), p, c, pts, desc || '', '', ''];
 
 test('apiScanUnmentionedNames detects a raw player name in a description and proposes @Name', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', ''], ['Marie', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', ''], ['Marie', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean', 'Jeux', 5, 'Jean a gagné contre Marie'),
@@ -28,7 +28,7 @@ test('apiScanUnmentionedNames detects a raw player name in a description and pro
 
 test('apiScanUnmentionedNames ignores names already written as @Mention', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean', 'Jeux', 5, '@Jean a gagné')
@@ -42,7 +42,7 @@ test('apiScanUnmentionedNames ignores names already written as @Mention', () => 
 test('apiScanUnmentionedNames does not attribute an ambiguous shared token to either player', () => {
   const gas = loadGas();
   // "Jean" apparaît comme prénom dans deux noms composés distincts → token ambigu, ignoré.
-  const players = makeSheet([['Jean Dupont', '', ''], ['Jean Martin', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean Dupont', '', ''], ['Jean Martin', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean Dupont', 'Jeux', 5, 'Jean a gagné')
@@ -55,7 +55,7 @@ test('apiScanUnmentionedNames does not attribute an ambiguous shared token to ei
 
 test('apiScanUnmentionedNames matches a unique first-name token from a composed name', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean Dupont', '', ''], ['Marie', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean Dupont', '', ''], ['Marie', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean Dupont', 'Jeux', 5, 'Jean a gagné')
@@ -69,7 +69,7 @@ test('apiScanUnmentionedNames matches a unique first-name token from a composed 
 
 test('apiScanUnmentionedNames also scans Notes text', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
   const history = makeSheet([HEADER]);
   const notes = makeSheet([
     ['Date', 'Joueur', 'Note'],
@@ -85,7 +85,7 @@ test('apiScanUnmentionedNames also scans Notes text', () => {
 
 test('apiApplyMentionFixes writes the fixed description back and logs one audit entry', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean', 'Jeux', 5, 'Jean a gagné')
@@ -103,7 +103,7 @@ test('apiApplyMentionFixes writes the fixed description back and logs one audit 
 
 test('apiGetMentionStats counts mentions by target, by author (saiseur fallback to player), and top duo', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', ''], ['Marie', '', ''], ['Léa', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', ''], ['Marie', '', ''], ['Léa', '', '']]);
   const history = makeSheet([
     HEADER,
     // Jean (saisi par Marie) mentionne Léa deux fois → cible Léa+2, auteur Marie+2, paire Marie-Léa+2
@@ -139,7 +139,7 @@ test('apiGetMentionStats counts mentions by target, by author (saiseur fallback 
 
 test('apiGetMentionStats returns empty lists and null duo when there are no mentions', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
   const history = makeSheet([
     HEADER,
     [D('2026-01-10'), 'Jean', 'Jeux', 5, 'Rien à signaler', '', '']
@@ -155,7 +155,7 @@ test('apiGetMentionStats returns empty lists and null duo when there are no ment
 
 test('apiGetMentionStats never counts a self-mention as a duo', () => {
   const gas = loadGas();
-  const players = makeSheet([['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
   const history = makeSheet([
     HEADER,
     [D('2026-01-10'), 'Jean', 'Jeux', 5, '@Jean parle de lui-même', '', 'Jean']

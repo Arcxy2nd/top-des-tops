@@ -3,6 +3,51 @@ const { test } = require('node:test');
 const assert = require('assert');
 const { loadGas, makeSheet } = require('./harness.js');
 
+// Régression : SettingsService.getEntities() lisait sheet.getDataRange().getValues()
+// sans exclure la ligne d'en-tête ("Name | Avatar URL | Hex color | Password" pour
+// Players, "Name | Description | Emoji | Hex color" pour Categories) — un faux joueur
+// et une fausse catégorie nommés "Name" apparaissaient donc systématiquement en tête
+// de chaque liste, partout où getEntities() est consommé (Dashboard, Historique,
+// Paramètres, tchat...).
+test('getEntities excludes the header row of the Players sheet', () => {
+  const gas = loadGas();
+  gas.ConfigService.getSheets = () => ({
+    players: makeSheet([
+      ['Name', 'Avatar URL', 'Hex color', 'Password'],
+      ['Alice', 'https://x/a.png', '#ff0000', '']
+    ])
+  });
+
+  const players = gas.SettingsService.getEntities('Players');
+  assert.strictEqual(players.length, 1);
+  assert.strictEqual(players[0].name, 'Alice');
+  assert.ok(!players.some(p => p.name === 'Name'), 'la ligne d\'en-tête ne doit jamais devenir un joueur');
+});
+
+test('getEntities excludes the header row of the Categories sheet', () => {
+  const gas = loadGas();
+  gas.ConfigService.getSheets = () => ({
+    categories: makeSheet([
+      ['Name', 'Description', 'Emoji', 'Hex color'],
+      ['Jeux', 'Défis en jeu', '🎮', '#00ff00']
+    ])
+  });
+
+  const categories = gas.SettingsService.getEntities('Categories');
+  assert.strictEqual(categories.length, 1);
+  assert.strictEqual(categories[0].name, 'Jeux');
+  assert.ok(!categories.some(c => c.name === 'Name'), 'la ligne d\'en-tête ne doit jamais devenir une catégorie');
+});
+
+test('getEntities returns an empty list when the sheet only has a header row', () => {
+  const gas = loadGas();
+  gas.ConfigService.getSheets = () => ({
+    players: makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password']])
+  });
+
+  assert.deepStrictEqual(gas.SettingsService.getEntities('Players'), []);
+});
+
 /** Stateful mock: insertSheet() creates the sheet and getSheets() picks it up on the next call,
  *  mirroring how ConfigService.clearCache() + a real re-fetch behaves in production. */
 function withSettingsSheets(gas, initial) {

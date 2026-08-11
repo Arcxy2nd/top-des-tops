@@ -110,8 +110,8 @@ test('getDataHealth serves the cached result on repeat calls, then recomputes af
     [D('2026-01-01'), 'A', 'Jeux', 5, '', ''],
     [D('2026-01-02'), 'A', 'Jeux', 0, '', '']
   ]);
-  const players    = makeSheet([['A', '', '']]);
-  const categories = makeSheet([['Jeux', '', '', '']]);
+  const players    = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', '']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Jeux', '', '', '']]);
   gas.ConfigService.getSheets = () => ({ history, players, categories });
 
   const first = gas.StorageService.getDataHealth();

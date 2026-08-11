@@ -31,17 +31,18 @@
       --text-muted: #94a3b8;
       --success: #2ed573; 
       --error: #ff4757;
-      --warn: #ffa502; 
-      --info: #7c8cff; 
+      --warn: #ffa502;
+      --info: #7c8cff;
       --clean: #17a2b8;
+      --blaze: #ffb347;
       --alt-accent: #ffd166;
       --alt-accent-rgb: 255, 209, 102;
       --btn-alt: rgba(255, 255, 255, 0.07);
       --tap-min: 44px;
       --on-accent: #fff;
-      --medal-gold: #ffd700; 
-      --medal-silver: #cbd5e1; 
-      --medal-bronze: #d97706;
+      --medal-gold: #ffd700;
+      --medal-silver: #c0c0c0;
+      --medal-bronze: #cd7f32;
       --spotlight-color: rgba(255, 255, 255, 0.05);
       --glass-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
       --radius-lg: 16px;
@@ -74,14 +75,18 @@
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      background-color: var(--bg);
       background-image: var(--bg-gradient);
       background-attachment: fixed;
       color: var(--text);
       margin: 0; padding: 0;
       min-height: 100vh;
       padding-bottom: env(safe-area-inset-bottom);
-      transition: background 0.3s ease, color 0.3s ease;
+      /* background-color is intentionally excluded: Chromium never re-runs a
+         transition on a property whose only driver is a custom-property swap
+         (var(--bg) changing via the body.light class) — the paint freezes at
+         whatever value was computed on first load, in either theme. */
+      transition: color 0.3s ease;
     }
 
     /* ── NAVBAR (Glassmorphic) ── */
@@ -509,14 +514,16 @@
 
     /* ── FORM CONTROLS (Impeccable) ── */
     select, input[type="text"], input[type="url"], input[type="date"], input[type="number"], textarea {
-      padding: 11px 14px; 
+      padding: 11px 14px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border);
-      background: var(--card-solid); 
+      background-color: var(--card-solid);
       color: var(--text);
-      font-size: 15px; 
-      outline: none; 
-      transition: all 0.2s ease;
+      font-size: 15px;
+      outline: none;
+      /* background-color excluded on purpose: see the comment on the body rule —
+         a var()-only background swap never re-triggers a transition on it. */
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
       width: 100%;
       touch-action: manipulation;
     }
@@ -699,14 +706,14 @@
     
     /* Active State */
     .fchip.active {
-      background: var(--fchip-col, linear-gradient(135deg, var(--accent), #ff6b81));
+      background: var(--fchip-col, linear-gradient(135deg, var(--accent), var(--accent-hover)));
       border-color: transparent;
       color: #ffffff;
       font-weight: 700;
       box-shadow: 0 4px 16px rgba(255, 71, 87, 0.35);
     }
-    .fchip-all.active { 
-      background: linear-gradient(135deg, var(--accent), #ff6b81); 
+    .fchip-all.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
       border-color: transparent; 
       color: #ffffff; 
       box-shadow: 0 4px 16px var(--accent-glow);
@@ -3388,12 +3395,12 @@
     #chartCustomTooltip .ctt-val.pv-normal { color: var(--ctt-normal, var(--text)); }
     #chartCustomTooltip .ctt-val.pv-warm   { color: var(--ctt-warm, var(--warn)); }
     #chartCustomTooltip .ctt-val.pv-hot    { color: var(--ctt-hot, var(--error)); }
-    #chartCustomTooltip .ctt-val.pv-blaze  { color: var(--ctt-blaze, #ffb347); }
+    #chartCustomTooltip .ctt-val.pv-blaze  { color: var(--ctt-blaze, var(--blaze)); }
     #chartCustomTooltip.ctt-effects-on .ctt-val.pv-hot { text-shadow: 0 0 6px color-mix(in srgb, var(--ctt-hot, var(--error)) 50%, transparent); }
     #chartCustomTooltip.ctt-effects-on .ctt-val.pv-blaze { animation: ctt-blaze-pulse 1.1s ease-in-out infinite; }
     @keyframes ctt-blaze-pulse {
-      0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--ctt-hot, var(--error)) 60%, transparent), 0 0 2px color-mix(in srgb, var(--ctt-blaze, #ffb347) 60%, transparent); }
-      50%      { text-shadow: 0 0 14px color-mix(in srgb, var(--ctt-hot, var(--error)) 95%, transparent), 0 0 8px color-mix(in srgb, var(--ctt-blaze, #ffb347) 90%, transparent); }
+      0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--ctt-hot, var(--error)) 60%, transparent), 0 0 2px color-mix(in srgb, var(--ctt-blaze, var(--blaze)) 60%, transparent); }
+      50%      { text-shadow: 0 0 14px color-mix(in srgb, var(--ctt-hot, var(--error)) 95%, transparent), 0 0 8px color-mix(in srgb, var(--ctt-blaze, var(--blaze)) 90%, transparent); }
     }
     @media (prefers-reduced-motion: reduce) {
       #chartCustomTooltip.ctt-effects-on .ctt-val.pv-blaze { animation: none; text-shadow: 0 0 10px color-mix(in srgb, var(--ctt-hot, var(--error)) 85%, transparent); }
@@ -6966,7 +6973,7 @@
   function clearPhrasesCard() {
     const list      = document.getElementById('phrasesList');
     const rerollBtn = document.getElementById('phrasesRerollBtn');
-    if (list) list.innerHTML = '<div class="phrases-empty" id="phrasesEmptyState" style="display:none;"></div>';
+    if (list) list.innerHTML = '<div class="phrases-empty" id="phrasesEmptyState"><span class="phrases-empty-icon">🏆</span>Aucune donnée pour cette sélection. Élargissez la période ou retirez des filtres.</div>';
     if (rerollBtn) rerollBtn.style.display = 'none';
     lastPhraseSortedRows = null;
     stopCatAutoplay();
@@ -9412,6 +9419,9 @@
       showSkeleton(document.getElementById('playersList'),    { rows: 0 });
       showSkeleton(document.getElementById('categoriesList'), { rows: 0 });
       _paintEntitiesUI({ withDataLoad: true });
+      // Sans ceci, le pending counter de globalRefresh() ne redescend jamais à 0
+      // sur une panne : le bouton "Rafraîchir" reste figé en chargement pour toujours.
+      if (onDone) onDone();
     });
   }
 
@@ -9773,6 +9783,11 @@
       if (wrap) wrap.style.display = 'block';
     };
 
+    const onChartError = err => {
+      showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
+      if (onDone) onDone();
+    };
+
     document.getElementById('chartSkeleton').style.display = 'block';
     document.getElementById('chartWrapper').style.display  = 'none';
 
@@ -9785,10 +9800,7 @@
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
         if (onDone) onDone();
-      }, 'Chargement Dashboard Alternatif', err => {
-        showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
-        if (onDone) onDone();
-      });
+      }, 'Chargement Dashboard Alternatif', onChartError);
       return;
     }
 
@@ -9800,10 +9812,7 @@
         renderChartControls('trend');
         clearTopStatsStrip();
         if (onDone) onDone();
-      }, 'Chargement courbes', err => {
-        showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
-        if (onDone) onDone();
-      });
+      }, 'Chargement courbes', onChartError);
       return;
     }
 
@@ -9817,10 +9826,7 @@
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
         if (onDone) onDone();
-      }, 'Chargement total global', err => {
-        showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
-        if (onDone) onDone();
-      });
+      }, 'Chargement total global', onChartError);
       return;
     }
 
@@ -9838,10 +9844,7 @@
       const ranked = computeRankedTotals(res.chartData);
       renderPhrasesCard(ranked);
       if (onDone) onDone();
-    }, 'Chargement graphique', err => {
-      showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
-      if (onDone) onDone();
-    });
+    }, 'Chargement graphique', onChartError);
   }
 
   function switchChartType(type, onDone) {
@@ -9955,9 +9958,7 @@
       ]));
       bar.appendChild(toggleCtrl('Total au centre', 'donutCenter'));
     } else if (type === 'trend') {
-      bar.appendChild(pillGroup('Légende', 'sortBy', [
-        { v: 'total-desc', t: 'Total ↓' }, { v: 'total-asc', t: 'Total ↑' }, { v: 'name-asc', t: 'A→Z' }
-      ]));
+      bar.appendChild(pillGroup('Légende', 'sortBy', sortChoices));
       bar.appendChild(pillGroup('Mode', 'trendMode', [
         { v: 'cumul', t: 'Cumulé' }, { v: 'period', t: 'Par période' }
       ]));
@@ -15988,14 +15989,14 @@
 
     document.getElementById('lotGroupApplyBtn').addEventListener('click', applyLotGroup);
     document.getElementById('lotGroupCancelBtn').addEventListener('click', exitLotGroupMode);
-    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+    document.getElementById('applyFiltersBtn').addEventListener('click', () => applyFilters());
     document.getElementById('clearDatesBtn').addEventListener('click', () => {
       document.getElementById('startDate').value = '';
       document.getElementById('endDate').value   = '';
       applyFilters();
     });
-    document.getElementById('startDate').addEventListener('change', applyFilters);
-    document.getElementById('endDate').addEventListener('change', applyFilters);
+    document.getElementById('startDate').addEventListener('change', () => applyFilters());
+    document.getElementById('endDate').addEventListener('change', () => applyFilters());
 
     // Applique la date/plage par défaut à toutes les lignes déjà saisies.
     document.getElementById('applyDateAllBtn').addEventListener('click', () => {
@@ -17034,6 +17035,21 @@
     loadMentionStats();
   }
 
+  // Contrairement au graphique principal (bindChartRetry), ces panneaux du hub
+  // n'avaient qu'un message d'échec sans aucun moyen de relancer le chargement.
+  function renderRetryableError(container, retryFn) {
+    container.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--text-muted);margin:10px 0;';
+    p.textContent = 'Données indisponibles.';
+    const btn = document.createElement('button');
+    btn.className = 'secondary small';
+    btn.textContent = '↻ Réessayer';
+    btn.addEventListener('click', () => retryFn());
+    container.appendChild(p);
+    container.appendChild(btn);
+  }
+
   // ── RECORDS ──────────────────────────────────────────────────────────
   function scanRecords() {
     const container = document.getElementById('recordsResults');
@@ -17079,7 +17095,7 @@
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
       }
     }, 'Chargement records', err => {
-      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+      renderRetryableError(container, scanRecords);
     });
   }
 
@@ -17094,7 +17110,9 @@
     callServer('apiGetTrends', [activeDashboardUniverse], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances', err => {
       const empty = document.getElementById('trendsEmpty');
       const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
-      if (empty) empty.style.display = 'block';
+      // Texte distinct d'un "vraiment vide" : sans ça, une panne backend et une
+      // absence réelle de données affichaient exactement le même message.
+      if (empty) { empty.textContent = 'Données indisponibles.'; empty.style.display = 'block'; }
       if (wrapper) wrapper.style.display = 'none';
     });
   }
@@ -17105,6 +17123,7 @@
     const empty = document.getElementById('trendsEmpty');
     const wrapper = document.getElementById('trendsChart').closest('.chart-wrapper');
     if (!rows.length) {
+      empty.textContent = 'Pas assez de données récentes.';
       empty.style.display = 'block'; wrapper.style.display = 'none';
       return;
     }
@@ -17155,6 +17174,7 @@
       const empty = document.getElementById('weekdayEmpty');
       const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
       if (!res.topWeekday) {
+        empty.textContent = 'Aucune donnée.';
         empty.style.display = 'block'; wrapper.style.display = 'none';
         return;
       }
@@ -17189,7 +17209,7 @@
     }, 'Chargement jour actif', err => {
       const empty = document.getElementById('weekdayEmpty');
       const wrapper = document.getElementById('weekdayChart')?.closest('.chart-wrapper');
-      if (empty) empty.style.display = 'block';
+      if (empty) { empty.textContent = 'Données indisponibles.'; empty.style.display = 'block'; }
       if (wrapper) wrapper.style.display = 'none';
     });
   }
@@ -17217,7 +17237,7 @@
       });
       container.appendChild(list);
     }, 'Chargement duos fréquents', err => {
-      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+      renderRetryableError(container, scanTopPairs);
     });
   }
 
@@ -17265,7 +17285,7 @@
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
       }
     }, 'Chargement mentions', err => {
-      container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+      renderRetryableError(container, loadMentionStats);
     });
   }
 
@@ -17428,7 +17448,12 @@
           renderPhrasesEditorSection();
         }
         if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
-      }, 'Chargement preset actif');
+      }, 'Chargement preset actif', () => {
+        // Sans ceci, le squelette du Podium restait posé jusqu'au chien de garde
+        // générique (15 s) au lieu de signaler l'échec tout de suite.
+        const list = document.getElementById('phrasesList');
+        if (list) list.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+      });
     });
 
     // Champs date/période par défaut du lot : interrupteur segmenté (même modèle

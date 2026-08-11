@@ -13,7 +13,7 @@ test('apiGetQuickStats computes leader and gap to second place', () => {
     [new Date(), 'B', 'Jeux', 4, '', ''],
     [new Date(), 'A', 'Jeux', 2, '', '']
   ]);
-  const players = makeSheet([['A', '', ''], ['B', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', '']]);
   gas.ConfigService.getSheets = () => ({ history, players });
 
   const res = gas.apiGetQuickStats();
@@ -30,7 +30,7 @@ test('apiGetQuickStats returns gap 0 on a tie', () => {
     [new Date(), 'A', 'Jeux', 5, '', ''],
     [new Date(), 'B', 'Jeux', 5, '', '']
   ]);
-  const players = makeSheet([['A', '', ''], ['B', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', '']]);
   gas.ConfigService.getSheets = () => ({ history, players });
 
   const res = gas.apiGetQuickStats();
@@ -64,7 +64,7 @@ test('apiGetQuickStats counts only this month\'s entries and finds the latest ev
     [thisMonth2, 'B', 'Défis', 3, '', ''],
     [lastMonth,  'A', 'Jeux',  7, '', '']
   ]);
-  const players = makeSheet([['A', '', ''], ['B', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', '']]);
   gas.ConfigService.getSheets = () => ({ history, players });
 
   const res = gas.apiGetQuickStats();
@@ -72,4 +72,23 @@ test('apiGetQuickStats counts only this month\'s entries and finds the latest ev
   assert.strictEqual(res.stats.lastEvent.player, 'B');
   assert.strictEqual(res.stats.lastEvent.points, 3);
   assert.strictEqual(res.stats.lastEvent.category, 'Défis');
+});
+
+// Régression : la ligne d'en-tête de la feuille Players ("Name | Avatar URL | Hex
+// color") ne doit jamais être lue comme un joueur fantôme, en particulier quand un
+// vrai joueur n'a encore aucun point (cas le plus courant qui l'expose : il se
+// retrouve alors classé devant le vrai joueur, à égalité à 0).
+test('apiGetQuickStats never reports the Players header row as a phantom player', () => {
+  const gas = loadGas();
+  const history = makeSheet([
+    HEADER,
+    [new Date(), 'A', 'Jeux', 10, '', '']
+  ]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', '']]);
+  gas.ConfigService.getSheets = () => ({ history, players });
+
+  const res = gas.apiGetQuickStats();
+  assert.strictEqual(res.stats.leader.player, 'A');
+  assert.strictEqual(res.stats.chaser.player, 'B', 'la ligne d\'en-tête "Name" ne doit jamais se substituer au vrai second joueur');
+  assert.strictEqual(res.stats.gap, 10);
 });

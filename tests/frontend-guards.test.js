@@ -143,6 +143,121 @@ test('applyRowCategoryVisuals does not reference refreshBaremeForTop from its ow
   assert.doesNotThrow(() => sandbox.__apply(div, 'Some Category', false));
 });
 
+test('applyFiltersBtn, startDate and endDate never bind applyFilters directly as their listener', () => {
+  // addEventListener passes the DOM Event as the first argument. applyFilters(onDone)
+  // treats that first argument as a callback and does `if (onDone) onDone()` — bound
+  // directly, the Event object gets called as a function and throws. The three call
+  // sites must wrap it: `() => applyFilters()`.
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const broken = [
+    /getElementById\('applyFiltersBtn'\)\.addEventListener\('click',\s*applyFilters\)/,
+    /getElementById\('startDate'\)\.addEventListener\('change',\s*applyFilters\)/,
+    /getElementById\('endDate'\)\.addEventListener\('change',\s*applyFilters\)/
+  ];
+  broken.forEach(pattern => {
+    assert.doesNotMatch(html, pattern, 'applyFilters bound directly as a listener: ' + pattern);
+  });
+});
+
+test('body and form controls never transition background-color (theme toggle freeze)', () => {
+  // Chromium never re-triggers a transition on a property whose only change
+  // driver is a CSS custom property swap (var(--bg) via body.light) — the paint
+  // stays pinned to whatever was computed on first load. Reproduced live in the
+  // browser: `--bg`/`--card-solid` update correctly on the element, but
+  // getComputedStyle(...).backgroundColor never moves as long as a `transition`
+  // covers `background`/`background-color`/`all` on that same rule.
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  const bodyRule = html.slice(html.indexOf('body {'), html.indexOf('body {') + 600);
+  assert.doesNotMatch(
+    bodyRule.replace(/\/\*[\s\S]*?\*\//g, ''),
+    /transition:\s*[^;]*\b(background|all)\b/,
+    'la règle body ne doit pas transitionner background/all'
+  );
+
+  const controlsRule = html.slice(html.indexOf('FORM CONTROLS'), html.indexOf('FORM CONTROLS') + 700);
+  assert.doesNotMatch(
+    controlsRule.replace(/\/\*[\s\S]*?\*\//g, ''),
+    /transition:\s*[^;]*\b(background|all)\b/,
+    'la règle des champs de formulaire ne doit pas transitionner background/all'
+  );
+});
+
+test('loadEntities always resolves its onDone callback, success or failure', () => {
+  // globalRefresh() waits on 2 callbacks (loadEntities + loadAppBranding) before
+  // calling stopLoading() on the refresh button. loadEntities' apiGetSettings call
+  // must call onDone() on BOTH paths — if the error path forgets it, the pending
+  // counter never reaches 0 and the button stays disabled/spinning forever on any
+  // backend failure.
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const fn = extractFunction(html, 'loadEntities');
+  const errorBranchStart = fn.indexOf("'Chargement settings'");
+  assert.notStrictEqual(errorBranchStart, -1, "l'appel apiGetSettings doit garder son errorLabel 'Chargement settings'");
+  const errorBranch = fn.slice(errorBranchStart, fn.indexOf('\n  }', errorBranchStart));
+  assert.match(errorBranch, /if\s*\(onDone\)\s*onDone\(\)/, "le chemin d'erreur d'apiGetSettings doit appeler onDone()");
+});
+
+test('the Podium load has an error path that clears its skeleton', () => {
+  // Without a 5th (onError) argument, callServer only shows a toast on failure —
+  // #phrasesList stayed in its loading skeleton until the generic 15s watchdog.
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const idx = html.indexOf("'Chargement preset actif'");
+  assert.notStrictEqual(idx, -1, "l'appel apiGetActivePhrasePreset introuvable");
+  const tail = html.slice(idx, idx + 300);
+  assert.match(tail, /=>\s*\{[\s\S]*phrasesList/, "un onError doit toucher #phrasesList après 'Chargement preset actif'");
+});
+
+test('clearPhrasesCard renders a visible empty-state message instead of a hidden dead div', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const list = { innerHTML: '' };
+  const rerollBtn = { style: {} };
+  const sandbox = {
+    document: {
+      getElementById: id => (id === 'phrasesList' ? list : (id === 'phrasesRerollBtn' ? rerollBtn : null))
+    },
+    stopCatAutoplay: () => {},
+    lastPhraseSortedRows: 'sentinel'
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(extractFunction(html, 'clearPhrasesCard') + '\nthis.__clear = clearPhrasesCard;', sandbox);
+
+  sandbox.__clear();
+  assert.doesNotMatch(list.innerHTML, /display:\s*none/, "l'état vide du Podium ne doit plus rester caché");
+  assert.match(list.innerHTML, /phrases-empty-icon/, "l'état vide doit porter une icône, comme les autres états vides de l'onglet");
+  assert.match(list.innerHTML, /Aucune donnée/, "l'état vide doit expliquer la situation à l'utilisateur");
+});
+
+test('renderRetryableError shows a message and a working retry button', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const container = { innerHTML: '', children: [], appendChild(el) { this.children.push(el); } };
+  const sandbox = {
+    document: { createElement: () => ({ style: {}, addEventListener(ev, fn) { this._onclick = fn; } }) }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(extractFunction(html, 'renderRetryableError') + '\nthis.__render = renderRetryableError;', sandbox);
+
+  let retried = false;
+  sandbox.__render(container, () => { retried = true; });
+
+  assert.strictEqual(container.children.length, 2, 'un message + un bouton de reprise');
+  assert.strictEqual(container.children[0].textContent, 'Données indisponibles.');
+  assert.strictEqual(container.children[1].textContent, '↻ Réessayer');
+  container.children[1]._onclick();
+  assert.strictEqual(retried, true, 'le clic sur Réessayer doit relancer le chargement');
+});
+
+test('Trends and Active-day panels use distinct wording for a real error vs genuinely no data', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const trendsErr = extractFunction(html, 'loadTrends');
+  assert.match(trendsErr, /'Données indisponibles\.'/, 'loadTrends doit distinguer une panne backend');
+  const trendsEmpty = extractFunction(html, 'renderTrends');
+  assert.match(trendsEmpty, /'Pas assez de données récentes\.'/, 'renderTrends doit garder son texte "vraiment vide"');
+
+  const weekday = extractFunction(html, 'loadActiveWeekday');
+  assert.match(weekday, /'Données indisponibles\.'/, 'loadActiveWeekday doit distinguer une panne backend');
+  assert.match(weekday, /'Aucune donnée\.'/, 'loadActiveWeekday doit garder son texte "vraiment vide"');
+});
+
 test('the harness exposes every server function Index.html calls', () => {
   const { loadGas } = require('./harness.js');
   const html = fs.readFileSync(INDEX, 'utf8');
