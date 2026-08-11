@@ -39,7 +39,7 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 |---|-------|-------------------|------|----------------|------|
 | 0 | Ligne de base (outillage) | — | ✅ livré | — | ci-dessous |
 | 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | ✅ livré | v3.8.2 | [2026-08-11-audit-dashboard.md](2026-08-11-audit-dashboard.md) |
-| 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4741-4845) | ⬜ à faire | — | — |
+| 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4748-4850) | 🔄 en cours | — | [2026-08-11-audit-historique.md](2026-08-11-audit-historique.md) |
 | 3 | ✍️ Saisir un Lot | `#tab-inject` (l. 4300-4367) | ⬜ à faire | — | — |
 | 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4368-4726) | ⬜ à faire | — | — |
 | 5 | 📝 Notes | `#tab-notes` (l. 4727-4740) | ⬜ à faire | — | — |

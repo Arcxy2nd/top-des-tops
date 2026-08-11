@@ -44,8 +44,20 @@ function historyRows() {
   return rows;
 }
 
+// Sheets Code.gs auto-creates on first use (AuditLog, Settings, AutoRules) via
+// `ConfigService.getSheets().spreadsheet.insertSheet(name)` — absent from this static
+// fixture object unless a `spreadsheet` mock is provided too. Without it, the lazy-create
+// path throws on a missing `.spreadsheet`, and AuditService.log()'s try/catch swallows
+// the failure silently: every action would appear to log fine while the Journal d'audit
+// stayed permanently empty in the browser preview.
+const AUTO_CREATE_SHEET_KEY_BY_NAME = {
+  AuditLog: 'auditLog', Settings: 'settings', AutoRules: 'autoRules',
+  Notes: 'notes', Bareme: 'bareme', Phrases: 'phrases', Chat: 'chat',
+  AltCategories: 'altCategories', AltHistory: 'altHistory'
+};
+
 function buildSheets() {
-  return {
+  const sheets = {
     players:    makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ...PLAYERS]),
     categories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ...CATEGORIES]),
     history:    makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId'], ...historyRows()]),
@@ -57,6 +69,17 @@ function buildSheets() {
                            ['2026-08-01', 'Alik', 'Trou du cul', 7, 'Native', '', '', 'Admin']]),
     altCategories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Trou du cul', 'Gros zgeg', '🤠', '#ee6943']])
   };
+  sheets.spreadsheet = {
+    getSheetByName: () => null,
+    insertSheet(name) {
+      const key = AUTO_CREATE_SHEET_KEY_BY_NAME[name];
+      if (!key) throw new Error('fixtures.js: onglet auto-créé inconnu du mock : ' + name);
+      const sheet = makeSheet([]);
+      sheets[key] = sheet;
+      return sheet;
+    }
+  };
+  return sheets;
 }
 
 module.exports = { buildSheets, PLAYERS, CATEGORIES };

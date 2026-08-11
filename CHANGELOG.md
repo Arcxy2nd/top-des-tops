@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.8.3] - 2026-08-11
+
+### Corrigé
+**Humanisé** : L'outil de test qui permet d'ouvrir l'application sur un ordinateur ne savait pas simuler la création automatique de certaines feuilles (le Journal d'audit, les Réglages, les Points automatiques). Résultat : dans cet outil de test seulement, toute action qui aurait dû s'inscrire dans le Journal d'audit échouait silencieusement, et le Journal semblait vide en permanence — alors que la vraie application fonctionne normalement sur ce point.
+**Technique** : `tests/frontend/fixtures.js` — `buildSheets()` fournit désormais un mock `spreadsheet.insertSheet(name)` (mappe `AuditLog`/`Settings`/`AutoRules`/`Notes`/`Bareme`/`Phrases`/`Chat`/`AltCategories`/`AltHistory` vers leur clé `ConfigService`), absent jusqu'ici. `AuditService._getOrCreateSheet()` (Code.gs) appelle `ConfigService.getSheets().spreadsheet.insertSheet(...)` pour créer l'onglet à la volée ; sans ce mock, l'appel levait sur `spreadsheet` `undefined`, exception avalée par le `try/catch` volontairement silencieux d'`AuditService.log()`.
+
 ## [v3.8.2] - 2026-08-11
 
 ### Corrigé
