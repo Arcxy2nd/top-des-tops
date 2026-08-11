@@ -57,8 +57,8 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 | 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | ✅ livré | v3.8.2 | [2026-08-11-audit-dashboard.md](2026-08-11-audit-dashboard.md) |
 | 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4748-4850) | ✅ livré | v3.9.0 | [2026-08-11-audit-historique.md](2026-08-11-audit-historique.md) |
 | 3 | ✍️ Saisir un Lot | `#tab-inject` (l. 4317-4382) | ✅ livré | v3.10.0 | [2026-08-11-audit-saisir-un-lot.md](2026-08-11-audit-saisir-un-lot.md) |
-| 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4420-4779) | ✅ livré (local, non poussé) | v3.11.0 | [2026-08-11-audit-parametres-outils.md](2026-08-11-audit-parametres-outils.md) |
-| 5 | 📝 Notes | `#tab-notes` (l. 4779-4790) | ✅ livré (local, non poussé) | v3.12.0 | [2026-08-11-audit-notes.md](2026-08-11-audit-notes.md) |
+| 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4420-4779) | ✅ livré | v3.11.0 | [2026-08-11-audit-parametres-outils.md](2026-08-11-audit-parametres-outils.md) |
+| 5 | 📝 Notes | `#tab-notes` (l. 4779-4790) | ✅ livré | v3.12.0 | [2026-08-11-audit-notes.md](2026-08-11-audit-notes.md) |
 | 6 | 💬 Tchat flottant | widget global, hors onglets | ⬜ à faire | — | — |
 | 7 | ❓ Guide | `#tab-guide` (l. 4846+) | ⬜ à faire | — | — |
 

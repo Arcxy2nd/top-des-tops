@@ -2,7 +2,7 @@
 
 > Protocole : [`2026-08-11-audit-onglet-par-onglet.md`](2026-08-11-audit-onglet-par-onglet.md). Les contraintes globales de ce document s'appliquent à toutes les tâches ci-dessous.
 
-**État :** ✅ passe livrée en v3.12.0 (localement — `npm run verify` vert à 160 tests). **Non poussée** : cette passe s'empile sur la passe 4 (v3.11.0), elle-même en attente de confirmation utilisateur avant push (garde-fou n°3 du plan-cadre, CRUD Joueurs/Tops). Voir la note de fin de plan pour le détail.
+**État :** ✅ passe livrée en v3.12.0 — poussée (avec la passe 4) après confirmation utilisateur sur les correctifs touchant le CRUD Joueurs/Tops. `npm run verify` vert à 160 tests.
 **Ligne de base :** v3.11.0 (passe 4), 159 tests verts.
 
 ---

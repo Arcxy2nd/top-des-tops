@@ -4,7 +4,7 @@
 
 **⚠️ Rappel garde-fou n°3 (à honorer strictement, y compris en exécution autonome) :** avant tout `git push` d'un correctif touchant `apiManageEntity`, `deleteEntity`/`renameEntity`, `fixZeroPoints`, `deleteOrphans`, `apiGroupSimilarEntries`, la suppression de doublons, ou tout outil du sous-onglet 🔧 Outils — s'arrêter et présenter en langage clair à l'utilisateur ce que le changement modifie dans le comportement de suppression/renommage, et attendre confirmation avant de pousser. Les corrections hors de ce périmètre précis suivent la règle normale (push direct, sans demander).
 
-**État :** 🔄 en cours (phase 4 — vérification adversariale terminée, phase 5 en cours)
+**État :** ✅ passe livrée en v3.11.0 — poussée (avec la passe 5) après confirmation utilisateur sur les correctifs touchant le CRUD Joueurs/Tops.
 **Ligne de base :** v3.9.0, 153 tests verts, 0 erreur console au chargement (héritée de la passe 3, à revérifier après clôture de la passe 3)
 
 ---
@@ -238,7 +238,7 @@ Priorité proportionnée compte tenu du volume (21 défauts candidats + une diza
 - **P6** : nécessite de décider quelle définition doit primer (aligner le comptage sur la suppression réelle, ou l'inverse) — décision produit, pas juste technique ; reporté pour clarification plutôt que tranché arbitrairement sous contrainte de temps.
 - **P12, P13, P14, P15, P16, P17, P18 [GARDE-FOU pour P18], P21-améliorations** : polish/refactor sans risque de perte de données mais non prioritaire compte tenu du volume déjà traité cette passe — reportés à une prochaine amélioration ciblée, comme pour les axes 4/5 de la passe 3.
 
-### Implémenté sous garde-fou (en attente de confirmation avant push)
+### Implémenté sous garde-fou (confirmé par l'utilisateur, poussé)
 
 - **P4** : `SettingsService.addEntity()` **et** `renameEntity()` (les deux chemins qui peuvent produire un nom dupliqué) refusent désormais un nom déjà utilisé par une autre entité du même type — empêche la création silencieuse de doublons dont la suppression ultérieure supprimerait les deux entités d'un coup. Tests de non-régression ajoutés dans `tests/settings.test.js`, y compris la survie intacte des entités non concernées par le rejet.
 
