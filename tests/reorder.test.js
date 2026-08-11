@@ -160,3 +160,58 @@ test('apiReorderBareme rejects a rowIndex list that does not match the Top group
   const res = gas.apiReorderBareme('Jeux', [2], 'Alice'); // missing row 3
   assert.strictEqual(res.success, false);
 });
+
+test('PhrasesService.getAll sorts by Ordre within preset+pool and keeps rowIndex accurate', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'B', 2],
+    ['Défaut', 'first', 'A', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+  const all = gas.PhrasesService.getAll();
+  assert.deepStrictEqual(all.map(p => p.text), ['A', 'B']);
+  assert.strictEqual(all[0].rowIndex, 3); // "A" is physically on sheet row 3
+});
+
+test('PhrasesService.addPhrase assigns Ordre scoped to its preset+pool group', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'A', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+  gas.PhrasesService.addPhrase('Défaut', 'first', 'B');
+  assert.deepStrictEqual(phrases._grid[2], ['Défaut', 'first', 'B', 2]);
+});
+
+test('PhrasesService.saveBatch assigns sequential Ordre per group across a multi-group batch', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([['Preset', 'Pool', 'Phrase', 'Ordre']]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+  gas.PhrasesService.saveBatch([
+    { preset: 'Défaut', pool: 'first', text: 'A' },
+    { preset: 'Défaut', pool: 'first', text: 'B' },
+    { preset: 'Défaut', pool: 'last',  text: 'C' }
+  ]);
+  assert.deepStrictEqual(phrases._grid.slice(1), [
+    ['Défaut', 'first', 'A', 1],
+    ['Défaut', 'first', 'B', 2],
+    ['Défaut', 'last',  'C', 1]
+  ]);
+});
+
+test('PhrasesService.reorderPhrases only touches rows within the given preset+pool group', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'A', 1],
+    ['Défaut', 'first', 'B', 2],
+    ['Défaut', 'last',  'C', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+  gas.PhrasesService.reorderPhrases('Défaut', 'first', [3, 2]);
+  const all = gas.PhrasesService.getAll();
+  assert.deepStrictEqual(all.filter(p => p.pool === 'first').map(p => p.text), ['B', 'A']);
+  assert.strictEqual(all.find(p => p.pool === 'last').text, 'C');
+});

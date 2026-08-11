@@ -1999,8 +1999,8 @@ const PhrasesService = {
     const cache = ConfigService.getSheets();
     if (cache.phrases) return cache.phrases;
     const sheet = cache.spreadsheet.insertSheet('Phrases');
-    sheet.appendRow(['Preset', 'Pool', 'Phrase']);
-    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    sheet.appendRow(['Preset', 'Pool', 'Phrase', 'Ordre']);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
     ConfigService.clearCache();
     return ConfigService.getSheets().phrases;
   },
@@ -2015,14 +2015,16 @@ const PhrasesService = {
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
-    const result = data.slice(1)
-      .filter(r => r[0] !== '' && r[2] !== '')
-      .map((r, i) => ({
-        rowIndex: i + 2,
-        preset:   r[0].toString(),
-        pool:     r[1].toString(),
-        text:     r[2].toString()
-      }));
+    let rows = data.slice(1)
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
+      .filter(x => x.r[0] !== '' && x.r[2] !== '');
+    rows = _sortByOrdreOrOriginal(rows, x => x.r[3]);
+    const result = rows.map(x => ({
+      rowIndex: x.rowIndex,
+      preset:   x.r[0].toString(),
+      pool:     x.r[1].toString(),
+      text:     x.r[2].toString()
+    }));
     const serial = JSON.stringify(result);
     if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
@@ -2031,18 +2033,30 @@ const PhrasesService = {
   addPhrase(preset, pool, text) {
     if (!preset || !pool || !text || !text.trim()) throw new Error("Champs manquants.");
     if (!this._isValidPool(pool)) throw new Error("Pool invalide : " + pool);
-    this._getOrCreateSheet().appendRow([preset.trim(), pool, text.trim()]);
+    const sheet = this._getOrCreateSheet();
+    const data  = sheet.getDataRange().getValues();
+    const nextOrdre = data.slice(1).filter(r => r[0] === preset.trim() && r[1] === pool).length + 1;
+    sheet.appendRow([preset.trim(), pool, text.trim(), nextOrdre]);
     _bumpPhrasesVersion();
   },
 
   saveBatch(entries) {
     if (!entries || !entries.length) return;
+    const sheet = this._getOrCreateSheet();
+    const data  = sheet.getDataRange().getValues();
+    const groupCounts = {};
+    data.slice(1).forEach(r => {
+      if (r[0] === '' || r[0] === undefined) return;
+      const key = r[0] + '|' + r[1];
+      groupCounts[key] = (groupCounts[key] || 0) + 1;
+    });
     const rows = entries.map(e => {
       if (!this._isValidPool(e.pool)) throw new Error("Pool invalide : " + e.pool);
-      return [e.preset.trim(), e.pool, e.text.trim()];
+      const key = e.preset.trim() + '|' + e.pool;
+      groupCounts[key] = (groupCounts[key] || 0) + 1;
+      return [e.preset.trim(), e.pool, e.text.trim(), groupCounts[key]];
     });
-    const sheet = this._getOrCreateSheet();
-    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 3).setValues(rows);
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
     _bumpPhrasesVersion();
   },
 
@@ -2075,6 +2089,23 @@ const PhrasesService = {
     for (let i = data.length - 1; i >= 0; i--) {
       if (data[i][0].toString() === presetName) sheet.deleteRow(i + 2);
     }
+    _bumpPhrasesVersion();
+  },
+
+  reorderPhrases(preset, pool, orderedRowIndexes) {
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    const data = sheet.getDataRange().getValues();
+    const groupRows = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === preset && data[i][1] === pool) groupRows.push(i + 1);
+    }
+    const wanted = orderedRowIndexes.map(Number);
+    const isPermutation = wanted.length === groupRows.length &&
+      groupRows.every(r => wanted.includes(r)) &&
+      new Set(wanted).size === wanted.length;
+    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux phrases existantes de ce pool.");
+    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 4).setValue(i + 1));
     _bumpPhrasesVersion();
   }
 };
@@ -3752,6 +3783,20 @@ function apiGetMentionStats(universe) {
 function apiGetPhrases() {
   try {
     return { success: true, phrases: PhrasesService.getAll() };
+  } catch(e) { return fail(e); }
+}
+
+function apiReorderPhrases(preset, pool, orderedRowIndexes, author) {
+  try {
+    requireAuthor(author);
+    if (!preset || !pool) throw new Error("Preset ou pool manquant.");
+    if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
+    return withLock(() => {
+      PhrasesService.reorderPhrases(preset, pool, orderedRowIndexes);
+      AuditService.log(author, 'Ordre modifié', 'Phrases: ' + preset + '/' + pool, '', orderedRowIndexes.join(' → '), '', null);
+      ConfigService.clearCache();
+      return { success: true, phrases: PhrasesService.getAll() };
+    });
   } catch(e) { return fail(e); }
 }
 
