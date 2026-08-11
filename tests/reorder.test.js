@@ -269,3 +269,25 @@ test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool
   ]);
   assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 1], ['Y', 2]]);
 });
+
+test('apiRepairOrder preserves an already-valid custom order when it differs from raw row order', () => {
+  const gas = loadGas();
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'A', 1, 2],      // row 2: Ordre=2 (should be 2nd in display order)
+    ['Jeux', 'B', 2, 1]       // row 3: Ordre=1 (should be 1st in display order)
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, bareme, auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiRepairOrder('Alice');
+  assert.strictEqual(res.success, true);
+
+  // Effective order before repair (sorted by valid Ordre) is B (Ordre=1), then A (Ordre=2)
+  // apiRepairOrder should preserve this order, not reset to raw row order (A in row 2, B in row 3)
+  const entries = gas.BaremeService.getEntries().filter(e => e.top === 'Jeux');
+  assert.deepStrictEqual(entries.map(e => e.action), ['B', 'A']);
+});
