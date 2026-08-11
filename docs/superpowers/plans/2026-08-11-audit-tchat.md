@@ -2,7 +2,7 @@
 
 > Protocole : [`2026-08-11-audit-onglet-par-onglet.md`](2026-08-11-audit-onglet-par-onglet.md). Les contraintes globales de ce document s'appliquent à toutes les tâches ci-dessous.
 
-**État :** ✅ passe livrée en v3.13.0 — commit **local uniquement, non poussé**. Touche `SettingsService.renameEntity()` (cascade vers Chat) → garde-fou n°3 du plan-cadre : confirmation utilisateur requise avant `git push`. `npm run verify` vert à 169 tests.
+**État :** ✅ passe livrée en v3.13.0 — poussée après confirmation utilisateur (garde-fou n°3, `renameEntity()` cascade vers Chat). `npm run verify` vert à 169 tests.
 **Ligne de base :** v3.12.0 (passe 5), 160 tests verts.
 
 ---
