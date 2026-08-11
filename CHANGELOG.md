@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.12.0] - 2026-08-11
+
+### Corrigé
+**Humanisé** : L'avatar « Créé par »/« Modifié par » d'une note, la pastille de sélection joueur dans l'ajout rapide, l'avatar dans une mention `@Joueur`, et l'avatar dans la liste de suggestions au moment de taper `@` — les quatre disparaissaient complètement quand l'URL d'avatar personnalisée d'un joueur ne chargeait pas, au lieu de basculer sur un avatar généré comme partout ailleurs dans l'app.
+**Technique** : `Index.html` — `buildNoteAuthorAvatar`, la pastille de la barre flash (`notes-player-chip`), `renderMentions()` et `attachMentionAutocomplete()` basculent désormais sur `getAvatarUrl(name, '')` au lieu de retirer l'image (`img.remove()`).
+
+**Humanisé** : Renommer un Joueur dans Paramètres rendait ses notes invisibles — elles restaient bien dans la base, mais n'apparaissaient plus nulle part dans l'onglet Notes (qui ne regroupe que par joueurs actuellement connus), et le compteur du menu continuait pourtant à les compter.
+**Technique** : `Code.gs` — `SettingsService.renameEntity()` propage désormais le renommage d'un Joueur à la colonne `Joueur` de la feuille `Notes`, comme c'était déjà fait pour `History`/`AutoRules`. Pour les notes déjà orphelines (renommage ou suppression antérieurs à ce correctif), `renderNotesBlocks()` (Index.html) les affiche maintenant dans un bloc distinct « (introuvable dans Paramètres) » plutôt que de les faire disparaître — restent visibles, éditables, supprimables. Test de non-régression ajouté (`tests/settings.test.js`), y compris la survie intacte des notes d'un joueur non concerné par le renommage.
+
+**Humanisé** : Appuyer deux fois rapidement sur Entrée pour ajouter une note (barre rapide ou formulaire par joueur) créait deux notes identiques.
+**Technique** : `Index.html` — garde anti-double-soumission (`flashSubmitting`/`npbSubmitting`) sur les deux chemins d'ajout ; jusqu'ici seul le bouton était désactivé pendant l'appel serveur, pas le raccourci clavier.
+
+**Humanisé** : Le popover d'historique d'une note restait bloqué sur « Chargement… » en cas de panne serveur, et pouvait rester affiché — figé en haut à gauche de l'écran — après avoir ajouté, édité ou supprimé une autre note pendant qu'il était ouvert.
+**Technique** : `Index.html` — `onError` ajouté à `callServer('apiGetNoteHistory', ...)` ; `renderNotesBlocks()` ferme désormais le popover actif avant de reconstruire la liste, puisque celle-ci détruit le bouton auquel il est ancré.
+
+**Humanisé** : La date « Modifié le » affichée juste après avoir modifié une note pouvait légèrement différer de celle réellement enregistrée (fabriquée depuis l'horloge du navigateur plutôt que renvoyée par le serveur).
+**Technique** : `Code.gs` — `apiEditNote` renvoie désormais `editedAt` (l'horodatage serveur réel) ; `Index.html` l'utilise au lieu de `new Date().toISOString()`.
+
+### Sécurité
+**Humanisé** : Cible tactile mobile de tous les boutons compacts (`button.small`) de l'app harmonisée à 44px — corrige d'un coup la quatrième récidive indépendante du même défaut (Historique, Saisir un Lot, Paramètres → Outils, Notes) au lieu d'une cinquième règle scopée à un onglet de plus.
+**Technique** : `Index.html` — règle `@media (max-width:768px) { button.small { min-height: var(--tap-min) } }` globale, remplace 3 règles scopées par onglet.
+
 ## [v3.11.0] - 2026-08-11
 
 ### Corrigé

@@ -1435,6 +1435,12 @@
     .note-player-block:hover {
       border-color: var(--border-hover);
     }
+    .note-player-block-orphan {
+      border-style: dashed; border-color: var(--warn);
+    }
+    .note-player-block-orphan .npb-name {
+      color: var(--warn);
+    }
     .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .npb-head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .npb-head .npb-name { font-weight: 800; font-size: 1.05rem; }
@@ -3775,32 +3781,26 @@
   @media (max-width: 640px) {
     .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; min-height: var(--tap-min); }
   }
-  /* Row-action buttons (edit/delete/ungroup/unlink/undo) default to button.small's
-     34px — below the 44px tap target minimum on touch screens. */
+  /* button.small's 34px default is below the 44px tap target minimum on touch
+     screens. Found independently on History, Saisir un Lot, Paramètres → Outils
+     and Notes across four separate audit passes — fixed globally here instead of
+     per-tab, since every new pass on a fifth screen would just rediscover it. */
   @media (max-width: 768px) {
-    #historyTableBody button.small,
-    .audit-row button.small {
+    button.small {
       min-height: var(--tap-min);
       min-width: var(--tap-min);
     }
   }
-  /* Saisir un Lot — the most-tapped controls of the tab (point shortcuts) and the
-     row action buttons were still under the 44px tap target minimum on touch
-     screens; the History fix above didn't reach this tab. */
+  /* Saisir un Lot — the most-tapped controls of the tab (point shortcuts) aren't
+     button.small, so the global rule above doesn't reach them; .btn-dup/.btn-del
+     carry their own more specific 32px (.row-topbar .btn-dup, line ~915) that
+     outranks the global button.small media rule regardless of source order. */
   @media (max-width: 768px) {
     #tab-inject .pts-btn,
     #tab-inject .d-mode-seg .d-mode-btn,
     #tab-inject .date-shortcut,
     #tab-inject .row-topbar .btn-dup,
-    #tab-inject .row-topbar .btn-del,
-    #tab-inject .sub-top-add-btn {
-      min-height: var(--tap-min);
-    }
-  }
-  /* Paramètres → 🔧 Outils — same 34px button.small shortfall, on the action
-     button of each of the 7 tool cards. */
-  @media (max-width: 768px) {
-    #stab-tools button.small {
+    #tab-inject .row-topbar .btn-del {
       min-height: var(--tap-min);
     }
   }
@@ -5333,7 +5333,7 @@
       const col = playerColor(realName);
       const avatarUrl = getAvatarUrl(realName, original ? original.meta : '');
       return pre + '<span class="mention" data-player="' + escapeHtml(realName) + '" style="--mention-color:' + col + '">' +
-        '<img src="' + avatarUrl + '" alt="" onerror="this.remove()">' + name + '</span>';
+        '<img src="' + avatarUrl + '" alt="" onerror="this.src=getAvatarUrl(' + escapeHtml(JSON.stringify(realName)) + ',&#39;&#39;)">' + name + '</span>';
     });
   }
 
@@ -5636,7 +5636,7 @@
           const img = document.createElement('img');
           img.src = getAvatarUrl(entry.name, entry.meta);
           img.alt = '';
-          img.onerror = () => img.remove();
+          img.onerror = () => { img.onerror = () => img.remove(); img.src = getAvatarUrl(entry.name, ''); };
           item.appendChild(img);
         } else {
           const ic = document.createElement('span');
@@ -14603,7 +14603,7 @@
       chip.style.setProperty('--chip-col', playerColor(p.name));
       const chipImg = document.createElement('img');
       chipImg.src = getAvatarUrl(p.name, p.meta);
-      chipImg.onerror = () => chipImg.remove();
+      chipImg.onerror = () => { chipImg.onerror = () => chipImg.remove(); chipImg.src = getAvatarUrl(p.name, ''); };
       chip.appendChild(chipImg);
       chip.appendChild(document.createTextNode(p.name));
       chip.addEventListener('click', () => {
@@ -14648,20 +14648,24 @@
     const fBtn = document.createElement('button');
     fBtn.className = 'primary small'; fBtn.textContent = '✓ Ajouter';
 
+    let flashSubmitting = false;
     const submitFlash = () => {
+      if (flashSubmitting) return; // guards the Enter key path: the button alone disables on click, not on keydown
       if (!requireIdentity()) return;
       if (!flashPlayer) { showToast('Sélectionnez un joueur.', 'error'); return; }
       const text = fInput.value.trim();
       if (!text) { showToast('La note est vide.', 'error'); fInput.focus(); return; }
+      flashSubmitting = true;
       const restore = startBtnLoading(fBtn, '…');
       callServer('apiAddNote', [flashPlayer, text, flashDate, _whoAmI || ''], res => {
+        flashSubmitting = false;
         restore(); flashSaved(fBtn);
         fInput.value = ''; flashDate = ''; fDateField.value = '';
         fDateField.style.display = 'none'; dateToggle.classList.remove('active');
         showToast('Note ajoutée.', 'success');
         _allNotesRaw.unshift(res.note);
         renderNotesBlocks();
-      }, 'Ajout note', () => restore());
+      }, 'Ajout note', () => { flashSubmitting = false; restore(); });
     };
     fBtn.addEventListener('click', submitFlash);
     fInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitFlash(); } });
@@ -14696,6 +14700,10 @@
   function renderNotesBlocks() {
     const blocksContainer = document.getElementById('notesBlocksContainer');
     if (!blocksContainer) return;
+    // The popover anchors itself to a "Modifié par" button that this rebuild is
+    // about to destroy — left open, it goes stale (positioned at 0,0) instead
+    // of disappearing on the next scroll.
+    closeNoteHistoryPopover();
     blocksContainer.innerHTML = '';
 
     updateNavCount('notesCount', _allNotesRaw.length || '');
@@ -14714,6 +14722,19 @@
 
     cachedPlayers.forEach(p => {
       blocksContainer.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
+    });
+
+    // Notes whose player name matches no current entity (renamed/deleted since
+    // the note was written) would otherwise vanish from the UI entirely while
+    // staying in the sheet — surfaced here so they stay visible and actionable
+    // instead of becoming silently orphaned.
+    const knownNames = new Set(cachedPlayers.map(p => p.name));
+    Object.keys(byPlayer).filter(name => !knownNames.has(name)).forEach(name => {
+      const block = buildPlayerNoteBlock({ name, meta: '' }, byPlayer[name]);
+      block.classList.add('note-player-block-orphan');
+      const nameEl = block.querySelector('.npb-name');
+      if (nameEl) nameEl.textContent += ' (introuvable dans Paramètres)';
+      blocksContainer.appendChild(block);
     });
   }
 
@@ -14763,19 +14784,23 @@
 
     const btn = document.createElement('button');
     btn.className = 'primary small'; btn.textContent = '+ Ajouter';
+    let npbSubmitting = false;
     const submitNpb = () => {
+      if (npbSubmitting) return; // guards the Enter key path: the button alone disables on click, not on keydown
       if (!requireIdentity()) return;
       const text = ta.value.trim();
       if (!text) { showToast('La note est vide.', 'error'); ta.focus(); return; }
+      npbSubmitting = true;
       const restore = startBtnLoading(btn, '…');
       callServer('apiAddNote', [player.name, text, npbDate, _whoAmI || ''], res => {
+        npbSubmitting = false;
         restore(); flashSaved(btn);
         ta.value = ''; npbDate = ''; npbDateField.value = '';
         npbDateField.style.display = 'none'; npbDateToggle.classList.remove('active');
         showToast('Note ajoutée.', 'success');
         _allNotesRaw.unshift(res.note);
         renderNotesBlocks();
-      }, 'Ajout note', () => restore());
+      }, 'Ajout note', () => { npbSubmitting = false; restore(); });
     };
     btn.addEventListener('click', submitNpb);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitNpb(); } });
@@ -14815,7 +14840,12 @@
     const p = cachedPlayers.find(pl => pl.name === name);
     img.src = getAvatarUrl(name, p ? p.meta : '');
     img.alt = '';
-    img.onerror = () => img.remove();
+    // Falls back to a generated avatar instead of vanishing, same as every
+    // other avatar in the app — a broken custom URL shouldn't mean no avatar.
+    img.onerror = () => {
+      img.onerror = () => img.remove();
+      img.src = getAvatarUrl(name, '');
+    };
     return img;
   }
 
@@ -14988,6 +15018,9 @@
         entry.appendChild(head); entry.appendChild(text);
         body.appendChild(entry);
       });
+    }, 'Historique note', () => {
+      if (_activeNoteHistoryPopover !== pop) return;
+      pop.querySelector('.nhp-body').innerHTML = '<p class="nhp-empty">Erreur de chargement.</p>';
     });
   }
 
@@ -15023,12 +15056,12 @@
       const v = noteEditor._getValue().trim();
       if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
       closeModal();
-      callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], () => {
+      callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], res => {
         const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
         if (target) {
           target.text = v;
           target.lastEditedBy = _whoAmI || '';
-          target.lastEditedAt = new Date().toISOString();
+          target.lastEditedAt = res.editedAt || new Date().toISOString();
         }
         renderNotesBlocks();
         showToast('Note modifiée.', 'success');

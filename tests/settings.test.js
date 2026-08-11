@@ -161,3 +161,30 @@ test('SettingsService.renameEntity still allows a no-op rename to the same name'
   const cats = gas.SettingsService.getEntities('Categories');
   assert.strictEqual(cats[0].meta, 'new desc');
 });
+
+// Régression : renameEntity() propageait déjà le renommage d'un Joueur à
+// History/AutoRules, mais jamais à la feuille Notes — une note dont le nom de
+// joueur n'était plus reconnu par aucune entité active devenait invisible
+// dans l'UI (qui ne groupe que par joueurs actuellement connus), sans être
+// supprimée ni signalée.
+test('SettingsService.renameEntity propagates a player rename to their Notes, leaving other players untouched', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '#ff0000', ''],
+    ['Bob', '', '#00ff00', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  const notes = makeSheet([
+    ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
+    [new Date('2026-01-01'), 'Alice', 'Note sur Alice', 'n1', 'Bob', '', ''],
+    [new Date('2026-01-02'), 'Bob', 'Note sur Bob', 'n2', 'Alice', '', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ players, history, notes, autoRules: null });
+
+  gas.SettingsService.renameEntity('Players', 'Alice', 'Alicia', '', '');
+
+  const notesValues = notes.getDataRange().getValues();
+  assert.strictEqual(notesValues[1][1], 'Alicia', 'la note d\'Alice doit maintenant référencer Alicia');
+  assert.strictEqual(notesValues[2][1], 'Bob', 'la note de Bob ne doit pas être touchée par le renommage d\'Alice');
+});

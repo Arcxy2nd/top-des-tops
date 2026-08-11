@@ -497,7 +497,13 @@ const SettingsService = {
     }
 
     this._renameInColumn(ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
-    if (type === 'Players') return;
+    if (type === 'Players') {
+      // Notes only ever reference a Player (column 2), never a Top — otherwise
+      // renaming a player would silently orphan their notes (invisible in the
+      // UI, which only ever groups by currently-known player names).
+      this._renameInColumn(ConfigService.getSheets().notes, 2, oldName, newName);
+      return;
+    }
 
     this._renameInColumn(ConfigService.getSheets().bareme, 1, oldName, newName);
 
@@ -2841,7 +2847,8 @@ function apiEditNote(rowIndex, newText, author) {
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
         'note:' + noteId,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
-      return { success: true, noteId };
+      const editedAt = afterRow[6] instanceof Date ? afterRow[6].toISOString() : null;
+      return { success: true, noteId, editedAt };
     });
   } catch(e) { return fail(e); }
 }

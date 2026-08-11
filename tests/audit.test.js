@@ -505,6 +505,7 @@ test('apiEditNote / undo restores the previous text', () => {
   const res = gas.apiEditNote(2, 'new', 'Alice');
   assert.strictEqual(res.success, true);
   assert.strictEqual(notes._grid[1][2], 'new');
+  assert.ok(res.editedAt, 'apiEditNote should return the server-side edit timestamp, not leave the client to fabricate one');
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(notes._grid[1][2], 'old');
 });
