@@ -1931,7 +1931,17 @@ const BaremeService = {
     let rows = data.slice(1)
       .map((r, i) => ({ r, rowIndex: i + 2 }))
       .filter(x => x.r[0] !== "" && x.r[0] !== undefined);
-    rows = _sortByOrdreOrOriginal(rows, x => x.r[3]);
+    const groups = {};
+    const groupOrder = [];
+    rows.forEach(x => {
+      const k = x.r[0];
+      if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
+      groups[k].push(x);
+    });
+    const ordered = [];
+    groupOrder.forEach(k => { ordered.push.apply(ordered, _sortByOrdreOrOriginal(groups[k], x => x.r[3])); });
+    rows.length = ordered.length;
+    for (let i = 0; i < ordered.length; i++) rows[i] = ordered[i];
     const result = rows.map(x => ({
       rowIndex: x.rowIndex,
       top:      x.r[0].toString(),
@@ -2018,7 +2028,17 @@ const PhrasesService = {
     let rows = data.slice(1)
       .map((r, i) => ({ r, rowIndex: i + 2 }))
       .filter(x => x.r[0] !== '' && x.r[2] !== '');
-    rows = _sortByOrdreOrOriginal(rows, x => x.r[3]);
+    const groups = {};
+    const groupOrder = [];
+    rows.forEach(x => {
+      const k = x.r[0] + '|' + x.r[1];
+      if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
+      groups[k].push(x);
+    });
+    const ordered = [];
+    groupOrder.forEach(k => { ordered.push.apply(ordered, _sortByOrdreOrOriginal(groups[k], x => x.r[3])); });
+    rows.length = ordered.length;
+    for (let i = 0; i < ordered.length; i++) rows[i] = ordered[i];
     const result = rows.map(x => ({
       rowIndex: x.rowIndex,
       preset:   x.r[0].toString(),

@@ -116,6 +116,20 @@ test('BaremeService.getEntries sorts by Ordre and keeps rowIndex pointing at the
   assert.strictEqual(entries[1].rowIndex, 2); // "Gagne" is physically on sheet row 2
 });
 
+test('BaremeService.getEntries preserves one group\'s valid custom order even when a different, unrelated group has an invalid/missing Ordre', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Mauvais', 'A', 1, 3],
+    ['Mauvais', 'B', 2, 1],
+    ['Mauvais', 'C', 3, 2],
+    ['Légende', 'X', 9, '']   // unrelated group, Ordre missing entirely
+  ]);
+  gas.ConfigService.getSheets = () => ({ bareme });
+  const entries = gas.BaremeService.getEntries();
+  assert.deepStrictEqual(entries.filter(e => e.top === 'Mauvais').map(e => e.action), ['B', 'C', 'A']);
+});
+
 test('BaremeService.addEntry assigns Ordre scoped to its own Top group', () => {
   const gas = loadGas();
   const bareme = makeSheet([
@@ -172,6 +186,19 @@ test('PhrasesService.getAll sorts by Ordre within preset+pool and keeps rowIndex
   const all = gas.PhrasesService.getAll();
   assert.deepStrictEqual(all.map(p => p.text), ['A', 'B']);
   assert.strictEqual(all[0].rowIndex, 3); // "A" is physically on sheet row 3
+});
+
+test('PhrasesService.getAll preserves one group\'s valid custom order even when a different, unrelated group has an invalid/missing Ordre', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'A', 2],
+    ['Défaut', 'first', 'B', 1],
+    ['Défaut', 'last',  'X', '']   // unrelated group, Ordre missing entirely
+  ]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+  const all = gas.PhrasesService.getAll();
+  assert.deepStrictEqual(all.filter(p => p.pool === 'first').map(p => p.text), ['B', 'A']);
 });
 
 test('PhrasesService.addPhrase assigns Ordre scoped to its preset+pool group', () => {
