@@ -220,3 +220,52 @@ test('PhrasesService.reorderPhrases only touches rows within the given preset+po
   assert.deepStrictEqual(all.filter(p => p.pool === 'first').map(p => p.text), ['B', 'A']);
   assert.strictEqual(all.find(p => p.pool === 'last').text, 'C');
 });
+
+test('apiRepairOrder normalizes Players/Categories to sequential Ordre in current effective order', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Bob',   '', '', '', 2],
+    ['Alice', '', '', '', 1],
+    ['Carl',  '', '', '', ''] // hole -> whole list currently falls back to raw order
+  ]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color']]); // no Ordre column at all
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiRepairOrder('Alice');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.players, 3);
+  // Effective order before repair (raw, since Carl had no Ordre) was Bob, Alice, Carl —
+  // repair must persist exactly that order as clean 1..3, not re-sort by the old partial values.
+  assert.deepStrictEqual(players._grid.slice(1).map(r => [r[0], r[4]]), [['Bob', 1], ['Alice', 2], ['Carl', 3]]);
+});
+
+test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool group', () => {
+  const gas = loadGas();
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'A', 1, ''],
+    ['Défis', 'X', 5, 1],
+    ['Jeux', 'B', 2, '']
+  ]);
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'Z', ''],
+    ['Défaut', 'first', 'Y', '']
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, bareme, phrases, auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiRepairOrder('Alice');
+  assert.strictEqual(res.bareme, 3);
+  assert.strictEqual(res.phrases, 2);
+  assert.deepStrictEqual(bareme._grid.slice(1).map(r => [r[0], r[1], r[3]]), [
+    ['Jeux', 'A', 1], ['Défis', 'X', 1], ['Jeux', 'B', 2]
+  ]);
+  assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 1], ['Y', 2]]);
+});

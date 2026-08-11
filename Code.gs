@@ -3800,6 +3800,69 @@ function apiReorderPhrases(preset, pool, orderedRowIndexes, author) {
   } catch(e) { return fail(e); }
 }
 
+function apiRepairOrder(author) {
+  try {
+    requireAuthor(author);
+    return withLock(() => {
+      const result = { players: 0, categories: 0, bareme: 0, phrases: 0 };
+
+      ['Players', 'Categories'].forEach(type => {
+        const sheet = ConfigService.getSheets()[type.toLowerCase()];
+        const data  = sheet.getDataRange().getValues();
+        let rows = data.slice(1)
+          .map((r, i) => ({ r, sheetRow: i + 2 }))
+          .filter(x => x.r[0]);
+        rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
+        rows.forEach((x, idx) => sheet.getRange(x.sheetRow, 5).setValue(idx + 1));
+        if (sheet.getRange(1, 5).getValue() === '') sheet.getRange(1, 5).setValue('Ordre');
+        result[type.toLowerCase()] = rows.length;
+      });
+
+      const baremeSheet = ConfigService.getSheets().bareme;
+      if (baremeSheet) {
+        const data = baremeSheet.getDataRange().getValues();
+        const rows = data.slice(1)
+          .map((r, i) => ({ r, sheetRow: i + 2 }))
+          .filter(x => x.r[0] !== '' && x.r[0] !== undefined);
+        const groups = {};
+        rows.forEach(x => { (groups[x.r[0]] = groups[x.r[0]] || []).push(x); });
+        Object.keys(groups).forEach(key => {
+          const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
+          ordered.forEach((x, idx) => baremeSheet.getRange(x.sheetRow, 4).setValue(idx + 1));
+          result.bareme += ordered.length;
+        });
+      }
+
+      const phrasesSheet = ConfigService.getSheets().phrases;
+      if (phrasesSheet) {
+        const data = phrasesSheet.getDataRange().getValues();
+        const rows = data.slice(1)
+          .map((r, i) => ({ r, sheetRow: i + 2 }))
+          .filter(x => x.r[0] !== '' && x.r[2] !== '');
+        const groups = {};
+        rows.forEach(x => {
+          const key = x.r[0] + '|' + x.r[1];
+          (groups[key] = groups[key] || []).push(x);
+        });
+        Object.keys(groups).forEach(key => {
+          const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
+          ordered.forEach((x, idx) => phrasesSheet.getRange(x.sheetRow, 4).setValue(idx + 1));
+          result.phrases += ordered.length;
+        });
+      }
+
+      AuditService.log(author, 'Ordre réparé', 'Ordre', '',
+        result.players + ' joueur(s), ' + result.categories + ' top(s), ' + result.bareme + ' règle(s), ' + result.phrases + ' phrase(s)',
+        '', null);
+      _bumpSettingsVersion();
+      _bumpBaremeVersion();
+      _bumpPhrasesVersion();
+      ConfigService.clearCache();
+      return Object.assign({ success: true }, result);
+    });
+  } catch(e) { return fail(e); }
+}
+
 function apiAddPhrase(preset, pool, text, author) {
   try {
     requireAuthor(author);
