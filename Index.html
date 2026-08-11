@@ -87,7 +87,19 @@
          whose only driver is a custom-property swap (var(--bg)/var(--text)
          changing via the body.light class) — the paint freezes at whatever
          value was computed on first load, in either theme. Confirmed for
-         color too (not just background-color) on a minimal isolated repro. */
+         color too (not just background-color) on a minimal isolated repro.
+         This same freeze hits ANY rule anywhere in the file that transitions
+         a color driven only by a theme custom property (found again on
+         .desc-in and .d-mode-btn) — see body.theme-switching below for the
+         general fix that closes the whole bug family instead of patching
+         one rule at a time. */
+    }
+
+    /* Suppresses every transition for one frame around a theme toggle, so no
+       rule anywhere (including ones added after this comment was written)
+       can freeze mid-color on the custom-property-only swap described above. */
+    body.theme-switching, body.theme-switching * {
+      transition: none !important;
     }
 
     /* ── NAVBAR (Glassmorphic) ── */
@@ -977,6 +989,9 @@
     .row-actions { display: flex; gap: 6px; }
     .row-actions button { flex: 1; padding: 8px; }
     #entryContainer { min-height: 60px; }
+    /* Clears the sticky #lotSummaryBar below so it never overlaps the last
+       row's controls while scrolling through a long lot (2+ rows). */
+    #entryContainer:has(~ #lotSummaryBar:not(.hidden)) { padding-bottom: 76px; }
     .empty-state { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px; }
 
     /* ── POINTS TOGGLE BUTTONS (Grille 2 lignes de 4 : 1 3 5 7 / 10 25 50 100) ── */
@@ -3767,6 +3782,19 @@
     .audit-row button.small {
       min-height: var(--tap-min);
       min-width: var(--tap-min);
+    }
+  }
+  /* Saisir un Lot — the most-tapped controls of the tab (point shortcuts) and the
+     row action buttons were still under the 44px tap target minimum on touch
+     screens; the History fix above didn't reach this tab. */
+  @media (max-width: 768px) {
+    #tab-inject .pts-btn,
+    #tab-inject .d-mode-seg .d-mode-btn,
+    #tab-inject .date-shortcut,
+    #tab-inject .row-topbar .btn-dup,
+    #tab-inject .row-topbar .btn-del,
+    #tab-inject .sub-top-add-btn {
+      min-height: var(--tap-min);
     }
   }
 
@@ -8681,8 +8709,16 @@
     let totalPts = 0, totalEntries = 0;
     plan.forEach(dayPlan => {
       dayPlan.entries.forEach(e => {
-        perPlayer[e.player] = (perPlayer[e.player] || 0) + e.points;
-        totalPts += e.points;
+        // Mirrors StorageService.appendBulkPlan (Code.gs): a sub-top without
+        // its own points inherits this entry's points, same as the row it
+        // was written from.
+        let entryPts = e.points;
+        (e.subTops || []).forEach(st => {
+          const stPts = parseInt(st.points, 10);
+          entryPts += (isNaN(stPts) || stPts < 1) ? e.points : stPts;
+        });
+        perPlayer[e.player] = (perPlayer[e.player] || 0) + entryPts;
+        totalPts += entryPts;
         totalEntries++;
       });
     });
@@ -8692,7 +8728,7 @@
         const p = cachedPlayers.find(pl => pl.name === name);
         const avatar = getAvatarUrl(name, p ? p.meta : '');
         return '<div class="lot-recap-row">' +
-          '<img class="lot-recap-avatar" src="' + escapeHtml(avatar) + '" alt="" onerror="this.src=getAvatarUrl(' + JSON.stringify(name) + ',\'\')">' +
+          '<img class="lot-recap-avatar" src="' + escapeHtml(avatar) + '" alt="" onerror="this.src=getAvatarUrl(' + escapeHtml(JSON.stringify(name)) + ',&#39;&#39;)">' +
           '<span class="lot-recap-name">' + escapeHtml(name) + '</span>' +
           '<span class="lot-recap-pts">+' + perPlayer[name] + ' pts</span>' +
         '</div>';
@@ -12633,7 +12669,7 @@
     const altBtn = document.createElement('button');
     altBtn.type = 'button';
     altBtn.className = 'alt-picker-btn';
-    altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
+    altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:var(--alt-accent); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
 
     const altBtnContent = document.createElement('span');
     altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
@@ -12641,19 +12677,20 @@
 
     const altMenu = document.createElement('div');
     altMenu.className = 'alt-picker-menu';
-    altMenu.style.cssText = `display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--card-solid); border:1.5px solid ${ALT_FALLBACK_COLOR}; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;`;
+    altMenu.style.cssText = `display:none; position:absolute; top:100%; left:0; margin-top:4px; min-width:210px; max-height:220px; overflow-y:auto; background:var(--card-solid); border:1.5px solid var(--alt-accent); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:6px; z-index:120; flex-direction:column; gap:4px;`;
 
     const updateAltPickerUI = () => {
       const active = altCb.checked && altCatSel.value;
       if (active) {
         const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
         const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
+        const catColor = (cat && cat.color) || ALT_FALLBACK_COLOR;
         altBtn.className = 'alt-picker-btn active';
-        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${ALT_FALLBACK_COLOR}; background:rgba(var(--alt-accent-rgb), 0.22); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(var(--alt-accent-rgb), 0.3);`;
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${catColor}; background:rgba(var(--alt-accent-rgb), 0.22); color:${catColor}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(var(--alt-accent-rgb), 0.3);`;
         altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
       } else {
         altBtn.className = 'alt-picker-btn';
-        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:${ALT_FALLBACK_COLOR}; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
+        altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px dashed rgba(var(--alt-accent-rgb), 0.5); background:rgba(var(--alt-accent-rgb), 0.08); color:var(--alt-accent); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;`;
         altBtnContent.innerHTML = '⭐ Top Alt <span style="font-size:0.65rem; opacity:0.7;">▼</span>';
       }
     };
@@ -12686,7 +12723,7 @@
         const opt = document.createElement('div');
         opt.className = 'alt-picker-opt';
         const isSelected = altCb.checked && altCatSel.value === ac.name;
-        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ` background:${ALT_FALLBACK_COLOR}; color:#121824; font-weight:800;` : ' color:var(--text);');
+        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ` background:${ac.color || ALT_FALLBACK_COLOR}; color:#121824; font-weight:800;` : ' color:var(--text);');
         
         const labelDiv = document.createElement('div');
         labelDiv.style.cssText = 'display:flex; align-items:center; gap:6px;';
@@ -12774,7 +12811,11 @@
       fill:        fillToggle.dataset.fill,
       days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
       description: descInput.value,
-      altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : ''
+      altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : '',
+      subTops: Array.from(subTopsList.querySelectorAll('.sub-top-item')).map(st => ({
+        category: st.querySelector('.sub-cat-select').value,
+        points:   st.querySelector('.sub-pts-input').value
+      }))
     }, dupBtn));
     topBar.appendChild(dupBtn);
 
@@ -12809,10 +12850,14 @@
     subTopBtn.innerHTML = '＋ Top supp.';
     subTopBtn.title = 'Ajouter un autre Top à cette même ligne';
 
-    subTopBtn.addEventListener('click', () => {
+    function addSubTopItem(presetSubTop) {
       const subItem = document.createElement('div');
       subItem.className = 'sub-top-item';
       subItem.style.cssText = 'display:flex; align-items:center; gap:8px; background:var(--btn-alt); padding:4px 8px; border-radius:6px; font-size:0.82rem; border:1px solid var(--border);';
+
+      const subCatDot = document.createElement('span');
+      subCatDot.className = 'sub-cat-dot';
+      subCatDot.style.cssText = 'width:9px; height:9px; border-radius:50%; flex-shrink:0; display:inline-block;';
 
       const subCatSel = document.createElement('select');
       subCatSel.className = 'sub-cat-select';
@@ -12822,11 +12867,16 @@
         opt.value = c.name; opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name;
         subCatSel.appendChild(opt);
       });
-      if (cachedCategories[1]) subCatSel.value = cachedCategories[1].name;
+      subCatSel.value = (presetSubTop && presetSubTop.category && cachedCategories.some(c => c.name === presetSubTop.category))
+        ? presetSubTop.category
+        : (cachedCategories[1] ? cachedCategories[1].name : '');
+      const updateSubCatDot = () => { subCatDot.style.background = categoryColor(subCatSel.value); };
+      updateSubCatDot();
+      subCatSel.addEventListener('change', updateSubCatDot);
 
       const subPtsInput = document.createElement('input');
       subPtsInput.type = 'number'; subPtsInput.className = 'sub-pts-input';
-      subPtsInput.value = customPtsInput.value || '1';
+      subPtsInput.value = (presetSubTop && presetSubTop.points) || customPtsInput.value || '1';
       subPtsInput.min = '1';
       subPtsInput.style.cssText = 'width:60px; padding:4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;';
 
@@ -12836,6 +12886,7 @@
       delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
 
       subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
+      subItem.appendChild(subCatDot);
       subItem.appendChild(subCatSel);
       subItem.appendChild(document.createTextNode(' Pts : '));
       subItem.appendChild(subPtsInput);
@@ -12843,7 +12894,12 @@
 
       subTopsList.appendChild(subItem);
       updateLotSummary();
-    });
+    }
+
+    subTopBtn.addEventListener('click', () => addSubTopItem());
+    if (preset && Array.isArray(preset.subTops)) {
+      preset.subTops.forEach(st => addSubTopItem(st));
+    }
 
     topCol.appendChild(mainTopRow);
     topCol.appendChild(subTopsList);
@@ -12918,8 +12974,11 @@
         renderBaremeQuickBtns(baremeEntries, topName);
       } else {
         callServer('apiGetBareme', [], res => {
-          if (res.success) { baremeEntries = res.entries; renderBaremeQuickBtns(res.entries, topName); }
-        }, 'Barème rapide');
+          baremeEntries = res.entries;
+          renderBaremeQuickBtns(res.entries, topName);
+        }, 'Barème rapide', () => {
+          bqBtns.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+        });
       }
     }
 
@@ -13056,13 +13115,13 @@
       hqPagination.style.display = 'none';
       callServer('apiGetHistoryPage', [page, HIST_PAGE_SIZE, [player], [category], null], function(res) {
         _histLoading = false;
-        if (res.success) {
-          _histPage = page;
-          renderHistEntries(res.logs, page, res.total);
-        } else {
-          hqList.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
-        }
-      }, 'Historique rapide');
+        _histPage = page;
+        renderHistEntries(res.logs, page, res.total);
+      }, 'Historique rapide', () => {
+        _histLoading = false;
+        hqList.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+        hqPagination.style.display = 'none';
+      });
     }
 
     hqHeader.addEventListener('click', function() {
@@ -13172,6 +13231,50 @@
     if (animateFromBtn) floatPointsBadge(animateFromBtn, defaultPts);
   }
 
+  /**
+   * Points a row will actually write once submitted: the raw value on
+   * .custom-pts-in undercounts as soon as a date range or a sub-top is
+   * involved. Mirrors the same date-explosion StorageService.appendBulkPlan
+   * (Code.gs) applies at write time — repeat writes the full value on every
+   * date, distribute splits it across dates; sub-tops without their own
+   * points fall back to that date's main value, same as Code.gs.
+   */
+  function computeRowTotalPoints(row) {
+    const ptsEl = row.querySelector('.custom-pts-in');
+    const points = parseInt((ptsEl && ptsEl.value) || '0', 10);
+    if (isNaN(points) || points < 1) return 0;
+
+    const dStart  = row.querySelector('.d-start');
+    const dEnd    = row.querySelector('.d-end');
+    const rangeCb = row.querySelector('.range-cb');
+    const fillTg  = row.querySelector('.line-fill');
+    const isRange = !!(rangeCb && rangeCb.checked);
+    const dates = lineDates(dStart ? dStart.value : '', isRange && dEnd ? (dEnd.value || (dStart ? dStart.value : '')) : '');
+    const n = Math.max(1, dates.length);
+    const fill = fillTg ? fillTg.dataset.fill : 'repeat';
+
+    const perDatePoints = (n === 1 || fill === 'repeat')
+      ? new Array(n).fill(points)
+      : (() => {
+          const base = Math.floor(points / n), rem = points % n;
+          return Array.from({ length: n }, (_, k) => base + (k < rem ? 1 : 0));
+        })();
+
+    const subTopPoints = Array.from(row.querySelectorAll('.sub-top-item')).map(st => {
+      const ptsInput = st.querySelector('.sub-pts-input');
+      const stPts = parseInt((ptsInput && ptsInput.value) || '', 10);
+      return (isNaN(stPts) || stPts < 1) ? null : stPts; // null = falls back to that date's main total
+    });
+
+    let total = 0;
+    perDatePoints.forEach(dayPts => {
+      if (dayPts <= 0) return;
+      total += dayPts;
+      subTopPoints.forEach(stPts => { total += (stPts === null ? dayPts : stPts); });
+    });
+    return total;
+  }
+
   function updateLotSummary() {
     const bar = document.getElementById('lotSummaryBar');
     if (!bar) return;
@@ -13179,10 +13282,7 @@
     const count = rows.length;
     if (count < 2) { bar.classList.add('hidden'); return; }
     let totalPts = 0;
-    rows.forEach(r => {
-      const v = parseInt((r.querySelector('.custom-pts-in') || {}).value || '0', 10);
-      if (!isNaN(v) && v > 0) totalPts += v;
-    });
+    rows.forEach(r => { totalPts += computeRowTotalPoints(r); });
     bar.classList.remove('hidden');
     const batchCount = document.getElementById('batchLineCount');
     if (batchCount) batchCount.textContent = count > 0 ? '(' + count + ' ligne' + (count > 1 ? 's' : '') + ')' : '';
@@ -13205,8 +13305,8 @@
       const byPlayer = {};
       rows.forEach(r => {
         const pSel = r.querySelector('.p-sel');
-        const v    = parseInt((r.querySelector('.custom-pts-in') || {}).value || '0', 10);
-        if (pSel && !isNaN(v) && v > 0) {
+        const v    = computeRowTotalPoints(r);
+        if (pSel && v > 0) {
           byPlayer[pSel.value] = (byPlayer[pSel.value] || 0) + v;
         }
       });
@@ -13222,6 +13322,11 @@
     lotGroupSel.clear();
     document.getElementById('lotGroupBar').style.display = 'flex';
     document.getElementById('lotGroupModeBtn').style.display = 'none';
+    // Rows are matched back to their selection by id when the group is applied
+    // (applyLotGroup). Adding a row or switching universe rebuilds the whole
+    // container with fresh ids, which would silently orphan any selection made
+    // before that point — so both actions are blocked while grouping is active.
+    setLotGroupDependentControlsDisabled(true);
     updateLotGroupBar();
     document.querySelectorAll('.entry-row').forEach(r => {
       r.classList.add('lot-group-selectable');
@@ -13234,9 +13339,17 @@
     lotGroupSel.clear();
     document.getElementById('lotGroupBar').style.display = 'none';
     document.getElementById('lotGroupModeBtn').style.display = '';
+    setLotGroupDependentControlsDisabled(false);
     document.querySelectorAll('.entry-row').forEach(r => {
       r.classList.remove('lot-group-selectable', 'lot-group-selected');
       r.removeEventListener('click', onLotGroupRowClick);
+    });
+  }
+
+  function setLotGroupDependentControlsDisabled(disabled) {
+    ['addRowBtn', 'lotModeMainBtn', 'lotModeAltBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = disabled;
     });
   }
 
@@ -13278,7 +13391,9 @@
       tagEl.textContent = 'Groupe ' + lotGroupSeq;
       tagEl.style.background = groupColor;
       row.appendChild(tagEl);
-      row.style.setProperty('--row-accent', groupColor);
+      // --row-accent stays owned by the row's Top color (applyRowCategoryVisuals) —
+      // the group tag above is enough of a visual marker without overwriting the
+      // data-driven color of the row it's attached to.
     });
     showToast('Groupe ' + lotGroupSeq + ' créé (' + lotGroupSel.size + ' lignes).', 'success');
     exitLotGroupMode();
@@ -15762,10 +15877,14 @@
     const btn = document.getElementById('themeToggle');
     btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
     btn.addEventListener('click', () => {
+      document.body.classList.add('theme-switching');
       document.body.classList.toggle('light');
       const isLight = document.body.classList.contains('light');
       localStorage.setItem('topsdestops_theme', isLight ? 'light' : 'dark');
       btn.textContent = isLight ? '☀️' : '🌙';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.body.classList.remove('theme-switching');
+      }));
       if (currentChart && currentChartData) {
         if (currentChartType === 'trend') renderTrendChart(currentChartData);
         else renderChart(currentChartData, currentChartType);

@@ -58,6 +58,23 @@ test('AltStorageService adds and retrieves entries in AltHistory with refHistory
   assert.strictEqual(logs[0].groupId, 'G10');
 });
 
+test('AltStorageService.addAltEntries drops entries with invalid points instead of writing 0 silently', () => {
+  const gas = loadGas();
+  const altHistory = makeSheet([HEADER_ALT_HIST]);
+  gas.ConfigService.getSheets = () => ({ altHistory });
+
+  gas.AltStorageService.addAltEntries([
+    { date: '2026-08-01', player: 'Alice', category: 'Alt 1', points: 10, refHistoryRowId: '2', groupId: 'G1' },
+    { date: '2026-08-01', player: 'Bob',   category: 'Alt 1', points: 0,  refHistoryRowId: '3', groupId: 'G1' },
+    { date: '2026-08-01', player: 'Chloé', category: 'Alt 1', points: NaN, refHistoryRowId: '4', groupId: 'G1' }
+  ]);
+
+  const logs = gas.AltStorageService.getAltLogs();
+  assert.strictEqual(logs.length, 1, 'only the valid entry (Alice) should be written');
+  assert.strictEqual(logs[0].player, 'Alice');
+  assert.strictEqual(logs[0].points, 10);
+});
+
 test('apiGroupSimilarEntries automatically groups identical ungrouped entries', () => {
   const gas = loadGas();
   const history = makeSheet([

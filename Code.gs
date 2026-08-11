@@ -1181,10 +1181,22 @@ const AltStorageService = {
     ];
   },
 
+  /**
+   * Unlike addNativeAltEntries, this is called after the main History rows for
+   * the same plan are already written (StorageService.appendBulkPlan) — it
+   * cannot throw on a bad entry without reporting the whole submission as
+   * failed when the History part actually succeeded. Invalid entries are
+   * dropped instead of silently written with 0 points.
+   */
   addAltEntries(entries) {
     if (!entries || !entries.length) return;
+    const valid = entries.filter(e => {
+      const pts = parseInt(e.points, 10);
+      return e.player && e.category && !isNaN(pts) && pts >= 1;
+    });
+    if (!valid.length) return;
     const sheet = this._sheet();
-    const rows = entries.map(e => this._buildAltRow(e));
+    const rows = valid.map(e => this._buildAltRow(e));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
     ConfigService.clearCache();
   },

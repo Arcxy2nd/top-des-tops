@@ -4,6 +4,46 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.10.0] - 2026-08-11
+
+### Corrigé
+**Humanisé** : Dans Saisir un lot, une ligne saisie sur plusieurs jours et/ou avec un Top supplémentaire affichait un total de points bien inférieur à ce qui était réellement enregistré — la barre récap en bas d'écran et le message de confirmation après l'envoi. Un lot avec beaucoup de points était donc annoncé bien plus petit que ce qu'il enregistrait vraiment.
+**Technique** : `Index.html` — nouvelle fonction `computeRowTotalPoints(row)`, qui reproduit fidèlement le calcul serveur (`appendBulkPlan`, Code.gs) : multiplication par le nombre de dates en mode « répéter », répartition en mode « distribuer », et prise en compte des Tops supplémentaires. Utilisée par `updateLotSummary()` (barre récap) et `openLotRecapModal()` (récapitulatif post-envoi), qui sommaient auparavant la seule valeur brute du champ points.
+
+**Humanisé** : Dupliquer une ligne qui avait un Top supplémentaire perdait ce Top supplémentaire — la copie ne gardait que le Top principal.
+**Technique** : `Index.html` — `dupBtn` transmet désormais `subTops` (lu depuis les `.sub-top-item` de la ligne) dans le preset passé à `addEntryRow()` ; la construction des Tops supplémentaires est extraite dans `addSubTopItem(presetSubTop)`, appelée une fois par sous-top du preset au lieu de démarrer systématiquement vide.
+
+**Humanisé** : Grouper des lignes puis en ajouter une nouvelle, ou changer d'univers (Principal/Alternatif) pendant qu'un groupement était en préparation, laissait la sélection dans un état incohérent — le groupement pouvait annoncer un succès sans avoir réellement rien groupé.
+**Technique** : `Index.html` — `addRowBtn`, `lotModeMainBtn` et `lotModeAltBtn` sont désormais désactivés pendant `lotGroupMode` (`enterLotGroupMode`/`exitLotGroupMode`), ces deux actions reconstruisant les lignes avec de nouveaux identifiants et invalidant silencieusement toute sélection en cours.
+
+**Humanisé** : Grouper des lignes remplaçait la couleur du Top de chaque ligne groupée par une couleur arbitraire, sans rapport avec les données.
+**Technique** : `Index.html` — `applyLotGroup()` ne réécrit plus `--row-accent` (piloté par `applyRowCategoryVisuals` depuis la couleur réelle du Top) ; le badge « Groupe N » reste seul marqueur visuel du groupement.
+
+**Humanisé** : Le sélecteur de Top Alternatif d'une ligne affichait toujours la même couleur dorée, quel que soit le Top Alternatif choisi, et cette couleur était fausse en thème clair.
+**Technique** : `Index.html` — le picker Top Alt lit désormais la couleur réelle de la catégorie sélectionnée (`ac.color`) au lieu de la constante `ALT_FALLBACK_COLOR` seule ; son état neutre utilise `var(--alt-accent)` (correct dans les deux thèmes) plutôt que la valeur figée du thème sombre.
+
+**Humanisé** : Le panneau « 🕐 Historique rapide » et les suggestions « ⚖️ Barème rapide » d'une ligne restaient bloqués sur leur squelette de chargement en cas de panne serveur, sans aucun message.
+**Technique** : `Index.html` — `loadHistPage()` et `refreshBaremeForTop()` reçoivent un 5ᵉ argument `onError` à `callServer()`, qui affiche désormais un état d'erreur explicite au lieu de rien.
+
+**Humanisé** : Le récapitulatif affiché après l'enregistrement d'un lot pouvait planter silencieusement en erreur (visible en console) dès qu'un joueur avait un avatar introuvable — situation courante.
+**Technique** : `Index.html` — `openLotRecapModal()` : l'attribut `onerror` de l'avatar utilisait `JSON.stringify()` (guillemets doubles) non échappé à l'intérieur d'un attribut HTML lui-même entre guillemets doubles, corrompant le HTML généré et rendant le JS de repli inexécutable. Échappement HTML ajouté.
+
+**Humanisé** : Le gel de couleur au changement de thème (déjà corrigé deux fois sur d'autres écrans) touchait aussi le champ Description et les bascules d'univers/de mode date de Saisir un Lot.
+**Technique** : `Index.html` — au lieu de continuer à retirer `color`/`background-color` règle par règle, une classe `body.theme-switching` désactive toutes les transitions pendant une bascule de thème (`requestAnimationFrame` double avant retrait), fermant définitivement cette famille de bug plutôt que de la corriger au cas par cas à chaque passe d'audit.
+
+**Humanisé** : Sur mobile, les raccourcis de points (le contrôle le plus utilisé de tout l'onglet), les bascules de mode date, les puces de raccourci de date et les boutons dupliquer/supprimer/Top supplémentaire d'une ligne étaient trop petits pour un doigt.
+**Technique** : `Index.html` — cibles tactiles de `#tab-inject .pts-btn`, `.d-mode-seg .d-mode-btn`, `.date-shortcut`, `.row-topbar .btn-dup/.btn-del` et `.sub-top-add-btn` portées à `var(--tap-min)` (44px) sous 768px.
+
+**Humanisé** : La barre récap collante en bas de l'onglet pouvait recouvrir et bloquer les contrôles de la dernière ligne pendant le défilement d'un lot à plusieurs lignes.
+**Technique** : `Index.html` — `#entryContainer` réserve un espace en bas (`:has(~ #lotSummaryBar:not(.hidden))`) au moins égal à la hauteur de la barre.
+
+### Ajouté
+**Humanisé** : Les Tops supplémentaires d'une ligne (＋ Top supp.) affichent maintenant une pastille de couleur, comme le Top principal.
+**Technique** : `Index.html` — pastille `.sub-cat-dot` synchronisée sur `categoryColor()` du Top sélectionné, mise à jour au changement de sélection.
+
+**Humanisé** : Une entrée liée à un Top Alternatif avec des points invalides n'est plus enregistrée silencieusement avec 0 point.
+**Technique** : `Code.gs` — `AltStorageService.addAltEntries()` filtre désormais les entrées sans joueur/catégorie/points valides avant l'écriture, au lieu de les laisser passer à 0 via `_buildAltRow`. Chemin non atteignable avec l'UI actuelle (aucun appelant ne fournit de points invalides aujourd'hui) mais protection défensive alignée sur `addNativeAltEntries`. Test de non-régression ajouté (`tests/alt-tops.test.js`).
+
 ## [v3.9.0] - 2026-08-11
 
 ### Corrigé
