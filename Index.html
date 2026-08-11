@@ -13099,7 +13099,7 @@
 
     function renderBaremeQuickBtns(entries, topName) {
       bqBtns.innerHTML = '';
-      const matching = entries.filter(e => e.top === topName).sort((a, b) => b.pts - a.pts);
+      const matching = entries.filter(e => e.top === topName);
       if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
       baremeRow.classList.add('has-entries');
       matching.forEach(entry => {
@@ -17967,7 +17967,7 @@
     if (!container) return;
     container.innerHTML = '';
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name).sort((a, b) => b.pts - a.pts);
+      const catEntries = entries.filter(e => e.top === cat.name);
       const col        = categoryColor(cat.name);
       const block      = document.createElement('div');
       block.className  = 'bsect';
@@ -18006,8 +18006,11 @@
     const col = categoryColor(entry.top);
     const row = document.createElement('div');
     row.className = 'bsect-entry';
+    row.dataset.rowIndex = entry.rowIndex;
     row.style.borderLeft = '3px solid ' + tint(col, 0.5);
     row.style.background = tint(col, 0.05);
+
+    const handle = buildReorderHandle();
 
     const pts = document.createElement('span');
     pts.className = 'bsect-pts';
@@ -18059,7 +18062,13 @@
     });
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
-    row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
+    row.appendChild(handle); row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
+    attachReorderHandle(handle, row, entriesCont, '.bsect-entry', () => {
+      const orderedRowIndexes = Array.from(entriesCont.querySelectorAll('.bsect-entry')).map(el => Number(el.dataset.rowIndex));
+      callServer('apiReorderBareme', [entry.top, orderedRowIndexes, _whoAmI || ''], res => {
+        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+      }, 'Réordonner barème', () => renderBaremeSettings(baremeEntries));
+    }, () => requireIdentity());
     return row;
   }
 
@@ -18162,7 +18171,7 @@
       if (query) {
         catEntries = catEntries.filter(e => e.action.toLowerCase().includes(query) || cat.name.toLowerCase().includes(query));
       }
-      catEntries.sort((a, b) => b.pts - a.pts);
+      // Ordre déjà fourni par le serveur (BaremeService.getEntries) — pas de tri client ici.
       if (!catEntries.length) return;
       hasAny = true;
 
