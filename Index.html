@@ -9831,6 +9831,8 @@
     items.forEach(item => {
       const li = document.createElement('li');
       li.className = 'entity-item';
+      li.dataset.name = item.name;
+      li.appendChild(buildReorderHandle());
       const left = document.createElement('div');
       left.className = 'entity-left';
       if (type === 'Players') {
@@ -9928,6 +9930,12 @@
       btns.appendChild(editBtn); btns.appendChild(delBtn);
       li.appendChild(left); li.appendChild(btns);
       container.appendChild(li);
+      attachReorderHandle(li.querySelector('.reorder-handle'), li, container, '.entity-item', () => {
+        const orderedNames = Array.from(container.querySelectorAll('.entity-item')).map(el => el.dataset.name);
+        callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], () => {
+          loadEntities(); applyFilters();
+        }, 'Réordonner', () => { loadEntities(); });
+      }, () => requireIdentity());
     });
   }
 
