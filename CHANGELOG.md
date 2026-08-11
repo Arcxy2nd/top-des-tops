@@ -4,6 +4,42 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.9.0] - 2026-08-11
+
+### Corrigé
+**Humanisé** : Après une suppression dans l'Historique, un badge « Top Alternatif » pouvait se retrouver accroché à la mauvaise entrée (voire disparaître d'une entrée qui l'avait vraiment) — les filtres par Top Alternatif de l'Historique en héritaient. Plus ça, un utilisateur en dehors de l'Europe.
+**Technique** : `Code.gs` — `AltHistory.RefHistoryRowId` stocke un numéro de ligne absolu, figé au moment de la liaison ; toute suppression dans `History` (`sheet.deleteRow`) décale les lignes suivantes sans jamais renuméroter ces références. Nouvelle fonction `AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes)`, appelée depuis `apiDeleteHistoryEntries`, `apiDeleteGroup`, `StorageService.fixZeroPoints` et `StorageService.deleteOrphans` : les références vers une ligne supprimée sont effacées, les autres décalées du bon nombre de crans.
+
+**Humanisé** : Supprimer un groupe entier d'entrées dans l'Historique était la seule suppression de l'application sans aucun filet de rattrapage — ni les 5 secondes pour annuler comme les autres suppressions, ni le bouton « Annuler » du Journal ensuite.
+**Technique** : `Code.gs` — `apiDeleteGroup()` capture désormais un instantané des lignes supprimées et le passe à `AuditService.log()` (7ᵉ argument `snapshot`), rendant l'action annulable comme `apiDeleteHistoryEntries()`.
+
+**Humanisé** : Cinq actions du Journal d'audit (regroupement automatique, mise à jour/affectation/désaffectation de Tops Alternatifs, saisie native en Top Alternatif) affichaient leur résumé dans la mauvaise colonne du tableau (« Avant → Après » au lieu de « Détail »).
+**Technique** : `Code.gs` — ces 5 appels à `AuditService.log(author, action, entity, texte)` ne passaient que 4 arguments ; le texte tombait dans le 4ᵉ paramètre positionnel (`before`) au lieu du 6ᵉ (`detail`). Corrigés pour passer `before`/`after` vides et le texte en position `detail`.
+
+**Humanisé** : Le Journal d'audit affichait parfois une date au format « 28/08/2026 » dans la colonne « Avant » et « 2026-08-28 » pour la même colonne « Après », sur une même ligne de modification.
+**Technique** : `Code.gs` — `apiUpdateHistoryEntry()` reformate désormais `fields.date` (`YYYY-MM-DD`) en `DD/MM/YYYY` avant de construire le résumé « Après », pour correspondre au format déjà utilisé par `_historyRowSummary()` pour « Avant ».
+
+**Humanisé** : En cas de panne serveur passagère, plusieurs écrans de l'Historique et du Journal restaient bloqués sans explication : le tableau de l'Historique en squelette de chargement pour toujours, le bouton « Annuler » d'une action du Journal grisé indéfiniment, des lignes supprimées visuellement mais toujours présentes en réalité, et la liste des types d'action du Journal qui ne se remettait plus à jour après un seul échec.
+**Technique** : `Index.html` — ajout des gestionnaires `onError` manquants sur `apiGetHistoryPage` (affiche un message avec bouton « Réessayer »), `apiUndoAuditEntry` (réactive le bouton), `apiDeleteHistoryEntries` dans `scheduleDeletion()` (retire l'état « en cours de suppression »), et `loadAuditActionTypes()` (réinitialise son verrou de chargement sur échec).
+
+**Humanisé** : Le bouton « ↩️ Annuler » du Journal d'audit ouvrait une boîte de dialogue brute du navigateur au lieu de la fenêtre de confirmation habituelle de l'application (pas de thème, pas de style cohérent).
+**Technique** : `Index.html` — remplacement de `confirm()` par `openConfirmModal()`, comme partout ailleurs dans l'app.
+
+**Humanisé** : Après un passage au thème clair, le texte de certains champs (recherche, dates, menus déroulants du Journal) restait illisible — presque blanc sur fond blanc — tant qu'on ne quittait pas puis revenait sur l'écran.
+**Technique** : `Index.html` — même défaut moteur que le fond de page figé corrigé en v3.8.2 (Chromium ne rejoue jamais une transition dont le seul changement vient d'une custom property CSS), mais sur `color` plutôt que `background`. `color` retiré des listes `transition` de `body` et de la règle générique des champs de formulaire.
+
+**Humanisé** : Sur mobile, les boutons d'action de l'Historique et du Journal (modifier, supprimer, dissocier, retirer du groupe, annuler) étaient un peu petits pour le doigt.
+**Technique** : `Index.html` — nouvelle règle CSS mobile (`@media max-width:768px`) portant `button.small` à 44px minimum (`--tap-min`) dans `#historyTableBody` et `.audit-row`.
+
+**Humanisé** : L'état « aucune entrée » du Journal d'audit était un texte brut, sans l'icône que les autres écrans vides de l'app utilisent.
+**Technique** : `Index.html` — `renderAuditTable()` utilise désormais `emptyIllustration('🗒️', ...)`.
+
+**Humanisé** : Après une action dans l'Historique, il fallait quitter puis revenir sur le sous-onglet Journal pour que la nouvelle action apparaisse dans le filtre déroulant « Actions ».
+**Technique** : `Index.html` — le bouton « 🔄 Actualiser » du Journal recharge maintenant aussi la liste des types d'action (`loadAuditActionTypes(true)`), qui accepte un paramètre de rafraîchissement forcé.
+
+**Humanisé** : Une confirmation de suppression d'une entrée pouvait s'ouvrir avant même de vérifier qu'une identité était sélectionnée, contrairement aux autres actions similaires.
+**Technique** : `Index.html` — ajout de `requireIdentity()` avant l'ouverture de la modale de suppression individuelle d'une entrée d'Historique, cohérent avec les autres boutons d'action de la même ligne.
+
 ## [v3.8.3] - 2026-08-11
 
 ### Corrigé

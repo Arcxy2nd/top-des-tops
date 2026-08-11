@@ -926,13 +926,16 @@ const StorageService = {
     this._backupHistory();
     const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const rows = [];
+    const deletedRowIndexes = [];
     for (let i = data.length - 1; i >= 0; i--) {
       const pts = parseInt(data[i][3], 10);
       if (isNaN(pts) || pts <= 0) {
         rows.push(data[i]);
+        deletedRowIndexes.push(i + 2);
         sheet.deleteRow(i + 2);
       }
     }
+    AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
     return { deleted: rows.length, rows };
   },
 
@@ -947,14 +950,17 @@ const StorageService = {
     const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
     const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const rows = [];
+    const deletedRowIndexes = [];
     for (let i = data.length - 1; i >= 0; i--) {
       const player = data[i][1] ? data[i][1].toString() : '';
       const cat    = data[i][2] ? data[i][2].toString() : '';
       if (!players.has(player) || !categories.has(cat)) {
         rows.push(data[i]);
+        deletedRowIndexes.push(i + 2);
         sheet.deleteRow(i + 2);
       }
     }
+    AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
     return { deleted: rows.length, rows };
   },
 
@@ -1119,6 +1125,47 @@ const AltStorageService = {
     const logs = this.getAltLogs();
     if (!altCategory) return logs;
     return logs.filter(l => l.category === altCategory);
+  },
+
+  /**
+   * `AltHistory.RefHistoryRowId` stores an absolute History row number, frozen at
+   * link time. Deleting rows from History (sheet.deleteRow) shifts every row below
+   * up by one without ever touching that stored number — left uncorrected, badges
+   * silently drift onto the wrong entry. Call this right after any History
+   * deleteRow(s) with the exact 1-based row indexes that were removed: references
+   * to a deleted row are cleared (the link no longer points to anything), every
+   * other reference below the deleted rows is shifted down to match.
+   */
+  adjustRefsAfterHistoryDelete(deletedRowIndexes) {
+    const deleted = (deletedRowIndexes || [])
+      .map(n => parseInt(n, 10))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b);
+    if (!deleted.length) return;
+    const sheet = ConfigService.getSheets().altHistory;
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+    const range  = sheet.getRange(2, 6, lastRow - 1, 1); // column F: RefHistoryRowId
+    const values = range.getValues();
+    let changed = false;
+    for (let i = 0; i < values.length; i++) {
+      const raw = values[i][0];
+      if (!raw) continue;
+      const ref = parseInt(raw.toString(), 10);
+      if (isNaN(ref)) continue;
+      if (deleted.indexOf(ref) !== -1) {
+        values[i][0] = '';
+        changed = true;
+      } else {
+        const shift = deleted.filter(d => d < ref).length;
+        if (shift > 0) {
+          values[i][0] = (ref - shift).toString();
+          changed = true;
+        }
+      }
+    }
+    if (changed) range.setValues(values);
   },
 
   _buildAltRow(entry) {
@@ -2207,6 +2254,7 @@ function apiDeleteHistoryEntries(rowIndexes, author) {
       const sorted = [...rowIndexes].sort((a, b) => b - a);
       const removedRows = sorted.map(ri => history.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => history.deleteRow(ri));
+      AltStorageService.adjustRefsAfterHistoryDelete(sorted);
       AuditService.log(author, 'Suppression bulk', 'History', '', '', rowIndexes.length + ' entrée(s)',
         { sheet: 'history', op: 'deleteMany', rows: removedRows });
       ConfigService.clearCache();
@@ -2316,7 +2364,7 @@ function apiAppendAltNativeBatch(author, entries) {
     if (!entries || !entries.length) return fail(new Error('Aucune entrée à enregistrer.'));
     return withLock(function() {
       const count = AltStorageService.addNativeAltEntries(entries);
-      AuditService.log(author, 'Saisie native Alt', entries.map(e => e.altCategory).join(', '),
+      AuditService.log(author, 'Saisie native Alt', entries.map(e => e.altCategory).join(', '), '', '',
         count + ' entrée(s) saisie(s) directement dans Tops Alternatifs');
       return { success: true, count: count };
     });
@@ -2348,7 +2396,7 @@ function apiSaveAltCategories(author, list) {
     requireAuthor(author);
     return withLock(function() {
       AltSettingsService.saveAltCategories(list);
-      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', 'Mise à jour des catégories alternes');
+      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', '', '', 'Mise à jour des catégories alternes');
       return { success: true, altCategories: AltSettingsService.getAltCategories() };
     });
   } catch(e) { return fail(e); }
@@ -2359,7 +2407,7 @@ function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
     requireAuthor(author);
     return withLock(function() {
       const count = AltStorageService.linkHistoryRowsToAltCategory(rowIndices, altCategory, author);
-      AuditService.log(author, 'Affectation Top Alternatif', altCategory, count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
+      AuditService.log(author, 'Affectation Top Alternatif', altCategory, '', '', count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
       return { success: true, linkedCount: count };
     });
   } catch(e) { return fail(e); }
@@ -2370,7 +2418,7 @@ function apiUnlinkHistoryRowsFromAltCategory(author, rowIndices, altCategory) {
     requireAuthor(author);
     return withLock(function() {
       const count = AltStorageService.unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, author);
-      AuditService.log(author, 'Désaffectation Top Alternatif', altCategory || 'Tous', count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
+      AuditService.log(author, 'Désaffectation Top Alternatif', altCategory || 'Tous', '', '', count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
       return { success: true, unlinkedCount: count };
     });
   } catch(e) { return fail(e); }
@@ -2395,7 +2443,7 @@ function apiGroupSimilarEntries(author) {
     return withLock(function() {
       const result = StorageService.apiGroupSimilarEntries();
       if (result.groupedCount > 0) {
-        AuditService.log(author, 'Regroupement automatique', 'History', result.groupedCount + ' entrées regroupées dans ' + result.groupsCreated + ' groupe(s)');
+        AuditService.log(author, 'Regroupement automatique', 'History', '', '', result.groupedCount + ' entrées regroupées dans ' + result.groupsCreated + ' groupe(s)');
       }
       return { success: true, groupedCount: result.groupedCount, groupsCreated: result.groupsCreated };
     });
@@ -2680,8 +2728,13 @@ function apiUpdateHistoryEntry(rowIndex, fields, author) {
       const beforeRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
       StorageService.updateHistoryEntry(rowIndex, fields);
       const afterRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      // fields.date arrives as 'YYYY-MM-DD' from the edit form; reformatted to
+      // 'DD/MM/YYYY' so it matches _historyRowSummary()'s "before" format instead
+      // of showing two different date formats side by side in the audit diff.
+      const dateParts = (fields.date || '').split('-');
+      const afterDate = dateParts.length === 3 ? dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0] : (fields.date || '');
       const after = [fields.player || '?', fields.category || '?',
-        (parseInt(fields.points, 10) || '?') + ' pts', fields.date || '',
+        (parseInt(fields.points, 10) || '?') + ' pts', afterDate,
         fields.description || ''].join(' | ');
       AuditService.log(author, 'Modification entrée', 'History', before, after, 'ligne #' + rowIndex,
         { sheet: 'history', op: 'update', rowIndex, before: beforeRow, after: afterRow });
@@ -3351,9 +3404,12 @@ function apiDeleteGroup(groupId, author) {
         if (data[i][0] && data[i][0].toString() === groupId) rowsToDelete.push(i + 2);
       }
       if (!rowsToDelete.length) throw new Error("Groupe introuvable.");
-      rowsToDelete.sort((a, b) => b - a).forEach(ri => sheet.deleteRow(ri));
+      const sorted = rowsToDelete.slice().sort((a, b) => b - a);
+      const snapshotRows = sorted.map(ri => sheet.getRange(ri, 1, 1, 7).getValues()[0]);
+      sorted.forEach(ri => sheet.deleteRow(ri));
+      AltStorageService.adjustRefsAfterHistoryDelete(sorted);
       AuditService.log(author, 'Suppression groupe', 'History', groupId, '',
-        rowsToDelete.length + ' entrée(s)');
+        rowsToDelete.length + ' entrée(s)', { sheet: 'history', op: 'deleteMany', rows: snapshotRows });
       ConfigService.clearCache();
       return { success: true };
     });

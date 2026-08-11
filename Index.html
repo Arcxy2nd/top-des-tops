@@ -82,11 +82,12 @@
       margin: 0; padding: 0;
       min-height: 100vh;
       padding-bottom: env(safe-area-inset-bottom);
-      /* background-color is intentionally excluded: Chromium never re-runs a
-         transition on a property whose only driver is a custom-property swap
-         (var(--bg) changing via the body.light class) — the paint freezes at
-         whatever value was computed on first load, in either theme. */
-      transition: color 0.3s ease;
+      /* background-color and color are both intentionally excluded from the
+         transition list: Chromium never re-runs a transition on a property
+         whose only driver is a custom-property swap (var(--bg)/var(--text)
+         changing via the body.light class) — the paint freezes at whatever
+         value was computed on first load, in either theme. Confirmed for
+         color too (not just background-color) on a minimal isolated repro. */
     }
 
     /* ── NAVBAR (Glassmorphic) ── */
@@ -521,9 +522,9 @@
       color: var(--text);
       font-size: 15px;
       outline: none;
-      /* background-color excluded on purpose: see the comment on the body rule —
-         a var()-only background swap never re-triggers a transition on it. */
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+      /* background-color and color excluded on purpose: see the comment on the
+         body rule — a var()-only swap never re-triggers a transition on it. */
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
       width: 100%;
       touch-action: manipulation;
     }
@@ -3758,6 +3759,15 @@
   .audit-row td:last-child { min-width: var(--tap-min); }
   @media (max-width: 640px) {
     .history-nav-btn { font-size: 0.75rem; padding: 9px 5px; min-height: var(--tap-min); }
+  }
+  /* Row-action buttons (edit/delete/ungroup/unlink/undo) default to button.small's
+     34px — below the 44px tap target minimum on touch screens. */
+  @media (max-width: 768px) {
+    #historyTableBody button.small,
+    .audit-row button.small {
+      min-height: var(--tap-min);
+      min-width: var(--tap-min);
+    }
   }
 
   /* ── ENTITY ITEMS — redesign ── */
@@ -13535,19 +13545,20 @@
   // journalisées, au lieu d'une liste figée dans le HTML qui se désynchronise
   // à chaque fois qu'une nouvelle action est ajoutée côté backend.
   let _auditActionsLoaded = false;
-  function loadAuditActionTypes() {
-    if (_auditActionsLoaded) return;
+  function loadAuditActionTypes(force) {
+    if (_auditActionsLoaded && !force) return;
     _auditActionsLoaded = true;
     callServer('apiGetAuditActionTypes', [], res => {
       const sel = document.getElementById('auditFilterAction');
       const current = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
       (res.actions || []).forEach(action => {
         const opt = document.createElement('option');
         opt.value = action; opt.textContent = action;
         sel.appendChild(opt);
       });
       sel.value = current;
-    }, 'Chargement des types d\'action');
+    }, 'Chargement des types d\'action', () => { _auditActionsLoaded = false; });
   }
 
   function loadAuditLog(page) {
@@ -13623,7 +13634,7 @@
       const td = empty.insertCell();
       td.colSpan = 7;
       td.style.cssText = 'text-align:center;color:var(--text-muted);padding:24px;';
-      td.textContent = 'Aucune entrée dans le journal.';
+      td.innerHTML = emptyIllustration('🗒️', 'Aucune entrée dans le journal.');
       return;
     }
 
@@ -13749,19 +13760,15 @@
         undoBtn.title = 'Annuler : ' + log.action;
         undoBtn.addEventListener('click', () => {
           if (!requireIdentity()) return;
-          if (!confirm('Annuler cette action ("' + log.action + '") ?')) return;
-          undoBtn.disabled = true;
-          callServer('apiUndoAuditEntry', [log.id, _whoAmI || ''], res => {
-            if (res && res.success === false) {
-              showToast('Erreur : ' + (res.error || 'Annulation impossible.'), 'error');
-              undoBtn.disabled = false;
-            } else {
+          openConfirmModal('Annuler cette action ("' + log.action + '") ?', () => {
+            undoBtn.disabled = true;
+            callServer('apiUndoAuditEntry', [log.id, _whoAmI || ''], res => {
               showToast('Action annulée.', 'success');
               loadAuditLog(_auditCurrentPage);
               loadHistoryPage(currentHistoryPage);
               applyFilters();
-            }
-          }, 'Annuler action journal');
+            }, 'Annuler action journal', () => { undoBtn.disabled = false; });
+          });
         });
         tdActions.appendChild(undoBtn);
       }
@@ -13936,7 +13943,12 @@
       setTimeout(() => pending.toastEl.remove(), 300);
       callServer('apiDeleteHistoryEntries', [rowIndexes, _whoAmI || ''], () => {
         _doLoadHistoryPage(currentHistoryPage);
-      }, 'Suppression historique');
+      }, 'Suppression historique', () => {
+        rowIndexes.forEach(ri => {
+          const tr = document.querySelector('tr[data-row-index="' + ri + '"]');
+          if (tr) tr.classList.remove('hist-pending-delete');
+        });
+      });
     }, 5000);
 
     pendingDeletions.set(id, { rowIndexes, timerId, toastEl });
@@ -14204,7 +14216,14 @@
     callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter], res => {
       _renderHistoryPage(page, res);
       _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter);
-    }, 'Chargement historique');
+    }, 'Chargement historique', () => {
+      const tbody = document.getElementById('historyTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="' + (histSelectMode ? 7 : 6) + '" style="text-align:center;color:var(--text-muted);padding:24px;">' +
+        'Échec du chargement. <button class="secondary small" id="histLoadRetryBtn">Réessayer</button></td></tr>';
+      const retryBtn = document.getElementById('histLoadRetryBtn');
+      if (retryBtn) retryBtn.addEventListener('click', () => _doLoadHistoryPage(page));
+    });
   }
 
   // Précharge silencieusement la page suivante (pas de skeleton, pas de toast d'erreur
@@ -14393,6 +14412,7 @@
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
     delBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
       openConfirmModal('Supprimer cette entrée ?', () => {
         buzz();
         scheduleDeletion([log.rowIndex]);
@@ -16059,7 +16079,7 @@
       currentHistoryPage = 1; clearHistPrefetchCache(); loadHistoryPage(1);
     });
 
-    document.getElementById('auditRefreshBtn').addEventListener('click',   () => loadAuditLog(1));
+    document.getElementById('auditRefreshBtn').addEventListener('click',   () => { loadAuditLog(1); loadAuditActionTypes(true); });
     document.getElementById('auditFilterAuthor').addEventListener('change', () => loadAuditLog(1));
     document.getElementById('auditFilterAction').addEventListener('change', () => loadAuditLog(1));
     // Plages rapides + effacement du Journal via le même helper DRY que l'Historique.

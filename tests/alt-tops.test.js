@@ -124,3 +124,30 @@ test('appendBulkPlan handles subTops and altCategory linking', () => {
   assert.strictEqual(altLogs[0].points, 10);
   assert.strictEqual(altLogs[0].refHistoryRowId, '2');
 });
+
+test('deleting History rows renumbers surviving AltHistory refHistoryRowId and clears deleted refs', () => {
+  const gas = loadGas();
+  // History rows 2..5 (sheet rows). Row 2 gets deleted; rows 3-5 shift up to 2-4.
+  const history = makeSheet([
+    HEADER_HIST,
+    [new Date('2026-08-01'), 'Alice', 'Top A', 5, 'row2-deleted', ''],
+    [new Date('2026-08-02'), 'Bob',   'Top A', 5, 'row3->2', ''],
+    [new Date('2026-08-03'), 'Carl',  'Top A', 5, 'row4->3', ''],
+    [new Date('2026-08-04'), 'Dave',  'Top A', 5, 'row5->4', '']
+  ]);
+  const altHistory = makeSheet([
+    HEADER_ALT_HIST,
+    ['2026-08-01', 'Alice', 'Alt 1', 5, 'linked to deleted row', '2', '', ''],
+    ['2026-08-02', 'Bob',   'Alt 1', 5, 'linked to row that shifts', '3', '', ''],
+    ['2026-08-04', 'Dave',  'Alt 1', 5, 'linked to row that shifts twice', '5', '', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history, altHistory });
+
+  const res = gas.apiDeleteHistoryEntries([2], 'Tester');
+  assert.strictEqual(res.success, true);
+
+  const refs = altHistory._grid.slice(1).map(r => r[5]);
+  assert.strictEqual(refs[0], '', 'ref to the deleted row is cleared, not left dangling on the wrong entry');
+  assert.strictEqual(refs[1], '2', 'ref to former row 3 shifts down to 2');
+  assert.strictEqual(refs[2], '4', 'ref to former row 5 shifts down to 4');
+});

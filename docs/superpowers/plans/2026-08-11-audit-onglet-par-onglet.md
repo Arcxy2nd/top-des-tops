@@ -39,7 +39,7 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 |---|-------|-------------------|------|----------------|------|
 | 0 | Ligne de base (outillage) | — | ✅ livré | — | ci-dessous |
 | 1 | 📊 Dashboard | `#tab-dashboard` (l. 4156-4299) | ✅ livré | v3.8.2 | [2026-08-11-audit-dashboard.md](2026-08-11-audit-dashboard.md) |
-| 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4748-4850) | 🔄 en cours | — | [2026-08-11-audit-historique.md](2026-08-11-audit-historique.md) |
+| 2 | 📜 Historique + 🔍 Journal d'audit | `#tab-history` (l. 4748-4850) | ✅ livré | v3.9.0 | [2026-08-11-audit-historique.md](2026-08-11-audit-historique.md) |
 | 3 | ✍️ Saisir un Lot | `#tab-inject` (l. 4300-4367) | ⬜ à faire | — | — |
 | 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4368-4726) | ⬜ à faire | — | — |
 | 5 | 📝 Notes | `#tab-notes` (l. 4727-4740) | ⬜ à faire | — | — |
@@ -236,6 +236,13 @@ Ce que les passes apprennent — sur l'application, et sur ce protocole. Rempli 
 - **Un serveur de prévisualisation gardé ouvert entre deux corrections sert du code et un cache obsolètes.** Après avoir corrigé `SettingsService.getEntities()` (R4), le fantôme « Name » restait visible dans le navigateur — pas un défaut du fix, mais le process Node du harness qui gardait en mémoire l'ancien `Code.gs` require()-é une fois, plus un cache applicatif (`CacheService` simulé) jamais invalidé entre les deux versions. Un redémarrage complet du serveur de prévisualisation a suffi. À refaire systématiquement après toute correction backend testée en navigateur.
 
 ---
+
+**Passe 2 (Historique + Journal d'audit) :**
+
+- **Un motif « transition sur une propriété pilotée uniquement par une custom property » n'est pas limité à `background` — `color` en souffre identiquement.** R10 (texte figé dans l'ancien thème après bascule) est la même cause racine que R7 (passe 1), sur une propriété différente, dans les mêmes règles CSS que R7/C6 avaient déjà touchées sans y penser. Un balayage lors de la correction de R7 aurait pu l'anticiper. À vérifier systématiquement pour toute propriété transitionnée dépendant d'une variable de thème, pas seulement `background`/`background-color`.
+- **Un identifiant "numéro de ligne au moment de la liaison" est une dette qui ne se voit qu'au moment où on supprime une ligne en amont.** C6 (badges Top Alternatif mal raccrochés) est la même classe de bug que celui déjà corrigé pour les Notes (CHANGELOG:513) — jamais généralisé aux autres endroits qui référencent une ligne d'Historique par numéro absolu (`AltHistory.RefHistoryRowId`). Le motif « numéro de ligne stocké » mérite d'être recherché explicitement dans les prochaines passes (ex. Saisir un Lot, Paramètres) plutôt que découvert au hasard.
+- **Une action de suppression qui n'utilise pas le chemin commun (`scheduleDeletion` + snapshot `AuditService.log`) perd silencieusement son filet de rattrapage.** C9 (suppression de groupe non annulable) montre qu'ajouter une nouvelle action destructrice sans repasser par le patron existant est facile à manquer en revue — vaut la peine d'être un point de vérification systématique de l'axe 4 pour toute future passe touchant une suppression.
+- **Le sondage en navigateur headless nécessite de désactiver GSAP pour observer l'état réel.** Le pane du navigateur de cette session n'était pas réellement affiché (`document.hidden === true`), donc `requestAnimationFrame` ne s'exécutait jamais et les animations GSAP (changement d'onglet, transitions) restaient bloquées indéfiniment — pas un défaut de l'app. Contournement systématique : mettre `window.gsap = null` avant d'appeler `goToTab()` puis le restaurer, pour forcer le chemin synchrone. À réutiliser pour toutes les passes suivantes utilisant ce navigateur.
 
 ## Amendements du protocole
 
