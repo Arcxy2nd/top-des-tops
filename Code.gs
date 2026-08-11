@@ -423,6 +423,13 @@ const SettingsService = {
   addEntity(type, name, meta, icon) {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    const data  = sheet.getDataRange().getValues();
+    // A duplicate name isn't just cosmetic here: deleteEntity() removes every
+    // row matching a name, so two entities sharing one would both vanish on
+    // what looks like a single, unitary deletion.
+    if (data.some((row, i) => i > 0 && row[0] === name)) {
+      throw new Error(`${name} existe déjà.`);
+    }
     if (type === 'Players') {
       sheet.appendRow([name, meta || "", ""]);
     } else {
@@ -464,6 +471,9 @@ const SettingsService = {
       if (data[i][0] === oldName) { idx = i; break; }
     }
     if (idx === -1) throw new Error(`${oldName} introuvable.`);
+    if (newName !== oldName && data.some((row, i) => i !== idx && row[0] === newName)) {
+      throw new Error(`${newName} existe déjà.`);
+    }
     if (type === 'Players') {
       const existingColor = data[idx][2] ? data[idx][2].toString() : "";
       sheet.getRange(idx + 1, 1, 1, 3).setValues([[newName, newMeta || "", existingColor]]);
@@ -3201,9 +3211,10 @@ function apiDetectOutlierScores() {
       const points = list.map(r => r.points);
       const med = median(points);
       const mad = median(points.map(p => Math.abs(p - med))) || 1; // évite un seuil nul si MAD = 0
-      const threshold = med + 5 * mad;
+      const highThreshold = med + 5 * mad;
+      const lowThreshold  = med - 5 * mad; // symétrique : une valeur anormalement basse est tout autant une faute de frappe
       list.forEach(r => {
-        if (r.points > threshold) {
+        if (r.points > highThreshold || r.points < lowThreshold) {
           outliers.push({
             rowIndex: r.rowIndex, player: r.player, category: r.category, points: r.points,
             categoryAverage: Math.round(med), dateStr: dayKey(r.date)
@@ -3232,7 +3243,9 @@ function apiGetInactivePlayers() {
     players.forEach(p => {
       const last = lastByPlayer[p.name];
       if (!last) { neverActive.push(p.name); return; }
-      inactive.push({ player: p.name, daysSinceLastEntry: Math.floor((now - last) / 86400000) });
+      // Clamped to 0: nothing stops a score from being entered with a future
+      // date, which would otherwise show as a negative "days since".
+      inactive.push({ player: p.name, daysSinceLastEntry: Math.max(0, Math.floor((now - last) / 86400000)) });
     });
     inactive.sort((a, b) => b.daysSinceLastEntry - a.daysSinceLastEntry);
 

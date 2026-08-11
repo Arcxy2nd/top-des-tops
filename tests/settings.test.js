@@ -116,3 +116,48 @@ test('apiSaveTooltipStyle persists tooltip preferences to Settings sheet', () =>
   const res = gas.apiGetAppSettings();
   assert.deepEqual(res.tooltipStyle, prefs);
 });
+
+// Régression : addEntity() n'avait aucune vérification d'unicité de nom — un
+// double-clic sur "+ Ajouter" (ou deux appels concurrents) pouvait créer deux
+// entités identiques, et deleteEntity() les aurait ensuite supprimées toutes
+// les deux d'un coup sur ce qui ressemblait à une suppression unitaire.
+test('SettingsService.addEntity rejects a name that already exists', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  assert.throws(() => gas.SettingsService.addEntity('Players', 'Alice', '', ''), /existe déjà/);
+  assert.strictEqual(gas.SettingsService.getEntities('Players').length, 1, 'aucune ligne en double ne doit avoir été ajoutée');
+});
+
+test('SettingsService.renameEntity rejects a new name that collides with another entity', () => {
+  const gas = loadGas();
+  const categories = makeSheet([
+    ['Name', 'Description', 'Emoji', 'Hex color'],
+    ['Top A', '', '', ''],
+    ['Top B', '', '', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  gas.ConfigService.getSheets = () => ({ categories, history, autoRules: null, bareme: null, phrases: null });
+
+  assert.throws(() => gas.SettingsService.renameEntity('Categories', 'Top A', 'Top B', '', ''), /existe déjà/);
+  const cats = gas.SettingsService.getEntities('Categories').map(c => c.name);
+  assert.deepStrictEqual(cats, ['Top A', 'Top B'], 'aucun des deux Tops ne doit avoir été modifié');
+});
+
+test('SettingsService.renameEntity still allows a no-op rename to the same name', () => {
+  const gas = loadGas();
+  const categories = makeSheet([
+    ['Name', 'Description', 'Emoji', 'Hex color'],
+    ['Top A', 'old desc', '', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  gas.ConfigService.getSheets = () => ({ categories, history, autoRules: null, bareme: null, phrases: null });
+
+  gas.SettingsService.renameEntity('Categories', 'Top A', 'Top A', 'new desc', '🎯');
+  const cats = gas.SettingsService.getEntities('Categories');
+  assert.strictEqual(cats[0].meta, 'new desc');
+});

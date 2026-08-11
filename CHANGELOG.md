@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.11.0] - 2026-08-11
+
+### Corrigé
+**Humanisé** : « Joueurs inactifs » pouvait afficher un nombre de jours **négatif** (ex. « -11 jours ») pour un joueur ayant reçu des points avec une date future — rien n'empêche de saisir une date future à la saisie.
+**Technique** : `Code.gs` — `apiGetInactivePlayers()` : `daysSinceLastEntry` désormais borné à 0 minimum (`Math.max(0, ...)`).
+
+**Humanisé** : « Scores aberrants » ne repérait que les valeurs anormalement **hautes** — une faute de frappe donnant un score anormalement bas (ex. « 1 » au lieu de « 10 ») n'était jamais signalée, alors que l'outil promet une détection dans les deux sens.
+**Technique** : `Code.gs` — `apiDetectOutlierScores()` teste désormais un seuil bas symétrique (`med - 5*mad`) en plus du seuil haut.
+
+**Humanisé** : Plusieurs écrans de Paramètres/Outils restaient bloqués sur leur état de chargement (ou sur un bouton grisé à vie) en cas de panne serveur, sans aucun message : Changelog, Santé & nettoyage, Joueurs inactifs, gestion des points d'un Top Alternatif, réglages du Barème, et les 3 boutons d'édition du Barème (ajouter/modifier/supprimer).
+**Technique** : `Index.html` — ajout de l'`onError` manquant à `callServer()` sur ces 9 appels ; nettoyage du code mort qui re-testait `res.success` dans des callbacks que `callServer` avait déjà filtrés (même motif que la passe Historique et la passe Saisir un Lot précédentes).
+
+**Humanisé** : Sur mobile, les boutons d'action des 7 cartes de l'onglet Outils (Santé, Lots répartis, Groupes hérités, Doublons, Scores aberrants, Mentions, Inactifs) étaient trop petits pour un doigt.
+**Technique** : `Index.html` — cibles tactiles de `#stab-tools button.small` portées à `var(--tap-min)` (44px) sous 768px.
+
+**Humanisé** : La suppression d'un preset de commentaires utilisait la boîte de dialogue brute du navigateur au lieu de la fenêtre de confirmation habituelle de l'app.
+**Technique** : `Index.html` — `handleDeletePreset()` utilise désormais `openConfirmModal()` comme le reste de Paramètres.
+
+### Sécurité
+**Humanisé** : Ajouter un Joueur ou un Top en double (double-clic, ou renommer vers un nom déjà pris) créait deux entités identiques et indiscernables — supprimer l'une supprimait silencieusement les deux, la suppression n'étant jamais limitée à une seule ligne.
+**Technique** : `Code.gs` — `SettingsService.addEntity()` et `renameEntity()` refusent désormais un nom déjà utilisé par une autre entité du même type. Tests de non-régression ajoutés (`tests/settings.test.js`), y compris la survie intacte des entités non concernées.
+
 ## [v3.10.0] - 2026-08-11
 
 ### Corrigé

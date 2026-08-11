@@ -55,6 +55,21 @@ test('apiDetectOutlierScores flags an entry far above its category average, igno
   assert.strictEqual(res.outliers[0].points, 500);
 });
 
+test('apiDetectOutlierScores also flags an entry far below its category average', () => {
+  const gas = loadGas();
+  const rows = [HEADER];
+  for (let i = 0; i < 5; i++) rows.push(mk('2026-01-0' + (i + 1), 'A', 'Jeux', 20, 'x'));
+  rows.push(mk('2026-01-06', 'B', 'Jeux', 1, 'x')); // way below the category's usual value
+  const history = makeSheet(rows);
+  gas.ConfigService.getSheets = () => ({ history });
+
+  const res = gas.apiDetectOutlierScores();
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.outliers.length, 1);
+  assert.strictEqual(res.outliers[0].player, 'B');
+  assert.strictEqual(res.outliers[0].points, 1);
+});
+
 test('apiGetInactivePlayers separates never-active players and sorts the rest by days since last entry', () => {
   const gas = loadGas();
   const players    = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', ''], ['C', '', '']]);
@@ -71,6 +86,19 @@ test('apiGetInactivePlayers separates never-active players and sorts the rest by
   assert.deepStrictEqual([...res.neverActive], ['C']);
   assert.strictEqual(res.inactive.length, 2);
   assert.strictEqual(res.inactive[0].player, 'A'); // le plus inactif en premier
+});
+
+test('apiGetInactivePlayers clamps a future-dated entry to 0 days instead of a negative count', () => {
+  const gas = loadGas();
+  const players    = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', '']]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Jeux', '', '', '']]);
+  const farFuture = new Date(Date.now() + 30 * 86400000);
+  const history = makeSheet([HEADER, [farFuture, 'A', 'Jeux', 5, '', '', '']]);
+  gas.ConfigService.getSheets = () => ({ history, players, categories });
+
+  const res = gas.apiGetInactivePlayers();
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.inactive[0].daysSinceLastEntry, 0);
 });
 
 test('apiGetPlayerRecords computes best single entry, longest streak, and the global best', () => {

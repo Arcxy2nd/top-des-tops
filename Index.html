@@ -3797,6 +3797,13 @@
       min-height: var(--tap-min);
     }
   }
+  /* Paramètres → 🔧 Outils — same 34px button.small shortfall, on the action
+     button of each of the 7 tool cards. */
+  @media (max-width: 768px) {
+    #stab-tools button.small {
+      min-height: var(--tap-min);
+    }
+  }
 
   /* ── ENTITY ITEMS — redesign ── */
   .entity-item {
@@ -6343,16 +6350,16 @@
     const msg = active === PHRASES_DEFAULT_ID
       ? 'Vider le preset "Défaut" de toutes ses phrases personnalisées ? (Les phrases usine resteront disponibles comme repli.)'
       : 'Supprimer le preset "' + displayName + '" et toutes ses phrases ?';
-    if (!confirm(msg)) return;
-
-    callServer('apiDeletePreset', [active, _whoAmI || ''], res => {
-      _customPhrases = res.phrases;
-      setActivePresetId(PHRASES_DEFAULT_ID);
-      renderPresetChips();
-      renderPhrasesEditorSection();
-      if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
-      showToast('Preset "' + displayName + '" supprimé.', 'success');
-    }, 'Suppression preset');
+    openConfirmModal(msg, () => {
+      callServer('apiDeletePreset', [active, _whoAmI || ''], res => {
+        _customPhrases = res.phrases;
+        setActivePresetId(PHRASES_DEFAULT_ID);
+        renderPresetChips();
+        renderPhrasesEditorSection();
+        if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
+        showToast('Preset "' + displayName + '" supprimé.', 'success');
+      }, 'Suppression preset');
+    });
   }
 
   // ── PHRASES : RENOMMAGE PRESET ───────────────────────────────────────────
@@ -6749,19 +6756,17 @@
     
     callServer('apiGetChangelog', [!!forceRefresh], function(res) {
       _changelogLoading = false;
-      if (!res || !res.success) {
-        container.innerHTML = '<div class="card" style="color:var(--error); text-align:center; padding:24px;">❌ ' +
-          escapeHtml(res && res.error ? res.error : 'Erreur lors du chargement du changelog.') + '</div>';
-        return;
-      }
-      
       if (res.fetchedAt && timeEl) {
         const d = new Date(res.fetchedAt);
         timeEl.textContent = 'Dernière synchro Git : ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
-      
+
       _changelogRawMarkdown = res.content || '';
       renderChangelogView();
+    }, 'Chargement changelog', errMsg => {
+      _changelogLoading = false;
+      container.innerHTML = '<div class="card" style="color:var(--error); text-align:center; padding:24px;">❌ ' +
+        escapeHtml((errMsg && errMsg.message) || errMsg || 'Erreur lors du chargement du changelog.') + '</div>';
     });
   }
 
@@ -9164,7 +9169,6 @@
       content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Chargement des points...</div>';
 
       callServer('apiGetAltCategoryDetails', [altCategoryName], res => {
-        if (!res.success) { content.innerHTML = '<div style="color:var(--error);">Erreur de chargement.</div>'; return; }
         const entries = res.entries || [];
         if (!entries.length) {
           content.innerHTML = `
@@ -9258,7 +9262,9 @@
             });
           };
         });
-      }, 'Chargement points Alt');
+      }, 'Chargement points Alt', () => {
+        content.innerHTML = '<div style="color:var(--error);">Erreur de chargement.</div>';
+      });
     };
 
     document.getElementById('mAltMgrTabEntries').onclick = loadEntriesView;
@@ -9717,9 +9723,7 @@
           if (!requireIdentity()) return;
           const p = cachedPlayers.find(p => p.name === item.name);
           if (p) p.color = colorIn.value;
-          callServer('apiSetColor', ['Players', item.name, colorIn.value, _whoAmI || ''], res => {
-            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
-          }, 'Color save');
+          callServer('apiSetColor', ['Players', item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
           refreshColorDependentViews();
         });
         colorLbl.appendChild(colorDot);
@@ -9749,9 +9753,7 @@
           if (!requireIdentity()) return;
           const c = cachedCategories.find(c => c.name === item.name);
           if (c) c.color = colorIn.value;
-          callServer('apiSetColor', ['Categories', item.name, colorIn.value, _whoAmI || ''], res => {
-            if (!res.success) showToast('Erreur sauvegarde couleur.', 'error');
-          }, 'Color save');
+          callServer('apiSetColor', ['Categories', item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
           refreshColorDependentViews();
         });
         colorLbl.appendChild(colorDot);
@@ -15287,7 +15289,9 @@
           <div class="stat-label">Orphelines</div>
         </div>
       `;
-    }, 'Chargement santé');
+    }, 'Chargement santé', () => {
+      grid.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+    });
   }
 
   // ── POINTS AUTOMATIQUES ───────────────────────────────────────────────
@@ -16522,13 +16526,9 @@
           const restore = startBtnLoading(mergeBtn, 'Regroupement…');
           callServer('apiGroupDistributedLots', [lotsData, _whoAmI || ''], res => {
             restore();
-            if (res.success) {
-              showToast(totalEntries + ' entrées regroupées.', 'success');
-              scanDistributedLots();
-              loadHistoryPage(currentHistoryPage);
-            } else {
-              showToast(res.error || 'Erreur.', 'error');
-            }
+            showToast(totalEntries + ' entrées regroupées.', 'success');
+            scanDistributedLots();
+            loadHistoryPage(currentHistoryPage);
           }, 'Regroupement lots', () => { restore(); showToast('Erreur.', 'error'); });
         }
       );
@@ -17030,12 +17030,8 @@
         const restore = startBtnLoading(applyBtn, 'Application…');
         callServer('apiApplyMentionFixes', [fixes, _whoAmI || ''], res => {
           restore();
-          if (res.success) {
-            showToast(res.applied + ' correction(s) appliquée(s).', 'success');
-            scanMentionFixes();
-          } else {
-            showToast(res.error || 'Erreur.', 'error');
-          }
+          showToast(res.applied + ' correction(s) appliquée(s).', 'success');
+          scanMentionFixes();
         }, 'Application mentions', () => { restore(); showToast('Erreur lors de l\'application.', 'error'); });
       });
     });
@@ -17088,7 +17084,9 @@
       if (!res.inactive.length && !res.neverActive.length) {
         container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun joueur enregistré.</p>';
       }
-    }, 'Chargement joueurs inactifs');
+    }, 'Chargement joueurs inactifs', () => {
+      container.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+    });
   }
 
   // ── LIVRE DES RECORDS — constructeurs de lignes classées (DRY) ─────────
@@ -17771,11 +17769,12 @@
     }
     showSkeleton(container, { rows: Math.min(cachedCategories.length, 3), height: 60 });
     callServer('apiGetBareme', [], res => {
-      if (!res.success) { container.innerHTML = '<p style="color:var(--error)">Erreur de chargement.</p>'; return; }
       baremeEntries = res.entries;
       renderBaremeSettings(res.entries);
       if (document.getElementById('baremeDrawer').classList.contains('open')) renderBaremeDrawer(res.entries);
-    }, 'Barème settings');
+    }, 'Barème settings', () => {
+      container.innerHTML = '<p style="color:var(--error)">Erreur de chargement.</p>';
+    });
   }
 
   function renderBaremeSettings(entries) {
@@ -17853,9 +17852,8 @@
         const restore = startBtnLoading(ok, '…');
         callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
           restore();
-          if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
-          else showToast('Erreur sauvegarde.', 'error');
-        }, 'Update barème');
+          baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+        }, 'Update barème', () => restore());
       });
       const cancel = document.createElement('button');
       cancel.className = 'small'; cancel.textContent = '✕';
@@ -17871,9 +17869,8 @@
       const restore = startBtnLoading(delBtn, '…');
       callServer('apiDeleteBaremeEntry', [entry.rowIndex, _whoAmI || ''], res => {
         restore();
-        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
-        else showToast('Erreur suppression.', 'error');
-      }, 'Suppr. barème');
+        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+      }, 'Suppr. barème', () => restore());
     });
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
@@ -17896,9 +17893,8 @@
       const restore = startBtnLoading(addBtn, '…');
       callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
         restore();
-        if (res.success) { baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries); }
-        else showToast('Erreur ajout.', 'error');
-      }, 'Ajout barème');
+        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+      }, 'Ajout barème', () => restore());
     };
     addBtn.addEventListener('click', submit);
     actIn.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
