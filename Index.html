@@ -6137,8 +6137,8 @@
       const orderedRowIndexes = Array.from(poolContainer.querySelectorAll('.phrase-edit-item')).map(el => Number(el.dataset.rowIndex));
       callServer('apiReorderPhrases', [presetName, pool, orderedRowIndexes, _whoAmI || ''], res => {
         _customPhrases = res.phrases;
-        renderPoolList(presetName);
-      }, 'Réordonner phrases', () => renderPoolList(presetName));
+        renderPhrasesEditorSection();
+      }, 'Réordonner phrases', () => renderPhrasesEditorSection());
     });
     btnsWrap.prepend(downBtn); btnsWrap.prepend(upBtn);
     return row;
@@ -6949,7 +6949,7 @@
       block.appendChild(empty);
     } else {
       entries.forEach(entry =>
-        block.appendChild(buildPhraseEditRow(entry, presetName, poolKey, catLabel)));
+        block.appendChild(buildPhraseEditRow(entry, presetName, poolKey, catLabel, block)));
     }
     return block;
   }
