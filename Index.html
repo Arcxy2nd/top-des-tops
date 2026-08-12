@@ -9940,8 +9940,17 @@
       container.appendChild(li);
       const [upBtn, downBtn] = buildMoveButtons(container, '.entity-item', li, () => {
         const orderedNames = Array.from(container.querySelectorAll('.entity-item')).map(el => el.dataset.name);
-        callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], () => {
-          loadEntities(); applyFilters();
+        callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], res => {
+          // Peindre directement depuis la réponse plutôt que rappeler loadEntities() :
+          // celle-ci repeint d'abord depuis son cache localStorage (donc l'ancien ordre)
+          // avant que la vraie réponse serveur arrive, ce qui donnait un aller-retour
+          // visible (monte, grisé, redescend, puis se corrige).
+          cachedPlayers    = res.players    || [];
+          cachedCategories = res.categories || [];
+          try {
+            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+          } catch (e) { /* quota dépassé ou stockage désactivé : cache best-effort, pas bloquant */ }
+          _paintEntitiesUI({ withDataLoad: true });
         }, 'Réordonner', () => { loadEntities(); });
       });
       btns.prepend(downBtn); btns.prepend(upBtn);

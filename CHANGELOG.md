@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.1] - 2026-08-12
+
+### Corrigé
+**Humanisé** : Sur les listes Joueurs et Tops, cliquer sur ▲/▼ faisait bien monter ou descendre la ligne, mais elle redescendait brièvement à sa position d'avant (boutons grisés) avant de se corriger d'elle-même — un aller-retour déroutant, plus visible avec une connexion lente.
+**Technique** : `apiReorderEntities` (`Code.gs`) ne renvoyait que `{success:true}`, forçant `Index.html` à rappeler `loadEntities()` pour rafraîchir la liste — or celle-ci repeint d'abord depuis son cache `localStorage` (donc l'ancien ordre, pré-réorganisation) avant que la vraie réponse serveur arrive, d'où le flash. `apiReorderEntities` renvoie désormais `players`/`categories` à jour (comme `apiGetSettings`), et le point d'appel (`buildMoveButtons` sur `#playersList`/`#categoriesList`) peint directement cette réponse via `_paintEntitiesUI` au lieu de rappeler `loadEntities()`. Comportement déjà correct pour Barème/Phrases, qui suivaient déjà ce schéma.
+
 ## [v3.14.0] - 2026-08-12
 
 ### Ajouté

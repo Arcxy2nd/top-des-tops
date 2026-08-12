@@ -2283,7 +2283,15 @@ function apiReorderEntities(type, orderedNames, author) {
       const label = type === 'Players' ? 'Joueurs' : 'Tops';
       AuditService.log(author, 'Ordre modifié', label, '', orderedNames.join(' → '), '', null);
       ConfigService.clearCache();
-      return { success: true };
+      // Renvoyer les deux listes fraîches (comme apiGetSettings) évite au client de
+      // rappeler loadEntities() après coup — celle-ci repeint d'abord depuis son
+      // cache localStorage (donc l'ancien ordre, pré-réorganisation) avant que la
+      // vraie réponse arrive, ce qui produisait un aller-retour visible.
+      return {
+        success:    true,
+        players:    SettingsService.getEntities('Players'),
+        categories: SettingsService.getEntities('Categories')
+      };
     });
   } catch(e) { return fail(e); }
 }

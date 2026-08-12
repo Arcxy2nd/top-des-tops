@@ -102,6 +102,30 @@ test('apiReorderEntities requires an author and logs to AuditLog', () => {
   assert.strictEqual(auditLog._grid.length, 2); // header + 1 log row
 });
 
+test('apiReorderEntities returns the fresh players/categories lists in the new order', () => {
+  // Without this, the client has no choice but to re-fetch via loadEntities(),
+  // which paints from its stale localStorage snapshot before the real fetch
+  // lands — a visible "moves, then reverts, then corrects itself" flicker.
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '', '', 1],
+    ['Bob',   '', '', '', 2]
+  ]);
+  const categories = makeSheet([
+    ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
+    ['Jeux',  '', '', '', 1],
+    ['Défis', '', '', '', 2]
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiReorderEntities('Players', ['Bob', 'Alice'], 'Alice');
+  assert.deepStrictEqual(res.players.map(p => p.name), ['Bob', 'Alice']);
+  assert.deepStrictEqual(res.categories.map(c => c.name), ['Jeux', 'Défis']);
+});
+
 test('BaremeService.getEntries sorts by Ordre and keeps rowIndex pointing at the real sheet row', () => {
   const gas = loadGas();
   const bareme = makeSheet([
