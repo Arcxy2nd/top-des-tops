@@ -4587,6 +4587,13 @@
           </div>
           <button class="secondary small" id="backfillNoteAuthorsBtn">Rattacher</button>
         </div>
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Réparer l'ordre</strong>
+            <span>Recalcule et enregistre l'ordre manuel (Joueurs, Tops, Barème, Phrases) sans rien réorganiser visuellement — corrige seulement les colonnes Ordre manquantes ou incomplètes.</span>
+          </div>
+          <button class="secondary small" id="repairOrderBtn">Réparer</button>
+        </div>
       </div>
 
       <div class="card card-collapsible" id="toolLotsCard">
@@ -16482,6 +16489,17 @@
         showToast(`${res.matched} note(s) rattachée(s), ${res.skipped} sans correspondance certaine.`, 'success');
         if (res.matched) loadNotes();
       }, 'Rattachement auteurs notes');
+    });
+
+    document.getElementById('repairOrderBtn').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      buzz();
+      callServer('apiRepairOrder', [_whoAmI || ''], res => {
+        showToast(`Ordre réparé : ${res.players} joueur(s), ${res.categories} top(s), ${res.bareme} règle(s), ${res.phrases} phrase(s).`, 'success');
+        loadEntities(); applyFilters();
+        loadBaremeSettings();
+        loadCustomPhrases(() => renderPhrasesEditorSection());
+      }, 'Réparation ordre');
     });
 
     initAutoPointsPanel();
