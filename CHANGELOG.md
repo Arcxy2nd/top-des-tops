@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.0] - 2026-08-12
+
+### Ajouté
+**Humanisé** : Joueurs, Tops, règles du Barème (par Top) et Phrases (par pool) peuvent désormais être réordonnés à la main par glisser-déposer, à la souris comme au doigt sur mobile — un nouveau bouton "⠿" apparaît sur chaque ligne. Le nouvel ordre est mémorisé partout : filtres, listes déroulantes de saisie, légendes de graphiques, exports. Un bouton "Réparer l'ordre" dans 🔧 Outils sert de filet de sécurité si la colonne d'ordre venait à manquer ou à être incomplète (par exemple après une modification directe dans Google Sheets) — sans rien réorganiser visuellement, il ne fait que compléter les valeurs manquantes.
+**Technique** : `Code.gs` — nouvelle colonne `Ordre` sur les feuilles `Players`/`Categories` (colonne E) et `Bareme`/`Phrases` (colonne D). `SettingsService.getEntities`, `BaremeService.getEntries`, `PhrasesService.getAll` trient désormais par `Ordre` via le helper partagé `_sortByOrdreOrOriginal`, qui se replie silencieusement sur l'ordre brut de la feuille tant que la colonne est absente ou incomplète (jamais d'erreur, jamais de blocage). Nouvelles actions `apiReorderEntities`, `apiReorderBareme` (par groupe Top), `apiReorderPhrases` (par groupe preset+pool) et `apiRepairOrder`, toutes protégées par `requireAuthor`/`withLock`/`AuditService.log`. `Index.html` — nouveau composant partagé `attachReorderHandle` basé sur les Pointer Events (souris et tactile unifiés), distinct du glisser-déposer existant de "Saisir un Lot" (`attachRowDragEvents`, HTML5 Drag-and-Drop, souris uniquement, non modifié). `renderBaremeDrawer`/`renderBaremeQuickBtns` ne trient plus côté client par points décroissants, le serveur fournissant déjà le bon ordre.
+
 ## [v3.13.0] - 2026-08-11
 
 ### Corrigé
