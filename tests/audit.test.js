@@ -404,7 +404,7 @@ test('apiManageEntity DELETE/undo restores the deleted category', () => {
     history: makeSheet([]), players: makeSheet([]), categories,
     notes: null, bareme: null, phrases: null, auditLog: audit
   });
-  gas.apiManageEntity('DELETE', 'Categories', null, null, 'Sport', null, 'Alice');
+  gas.apiManageEntity('DELETE', 'Categories', null, null, 'Sport', null, 'Alice', 2);
   assert.strictEqual(categories._grid.length, 1);
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(categories._grid.length, 2);
@@ -421,7 +421,7 @@ test('apiManageEntity RENAME/undo restores the old player name', () => {
     players, categories: makeSheet([]),
     notes: null, bareme: null, phrases: null, auditLog: audit
   });
-  gas.apiManageEntity('RENAME', 'Players', 'Nouveau', '', 'Ancien', null, 'Alice');
+  gas.apiManageEntity('RENAME', 'Players', 'Nouveau', '', 'Ancien', null, 'Alice', 2);
   assert.strictEqual(players._grid[1][0], 'Nouveau');
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(players._grid[1][0], 'Ancien');

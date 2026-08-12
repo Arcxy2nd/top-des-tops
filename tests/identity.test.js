@@ -55,7 +55,7 @@ function makeContext() {
 // rename must preserve the password column
 {
   const ctx = makeContext();
-  ctx.SettingsService.renameEntity('Players', 'Alice', 'Alicia', '', '');
+  ctx.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alicia', 'sesame'), true);
 }
 

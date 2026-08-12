@@ -9418,7 +9418,7 @@
     loadEntriesView();
   }
 
-  function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor) {
+  function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor, rowIndex) {
     if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
@@ -9483,7 +9483,7 @@
       const item  = cache.find(x => x.name === oldName);
       if (item) item.color = col;
       callServer('apiSetColor', [entityType, oldName, col, _whoAmI || ''], () => {}, 'Color save');
-      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || ''], () => {
+      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || '', rowIndex], () => {
         loadEntities();
         showToast('Modifié avec succès.', 'success');
         refreshColorDependentViews();
@@ -9922,14 +9922,16 @@
       const editBtn = document.createElement('button');
       editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
       const col = type === 'Players' ? playerColor(item.name) : categoryColor(item.name);
-      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon, col));
+      editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon, col, item.rowIndex));
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
         if (!requireIdentity()) return;
         openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
           buzz();
-          callServer('apiManageEntity', ['DELETE', type, null, null, item.name, null, _whoAmI || ''], () => {
+          // rowIndex cible précisément cette ligne — indispensable si un autre Joueur/Top
+          // partage le même nom (deux lignes homonymes ne doivent plus disparaître ensemble).
+          callServer('apiManageEntity', ['DELETE', type, null, null, item.name, null, _whoAmI || '', item.rowIndex], () => {
             loadEntities(); applyFilters();
             showToast('Supprimé.', 'success');
           }, 'Suppression');

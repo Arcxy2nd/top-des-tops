@@ -133,6 +133,114 @@ test('SettingsService.addEntity rejects a name that already exists', () => {
   assert.strictEqual(gas.SettingsService.getEntities('Players').length, 1, 'aucune ligne en double ne doit avoir été ajoutée');
 });
 
+// Régression réelle (2026-08-12) : un Joueur dupliqué (deux lignes portant
+// le même nom, arrivées là par une saisie antérieure) apparaissait deux fois
+// dans Paramètres. Supprimer UNE des deux entrées à l'écran supprimait les
+// DEUX lignes de la feuille — deleteEntity(type, name) ciblait "toute ligne
+// portant ce nom" au lieu de la ligne précise cliquée. Le joueur restant
+// disparaissait du site tout en étant toujours visible dans le Google Sheet
+// (l'autre ligne du duo, elle, avait bien été supprimée). deleteEntity prend
+// maintenant un rowIndex précis (comme getEntities() en fournit un à chaque
+// entité) et vérifie que le nom sur cette ligne correspond avant d'agir.
+test('SettingsService.deleteEntity removes only the targeted row when two players share a name, leaving the other duplicate and all unrelated players intact', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', 'https://x/alice1.png', '#111111', '', 1], // row 2 — first duplicate
+    ['Bob',   'https://x/bob.png',    '#222222', '', 2], // row 3 — unrelated, must survive
+    ['Alice', 'https://x/alice2.png', '#333333', '', 3]  // row 4 — second duplicate
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  const before = gas.SettingsService.getEntities('Players');
+  assert.strictEqual(before.length, 3, 'sanity: both Alice rows and Bob are visible before the delete');
+
+  // Delete row 2 specifically (the FIRST "Alice") — not "Alice" by name.
+  gas.SettingsService.deleteEntity('Players', 2, 'Alice');
+
+  const after = gas.SettingsService.getEntities('Players');
+  assert.strictEqual(after.length, 2, 'exactly one row must have been removed, not both Alices');
+  const bob = after.find(p => p.name === 'Bob');
+  assert.ok(bob, 'Bob must still be present');
+  assert.strictEqual(bob.color, '#222222', 'Bob must be untouched by the delete');
+  const remainingAlice = after.find(p => p.name === 'Alice');
+  assert.ok(remainingAlice, 'the second Alice (row 4) must survive');
+  assert.strictEqual(remainingAlice.color, '#333333', 'the surviving Alice must be the second row, untouched');
+});
+
+// Same real incident, but through the public API path (apiManageEntity),
+// which is what the UI actually calls.
+test('apiManageEntity DELETE with a rowIndex removes only that physical row among duplicate names', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '#111111', '', 1],
+    ['Bob',   '', '#222222', '', 2],
+    ['Alice', '', '#333333', '', 3]
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories: makeSheet([]), history: makeSheet([]), auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiManageEntity('DELETE', 'Players', null, null, 'Alice', null, 'Bob', 4); // target row 4, the second Alice
+  assert.strictEqual(res.success, true);
+
+  const remaining = gas.SettingsService.getEntities('Players');
+  assert.strictEqual(remaining.length, 2);
+  assert.strictEqual(remaining.filter(p => p.name === 'Alice').length, 1, 'one Alice must remain');
+  assert.strictEqual(remaining.find(p => p.name === 'Alice').color, '#111111', 'the surviving Alice must be row 2, not row 4');
+  assert.ok(remaining.find(p => p.name === 'Bob'), 'Bob must be untouched');
+});
+
+test('apiManageEntity DELETE without a rowIndex is rejected instead of guessing which row to remove', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '', '', 1]
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories: makeSheet([]), history: makeSheet([]), auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  const res = gas.apiManageEntity('DELETE', 'Players', null, null, 'Alice', null, 'Bob');
+  assert.strictEqual(res.success, false);
+  assert.strictEqual(gas.SettingsService.getEntities('Players').length, 1, 'nothing must be deleted when rowIndex is missing');
+});
+
+// Defense in depth: if the row moved between page load and click (someone
+// else edited the sheet meanwhile), refuse rather than silently deleting
+// whatever now sits at that row number.
+test('SettingsService.deleteEntity refuses a rowIndex whose current content no longer matches the expected name', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '', '', 1],
+    ['Bob',   '', '', '', 2]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  assert.throws(() => gas.SettingsService.deleteEntity('Players', 2, 'Someone Else'), /changé entre-temps/);
+  assert.strictEqual(gas.SettingsService.getEntities('Players').length, 2, 'nothing must be deleted on a stale rowIndex');
+});
+
+test('SettingsService.renameEntity with a rowIndex only touches that row when two entities share a name', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '#111111', '', 1],
+    ['Alice', '', '#333333', '', 2]
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat: null });
+
+  gas.SettingsService.renameEntity('Players', 3, 'Alice', 'Alicia', '', '');
+
+  const all = gas.SettingsService.getEntities('Players');
+  assert.strictEqual(all.filter(p => p.name === 'Alice').length, 1, 'the row-2 Alice must be untouched');
+  assert.strictEqual(all.find(p => p.name === 'Alice').color, '#111111');
+  assert.strictEqual(all.find(p => p.name === 'Alicia').color, '#333333', 'row 3 is the one that was renamed');
+});
+
 test('SettingsService.renameEntity rejects a new name that collides with another entity', () => {
   const gas = loadGas();
   const categories = makeSheet([
@@ -143,7 +251,7 @@ test('SettingsService.renameEntity rejects a new name that collides with another
   const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
   gas.ConfigService.getSheets = () => ({ categories, history, autoRules: null, bareme: null, phrases: null });
 
-  assert.throws(() => gas.SettingsService.renameEntity('Categories', 'Top A', 'Top B', '', ''), /existe déjà/);
+  assert.throws(() => gas.SettingsService.renameEntity('Categories', 2, 'Top A', 'Top B', '', ''), /existe déjà/);
   const cats = gas.SettingsService.getEntities('Categories').map(c => c.name);
   assert.deepStrictEqual(cats, ['Top A', 'Top B'], 'aucun des deux Tops ne doit avoir été modifié');
 });
@@ -157,7 +265,7 @@ test('SettingsService.renameEntity still allows a no-op rename to the same name'
   const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
   gas.ConfigService.getSheets = () => ({ categories, history, autoRules: null, bareme: null, phrases: null });
 
-  gas.SettingsService.renameEntity('Categories', 'Top A', 'Top A', 'new desc', '🎯');
+  gas.SettingsService.renameEntity('Categories', 2, 'Top A', 'Top A', 'new desc', '🎯');
   const cats = gas.SettingsService.getEntities('Categories');
   assert.strictEqual(cats[0].meta, 'new desc');
 });
@@ -182,7 +290,7 @@ test('SettingsService.renameEntity propagates a player rename to their Notes, le
   ]);
   gas.ConfigService.getSheets = () => ({ players, history, notes, autoRules: null });
 
-  gas.SettingsService.renameEntity('Players', 'Alice', 'Alicia', '', '');
+  gas.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
 
   const notesValues = notes.getDataRange().getValues();
   assert.strictEqual(notesValues[1][1], 'Alicia', 'la note d\'Alice doit maintenant référencer Alicia');
@@ -209,7 +317,7 @@ test('SettingsService.renameEntity propagates a player rename to their Chat mess
   ]);
   gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat });
 
-  gas.SettingsService.renameEntity('Players', 'Alice', 'Alicia', '', '');
+  gas.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
 
   const chatValues = chat.getDataRange().getValues();
   assert.strictEqual(chatValues[1][2], 'Alicia', 'le message d\'Alice doit maintenant référencer Alicia');

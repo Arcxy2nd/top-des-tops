@@ -409,12 +409,20 @@ const SettingsService = {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     if (!sheet) return [];
     const data  = sheet.getDataRange().getValues();
-    let rows = data.slice(1).filter(r => r[0]);
-    rows = _sortByOrdreOrOriginal(rows, r => r[4]);
-    const result = rows.map(r => {
+    // Le vrai numéro de ligne est attaché ici, avant filtre/tri — jamais recalculé
+    // depuis la position dans le tableau final (voir BaremeService.getEntries pour
+    // le même piège) : deleteEntity/renameEntity s'en servent pour cibler la bonne
+    // ligne physique même quand deux entités partagent le même nom.
+    let rows = data.slice(1)
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
+      .filter(x => x.r[0]);
+    rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
+    const result = rows.map(x => {
+      const r = x.r;
       if (type === 'Players') {
         // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client) | [4] Ordre
         return {
+          rowIndex: x.rowIndex,
           name:  r[0].toString(),
           meta:  r[1] ? r[1].toString() : "",
           icon:  "",
@@ -424,6 +432,7 @@ const SettingsService = {
       } else {
         // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color | [4] Ordre
         return {
+          rowIndex: x.rowIndex,
           name:  r[0].toString(),
           meta:  r[1] ? r[1].toString() : "",
           icon:  r[2] ? r[2].toString() : "",
@@ -468,26 +477,32 @@ const SettingsService = {
     _bumpSettingsVersion();
   },
 
-  deleteEntity(type, name) {
+  // Cible la ligne physique exacte (rowIndex, 1-based, vu par le client via
+  // getEntities) plutôt que "toutes les lignes portant ce nom" : deux entités
+  // homonymes ne doivent plus jamais disparaître ensemble parce qu'une seule
+  // a été supprimée à l'écran. expectedName protège contre une liste devenue
+  // périmée entre le chargement de la page et le clic (une autre modification
+  // entre-temps a décalé les lignes) — on refuse plutôt que de risquer de
+  // toucher la mauvaise ligne.
+  deleteEntity(type, rowIndex, expectedName) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
-    let deleted = false;
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i][0] === name) { sheet.deleteRow(i + 1); deleted = true; }
+    const row = data[rowIndex - 1];
+    if (!row || row[0] !== expectedName) {
+      throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
-    if (!deleted) throw new Error(`${name} introuvable.`);
+    sheet.deleteRow(rowIndex);
     _bumpSettingsVersion();
   },
 
-  renameEntity(type, oldName, newName, newMeta, newIcon) {
+  renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon) {
     if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
-    let idx = -1;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === oldName) { idx = i; break; }
+    const idx = rowIndex - 1;
+    if (!data[idx] || data[idx][0] !== oldName) {
+      throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
-    if (idx === -1) throw new Error(`${oldName} introuvable.`);
     if (newName !== oldName && data.some((row, i) => i !== idx && row[0] === newName)) {
       throw new Error(`${newName} existe déjà.`);
     }
@@ -2225,7 +2240,7 @@ function apiSetColor(type, name, color, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, author) {
+function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, author, rowIndex) {
   try {
     requireAuthor(author);
     if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
@@ -2246,24 +2261,27 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
           { sheet: sheetKey, op: 'insert', rowIndex: sheet.getLastRow(), after: afterRow });
       }
       if (action === 'DELETE') {
+        // rowIndex cible la ligne physique exacte vue par le client (SettingsService.getEntities) —
+        // sans lui, deux homonymes disparaîtraient ensemble (voir SettingsService.deleteEntity).
+        if (!rowIndex) throw new Error("Ligne à supprimer non précisée — recharge la page et réessaie.");
         const before = _entitySummary(type, oldName);
         const data = sheet.getDataRange().getValues();
-        const beforeRow = data.find(r => r[0] === oldName);
-        SettingsService.deleteEntity(type, oldName);
+        const beforeRow = data[rowIndex - 1];
+        SettingsService.deleteEntity(type, rowIndex, oldName);
         AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, '', '',
           beforeRow ? { sheet: sheetKey, op: 'delete', before: beforeRow.slice(0, numCols) } : null);
       }
       if (action === 'RENAME') {
+        if (!rowIndex) throw new Error("Ligne à renommer non précisée — recharge la page et réessaie.");
         const data = sheet.getDataRange().getValues();
-        const beforeRow = data.find(r => r[0] === oldName);
-        SettingsService.renameEntity(type, oldName, newName, newMeta, newIcon);
+        const beforeRow = data[rowIndex - 1];
+        SettingsService.renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon);
         const afterData = sheet.getDataRange().getValues();
-        const afterIdx  = afterData.findIndex(r => r[0] === newName);
-        const afterRow  = afterIdx >= 0 ? afterData[afterIdx] : null;
+        const afterRow  = afterData[rowIndex - 1];
         AuditService.log(author, label + ' renommé', label + ': ' + (oldName || ''),
           oldName || '', newName || '', '',
           (beforeRow && afterRow) ? { sheet: sheetKey, op: 'update',
-            rowIndex: afterIdx + 1,
+            rowIndex: rowIndex,
             before: beforeRow.slice(0, numCols), after: afterRow.slice(0, numCols) } : null);
       }
 

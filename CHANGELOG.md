@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.2] - 2026-08-12
+
+### Corrigé
+**Humanisé** : Quand deux Joueurs (ou deux Tops) portaient le même nom, supprimer l'un des deux dans Paramètres supprimait en fait les deux d'un coup — un joueur bien réel pouvait donc disparaître du site sans avoir été visé, tout en restant présent dans le Google Sheet. Recréer un joueur juste supprimé pouvait aussi être refusé ("existe déjà") si son nom traînait encore ailleurs dans la feuille. Supprimer et renommer ciblent désormais précisément la ligne cliquée, jamais "toutes les lignes portant ce nom" — toujours sans identifiant visible, comme demandé : ça reste les noms des Joueurs/Tops qui pilotent tout, seule la mécanique interne de ciblage change.
+**Technique** : `SettingsService.getEntities()` (`Code.gs`) attache désormais `rowIndex` (numéro de ligne réel de la feuille, calculé avant filtre/tri — même précaution que `BaremeService.getEntries`/`PhrasesService.getAll`) à chaque Joueur/Top renvoyé. `deleteEntity`/`renameEntity` prennent ce `rowIndex` en paramètre au lieu de faire correspondre par nom sur toute la feuille, et vérifient que le contenu de cette ligne correspond toujours au nom attendu avant d'agir (protection si la feuille a changé entre le chargement de la page et le clic) — sinon ils refusent avec un message clair plutôt que de risquer de toucher la mauvaise ligne. `apiManageEntity` (DELETE/RENAME) exige maintenant ce `rowIndex`, transmis par `Index.html` depuis l'objet déjà reçu du serveur (`item.rowIndex`) ; ADD est inchangé. `apiSetColor` reste, pour l'instant, par nom (impact cosmétique seulement en cas d'homonymes — non traité dans cette passe).
+
 ## [v3.14.1] - 2026-08-12
 
 ### Corrigé
