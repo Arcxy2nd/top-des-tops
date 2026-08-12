@@ -23,6 +23,12 @@ Toute évolution retenue sur la méthode de travail avec l'IA doit être écrite
 
 Tout artefact destiné à être publié (repo, README, commits, releases) : anglais, même si la conversation se fait en français. Le code (§8) est déjà en anglais ; cette règle couvre aussi commits, README, releases.
 
+## RÈGLE IMPÉRATIVE — INTERDICTION D'INTERAGIR AVEC LES DONNÉES RÉELLES
+
+Interdiction formelle et absolue d'interagir avec les données réelles des sites déployés (« Site tops » & « Tops RDS ») ou leurs Google Sheets — que ce soit pour tester, corriger, nettoyer, déboguer ou vérifier une hypothèse. Toute manipulation de données (lecture destructive, écriture, suppression, script one-off) se fait exclusivement contre le harness local (`tests/frontend/serve.js` + fixtures). Un joueur a déjà été perdu suite à une intervention sur les vraies données — voir §7 « Identité obligatoire » et la note d'incident associée. Vérifier explicitement l'URL/le contexte avant toute action qui touche à des données ; en cas de doute, s'arrêter et demander.
+
+---
+
 ## §0 — RITUEL D'INITIALISATION
 
 Au tout début de chaque session, avant toute action, lire dans cet ordre :
