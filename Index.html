@@ -928,14 +928,6 @@
     .row-drag-handle:active { cursor: grabbing; }
     .entry-row.row-dragging { opacity: 0.4; }
     .entry-row.row-drop-target { border-top: 2px solid var(--accent); }
-    .reorder-handle {
-      cursor: grab; color: var(--text-muted); font-size: 1rem; user-select: none;
-      padding: 0 6px; display: flex; align-items: center; flex-shrink: 0;
-      touch-action: none;
-    }
-    .reorder-handle:active { cursor: grabbing; }
-    .reorder-dragging { opacity: 0.5; }
-    body.reorder-active { cursor: grabbing; }
 
     /* ── LAYOUT INTERNE LIGNE (top bar + contenu) ── */
 
@@ -6131,7 +6123,6 @@
     row.className = 'phrase-edit-item';
     row.dataset.rowIndex = entry.rowIndex;
     row.innerHTML =
-      '<span class="reorder-handle" title="Glisser pour réorganiser">⠿</span>' +
       '<span class="phrase-edit-text">' + escapeHtml(entry.text) + '</span>' +
       '<div class="phrase-edit-btns">' +
         '<button class="secondary small" title="Modifier">✏️</button>' +
@@ -6141,13 +6132,15 @@
       openPhraseModal(entry, presetName, pool, displayLabel));
     row.querySelector('[title="Supprimer"]').addEventListener('click', () =>
       deletePhraseWithUndo(entry, presetName));
-    attachReorderHandle(row.querySelector('.reorder-handle'), row, poolContainer, '.phrase-edit-item', () => {
+    const btnsWrap = row.querySelector('.phrase-edit-btns');
+    const [upBtn, downBtn] = buildMoveButtons(poolContainer, '.phrase-edit-item', row, () => {
       const orderedRowIndexes = Array.from(poolContainer.querySelectorAll('.phrase-edit-item')).map(el => Number(el.dataset.rowIndex));
       callServer('apiReorderPhrases', [presetName, pool, orderedRowIndexes, _whoAmI || ''], res => {
         _customPhrases = res.phrases;
         renderPoolList(presetName);
       }, 'Réordonner phrases', () => renderPoolList(presetName));
-    }, () => requireIdentity());
+    });
+    btnsWrap.prepend(downBtn); btnsWrap.prepend(upBtn);
     return row;
   }
 
@@ -8752,52 +8745,52 @@
     runner[fn](...params);
   }
 
-  // ── REORDER (glisser-déposer manuel, souris + tactile) ──────────────────
+  // ── REORDER (boutons monter/descendre) ───────────────────────────────────
   // Composant partagé pour Joueurs, Catégories, Barème (par Top) et Phrases (par
-  // pool). Distinct du drag&drop de "Saisir un Lot" (attachRowDragEvents) : celui-ci
-  // unifie souris et tactile via les Pointer Events, et déplace des lignes issues
-  // de listes indépendantes plutôt que des lignes d'un même tableau de saisie.
-  function buildReorderHandle() {
-    const h = document.createElement('span');
-    h.className = 'reorder-handle';
-    h.textContent = '⠿';
-    h.title = 'Glisser pour réorganiser';
-    return h;
-  }
+  // pool). Remplace un précédent glisser-déposer (Pointer Events) jugé peu fiable
+  // en usage réel — un simple échange avec le voisin direct est plus robuste,
+  // fonctionne identiquement à la souris et au doigt, sans geste à interpréter.
+  // Distinct du drag&drop de "Saisir un Lot" (attachRowDragEvents), non touché.
+  function buildMoveButtons(container, itemSelector, itemEl, onReorder) {
+    const upBtn = document.createElement('button');
+    upBtn.type = 'button'; upBtn.className = 'small'; upBtn.textContent = '▲'; upBtn.title = 'Monter';
+    const downBtn = document.createElement('button');
+    downBtn.type = 'button'; downBtn.className = 'small'; downBtn.textContent = '▼'; downBtn.title = 'Descendre';
 
-  function attachReorderHandle(handleEl, itemEl, container, itemSelector, onDrop, canStart) {
-    let dragging = false;
-    const onMove = (e) => {
-      if (!dragging) return;
-      const siblings = Array.from(container.querySelectorAll(itemSelector)).filter(el => el !== itemEl);
-      const y = e.clientY;
-      let target = null;
-      for (const el of siblings) {
-        const rect = el.getBoundingClientRect();
-        if (y < rect.top + rect.height / 2) { target = el; break; }
-      }
-      if (target) container.insertBefore(itemEl, target);
-      else container.appendChild(itemEl);
-    };
-    const finish = (e) => {
-      if (!dragging) return;
-      dragging = false;
-      itemEl.classList.remove('reorder-dragging');
-      document.body.classList.remove('reorder-active');
-      try { handleEl.releasePointerCapture(e.pointerId); } catch (_) {}
-      onDrop();
-    };
-    handleEl.addEventListener('pointerdown', (e) => {
-      if (canStart && !canStart()) return;
-      e.preventDefault();
-      dragging = true;
-      itemEl.classList.add('reorder-dragging');
-      document.body.classList.add('reorder-active');
-      try { handleEl.setPointerCapture(e.pointerId); } catch (_) {}
+    function siblings() { return Array.from(container.querySelectorAll(itemSelector)); }
+
+    // Some callers build this row before appending it to `container` (it isn't
+    // a sibling yet, so its real index can't be read here) — resolving the
+    // initial enabled/disabled state on the next tick guarantees every row from
+    // this render pass has been appended by then, regardless of that ordering.
+    upBtn.disabled = true; downBtn.disabled = true;
+    setTimeout(() => {
+      const cur = siblings();
+      const i = cur.indexOf(itemEl);
+      upBtn.disabled = i <= 0;
+      downBtn.disabled = i === -1 || i >= cur.length - 1;
+    }, 0);
+
+    upBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const cur = siblings();
+      const i = cur.indexOf(itemEl);
+      if (i <= 0) return;
+      upBtn.disabled = true; downBtn.disabled = true;
+      container.insertBefore(itemEl, cur[i - 1]);
+      onReorder();
     });
-    handleEl.addEventListener('pointermove', onMove);
-    handleEl.addEventListener('pointerup', finish);
-    handleEl.addEventListener('pointercancel', finish);
+    downBtn.addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const cur = siblings();
+      const i = cur.indexOf(itemEl);
+      if (i === -1 || i >= cur.length - 1) return;
+      upBtn.disabled = true; downBtn.disabled = true;
+      cur[i + 1].after(itemEl);
+      onReorder();
+    });
+
+    return [upBtn, downBtn];
   }
 
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
@@ -9848,7 +9841,6 @@
       const li = document.createElement('li');
       li.className = 'entity-item';
       li.dataset.name = item.name;
-      li.appendChild(buildReorderHandle());
       const left = document.createElement('div');
       left.className = 'entity-left';
       if (type === 'Players') {
@@ -9946,12 +9938,13 @@
       btns.appendChild(editBtn); btns.appendChild(delBtn);
       li.appendChild(left); li.appendChild(btns);
       container.appendChild(li);
-      attachReorderHandle(li.querySelector('.reorder-handle'), li, container, '.entity-item', () => {
+      const [upBtn, downBtn] = buildMoveButtons(container, '.entity-item', li, () => {
         const orderedNames = Array.from(container.querySelectorAll('.entity-item')).map(el => el.dataset.name);
         callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], () => {
           loadEntities(); applyFilters();
         }, 'Réordonner', () => { loadEntities(); });
-      }, () => requireIdentity());
+      });
+      btns.prepend(downBtn); btns.prepend(upBtn);
     });
   }
 
@@ -18037,8 +18030,6 @@
     row.style.borderLeft = '3px solid ' + tint(col, 0.5);
     row.style.background = tint(col, 0.05);
 
-    const handle = buildReorderHandle();
-
     const pts = document.createElement('span');
     pts.className = 'bsect-pts';
     pts.style.background = col;
@@ -18089,13 +18080,14 @@
     });
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
-    row.appendChild(handle); row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
-    attachReorderHandle(handle, row, entriesCont, '.bsect-entry', () => {
+    row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
+    const [upBtn, downBtn] = buildMoveButtons(entriesCont, '.bsect-entry', row, () => {
       const orderedRowIndexes = Array.from(entriesCont.querySelectorAll('.bsect-entry')).map(el => Number(el.dataset.rowIndex));
       callServer('apiReorderBareme', [entry.top, orderedRowIndexes, _whoAmI || ''], res => {
         baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
       }, 'Réordonner barème', () => renderBaremeSettings(baremeEntries));
-    }, () => requireIdentity());
+    });
+    btns.prepend(downBtn); btns.prepend(upBtn);
     return row;
   }
 
