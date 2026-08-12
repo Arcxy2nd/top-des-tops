@@ -15,6 +15,14 @@ En cas d'opération de déploiement manuel ou `clasp push` hors CI, il faut **OB
 
 ---
 
+## RÈGLE IMPÉRATIVE — PORTABILITÉ DE LA MÉMOIRE
+
+Toute évolution retenue sur la méthode de travail avec l'IA doit être écrite **dans ce fichier**, jamais seulement dans une mémoire externe/globale liée à un outil/LLM/machine précis. Le projet doit rester exploitable seul, peu importe le PC, l'outil ou le LLM utilisé.
+
+## RÈGLE — PUBLIABLE = ANGLAIS
+
+Tout artefact destiné à être publié (repo, README, commits, releases) : anglais, même si la conversation se fait en français. Le code (§8) est déjà en anglais ; cette règle couvre aussi commits, README, releases.
+
 ## §0 — RITUEL D'INITIALISATION
 
 Au tout début de chaque session, avant toute action, lire dans cet ordre :
@@ -317,6 +325,8 @@ Lors de la vérification de l'avancement des tâches en arrière-plan ou des dé
 ## §9 — SKILLS — USAGE OBLIGATOIRE
 
 Les skills installés doivent être **invoqués aux moments-clés**, pas ignorés. Invoquer via l'outil `Skill` (jamais lire le fichier SKILL.md à la main).
+
+**Pas de fichiers de spec.** Le brainstorming se conclut par un design validé en conversation — ne jamais écrire de document dans `docs/superpowers/specs/`. Passer directement du design approuvé à `/superpowers:writing-plans`.
 
 | Moment | Skill à invoquer |
 |--------|-----------------|
