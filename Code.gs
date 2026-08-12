@@ -400,14 +400,19 @@ const SettingsService = {
   VALID_ACTIONS: ['ADD', 'DELETE', 'RENAME'],
 
   getEntities(type) {
+    const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    if (!sheet) return [];
     const cache = CacheService.getScriptCache();
-    const key   = 'ent_' + type.toLowerCase() + '_v' + _settingsVersion();
+    // Row count is folded into the key so a row added/removed directly in the
+    // Sheet — outside addEntity()/deleteEntity(), the only paths that bump
+    // _settingsVersion() — invalidates the cache immediately instead of the
+    // entity staying invisible (or a deleted one staying visible) for up to
+    // CACHE_TTL_SECONDS.
+    const key   = 'ent_' + type.toLowerCase() + '_v' + _settingsVersion() + '_r' + sheet.getLastRow();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    if (!sheet) return [];
     const data  = sheet.getDataRange().getValues();
     // Le vrai numéro de ligne est attaché ici, avant filtre/tri — jamais recalculé
     // depuis la position dans le tableau final (voir BaremeService.getEntries pour
@@ -1934,14 +1939,16 @@ const BaremeService = {
 
   /** Returns all entries with 1-based row indices (row 1 = header). */
   getEntries() {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) return [];
     const cache = CacheService.getScriptCache();
-    const key   = 'bareme_entries_v' + _baremeVersion();
+    // Same row-count-in-key fix as SettingsService.getEntities — a rule added/
+    // removed directly in the Bareme sheet doesn't bump _baremeVersion().
+    const key   = 'bareme_entries_v' + _baremeVersion() + '_r' + sheet.getLastRow();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const sheet = ConfigService.getSheets().bareme;
-    if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
     let rows = data.slice(1)
       .map((r, i) => ({ r, rowIndex: i + 2 }))
@@ -2031,14 +2038,16 @@ const PhrasesService = {
   },
 
   getAll() {
+    const sheet = ConfigService.getSheets().phrases;
+    if (!sheet) return [];
     const cache = CacheService.getScriptCache();
-    const key   = 'phrases_all_v' + _phrasesVersion();
+    // Same row-count-in-key fix as SettingsService.getEntities — a phrase added/
+    // removed directly in the Phrases sheet doesn't bump _phrasesVersion().
+    const key   = 'phrases_all_v' + _phrasesVersion() + '_r' + sheet.getLastRow();
     const raw   = cache.get(key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const sheet = ConfigService.getSheets().phrases;
-    if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
     let rows = data.slice(1)
       .map((r, i) => ({ r, rowIndex: i + 2 }))

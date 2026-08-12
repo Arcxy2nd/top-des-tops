@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.3] - 2026-08-12
+
+### Corrigé
+**Humanisé** : Un Joueur, un Top, une règle de Barème ou une Phrase ajouté(e) directement dans le Google Sheet (plutôt que via les boutons de l'app) pouvait rester invisible dans l'app pendant plusieurs minutes — jusqu'à 10 minutes, le temps que le cache interne se rafraîchisse tout seul.
+**Technique** : `SettingsService.getEntities()`, `BaremeService.getEntries()` et `PhrasesService.getAll()` (`Code.gs`) mettaient en cache leur résultat sous une clé qui n'incluait que `_settingsVersion()`/`_baremeVersion()`/`_phrasesVersion()` — des compteurs bumpés uniquement par les mutations passant par l'app (`addEntity`, `addEntry`, `addPhrase`...). Une ligne ajoutée/supprimée directement sur la feuille ne bumpait rien, donc le cache continuait à servir l'ancienne liste jusqu'à expiration du TTL (`CACHE_TTL_SECONDS` = 600s). Le nombre de lignes de la feuille (`sheet.getLastRow()`) est désormais inclus dans la clé de cache des trois fonctions, invalidant le cache dès que la feuille change de taille, sans coût supplémentaire (`getLastRow()` ne relit pas les données).
+
 ## [v3.14.2] - 2026-08-12
 
 ### Corrigé

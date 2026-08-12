@@ -232,6 +232,59 @@ test('apiGetChangelog handles large responses by chunking cache and falling back
   assert.strictEqual(fetchCount, 1);
 });
 
+// Régression (2026-08-12) : un joueur ajouté directement dans le Google Sheet
+// (hors bouton "+ Ajouter" de l'app) restait invisible jusqu'à expiration du
+// TTL (600s) — getEntities()/getEntries()/getAll() ne recalculaient leur cache
+// que sur un bump de version, lui-même déclenché uniquement par les mutations
+// passant par l'app (addEntity, addEntry, addPhrase...). Le nombre de lignes
+// est désormais inclus dans la clé de cache pour que toute ligne ajoutée ou
+// supprimée directement sur la feuille invalide le cache immédiatement.
+test('getEntities reflects a player row appended directly to the Sheet, bypassing addEntity()', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '#111111', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  const before = gas.SettingsService.getEntities('Players');
+  assert.deepStrictEqual(before.map(p => p.name), ['Alice']);
+
+  // Manual Sheet edit — never goes through addEntity(), so _settingsVersion() unchanged.
+  players._grid.push(['Bob', '', '#222222', '']);
+
+  const after = gas.SettingsService.getEntities('Players');
+  assert.deepStrictEqual(after.map(p => p.name), ['Alice', 'Bob'], 'the manually added row must appear without waiting out the cache TTL');
+});
+
+test('BaremeService.getEntries reflects a rule row appended directly to the Sheet, bypassing addEntry()', () => {
+  const gas = loadGas();
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'Gagne', 5, 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ bareme });
+
+  gas.BaremeService.getEntries();
+  bareme._grid.push(['Jeux', 'Perd', -2, 2]);
+  const after = gas.BaremeService.getEntries();
+  assert.deepStrictEqual(after.map(e => e.action), ['Gagne', 'Perd']);
+});
+
+test('PhrasesService.getAll reflects a phrase row appended directly to the Sheet, bypassing addPhrase()', () => {
+  const gas = loadGas();
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'A', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ phrases });
+
+  gas.PhrasesService.getAll();
+  phrases._grid.push(['Défaut', 'first', 'B', 2]);
+  const after = gas.PhrasesService.getAll();
+  assert.deepStrictEqual(after.map(p => p.text), ['A', 'B']);
+});
+
 test('a payload above CACHE_MAX_BYTES is not cached, and the skip is traced', () => {
   const gas = loadGas();
   const skips = [];
