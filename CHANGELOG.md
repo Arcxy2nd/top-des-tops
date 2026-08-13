@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.5] - 2026-08-13
+
+### Corrigé
+**Humanisé** : Le correctif précédent (v3.14.4) ne couvrait que les Joueurs et les Tops — réordonner une règle de Barème ou une Phrase avec ▲/▼ pouvait encore silencieusement revenir à l'ancien ordre après coup, pour exactement la même raison. Les quatre listes réordonnables (Joueurs, Tops, Barème, Phrases) sont désormais toutes protégées de la même façon.
+**Technique** : `Index.html` — même défaut que v3.14.4 mais sur `baremeEntries` (7 points d'écriture : les deux chargeurs indépendants `loadBaremeSettings()`/`loadBareme()`, ajout, modification, suppression, réordonnancement) et `_customPhrases` (11 points d'écriture : chargeur, ajout, copie depuis les phrases de repli, modification, suppression avec délai d'annulation, création/renommage/suppression de preset, import en lot, seed du preset "Défaut" au démarrage) — chacun écrivait dans son cache partagé sans garde d'ordre d'arrivée, exactement comme `cachedPlayers`/`cachedCategories` avant v3.14.4. Deux nouveaux compteurs de génération, `_baremeReqGen` et `_phrasesReqGen`, appliqués à chacun de ces points d'écriture. Reproduit et vérifié pour le Barème via le harness local en retardant artificiellement une seconde requête `apiGetBareme` déclenchée après un réordonnancement — confirmé que la réponse tardive n'écrase plus l'ordre à jour, avant et après correctif.
+
 ## [v3.14.4] - 2026-08-13
 
 ### Corrigé

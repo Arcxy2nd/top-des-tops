@@ -5998,6 +5998,11 @@
 
   let _customPhrases = null; // [{rowIndex, preset, pool, text}] — null = pas encore chargé
   let _activePreset  = PHRASES_DEFAULT_ID;
+  // Compteur de génération : le chargeur initial et chaque action (ajout, édition,
+  // suppression, renommage/création/suppression de preset, réordonnancement) écrivent
+  // tous dans _customPhrases de façon asynchrone et indépendante, sans garantie sur
+  // l'ordre d'arrivée des réponses réseau. Même schéma que _entitiesReqGen.
+  let _phrasesReqGen = 0;
 
   function getActivePresetId() {
     return _activePreset;
@@ -6033,10 +6038,13 @@
   }
 
   function loadCustomPhrases(callback) {
+    const gen = ++_phrasesReqGen;
     callServer('apiGetPhrases', [], res => {
+      if (gen !== _phrasesReqGen) { if (callback) callback(); return; }
       _customPhrases = res.phrases || [];
       if (callback) callback();
     }, 'Chargement phrases', () => {
+      if (gen !== _phrasesReqGen) { if (callback) callback(); return; }
       _customPhrases = [];
       if (callback) callback();
     });
@@ -6135,7 +6143,9 @@
     const btnsWrap = row.querySelector('.phrase-edit-btns');
     const [upBtn, downBtn] = buildMoveButtons(poolContainer, '.phrase-edit-item', row, () => {
       const orderedRowIndexes = Array.from(poolContainer.querySelectorAll('.phrase-edit-item')).map(el => Number(el.dataset.rowIndex));
+      const gen = ++_phrasesReqGen;
       callServer('apiReorderPhrases', [presetName, pool, orderedRowIndexes, _whoAmI || ''], res => {
+        if (gen !== _phrasesReqGen) return;
         _customPhrases = res.phrases;
         renderPhrasesEditorSection();
       }, 'Réordonner phrases', () => renderPhrasesEditorSection());
@@ -6201,7 +6211,9 @@
           copyBtn.title = 'Copier dans ce preset pour pouvoir la modifier';
           copyBtn.addEventListener('click', () => {
             if (!requireIdentity()) return;
+            const gen = ++_phrasesReqGen;
             callServer('apiAddPhrase', [presetName, pool, txt, _whoAmI || ''], res => {
+              if (gen !== _phrasesReqGen) return;
               _customPhrases = res.phrases;
               renderPhrasesEditorSection();
               renderPresetChips();
@@ -6237,7 +6249,9 @@
     const timerId = setTimeout(() => {
       toastEl.style.animation = 'fadeOut 0.3s ease forwards';
       setTimeout(() => toastEl.remove(), 300);
+      const gen = ++_phrasesReqGen;
       callServer('apiDeletePhrase', [entry.rowIndex, _whoAmI || ''], res => {
+        if (gen !== _phrasesReqGen) return;
         _customPhrases = res.phrases;
         renderPhrasesEditorSection();
         renderPresetChips();
@@ -6285,8 +6299,10 @@
     saveBtn.disabled = true;
 
     const { entry, presetName, pool } = _phraseModalCtx;
+    const gen = ++_phrasesReqGen;
     const onDone = res => {
       saveBtn.disabled = false;
+      if (gen !== _phrasesReqGen) return;
       _customPhrases = res.phrases;
       closePhraseModal();
       renderPhrasesEditorSection();
@@ -6337,8 +6353,10 @@
     const saveBtn = document.getElementById('presetCreateSave');
     saveBtn.disabled = true;
 
+    let gen = -1;
     const finish = res => {
       saveBtn.disabled = false;
+      if (gen !== _phrasesReqGen) return;
       _customPhrases = res.phrases;
       setActivePresetId(name);
       closeCreatePresetModal();
@@ -6375,6 +6393,7 @@
       return;
     }
 
+    gen = ++_phrasesReqGen;
     callServer('apiSavePhrasesBatch', [entries, _whoAmI || ''], finish, 'Création preset', onErr);
   }
 
@@ -6386,7 +6405,9 @@
       ? 'Vider le preset "Défaut" de toutes ses phrases personnalisées ? (Les phrases usine resteront disponibles comme repli.)'
       : 'Supprimer le preset "' + displayName + '" et toutes ses phrases ?';
     openConfirmModal(msg, () => {
+      const gen = ++_phrasesReqGen;
       callServer('apiDeletePreset', [active, _whoAmI || ''], res => {
+        if (gen !== _phrasesReqGen) return;
         _customPhrases = res.phrases;
         setActivePresetId(PHRASES_DEFAULT_ID);
         renderPresetChips();
@@ -6428,8 +6449,10 @@
     const saveBtn = document.getElementById('presetRenameSave');
     saveBtn.disabled = true;
 
+    const gen = ++_phrasesReqGen;
     callServer('apiRenamePreset', [oldName, newName, _whoAmI || ''], res => {
       saveBtn.disabled = false;
+      if (gen !== _phrasesReqGen) return;
       _customPhrases = res.phrases;
       setActivePresetId(newName);
       closeRenamePresetModal();
@@ -6854,8 +6877,10 @@
     const entries = lines.map(text => ({ preset: presetName, pool, text }));
     const saveBtn = document.getElementById('bulkImportSave');
     saveBtn.disabled = true;
+    const gen = ++_phrasesReqGen;
     callServer('apiSavePhrasesBatch', [entries, _whoAmI || ''], res => {
       saveBtn.disabled = false;
+      if (gen !== _phrasesReqGen) return;
       _customPhrases = res.phrases;
       document.getElementById('bulkImportModal').style.display = 'none';
       _bulkImportCtx = null;
@@ -13155,7 +13180,9 @@
       if (baremeEntries) {
         renderBaremeQuickBtns(baremeEntries, topName);
       } else {
+        const gen = ++_baremeReqGen;
         callServer('apiGetBareme', [], res => {
+          if (gen !== _baremeReqGen) return;
           baremeEntries = res.entries;
           renderBaremeQuickBtns(res.entries, topName);
         }, 'Barème rapide', () => {
@@ -17809,7 +17836,9 @@
         if (!hasDefault) {
           const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
             texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
+          const seedGen = ++_phrasesReqGen;
           callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], res => {
+            if (seedGen !== _phrasesReqGen) return;
             _customPhrases = res.phrases;
             renderPresetChips();
             renderPhrasesEditorSection();
@@ -18002,7 +18031,9 @@
       return;
     }
     showSkeleton(container, { rows: Math.min(cachedCategories.length, 3), height: 60 });
+    const gen = ++_baremeReqGen;
     callServer('apiGetBareme', [], res => {
+      if (gen !== _baremeReqGen) return;
       baremeEntries = res.entries;
       renderBaremeSettings(res.entries);
       if (document.getElementById('baremeDrawer').classList.contains('open')) renderBaremeDrawer(res.entries);
@@ -18085,8 +18116,10 @@
         if (!requireIdentity()) return;
         if (!actIn.value.trim()) { showToast('Action vide.', 'error'); return; }
         const restore = startBtnLoading(ok, '…');
+        const gen = ++_baremeReqGen;
         callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
           restore();
+          if (gen !== _baremeReqGen) return;
           baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
         }, 'Update barème', () => restore());
       });
@@ -18102,8 +18135,10 @@
     delBtn.addEventListener('click', () => {
       if (!requireIdentity()) return;
       const restore = startBtnLoading(delBtn, '…');
+      const gen = ++_baremeReqGen;
       callServer('apiDeleteBaremeEntry', [entry.rowIndex, _whoAmI || ''], res => {
         restore();
+        if (gen !== _baremeReqGen) return;
         baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
       }, 'Suppr. barème', () => restore());
     });
@@ -18112,7 +18147,9 @@
     row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
     const [upBtn, downBtn] = buildMoveButtons(entriesCont, '.bsect-entry', row, () => {
       const orderedRowIndexes = Array.from(entriesCont.querySelectorAll('.bsect-entry')).map(el => Number(el.dataset.rowIndex));
+      const gen = ++_baremeReqGen;
       callServer('apiReorderBareme', [entry.top, orderedRowIndexes, _whoAmI || ''], res => {
+        if (gen !== _baremeReqGen) return;
         baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
       }, 'Réordonner barème', () => renderBaremeSettings(baremeEntries));
     });
@@ -18133,8 +18170,10 @@
       if (!requireIdentity()) return;
       if (!actIn.value.trim()) { showToast('Action vide.', 'error'); actIn.focus(); return; }
       const restore = startBtnLoading(addBtn, '…');
+      const gen = ++_baremeReqGen;
       callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
         restore();
+        if (gen !== _baremeReqGen) return;
         baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
       }, 'Ajout barème', () => restore());
     };
@@ -18147,6 +18186,11 @@
   // ── BARÈME ───────────────────────────────────────────────────────────
   let baremeEntries = null; // cache: array of {rowIndex, action, pts}
   let baremeActiveFilterCat = 'all';
+  // Compteur de génération : les deux chargeurs indépendants (Paramètres, tiroir
+  // "Barème rapide") et chaque action (ajout, édition, suppression, réordonnancement)
+  // écrivent tous dans baremeEntries de façon asynchrone, sans garantie sur l'ordre
+  // d'arrivée des réponses réseau. Même schéma que _entitiesReqGen/_phrasesReqGen.
+  let _baremeReqGen = 0;
 
   let _baremeResizerInited = false;
   function openBareme() {
@@ -18174,7 +18218,9 @@
   function loadBareme() {
     const body = document.getElementById('baremeBody');
     showSkeleton(body, { rows: 3, height: 60 });
+    const gen = ++_baremeReqGen;
     callServer('apiGetBareme', [], res => {
+      if (gen !== _baremeReqGen) return;
       if (res.success) { baremeEntries = res.entries; renderBaremeDrawer(res.entries); }
       else body.innerHTML = '<p class="bareme-empty">Erreur de chargement.</p>';
     }, 'Barème');
