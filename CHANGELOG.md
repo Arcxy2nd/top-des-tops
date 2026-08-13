@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.14.4] - 2026-08-13
+
+### Corrigé
+**Humanisé** : Réordonner des Joueurs ou des Tops avec les boutons ▲/▼ dans Paramètres pouvait sembler fonctionner (la liste bougeait bien), puis revenir tout seul à l'ancien ordre quelques secondes plus tard, sans qu'on touche à rien — surtout juste après avoir rechargé la page. Le nouvel ordre est désormais définitif dès qu'il s'affiche.
+**Technique** : `Index.html` — `loadEntities()` (déclenché au démarrage) et le clic ▲/▼ (`apiReorderEntities`) écrivaient tous deux dans `cachedPlayers`/`cachedCategories` de façon asynchrone, sans garde d'ordre d'arrivée. Si la réponse `apiGetSettings` du chargement initial (capturée avant le clic) arrivait après la réponse du réordonnancement — latence réseau non garantie, notamment juste après un rechargement de page — elle écrasait silencieusement le nouvel ordre avec l'ancien. Nouveau compteur de génération `_entitiesReqGen`, incrémenté à chaque nouvel appel et vérifié avant d'appliquer une réponse ; toute réponse devenue obsolète entre-temps est ignorée. Même schéma que `histPrefetchKey()` (Historique, v3.7.0). Reproduit et vérifié via le harness local (`tests/frontend/`) en retardant artificiellement la réponse `apiGetSettings` pour simuler la course.
+
 ## [v3.14.3] - 2026-08-12
 
 ### Corrigé

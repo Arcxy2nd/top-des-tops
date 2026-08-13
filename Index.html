@@ -9505,6 +9505,13 @@
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
   const SETTINGS_CACHE_KEY = 'tdt_cache_settings';
+  // Compteur de génération : loadEntities() (déclenché au démarrage) et le
+  // réordonnancement (▲/▼) écrivent tous deux dans cachedPlayers/cachedCategories
+  // de façon asynchrone et indépendante. Sans garde, une réponse apiGetSettings
+  // du chargement initial arrivant APRÈS un réordonnancement (latence réseau
+  // variable, aucune garantie d'ordre d'arrivée) écrasait silencieusement le
+  // nouvel ordre avec l'ancien — même schéma que histPrefetchKey() pour l'Historique.
+  let _entitiesReqGen = 0;
 
   // Effectue tous les rendus qui dépendent de cachedPlayers/cachedCategories — appelée
   // à la fois pour un rendu instantané depuis le cache et pour le rendu final avec les
@@ -9568,6 +9575,7 @@
   }
 
   function loadEntities(onDone) {
+    const gen = ++_entitiesReqGen;
     let paintedFromCache = false;
     try {
       const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
@@ -9585,6 +9593,10 @@
     }
 
     callServer('apiGetSettings', [], res => {
+      // Une action plus récente (nouveau chargement, réordonnancement) a déjà
+      // pris la main entre-temps : appliquer cette réponse maintenant écraserait
+      // un état plus frais avec des données obsolètes au moment où elles arrivent.
+      if (gen !== _entitiesReqGen) { if (onDone) onDone(); return; }
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
       try {
@@ -9610,6 +9622,7 @@
       });
 
     }, 'Chargement settings', () => {
+      if (gen !== _entitiesReqGen) { if (onDone) onDone(); return; }
       // apiGetSettings a échoué : effacement des skeletons pour débloquer l'UI
       showSkeleton(document.getElementById('playersList'),    { rows: 0 });
       showSkeleton(document.getElementById('categoriesList'), { rows: 0 });
@@ -9942,11 +9955,16 @@
       container.appendChild(li);
       const [upBtn, downBtn] = buildMoveButtons(container, '.entity-item', li, () => {
         const orderedNames = Array.from(container.querySelectorAll('.entity-item')).map(el => el.dataset.name);
+        const gen = ++_entitiesReqGen;
         callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], res => {
           // Peindre directement depuis la réponse plutôt que rappeler loadEntities() :
           // celle-ci repeint d'abord depuis son cache localStorage (donc l'ancien ordre)
           // avant que la vraie réponse serveur arrive, ce qui donnait un aller-retour
           // visible (monte, grisé, redescend, puis se corrige).
+          // Garde de génération : si un chargement complet (loadEntities) a démarré
+          // après ce clic — ex. l'apiGetSettings du démarrage, encore en vol —
+          // cette réponse est obsolète et ne doit plus écraser l'état déjà à jour.
+          if (gen !== _entitiesReqGen) return;
           cachedPlayers    = res.players    || [];
           cachedCategories = res.categories || [];
           try {
