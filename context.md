@@ -314,7 +314,7 @@ Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé`. Les deu
 
 ### Tester
 
-Le projet n'a pas de suite de tests automatisés. Vérifier les changements via le harness Node VM local ou l'app déployée. Invoquer `/verify` après tout changement fonctionnel.
+Le projet n'a pas de suite de tests automatisés. Vérifier les changements via le harness Node VM local ou l'app déployée. Invoquer `/run` après tout changement fonctionnel.
 
 ### Commit & push (Double Déploiement Obligatoire)
 
@@ -340,10 +340,11 @@ Les skills installés doivent être **invoqués aux moments-clés**, pas ignoré
 | Avant tout fix de bug (comprendre la cause) | `/superpowers:systematic-debugging` |
 | Avant d'écrire un plan multi-étapes | `/superpowers:writing-plans` |
 | Exécution d'un plan fourni en contexte | `/superpowers:executing-plans` |
-| Après tout changement fonctionnel (vérifier dans l'app) | `/verify` |
+| Après tout changement fonctionnel (vérifier dans l'app) | `/run` |
 | Avant de déclarer "terminé" | `/superpowers:verification-before-completion` |
 | Review du diff avant livraison | `/code-review` |
-| Retrouver du contexte de sessions passées | `/claude-mem:mem-search` |
+
+> ⚠️ Ce tableau ne prescrit que des skills réellement disponibles en session. Prescrire un skill absent = ordre inexécutable à chaque session.
 
 ---
 
