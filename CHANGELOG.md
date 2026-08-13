@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.15.0] - 2026-08-13
+
+### Corrigé
+**Humanisé** : Deux Joueurs (ou deux Tops) portant le même nom faisaient échouer le réordonnancement ▲/▼ à tous les coups (pas seulement parfois) — c'était la vraie cause des tentatives précédentes qui « revenaient en arrière ». Changer la couleur de l'un des deux homonymes changeait en fait la couleur du premier des deux, jamais celui visé — c'était le "je peux créer un joueur du même nom qui ne peut pas avoir de couleur" observé. Un onglet Paramètres → Outils → Santé signale désormais les noms en double, pour repérer le problème sans avoir à ouvrir le Google Sheet.
+**Technique** : `Code.gs` — `apiSetColor`/`SettingsService.setEntityColor` et `apiReorderEntities`/`SettingsService.reorderEntities` adressaient encore la ligne par **nom** (`data.findIndex(r => r[0] === name)`), contrairement à `deleteEntity`/`renameEntity` déjà migrés vers un ciblage par `rowIndex` (v3.14.2). Avec un nom dupliqué, la couleur retombait toujours sur la première ligne portante ce nom, et le contrôle de permutation du réordonnancement (`Set` de noms) échouait dès qu'un nom apparaissait deux fois — peu importe la ligne concernée par le déplacement. Les deux endpoints adressent désormais par `rowIndex`, avec le même garde-fou `expectedName` (refuse si la ligne a changé entre le chargement de la page et le clic) que `deleteEntity`/`renameEntity`. `Index.html` — `dataset.rowIndex` ajouté à chaque ligne de la liste ; les 3 points d'appel de couleur et le réordonnancement transmettent `rowIndex` au lieu du seul nom.
+
+### Sécurité
+**Humanisé** : Renommer l'un des deux Joueurs/Tops homonymes est désormais refusé avec un message clair, plutôt que risqué en silence. Renommer fusionnait en fait l'historique, les notes et le tchat des DEUX homonymes sous le nouveau nom (ces feuilles ne savent retrouver une ligne que par le texte du nom, pas par ligne) — une perte de données du même type que celle qui a déjà coûté un joueur par le passé. Corrigé à la racine : refuser plutôt que fusionner automatiquement. Résoudre le doublon se fait à la main dans le Google Sheet.
+**Technique** : `Code.gs` — `SettingsService.renameEntity()` compte désormais les lignes partageant `oldName` avant de renommer ; si plus d'une, lève une erreur explicite au lieu de laisser `_renameInColumn` (History/Notes/Chat/Bareme/Phrases) réattribuer par erreur l'historique du jumeau non concerné. `StorageService.getDataHealth()`/`_computeDataHealth()` renvoient un nouveau champ `duplicateNames` (Joueurs et Tops), affiché dans le panneau Santé. Aucun outil de fusion automatique n'a été ajouté — fusionner des données réelles par heuristique est précisément le type d'opération à l'origine de l'incident déjà documenté (§7).
+
+Revue par 3 agents Claude indépendants (correction, intégrité des données, simplicité) avant implémentation ; reproduit et vérifié via le harness local avec un jeu de données répliquant exactement le doublon réel ("Ilker" x2) — réordonnancement, changement de couleur et refus de renommage confirmés avant/après correctif.
+
 ## [v3.14.5] - 2026-08-13
 
 ### Corrigé

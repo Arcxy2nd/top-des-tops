@@ -223,22 +223,57 @@ test('SettingsService.deleteEntity refuses a rowIndex whose current content no l
   assert.strictEqual(gas.SettingsService.getEntities('Players').length, 2, 'nothing must be deleted on a stale rowIndex');
 });
 
-test('SettingsService.renameEntity with a rowIndex only touches that row when two entities share a name', () => {
+test('SettingsService.setEntityColor only touches the targeted row when two players share a name', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Ilker', '', '#00ff91', '', 1],
+    ['Ilker', '', '#3742fa', '', 2]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  gas.SettingsService.setEntityColor('Players', 3, 'Ilker', '#123456');
+
+  assert.strictEqual(players._grid[1][2], '#00ff91', 'row 2 (the first Ilker) must be untouched');
+  assert.strictEqual(players._grid[2][2], '#123456', 'row 3 is the one that was targeted');
+});
+
+test('SettingsService.setEntityColor refuses a rowIndex whose current content no longer matches the expected name', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '#111111', '', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+
+  assert.throws(() => gas.SettingsService.setEntityColor('Players', 2, 'Someone Else', '#ffffff'), /changé entre-temps/);
+  assert.strictEqual(players._grid[1][2], '#111111');
+});
+
+test('SettingsService.renameEntity refuses to rename a row whose name is shared by another row', () => {
+  // rowIndex targeting alone is NOT enough here: renaming propagates in cascade to
+  // History/Notes/Chat/Bareme/Phrases by matching the OLD NAME AS TEXT
+  // (_renameInColumn), not by row. With two "Alice" rows, renaming row 3 to "Alicia"
+  // would relabel row 2's History/Notes/Chat entries to "Alicia" too — merging two
+  // different people's history under a single new name, silently and irreversibly.
+  // Refuse instead of attempting an automatic (and inherently lossy) merge.
   const gas = loadGas();
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
     ['Alice', '', '#111111', '', 1],
     ['Alice', '', '#333333', '', 2]
   ]);
-  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  const history = makeSheet([
+    ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'],
+    ['2026-08-01', 'Alice', 'Jeux', 5, '', '', '']
+  ]);
   gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat: null });
 
-  gas.SettingsService.renameEntity('Players', 3, 'Alice', 'Alicia', '', '');
+  assert.throws(() => gas.SettingsService.renameEntity('Players', 3, 'Alice', 'Alicia', '', ''), /partagent le nom/);
 
   const all = gas.SettingsService.getEntities('Players');
-  assert.strictEqual(all.filter(p => p.name === 'Alice').length, 1, 'the row-2 Alice must be untouched');
-  assert.strictEqual(all.find(p => p.name === 'Alice').color, '#111111');
-  assert.strictEqual(all.find(p => p.name === 'Alicia').color, '#333333', 'row 3 is the one that was renamed');
+  assert.strictEqual(all.filter(p => p.name === 'Alice').length, 2, 'neither row was touched');
+  assert.strictEqual(history._grid[1][1], 'Alice', 'History stays attributed to Alice, no silent merge under Alicia');
 });
 
 test('SettingsService.renameEntity rejects a new name that collides with another entity', () => {

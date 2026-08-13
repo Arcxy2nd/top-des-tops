@@ -469,16 +469,19 @@ const SettingsService = {
     _bumpSettingsVersion();
   },
 
-  setEntityColor(type, name, color) {
+  // rowIndex + expectedName ciblent la ligne physique exacte, comme deleteEntity/
+  // renameEntity : deux homonymes ne doivent plus jamais se voir attribuer la
+  // couleur l'un de l'autre parce qu'un findIndex par nom retombe toujours sur
+  // le premier match.
+  setEntityColor(type, rowIndex, expectedName, color) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
-    let idx = -1;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === name) { idx = i; break; }
+    const idx = rowIndex - 1;
+    if (!data[idx] || data[idx][0] !== expectedName) {
+      throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
-    if (idx === -1) throw new Error(`${name} introuvable.`);
     const colIndex = type === 'Players' ? 3 : 4;
-    sheet.getRange(idx + 1, colIndex).setValue(color || "");
+    sheet.getRange(rowIndex, colIndex).setValue(color || "");
     _bumpSettingsVersion();
   },
 
@@ -507,6 +510,17 @@ const SettingsService = {
     const idx = rowIndex - 1;
     if (!data[idx] || data[idx][0] !== oldName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
+    }
+    // Renommer propage en cascade vers History/Notes/Chat/Bareme/Phrases par simple
+    // correspondance de texte sur oldName (_renameInColumn, plus bas). Avec un nom
+    // dupliqué sur deux lignes, ce renommage fusionnerait silencieusement l'historique
+    // des DEUX entités sous un seul nom — perte de données irréversible que rowIndex
+    // ne peut pas empêcher ici (History/Notes/Chat n'ont pas de colonne d'identifiant).
+    // On refuse plutôt que de tenter une fusion automatique (voir §7, incident joueur
+    // perdu) : l'utilisateur doit lever l'ambiguïté à la main dans le Google Sheet.
+    if (data.filter((row, i) => i > 0 && row[0] === oldName).length > 1) {
+      const label = type === 'Players' ? 'joueurs' : 'Tops';
+      throw new Error(`Plusieurs ${label} partagent le nom "${oldName}" — renomme d'abord l'un des doublons directement dans le Google Sheet pour lever l'ambiguïté avant de pouvoir renommer depuis l'app.`);
     }
     if (newName !== oldName && data.some((row, i) => i !== idx && row[0] === newName)) {
       throw new Error(`${newName} existe déjà.`);
@@ -595,19 +609,29 @@ const SettingsService = {
     throw new Error(`Joueur "${name}" introuvable.`);
   },
 
-  reorderEntities(type, orderedNames) {
+  // Ciblage par rowIndex (comme BaremeService.reorderEntries), pas par nom : deux
+  // homonymes ne doivent plus faire échouer tout réordonnancement (un Set de noms
+  // avec un doublon ne peut jamais être une permutation valide). expectedNames
+  // protège en plus contre un renommage survenu entre le chargement de la page et
+  // le clic — une ligne dont le nom a changé entre-temps est refusée plutôt que
+  // silencieusement réordonnée sous une identité que l'utilisateur n'a pas vue.
+  reorderEntities(type, orderedRowIndexes, expectedNames) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
-    const names = data.slice(1).filter(r => r[0]).map(r => r[0]);
-    const isPermutation = orderedNames.length === names.length &&
-      names.every(n => orderedNames.includes(n)) &&
-      new Set(orderedNames).size === orderedNames.length;
-    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux éléments existants.");
-    orderedNames.forEach((name, i) => {
-      const rowIdx0 = data.findIndex(r => r[0] === name);
-      if (rowIdx0 === -1) return;
-      sheet.getRange(rowIdx0 + 1, 5).setValue(i + 1);
+    const validRowIndexes = [];
+    for (let i = 1; i < data.length; i++) if (data[i][0]) validRowIndexes.push(i + 1);
+    const wanted = orderedRowIndexes.map(Number);
+    const isPermutation = wanted.length === validRowIndexes.length &&
+      validRowIndexes.every(r => wanted.includes(r)) &&
+      new Set(wanted).size === wanted.length;
+    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux éléments existants — recharge la page et réessaie.");
+    if (wanted.some(r => r < 2)) throw new Error("Ligne invalide.");
+    wanted.forEach((rowIndex, i) => {
+      if (data[rowIndex - 1][0] !== expectedNames[i]) {
+        throw new Error("Cette liste a changé entre-temps — recharge la page et réessaie.");
+      }
     });
+    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 5).setValue(i + 1));
     _bumpSettingsVersion();
   }
 };
@@ -955,12 +979,27 @@ const StorageService = {
   _computeDataHealth() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { zeros: 0, orphans: 0, total: 0 };
+
+    const playersList    = SettingsService.getEntities('Players');
+    const categoriesList = SettingsService.getEntities('Categories');
+    // Deux lignes Joueur/Top partageant un nom cassent toute action qui adresse
+    // encore par nom (renommage bloqué, voir SettingsService.renameEntity) — signalé
+    // ici pour que l'utilisateur puisse lever l'ambiguïté à la main dans le Sheet.
+    const duplicateNames = [];
+    const flagDuplicates = (list, label) => {
+      const counts = {};
+      list.forEach(e => { counts[e.name] = (counts[e.name] || 0) + 1; });
+      Object.keys(counts).forEach(name => { if (counts[name] > 1) duplicateNames.push(label + ' « ' + name + ' » (' + counts[name] + ')'); });
+    };
+    flagDuplicates(playersList, 'Joueur');
+    flagDuplicates(categoriesList, 'Top');
+
+    if (lastRow <= 1) return { zeros: 0, orphans: 0, total: 0, duplicateNames };
 
     const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-    const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
-    const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
+    const players    = new Set(playersList.map(p => p.name));
+    const categories = new Set(categoriesList.map(c => c.name));
 
     let zeros = 0, orphans = 0;
 
@@ -975,7 +1014,8 @@ const StorageService = {
     return {
       total:  data.length,
       zeros,
-      orphans
+      orphans,
+      duplicateNames
     };
   },
 
@@ -2224,25 +2264,28 @@ function apiDeleteBaremeEntry(rowIndex, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiSetColor(type, name, color, author) {
+function apiSetColor(type, rowIndex, expectedName, color, author) {
   try {
     requireAuthor(author);
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
+    if (!rowIndex) throw new Error("Ligne non précisée — recharge la page et réessaie.");
     return withLock(() => {
       const sheetKey = type === 'Players' ? 'players' : 'categories';
       const numCols  = type === 'Players' ? 3 : 4;
+      const colorCol = type === 'Players' ? 3 : 4;
       const sheet    = ConfigService.getSheets()[sheetKey];
       const data     = sheet.getDataRange().getValues();
-      const rowIdx0  = data.findIndex(r => r[0] === name);
-      const rowIdx1  = rowIdx0 + 1;
-      const beforeRow = rowIdx0 >= 0 ? data[rowIdx0].slice(0, numCols) : null;
-      const before = _entityColorSummary(type, name);
-      SettingsService.setEntityColor(type, name, color);
+      const beforeRow = data[rowIndex - 1] ? data[rowIndex - 1].slice(0, numCols) : null;
+      // "before" vient de la ligne déjà lue plutôt que d'une relecture par nom
+      // (_entityColorSummary) : avec deux homonymes, ce second lookup risquerait
+      // de décrire la couleur de l'autre jumeau dans le journal d'audit.
+      const before = beforeRow ? (beforeRow[colorCol - 1] || '') : '';
+      SettingsService.setEntityColor(type, rowIndex, expectedName, color);
       const label = type === 'Players' ? 'Joueur' : 'Top';
-      const afterRow = beforeRow ? sheet.getRange(rowIdx1, 1, 1, numCols).getValues()[0] : null;
-      AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + name,
+      const afterRow = beforeRow ? sheet.getRange(rowIndex, 1, 1, numCols).getValues()[0] : null;
+      AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + expectedName,
         before, color || '', '',
-        beforeRow ? { sheet: sheetKey, op: 'update', rowIndex: rowIdx1, before: beforeRow, after: afterRow } : null);
+        beforeRow ? { sheet: sheetKey, op: 'update', rowIndex: rowIndex, before: beforeRow, after: afterRow } : null);
       ConfigService.clearCache();
       return { success: true };
     });
@@ -2300,15 +2343,16 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
   } catch(e) { return fail(e); }
 }
 
-function apiReorderEntities(type, orderedNames, author) {
+function apiReorderEntities(type, orderedRowIndexes, expectedNames, author) {
   try {
     requireAuthor(author);
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
-    if (!Array.isArray(orderedNames) || !orderedNames.length) throw new Error("Liste d'ordre invalide.");
+    if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
+    if (!Array.isArray(expectedNames) || expectedNames.length !== orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
-      SettingsService.reorderEntities(type, orderedNames);
+      SettingsService.reorderEntities(type, orderedRowIndexes, expectedNames);
       const label = type === 'Players' ? 'Joueurs' : 'Tops';
-      AuditService.log(author, 'Ordre modifié', label, '', orderedNames.join(' → '), '', null);
+      AuditService.log(author, 'Ordre modifié', label, '', expectedNames.join(' → '), '', null);
       ConfigService.clearCache();
       // Renvoyer les deux listes fraîches (comme apiGetSettings) évite au client de
       // rappeler loadEntities() après coup — celle-ci repeint d'abord depuis son

@@ -189,7 +189,24 @@ test('getDataHealth counts zero-point rows and orphans without modifying data', 
   assert.strictEqual(h.total, 4);
   assert.strictEqual(h.zeros, 1);
   assert.strictEqual(h.orphans, 2);
+  assert.strictEqual(h.duplicateNames.length, 0);
   assert.strictEqual(history._grid.length, 5); // unchanged: header + 4 rows
+});
+
+test('getDataHealth flags Players/Categories rows that share a name', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color'],
+    ['Ilker', '', '#00ff91'],
+    ['Antoine', '', ''],
+    ['Ilker', '', '#3742fa']
+  ]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Jeux', '', '', '']]);
+  gas.ConfigService.getSheets = () => ({ history: makeSheet([HEADER]), players, categories });
+
+  const h = gas.StorageService.getDataHealth();
+  assert.strictEqual(h.duplicateNames.length, 1);
+  assert.match(h.duplicateNames[0], /Ilker/);
 });
 
 // ── getHistoryPage — grouping + pagination ──────────────────────────────

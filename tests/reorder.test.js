@@ -57,7 +57,7 @@ test('addEntity assigns the next sequential Ordre value', () => {
   assert.strictEqual(row[4], 3);
 });
 
-test('reorderEntities persists a full permutation of names as sequential Ordre', () => {
+test('reorderEntities persists a full permutation by rowIndex as sequential Ordre', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
@@ -66,12 +66,13 @@ test('reorderEntities persists a full permutation of names as sequential Ordre',
     ['Carl',  '', '', '', 3]
   ]);
   gas.ConfigService.getSheets = () => ({ players });
-  gas.SettingsService.reorderEntities('Players', ['Carl', 'Alice', 'Bob']);
+  // rows: Alice=2, Bob=3, Carl=4 -> desired order Carl, Alice, Bob
+  gas.SettingsService.reorderEntities('Players', [4, 2, 3], ['Carl', 'Alice', 'Bob']);
   const names = gas.SettingsService.getEntities('Players').map(p => p.name);
   assert.deepStrictEqual(names, ['Carl', 'Alice', 'Bob']);
 });
 
-test('reorderEntities rejects a list that is not an exact permutation of existing names', () => {
+test('reorderEntities rejects a rowIndex list that is not an exact permutation of existing rows', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
@@ -79,8 +80,38 @@ test('reorderEntities rejects a list that is not an exact permutation of existin
     ['Bob',   '', '', '', 2]
   ]);
   gas.ConfigService.getSheets = () => ({ players });
-  assert.throws(() => gas.SettingsService.reorderEntities('Players', ['Alice']));
-  assert.throws(() => gas.SettingsService.reorderEntities('Players', ['Alice', 'Bob', 'Ghost']));
+  assert.throws(() => gas.SettingsService.reorderEntities('Players', [2], ['Alice']));
+  assert.throws(() => gas.SettingsService.reorderEntities('Players', [2, 3, 4], ['Alice', 'Bob', 'Ghost']));
+});
+
+test('reorderEntities never faults on duplicate names — it is keyed by rowIndex, not name', () => {
+  // The real bug this class of fix targets: two Players sharing a name used to make
+  // the name-based permutation check (Set of names) fail deterministically, on every
+  // single reorder attempt, regardless of which rows were actually being moved.
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Ilker',   '', '', '', 1],
+    ['Antoine', '', '', '', 2],
+    ['Ilker',   '', '', '', 3]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+  // rows: Ilker#1=2, Antoine=3, Ilker#2=4 -> move Antoine to the front
+  gas.SettingsService.reorderEntities('Players', [3, 2, 4], ['Antoine', 'Ilker', 'Ilker']);
+  const rows = gas.SettingsService.getEntities('Players').map(p => p.name);
+  assert.deepStrictEqual(rows, ['Antoine', 'Ilker', 'Ilker']);
+});
+
+test('reorderEntities rejects a rowIndex whose current name no longer matches expectedNames (stale client)', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice',   '', '', '', 1],
+    ['Bob',     '', '', '', 2]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players });
+  // Row 2 is actually "Alice", but the stale client still thinks it's "Renamed".
+  assert.throws(() => gas.SettingsService.reorderEntities('Players', [2, 3], ['Renamed', 'Bob']));
 });
 
 test('apiReorderEntities requires an author and logs to AuditLog', () => {
@@ -94,10 +125,10 @@ test('apiReorderEntities requires an author and logs to AuditLog', () => {
   gas.ConfigService.getSheets = () => ({ players, auditLog });
   gas.ConfigService.clearCache = () => {};
 
-  const noAuthor = gas.apiReorderEntities('Players', ['Bob', 'Alice'], '');
+  const noAuthor = gas.apiReorderEntities('Players', [3, 2], ['Bob', 'Alice'], '');
   assert.strictEqual(noAuthor.success, false);
 
-  const res = gas.apiReorderEntities('Players', ['Bob', 'Alice'], 'Alice');
+  const res = gas.apiReorderEntities('Players', [3, 2], ['Bob', 'Alice'], 'Alice');
   assert.strictEqual(res.success, true);
   assert.strictEqual(auditLog._grid.length, 2); // header + 1 log row
 });
@@ -121,7 +152,7 @@ test('apiReorderEntities returns the fresh players/categories lists in the new o
   gas.ConfigService.getSheets = () => ({ players, categories, auditLog });
   gas.ConfigService.clearCache = () => {};
 
-  const res = gas.apiReorderEntities('Players', ['Bob', 'Alice'], 'Alice');
+  const res = gas.apiReorderEntities('Players', [3, 2], ['Bob', 'Alice'], 'Alice');
   assert.deepStrictEqual(res.players.map(p => p.name), ['Bob', 'Alice']);
   assert.deepStrictEqual(res.categories.map(c => c.name), ['Jeux', 'Défis']);
 });

@@ -436,7 +436,7 @@ test('apiSetColor / undo restores the old color', () => {
     history: makeSheet([]), players, categories: makeSheet([]),
     notes: null, bareme: null, phrases: null, auditLog: audit
   });
-  gas.apiSetColor('Players', 'Bob', '#ffffff', 'Alice');
+  gas.apiSetColor('Players', 2, 'Bob', '#ffffff', 'Alice');
   assert.strictEqual(players._grid[1][2], '#ffffff');
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(players._grid[1][2], '#000000');

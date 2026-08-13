@@ -9507,7 +9507,7 @@
       const cache = isCat ? cachedCategories : cachedPlayers;
       const item  = cache.find(x => x.name === oldName);
       if (item) item.color = col;
-      callServer('apiSetColor', [entityType, oldName, col, _whoAmI || ''], () => {}, 'Color save');
+      callServer('apiSetColor', [entityType, rowIndex, oldName, col, _whoAmI || ''], () => {}, 'Color save');
       callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || '', rowIndex], () => {
         loadEntities();
         showToast('Modifié avec succès.', 'success');
@@ -9879,6 +9879,7 @@
       const li = document.createElement('li');
       li.className = 'entity-item';
       li.dataset.name = item.name;
+      li.dataset.rowIndex = item.rowIndex;
       const left = document.createElement('div');
       left.className = 'entity-left';
       if (type === 'Players') {
@@ -9905,7 +9906,7 @@
           if (!requireIdentity()) return;
           const p = cachedPlayers.find(p => p.name === item.name);
           if (p) p.color = colorIn.value;
-          callServer('apiSetColor', ['Players', item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
+          callServer('apiSetColor', ['Players', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
           refreshColorDependentViews();
         });
         colorLbl.appendChild(colorDot);
@@ -9935,7 +9936,7 @@
           if (!requireIdentity()) return;
           const c = cachedCategories.find(c => c.name === item.name);
           if (c) c.color = colorIn.value;
-          callServer('apiSetColor', ['Categories', item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
+          callServer('apiSetColor', ['Categories', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
           refreshColorDependentViews();
         });
         colorLbl.appendChild(colorDot);
@@ -9979,9 +9980,14 @@
       li.appendChild(left); li.appendChild(btns);
       container.appendChild(li);
       const [upBtn, downBtn] = buildMoveButtons(container, '.entity-item', li, () => {
-        const orderedNames = Array.from(container.querySelectorAll('.entity-item')).map(el => el.dataset.name);
+        // rowIndex adresse la ligne physique (comme delete/rename/couleur) ; expectedNames
+        // voyage à côté pour que le serveur refuse si un nom a changé entre-temps — deux
+        // homonymes ne doivent plus jamais faire échouer tout le réordonnancement.
+        const rows = Array.from(container.querySelectorAll('.entity-item'));
+        const orderedRowIndexes = rows.map(el => Number(el.dataset.rowIndex));
+        const expectedNames     = rows.map(el => el.dataset.name);
         const gen = ++_entitiesReqGen;
-        callServer('apiReorderEntities', [type, orderedNames, _whoAmI || ''], res => {
+        callServer('apiReorderEntities', [type, orderedRowIndexes, expectedNames, _whoAmI || ''], res => {
           // Peindre directement depuis la réponse plutôt que rappeler loadEntities() :
           // celle-ci repeint d'abord depuis son cache localStorage (donc l'ancien ordre)
           // avant que la vraie réponse serveur arrive, ce qui donnait un aller-retour
@@ -15515,6 +15521,7 @@
     showSkeleton(grid, { rows: 3, height: 90, extraClass: 'health-stat' });
     callServer('apiGetDataHealth', [], res => {
       const h = res.health;
+      const dupes = h.duplicateNames || [];
       grid.innerHTML = `
         <div class="health-stat ok">
           <div class="stat-value">${h.total}</div>
@@ -15528,7 +15535,16 @@
           <div class="stat-value">${h.orphans}</div>
           <div class="stat-label">Orphelines</div>
         </div>
-      `;
+        <div class="health-stat ${dupes.length > 0 ? 'bad' : 'ok'}">
+          <div class="stat-value">${dupes.length}</div>
+          <div class="stat-label">Noms en double</div>
+        </div>
+      ` + (dupes.length ? `
+        <div class="hq-empty" style="grid-column:1/-1;text-align:left;color:var(--warn);">
+          ⚠️ ${dupes.map(escapeHtml).join(' · ')} — deux lignes portant le même nom se confondent
+          (couleur, renommage bloqué). À corriger à la main dans le Google Sheet.
+        </div>
+      ` : '');
     }, 'Chargement santé', () => {
       grid.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
     });
