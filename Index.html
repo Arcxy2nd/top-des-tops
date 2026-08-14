@@ -3721,6 +3721,7 @@
   .cl-cat-chip[data-cat="Modifié"] { border-color: var(--info); background: rgba(124, 140, 255, 0.15); color: var(--info); }
   .cl-cat-chip[data-cat="Corrigé"] { border-color: var(--warn); background: rgba(255, 165, 0, 0.15); color: var(--warn); }
   .cl-cat-chip[data-cat="Supprimé"] { border-color: var(--error); background: rgba(255, 71, 87, 0.15); color: var(--error); }
+  .cl-cat-chip[data-cat="Interne"] { border-color: var(--text-muted); background: rgba(154, 165, 190, 0.1); color: var(--text-muted); }
   .cl-tag {
     display: inline-block; font-size: 0.72rem; font-weight: 700;
     padding: 2px 7px; border-radius: 4px; margin-right: 6px;
@@ -4731,8 +4732,8 @@
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <!-- Choix de la Vue : Tous / Humanisé / Technique -->
               <div id="clViewModeGroup" class="segmented-control" style="display:inline-flex; background:var(--bg); padding:3px; border-radius:20px; border:1px solid var(--border);">
-                <button class="cl-view-btn active" data-view="all" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:var(--card); color:var(--text);">👁️ Tous</button>
-                <button class="cl-view-btn" data-view="human" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted);">👤 Humanisé</button>
+                <button class="cl-view-btn" data-view="all" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted);">👁️ Tous</button>
+                <button class="cl-view-btn active" data-view="human" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:var(--card); color:var(--text);">👤 Humanisé</button>
                 <button class="cl-view-btn" data-view="tech" style="padding:3px 10px; border-radius:16px; border:none; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted);">💻 Technique</button>
               </div>
 
@@ -4754,6 +4755,7 @@
               <button class="cl-cat-chip active" data-cat="Modifié">⚡ Modifié</button>
               <button class="cl-cat-chip active" data-cat="Corrigé">🐛 Corrigé</button>
               <button class="cl-cat-chip active" data-cat="Supprimé">🗑️ Supprimé</button>
+              <button class="cl-cat-chip" data-cat="Interne">🔧 Interne</button>
             </div>
 
             <!-- Plage de versions -->
@@ -6465,7 +6467,7 @@
   let _changelogRawMarkdown = '';
   let _clSearchQuery = '';
   let _clSortOrder = 'desc';
-  let _clViewMode = 'all'; // 'all', 'human', 'tech'
+  let _clViewMode = 'human'; // 'all', 'human', 'tech'
   let _clActiveCats = new Set(['Ajouté', 'Modifié', 'Corrigé', 'Supprimé']);
   let _clVersionFrom = 'all';
   let _clVersionTo = 'all';
@@ -6593,6 +6595,7 @@
     formatted = formatted.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
     formatted = formatted.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
     formatted = formatted.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
+    formatted = formatted.replace(/<h3>Interne<\/h3>/g, '<div class="cl-sec-header" style="color:var(--text-muted); border-color:var(--text-muted);">🔧 Interne</div>');
     formatted = formatted.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
     formatted = formatted.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
     return formatted;
@@ -6615,7 +6618,7 @@
   function resetChangelogFilters() {
     _clSearchQuery = '';
     _clSortOrder = 'desc';
-    _clViewMode = 'all';
+    _clViewMode = 'human';
     _clActiveCats = new Set(['Ajouté', 'Modifié', 'Corrigé', 'Supprimé']);
     _clVersionFrom = 'all';
     _clVersionTo = 'all';
@@ -6635,15 +6638,16 @@
     const viewGroup = document.getElementById('clViewModeGroup');
     if (viewGroup) {
       viewGroup.querySelectorAll('.cl-view-btn').forEach(b => {
-        const isAll = b.dataset.view === 'all';
-        b.classList.toggle('active', isAll);
-        b.style.background = isAll ? 'var(--card)' : 'transparent';
-        b.style.color = isAll ? 'var(--text)' : 'var(--text-muted)';
+        const isHuman = b.dataset.view === 'human';
+        b.classList.toggle('active', isHuman);
+        b.style.background = isHuman ? 'var(--card)' : 'transparent';
+        b.style.color = isHuman ? 'var(--text)' : 'var(--text-muted)';
       });
     }
 
     document.querySelectorAll('.cl-cat-chip').forEach(btn => {
-      btn.classList.add('active');
+      const isInterne = btn.dataset.cat === 'Interne';
+      btn.classList.toggle('active', !isInterne);
     });
 
     renderChangelogView();

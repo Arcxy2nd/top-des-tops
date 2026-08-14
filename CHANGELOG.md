@@ -14,6 +14,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Les tests des deux outils retirés en v3.15.1 ont été enlevés — ils testaient des fonctions qui n'existent plus et faisaient échouer la suite de tests.
 **Technique** : `tests/outils-nouveaux.test.js` — suppression des 4 cas visant `apiDetectOutlierScores` et `apiGetInactivePlayers`, endpoints supprimés en v3.15.1 sans nettoyage de leurs tests.
 
+### Interne
+**Humanisé** : Le changelog du site s'ouvre désormais en vue "Humanisé" par défaut, et une nouvelle catégorie "Interne" permet de classer les changements qui ne touchent pas directement l'application (méthode de travail, workflow IA, context.md…). Ces entrées sont masquées par défaut — un clic sur le chip "🔧 Interne" les révèle.
+**Technique** : `Index.html` — `_clViewMode` initialisé à `'human'` ; nouveau chip `.cl-cat-chip[data-cat="Interne"]` sans classe `active` par défaut ; `_clActiveCats` n'inclut pas `'Interne'` à l'init ni dans `resetChangelogFilters()` ; `formatChangelogBody()` mappe `<h3>Interne</h3>` vers un header stylé `var(--text-muted)` ; CSS `.cl-cat-chip[data-cat="Interne"]` ajouté.
+
 ## [v3.15.1] - 2026-08-14
 
 ### Supprimé
