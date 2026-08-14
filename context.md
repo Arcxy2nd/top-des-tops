@@ -357,9 +357,3 @@ Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` 
 Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
 
 ---
-
-## NOTE OUVERTE — collision d'affichage sur noms en double (2026-08-13)
-
-Deux Joueurs/Tops homonymes : le côté écriture est corrigé (couleur/ordre par `rowIndex`, renommage refusé — v3.15.0). Reste ouvert : `playerColor()`/`categoryColor()`/`getAvatarUrl()` et équivalents dans `Index.html` retrouvent encore par **nom**, donc les deux homonymes affichent la même couleur/avatar partout hors Paramètres (tchat, dashboard, notes, historique). Une partie est structurellement irrésolvable : `History`/`Notes`/`Chat` stockent le nom en texte, sans colonne d'identifiant, donc pas de `rowIndex` à faire circuler jusque-là. Solution durable : l'utilisateur élimine le doublon à la main dans le Sheet (le renommage automatique reste refusé par design, cf. §7 incident joueur perdu).
-
----
