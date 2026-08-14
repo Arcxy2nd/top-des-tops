@@ -68,6 +68,111 @@ function _logCacheSkip(key, size) {
   }
 }
 
+// ─── HEADER ROW DETECTION ──────────────────────────────────────────────────────
+/**
+ * Canonical row-1 labels of every sheet the app reads, keyed exactly like
+ * ConfigService.getSheets(). The sheets the app creates itself always carry them,
+ * but History / Players / Categories are made by hand in the spreadsheet — the app
+ * refuses to start without them and never creates them — so nothing guarantees a
+ * header there. Both production spreadsheets in fact hold a real record on row 1.
+ *
+ * Every reader used to skip row 1 unconditionally, which made the first player, the
+ * first top and the first score invisible everywhere at once: absent from the lists,
+ * the dashboard and the filters, but also from addEntity's duplicate check — which is
+ * how an already-existing player could be created a second time. Row-1-ness must
+ * therefore be decided from the row's own content, never assumed.
+ */
+const SHEET_HEADERS = {
+  players:       ['name', 'avatar url', 'hex color', 'password', 'ordre'],
+  categories:    ['name', 'description', 'emoji', 'hex color', 'ordre'],
+  history:       ['date', 'player', 'category', 'points', 'description', 'groupid', 'saiseur'],
+  notes:         ['date', 'joueur', 'note', 'noteid', 'créépar', 'modifiépar', 'modifiéle'],
+  bareme:        ['top', 'action', 'points', 'ordre'],
+  phrases:       ['preset', 'pool', 'phrase', 'ordre'],
+  chat:          ['id', 'date', 'auteur', 'texte', 'réponseà'],
+  auditLog:      ['timestamp', 'auteur', 'action', 'entité', 'avant', 'après', 'détail', 'snapshot', 'annuléle'],
+  settings:      ['key', 'value'],
+  altCategories: ['name', 'description', 'emoji', 'hex color'],
+  altHistory:    ['date', 'player', 'category', 'points', 'description', 'refhistoryrowid', 'groupid', 'saiseur'],
+  autoRules:     ['id', 'player', 'category', 'points', 'description', 'frequency', 'interval',
+                  'daysofweek', 'dayofmonth', 'startdate', 'nextrun', 'lastrun', 'active', 'createdby']
+};
+
+// Sheets whose first column always holds a real date. On those, a row 1 whose first
+// cell is not a date cannot be a record — so it is a header even when its wording
+// differs from ours (hand-made sheets carry French or renamed labels).
+const DATE_FIRST_SHEETS = { history: true, notes: true, altHistory: true, auditLog: true };
+
+function _isDateCell(v) {
+  if (v && typeof v.getTime === 'function') return !isNaN(v.getTime());
+  if (typeof v === 'number') return false;
+  const s = (v === null || v === undefined) ? '' : String(v).trim();
+  if (!s) return false;
+  return !isNaN(new Date(s).getTime());
+}
+
+/** True when `row` is a label row rather than a record. */
+function _isHeaderRow(sheetKey, row) {
+  const labels = SHEET_HEADERS[sheetKey];
+  if (!labels) return true;              // unknown sheet → keep the historical assumption
+  if (!row || !row.length) return false;
+  const norm = v => (v === null || v === undefined) ? '' : String(v).trim().toLowerCase();
+  let matches = 0;
+  for (let i = 0; i < labels.length && i < row.length; i++) {
+    if (norm(row[i]) === labels[i]) matches++;
+  }
+  // One match is enough on the first column (a player is never called "Name"), but
+  // elsewhere two are required so a top named like a label can't hide the whole row.
+  if (matches >= 2 || (matches === 1 && norm(row[0]) === labels[0])) return true;
+  if (DATE_FIRST_SHEETS[sheetKey]) return !_isDateCell(row[0]);
+  return false;
+}
+
+// Memoized per execution: Apps Script builds a fresh global scope for every request,
+// so this never outlives the data it describes. Cleared with the sheet cache because
+// a sheet created mid-request (Notes, Chat, Bareme…) gains its header right then.
+let _headerOffsetMemo = {};
+function _clearHeaderOffsetMemo() { _headerOffsetMemo = {}; }
+
+/** 1 when the sheet starts with a header row, 0 when its data starts on row 1. */
+function _headerOffset(sheetKey, sheet) {
+  if (!sheet) return 1;
+  if (_headerOffsetMemo[sheetKey] !== undefined) return _headerOffsetMemo[sheetKey];
+  let offset = 1;
+  if (sheet.getLastRow() >= 1) {
+    const labels = SHEET_HEADERS[sheetKey] || [];
+    const width  = Math.max(1, Math.min(labels.length || 1, sheet.getLastColumn() || 1));
+    offset = _isHeaderRow(sheetKey, sheet.getRange(1, 1, 1, width).getValues()[0]) ? 1 : 0;
+  }
+  _headerOffsetMemo[sheetKey] = offset;
+  return offset;
+}
+
+/** Same decision, without a second read, when the caller already holds every value. */
+function _headerOffsetFromValues(sheetKey, values) {
+  if (!values || !values.length) return 0;
+  const offset = _isHeaderRow(sheetKey, values[0]) ? 1 : 0;
+  _headerOffsetMemo[sheetKey] = offset;
+  return offset;
+}
+
+/** 1-based index of the first data row of a sheet. */
+function _firstDataRow(sheetKey, sheet) { return 1 + _headerOffset(sheetKey, sheet); }
+
+/**
+ * Reads every data row of a sheet in a SINGLE range call: row 1 is fetched with the
+ * rest and dropped only if it turns out to be the header. Reading rows 2..n and then
+ * probing row 1 separately would double the Sheets round-trips on the hottest paths.
+ * Returns { values, startRow }, startRow being the 1-based sheet row of values[0].
+ */
+function _readDataRows(sheetKey, sheet, numCols) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) { _headerOffsetMemo[sheetKey] = 1; return { values: [], startRow: 2 }; }
+  const all = sheet.getRange(1, 1, lastRow, numCols).getValues();
+  const off = _headerOffsetFromValues(sheetKey, all);
+  return { values: all.slice(off), startRow: 1 + off };
+}
+
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
 const ConfigService = (() => {
   let _cache = null;
@@ -105,7 +210,7 @@ const ConfigService = (() => {
     }
   };
 
-  const clearCache = () => { _cache = null; _logsCache = null; };
+  const clearCache = () => { _cache = null; _logsCache = null; _clearHeaderOffsetMemo(); };
   const getLogsCache = () => _logsCache;
   const setLogsCache = v => { _logsCache = v; };
 
@@ -276,12 +381,13 @@ const AuditService = (() => {
     return true;
   }
 
-  /** Finds the 1-based row index of the first row (from row 2) matching `values` exactly. */
-  function _findRowIndex(sheet, values) {
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2 || !values || !values.length) return -1;
-    const data = sheet.getRange(2, 1, lastRow - 1, values.length).getValues();
-    for (let i = 0; i < data.length; i++) if (_rowsEqual(data[i], values)) return i + 2;
+  /** Finds the 1-based row index of the first data row matching `values` exactly. */
+  function _findRowIndex(sheetKey, sheet, values) {
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow(sheetKey, sheet);
+    if (lastRow < startRow || !values || !values.length) return -1;
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, values.length).getValues();
+    for (let i = 0; i < data.length; i++) if (_rowsEqual(data[i], values)) return i + startRow;
     return -1;
   }
 
@@ -294,12 +400,12 @@ const AuditService = (() => {
 
   /** Locates the row to act on: trust `rowIndex` if its current content still matches
    *  `expected`, else fall back to a full-sheet content search. Throws if neither works. */
-  function _locate(sheet, rowIndex, expected) {
+  function _locate(sheetKey, sheet, rowIndex, expected) {
     if (rowIndex) {
       const current = sheet.getRange(rowIndex, 1, 1, expected.length).getValues()[0];
       if (_rowsEqual(current, expected)) return rowIndex;
     }
-    const found = _findRowIndex(sheet, expected);
+    const found = _findRowIndex(sheetKey, sheet, expected);
     if (found === -1) throw new Error("Impossible d'annuler : les données ont changé depuis cette action.");
     return found;
   }
@@ -313,7 +419,7 @@ const AuditService = (() => {
     const sheet = _sheetFor(snapshot.sheet);
     switch (snapshot.op) {
       case 'insert': {
-        const row = _locate(sheet, snapshot.rowIndex, snapshot.after);
+        const row = _locate(snapshot.sheet, sheet, snapshot.rowIndex, snapshot.after);
         sheet.deleteRow(row);
         return;
       }
@@ -323,14 +429,14 @@ const AuditService = (() => {
         return;
       }
       case 'update': {
-        const row = _locate(sheet, snapshot.rowIndex, snapshot.after);
+        const row = _locate(snapshot.sheet, sheet, snapshot.rowIndex, snapshot.after);
         const before = _reviveRow(snapshot.before);
         sheet.getRange(row, 1, 1, before.length).setValues([before]);
         return;
       }
       case 'insertMany': {
         snapshot.rows.forEach(r => {
-          const row = _findRowIndex(sheet, r);
+          const row = _findRowIndex(snapshot.sheet, sheet, r);
           if (row !== -1) sheet.deleteRow(row);
         });
         return;
@@ -344,7 +450,7 @@ const AuditService = (() => {
       }
       case 'updateMany': {
         snapshot.rows.forEach(r => {
-          const row = _locate(sheet, r.rowIndex, r.after);
+          const row = _locate(snapshot.sheet, sheet, r.rowIndex, r.after);
           const before = _reviveRow(r.before);
           sheet.getRange(row, 1, 1, before.length).setValues([before]);
         });
@@ -360,7 +466,7 @@ const AuditService = (() => {
   function undo(auditRowId, author) {
     const sheet = _getOrCreateSheet();
     const rowIndex = parseInt(auditRowId, 10);
-    if (isNaN(rowIndex) || rowIndex < 2) throw new Error("Ligne de journal invalide.");
+    if (isNaN(rowIndex) || rowIndex < _firstDataRow('auditLog', sheet)) throw new Error("Ligne de journal invalide.");
     const row = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
     const action = row[2], entity = row[3], snapshotRaw = row[7], undoneAt = row[8];
     if (undoneAt) throw new Error("Cette action a déjà été annulée.");
@@ -414,12 +520,13 @@ const SettingsService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data  = sheet.getDataRange().getValues();
+    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     // Le vrai numéro de ligne est attaché ici, avant filtre/tri — jamais recalculé
     // depuis la position dans le tableau final (voir BaremeService.getEntries pour
     // le même piège) : deleteEntity/renameEntity s'en servent pour cibler la bonne
     // ligne physique même quand deux entités partagent le même nom.
-    let rows = data.slice(1)
-      .map((r, i) => ({ r, rowIndex: i + 2 }))
+    let rows = data.slice(off)
+      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
       .filter(x => x.r[0]);
     rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
     const result = rows.map(x => {
@@ -454,13 +561,14 @@ const SettingsService = {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
+    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     // A duplicate name isn't just cosmetic here: deleteEntity() removes every
     // row matching a name, so two entities sharing one would both vanish on
     // what looks like a single, unitary deletion.
-    if (data.some((row, i) => i > 0 && row[0] === name)) {
+    if (data.some((row, i) => i >= off && row[0] === name)) {
       throw new Error(`${name} existe déjà.`);
     }
-    const nextOrdre = data.slice(1).filter(r => r[0]).length + 1;
+    const nextOrdre = data.slice(off).filter(r => r[0]).length + 1;
     if (type === 'Players') {
       sheet.appendRow([name, meta || "", "", "", nextOrdre]);
     } else {
@@ -518,11 +626,12 @@ const SettingsService = {
     // ne peut pas empêcher ici (History/Notes/Chat n'ont pas de colonne d'identifiant).
     // On refuse plutôt que de tenter une fusion automatique (voir §7, incident joueur
     // perdu) : l'utilisateur doit lever l'ambiguïté à la main dans le Google Sheet.
-    if (data.filter((row, i) => i > 0 && row[0] === oldName).length > 1) {
+    if (data.filter((row, i) => i >= _headerOffsetFromValues(type.toLowerCase(), data) && row[0] === oldName).length > 1) {
       const label = type === 'Players' ? 'joueurs' : 'Tops';
       throw new Error(`Plusieurs ${label} partagent le nom "${oldName}" — renomme d'abord l'un des doublons directement dans le Google Sheet pour lever l'ambiguïté avant de pouvoir renommer depuis l'app.`);
     }
-    if (newName !== oldName && data.some((row, i) => i !== idx && row[0] === newName)) {
+    if (newName !== oldName && data.some((row, i) =>
+        i >= _headerOffsetFromValues(type.toLowerCase(), data) && i !== idx && row[0] === newName)) {
       throw new Error(`${newName} existe déjà.`);
     }
     if (type === 'Players') {
@@ -536,9 +645,10 @@ const SettingsService = {
 
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
-    if (lastRow > 1) {
+    const histStart = _firstDataRow('history', histSheet);
+    if (lastRow >= histStart) {
       const colIndex = type === 'Players' ? 1 : 2;
-      const range    = histSheet.getRange(2, colIndex + 1, lastRow - 1, 1);
+      const range    = histSheet.getRange(histStart, colIndex + 1, lastRow - histStart + 1, 1);
       const vals     = range.getValues();
       let modified   = false;
       for (let i = 0; i < vals.length; i++) {
@@ -547,28 +657,29 @@ const SettingsService = {
       if (modified) range.setValues(vals);
     }
 
-    this._renameInColumn(ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
+    this._renameInColumn('autoRules', ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
     if (type === 'Players') {
       // Notes only ever reference a Player (column 2), never a Top — otherwise
       // renaming a player would silently orphan their notes (invisible in the
       // UI, which only ever groups by currently-known player names).
-      this._renameInColumn(ConfigService.getSheets().notes, 2, oldName, newName);
+      this._renameInColumn('notes', ConfigService.getSheets().notes, 2, oldName, newName);
       // Chat messages reference their author by name (column 3, "Auteur") — without
       // this, a renamed player's old messages keep the stale name: unmatched by
       // cachedPlayers (generic avatar/color fallback) and unrecognized by the
       // author === _whoAmI check, silently losing the ability to delete their own
       // past messages.
-      this._renameInColumn(ConfigService.getSheets().chat, 3, oldName, newName);
+      this._renameInColumn('chat', ConfigService.getSheets().chat, 3, oldName, newName);
       return;
     }
 
-    this._renameInColumn(ConfigService.getSheets().bareme, 1, oldName, newName);
+    this._renameInColumn('bareme', ConfigService.getSheets().bareme, 1, oldName, newName);
 
     const phrasesSheet = ConfigService.getSheets().phrases;
     if (phrasesSheet) {
-      const pLastRow = phrasesSheet.getLastRow();
-      if (pLastRow > 1) {
-        const poolRange = phrasesSheet.getRange(2, 2, pLastRow - 1, 1);
+      const pLastRow  = phrasesSheet.getLastRow();
+      const poolStart = _firstDataRow('phrases', phrasesSheet);
+      if (pLastRow >= poolStart) {
+        const poolRange = phrasesSheet.getRange(poolStart, 2, pLastRow - poolStart + 1, 1);
         const poolVals  = poolRange.getValues();
         const oldPool   = 'cat:' + oldName;
         const newPool   = 'cat:' + newName;
@@ -581,12 +692,13 @@ const SettingsService = {
     }
   },
 
-  /** Renames every occurrence of oldName to newName in a single 1-based column of sheet (header row skipped). No-op if sheet is absent. */
-  _renameInColumn(sheet, colIndex1Based, oldName, newName) {
+  /** Renames every occurrence of oldName to newName in a single 1-based column of sheet (header row skipped when there is one). No-op if sheet is absent. */
+  _renameInColumn(sheetKey, sheet, colIndex1Based, oldName, newName) {
     if (!sheet) return;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return;
-    const range = sheet.getRange(2, colIndex1Based, lastRow - 1, 1);
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow(sheetKey, sheet);
+    if (lastRow < startRow) return;
+    const range = sheet.getRange(startRow, colIndex1Based, lastRow - startRow + 1, 1);
     const vals  = range.getValues();
     let modified = false;
     for (let i = 0; i < vals.length; i++) {
@@ -599,7 +711,8 @@ const SettingsService = {
   verifyIdentity(name, password) {
     const sheet = ConfigService.getSheets().players;
     const data  = sheet.getDataRange().getValues();
-    for (let i = 0; i < data.length; i++) {
+    const off   = _headerOffsetFromValues('players', data);
+    for (let i = off; i < data.length; i++) {
       if (data[i][0] === name) {
         const stored = data[i][3] ? data[i][3].toString().trim() : "";
         if (!stored) return true; // no password configured → free access
@@ -618,14 +731,15 @@ const SettingsService = {
   reorderEntities(type, orderedRowIndexes, expectedNames) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     const data  = sheet.getDataRange().getValues();
+    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     const validRowIndexes = [];
-    for (let i = 1; i < data.length; i++) if (data[i][0]) validRowIndexes.push(i + 1);
+    for (let i = off; i < data.length; i++) if (data[i][0]) validRowIndexes.push(i + 1);
     const wanted = orderedRowIndexes.map(Number);
     const isPermutation = wanted.length === validRowIndexes.length &&
       validRowIndexes.every(r => wanted.includes(r)) &&
       new Set(wanted).size === wanted.length;
     if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux éléments existants — recharge la page et réessaie.");
-    if (wanted.some(r => r < 2)) throw new Error("Ligne invalide.");
+    if (wanted.some(r => r < 1 + off)) throw new Error("Ligne invalide.");
     wanted.forEach((rowIndex, i) => {
       if (data[rowIndex - 1][0] !== expectedNames[i]) {
         throw new Error("Cette liste a changé entre-temps — recharge la page et réessaie.");
@@ -643,15 +757,16 @@ const StorageService = {
    * Parses one raw History row into a normalized record with validity flags.
    * Single source of truth for how a History row is read/validated, shared by
    * getAllLogs, getHistoryPage, getDataHealth and apiDetectDistributedLots.
-   * `i` is the 0-based index within the data range (header excluded).
+   * `i` is the 0-based index within the data range, `startRow` the 1-based sheet row
+   * that index 0 corresponds to (2 with a header row, 1 without — see SHEET_HEADERS).
    */
-  _parseHistoryRow(row, i) {
+  _parseHistoryRow(row, i, startRow) {
     const d        = new Date(row[0]);
     const player   = row[1] ? row[1].toString() : '';
     const category = row[2] ? row[2].toString() : '';
     const points   = parseInt(row[3], 10);
     return {
-      rowIndex:    i + 2,
+      rowIndex:    i + (startRow === undefined ? 2 : startRow),
       date:        d,
       dateValid:   !isNaN(d.getTime()),
       player,
@@ -745,11 +860,10 @@ const StorageService = {
   /** Reads and parses every valid History row straight from the sheet (no cache). */
   _readLogsFromSheet() {
     const sheet   = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, 4).getValues()
+    const { values, startRow } = _readDataRows('history', sheet, 4);
+    return values
       .map((row, i) => {
-        const rec = this._parseHistoryRow(row, i);
+        const rec = this._parseHistoryRow(row, i, startRow);
         if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) return null;
         return { timestamp: rec.date, player: rec.player, category: rec.category, points: rec.points };
       })
@@ -764,11 +878,10 @@ const StorageService = {
    */
   _readFullHistoryRows() {
     const sheet   = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, 7).getValues()
+    const { values, startRow } = _readDataRows('history', sheet, 7);
+    return values
       .map((row, i) => {
-        const rec = this._parseHistoryRow(row, i);
+        const rec = this._parseHistoryRow(row, i, startRow);
         if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) return null;
         return {
           date: rec.date, player: rec.player, category: rec.category, points: rec.points,
@@ -935,9 +1048,10 @@ const StorageService = {
   },
 
   updateHistoryDescription(rowIndex, description) {
+    const sheet = ConfigService.getSheets().history;
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
-    ConfigService.getSheets().history.getRange(idx, 5).setValue(description || '');
+    if (isNaN(idx) || idx < _firstDataRow('history', sheet)) throw new Error("Ligne invalide.");
+    sheet.getRange(idx, 5).setValue(description || '');
   },
 
   /**
@@ -947,7 +1061,7 @@ const StorageService = {
    */
   updateHistoryEntry(rowIndex, fields) {
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
+    if (isNaN(idx) || idx < _firstDataRow('history', ConfigService.getSheets().history)) throw new Error("Ligne invalide.");
     if (!fields)          throw new Error("Données manquantes.");
     if (!fields.player)   throw new Error("Joueur requis.");
     if (!fields.category) throw new Error("Top requis.");
@@ -994,9 +1108,8 @@ const StorageService = {
     flagDuplicates(playersList, 'Joueur');
     flagDuplicates(categoriesList, 'Top');
 
-    if (lastRow <= 1) return { zeros: 0, orphans: 0, total: 0, duplicateNames };
-
-    const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    const { values: data, startRow } = _readDataRows('history', sheet, 4);
+    if (!data.length) return { zeros: 0, orphans: 0, total: 0, duplicateNames };
 
     const players    = new Set(playersList.map(p => p.name));
     const categories = new Set(categoriesList.map(c => c.name));
@@ -1004,7 +1117,7 @@ const StorageService = {
     let zeros = 0, orphans = 0;
 
     data.forEach((row, idx) => {
-      const rec = this._parseHistoryRow(row, idx);
+      const rec = this._parseHistoryRow(row, idx, startRow);
       if (!rec.dateValid) return;
       if (!rec.pointsValid) zeros++;
       if (rec.player && !players.has(rec.player))         orphans++;
@@ -1037,17 +1150,18 @@ const StorageService = {
   fixZeroPoints() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { deleted: 0, rows: [] };
+    const startRow = _firstDataRow('history', sheet);
+    if (lastRow < startRow) return { deleted: 0, rows: [] };
     this._backupHistory();
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 7).getValues();
     const rows = [];
     const deletedRowIndexes = [];
     for (let i = data.length - 1; i >= 0; i--) {
       const pts = parseInt(data[i][3], 10);
       if (isNaN(pts) || pts <= 0) {
         rows.push(data[i]);
-        deletedRowIndexes.push(i + 2);
-        sheet.deleteRow(i + 2);
+        deletedRowIndexes.push(i + startRow);
+        sheet.deleteRow(i + startRow);
       }
     }
     AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
@@ -1059,11 +1173,12 @@ const StorageService = {
   deleteOrphans() {
     const sheet   = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { deleted: 0, rows: [] };
+    const startRow = _firstDataRow('history', sheet);
+    if (lastRow < startRow) return { deleted: 0, rows: [] };
     this._backupHistory();
     const players    = new Set(SettingsService.getEntities('Players').map(p => p.name));
     const categories = new Set(SettingsService.getEntities('Categories').map(c => c.name));
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 7).getValues();
     const rows = [];
     const deletedRowIndexes = [];
     for (let i = data.length - 1; i >= 0; i--) {
@@ -1071,8 +1186,8 @@ const StorageService = {
       const cat    = data[i][2] ? data[i][2].toString() : '';
       if (!players.has(player) || !categories.has(cat)) {
         rows.push(data[i]);
-        deletedRowIndexes.push(i + 2);
-        sheet.deleteRow(i + 2);
+        deletedRowIndexes.push(i + startRow);
+        sheet.deleteRow(i + startRow);
       }
     }
     AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
@@ -1086,14 +1201,15 @@ const StorageService = {
   apiGroupSimilarEntries() {
     const sheet = ConfigService.getSheets().history;
     const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { groupedCount: 0, groupsCreated: 0 };
+    const startRow = _firstDataRow('history', sheet);
+    if (lastRow < startRow) return { groupedCount: 0, groupsCreated: 0 };
 
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 7).getValues();
     const ungrouped = [];
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      const rec = this._parseHistoryRow(row, i);
+      const rec = this._parseHistoryRow(row, i, startRow);
       if (!rec.dateValid || !rec.player || !rec.description) continue;
       if (!rec.groupId || !rec.groupId.trim()) {
         const dateKey = rec.date.toISOString().slice(0, 16);
@@ -1147,9 +1263,10 @@ const AltSettingsService = {
   getAltCategories() {
     const sheet = this._sheet();
     const data = sheet.getDataRange().getValues();
-    if (!data || data.length <= 1) return [];
+    if (!data || !data.length) return [];
+    const off = _headerOffsetFromValues('altCategories', data);
     return data
-      .filter((r, i) => i > 0 && r[0] && r[0].toString() !== 'Name')
+      .filter((r, i) => i >= off && r[0] && r[0].toString() !== 'Name')
       .map(r => ({
         name: r[0] ? r[0].toString() : '',
         description: r[1] ? r[1].toString() : '',
@@ -1185,13 +1302,13 @@ const AltStorageService = {
     return sheet;
   },
 
-  _parseAltHistoryRow(row, i) {
+  _parseAltHistoryRow(row, i, startRow) {
     const d = new Date(row[0]);
     const player = row[1] ? row[1].toString() : '';
     const category = row[2] ? row[2].toString() : '';
     const points = parseInt(row[3], 10);
     return {
-      rowIndex: i + 2,
+      rowIndex: i + (startRow === undefined ? 2 : startRow),
       date: d,
       dateValid: !isNaN(d.getTime()),
       player,
@@ -1210,11 +1327,10 @@ const AltStorageService = {
 
   getAltLogs() {
     const sheet = this._sheet();
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, 8).getValues()
+    const { values, startRow } = _readDataRows('altHistory', sheet, 8);
+    return values
       .map((row, i) => {
-        const rec = this._parseAltHistoryRow(row, i);
+        const rec = this._parseAltHistoryRow(row, i, startRow);
         if (!rec.dateValid || !rec.hasEntities || !rec.pointsValid) return null;
         return rec;
       })
@@ -1259,9 +1375,10 @@ const AltStorageService = {
     if (!deleted.length) return;
     const sheet = ConfigService.getSheets().altHistory;
     if (!sheet) return;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return;
-    const range  = sheet.getRange(2, 6, lastRow - 1, 1); // column F: RefHistoryRowId
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('altHistory', sheet);
+    if (lastRow < startRow) return;
+    const range  = sheet.getRange(startRow, 6, lastRow - startRow + 1, 1); // column F: RefHistoryRowId
     const values = range.getValues();
     let changed = false;
     for (let i = 0; i < values.length; i++) {
@@ -1359,8 +1476,8 @@ const AltStorageService = {
    */
   deleteNativeAltEntry(rowIndex, altCategory, guard) {
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error('Ligne invalide.');
     const sheet = this._sheet();
+    if (isNaN(idx) || idx < _firstDataRow('altHistory', sheet)) throw new Error('Ligne invalide.');
     if (idx > sheet.getLastRow()) throw new Error("Cette entrée n'existe plus. Rechargez la liste.");
 
     const row = sheet.getRange(idx, 1, 1, 8).getValues()[0];
@@ -1423,17 +1540,18 @@ const AltStorageService = {
   unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, saiseur) {
     if (!rowIndices || !rowIndices.length) return 0;
     const sheet = this._sheet();
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return 0;
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('altHistory', sheet);
+    if (lastRow < startRow) return 0;
 
-    const values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+    const values = sheet.getRange(startRow, 1, lastRow - startRow + 1, 8).getValues();
     const targetRefIds = new Set(rowIndices.map(r => r.toString()));
 
     const rowsToDelete = [];
     for (let i = values.length - 1; i >= 0; i--) {
       const rowRefId = values[i][5] ? values[i][5].toString() : '';
       const rowAltCat = values[i][2] ? values[i][2].toString() : '';
-      const altRowIndex = i + 2;
+      const altRowIndex = i + startRow;
 
       // Match the History row id column only: AltHistory row indexes are a
       // different numbering, and accepting both deletes unrelated native rows.
@@ -1477,6 +1595,9 @@ const NotesService = {
    *  simple et fiable, écrits une fois par addNote()/editNote(), lus tels quels. Le
    *  NoteId, lui, ne sert qu'à retrouver l'historique détaillé dans le Journal. */
   _ensureColumns(sheet) {
+    // Without a header row, row 1 holds a real note: writing labels over columns
+    // D-G would wipe its NoteId/author/edit metadata. Nothing to label then.
+    if (!_headerOffset('notes', sheet)) return;
     if (sheet.getRange(1, 4, 1, 1).getValue() === 'NoteId') return;
     sheet.getRange(1, 4, 1, 4).setValues([['NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']]);
     sheet.getRange(1, 4, 1, 4).setFontWeight('bold');
@@ -1492,10 +1613,8 @@ const NotesService = {
     }
     const sheet = ConfigService.getSheets().notes;
     if (!sheet) return { notes: [] };   // pas encore de feuille (aucune note créée)
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { notes: [] };
-
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const { values: data, startRow } = _readDataRows('notes', sheet, 7);
+    if (!data.length) return { notes: [] };
     const out = [];
     for (let i = 0; i < data.length; i++) {
       const row    = data[i];
@@ -1508,7 +1627,7 @@ const NotesService = {
         timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
         player,
         text,
-        rowIndex: i + 2,
+        rowIndex: i + startRow,
         noteId: row[3] ? row[3].toString() : '',
         createdBy: row[4] ? row[4].toString() : '',
         lastEditedBy: row[5] ? row[5].toString() : '',
@@ -1540,9 +1659,10 @@ const NotesService = {
   },
 
   deleteNote(rowIndex) {
+    const sheet = this._sheet();
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
-    this._sheet().deleteRow(idx);
+    if (isNaN(idx) || idx < _firstDataRow('notes', sheet)) throw new Error("Ligne invalide.");
+    sheet.deleteRow(idx);
     _bumpNotesVersion();
   },
 
@@ -1550,10 +1670,10 @@ const NotesService = {
    *  antérieure à l'introduction du suivi — elle devient traçable dès cette édition,
    *  sans attendre un rattachement rétroactif). Écrit ModifiéPar/ModifiéLe directement. */
   editNote(rowIndex, newText, editor) {
-    const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
-    if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
     const sheet = this._sheet();
+    const idx = parseInt(rowIndex, 10);
+    if (isNaN(idx) || idx < _firstDataRow('notes', sheet)) throw new Error("Ligne invalide.");
+    if (!newText || !newText.trim()) throw new Error("La note ne peut pas être vide.");
     sheet.getRange(idx, 3).setValue(newText.trim());
     let noteId = sheet.getRange(idx, 4).getValue();
     noteId = noteId ? noteId.toString() : '';
@@ -1569,9 +1689,10 @@ const NotesService = {
   /** Lit le NoteId stocké à une ligne donnée (utilisé par les endpoints api* pour
    *  écrire un Détail de journal stable, indépendant du numéro de ligne). */
   noteIdAt(rowIndex) {
+    const sheet = this._sheet();
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) return '';
-    const v = this._sheet().getRange(idx, 4).getValue();
+    if (isNaN(idx) || idx < _firstDataRow('notes', sheet)) return '';
+    const v = sheet.getRange(idx, 4).getValue();
     return v ? v.toString() : '';
   }
 };
@@ -1607,10 +1728,8 @@ const ChatService = {
     }
     const sheet = ConfigService.getSheets().chat;
     if (!sheet) return { messages: [] };
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { messages: [] };
-
-    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const { values: data, startRow } = _readDataRows('chat', sheet, 5);
+    if (!data.length) return { messages: [] };
     const byId = {};
     const rows = [];
     for (let i = 0; i < data.length; i++) {
@@ -1626,7 +1745,7 @@ const ChatService = {
         author,
         text,
         replyToId: row[4] ? row[4].toString() : '',
-        rowIndex: i + 2
+        rowIndex: i + startRow
       };
       byId[id] = msg;
       rows.push(msg);
@@ -1662,14 +1781,15 @@ const ChatService = {
   deleteMessage(id, author) {
     const sheet = ConfigService.getSheets().chat;
     if (!sheet) throw new Error("Message introuvable.");
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) throw new Error("Message introuvable.");
-    const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('chat', sheet);
+    if (lastRow < startRow) throw new Error("Message introuvable.");
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 5).getValues();
     for (let i = 0; i < data.length; i++) {
       if (data[i][0] && data[i][0].toString() === id) {
         const rowAuthor = data[i][2] ? data[i][2].toString() : '';
         if (rowAuthor !== author) throw new Error("Tu ne peux supprimer que tes propres messages.");
-        sheet.deleteRow(i + 2);
+        sheet.deleteRow(i + startRow);
         _bumpChatVersion();
         return { deletedRow: data[i] };
       }
@@ -1946,7 +2066,7 @@ const SettingsSheetService = {
     if (!sheet) return {};
     const data = sheet.getDataRange().getValues();
     const result = {};
-    for (let i = 1; i < data.length; i++) {
+    for (let i = _headerOffsetFromValues('settings', data); i < data.length; i++) {
       if (data[i][0]) result[data[i][0].toString()] = data[i][1] ? data[i][1].toString() : '';
     }
     return result;
@@ -1955,7 +2075,7 @@ const SettingsSheetService = {
   setValue(key, value) {
     const sheet = this._getOrCreateSheet();
     const data  = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
+    for (let i = _headerOffsetFromValues('settings', data); i < data.length; i++) {
       if (data[i][0] === key) {
         sheet.getRange(i + 1, 2).setValue(value);
         return;
@@ -1977,7 +2097,7 @@ const BaremeService = {
     return ConfigService.getSheets().bareme;
   },
 
-  /** Returns all entries with 1-based row indices (row 1 = header). */
+  /** Returns all entries with 1-based sheet row indices (row 1 is data unless it holds the header labels). */
   getEntries() {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return [];
@@ -1990,8 +2110,9 @@ const BaremeService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data = sheet.getDataRange().getValues();
-    let rows = data.slice(1)
-      .map((r, i) => ({ r, rowIndex: i + 2 }))
+    const off  = _headerOffsetFromValues('bareme', data);
+    let rows = data.slice(off)
+      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
       .filter(x => x.r[0] !== "" && x.r[0] !== undefined);
     const groups = {};
     const groupOrder = [];
@@ -2020,7 +2141,7 @@ const BaremeService = {
     if (!action || !action.trim()) throw new Error("Action vide.");
     const sheet = this._getOrCreateSheet();
     const data  = sheet.getDataRange().getValues();
-    const nextOrdre = data.slice(1).filter(r => r[0] === top.trim()).length + 1;
+    const nextOrdre = data.slice(_headerOffsetFromValues('bareme', data)).filter(r => r[0] === top.trim()).length + 1;
     sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0, nextOrdre]);
     _bumpBaremeVersion();
   },
@@ -2045,7 +2166,7 @@ const BaremeService = {
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     const data = sheet.getDataRange().getValues();
     const groupRows = [];
-    for (let i = 1; i < data.length; i++) {
+    for (let i = _headerOffsetFromValues('bareme', data); i < data.length; i++) {
       if (data[i][0] === topName) groupRows.push(i + 1);
     }
     const wanted = orderedRowIndexes.map(Number);
@@ -2089,8 +2210,9 @@ const PhrasesService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data = sheet.getDataRange().getValues();
-    let rows = data.slice(1)
-      .map((r, i) => ({ r, rowIndex: i + 2 }))
+    const off  = _headerOffsetFromValues('phrases', data);
+    let rows = data.slice(off)
+      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
       .filter(x => x.r[0] !== '' && x.r[2] !== '');
     const groups = {};
     const groupOrder = [];
@@ -2119,7 +2241,7 @@ const PhrasesService = {
     if (!this._isValidPool(pool)) throw new Error("Pool invalide : " + pool);
     const sheet = this._getOrCreateSheet();
     const data  = sheet.getDataRange().getValues();
-    const nextOrdre = data.slice(1).filter(r => r[0] === preset.trim() && r[1] === pool).length + 1;
+    const nextOrdre = data.slice(_headerOffsetFromValues('phrases', data)).filter(r => r[0] === preset.trim() && r[1] === pool).length + 1;
     sheet.appendRow([preset.trim(), pool, text.trim(), nextOrdre]);
     _bumpPhrasesVersion();
   },
@@ -2129,7 +2251,7 @@ const PhrasesService = {
     const sheet = this._getOrCreateSheet();
     const data  = sheet.getDataRange().getValues();
     const groupCounts = {};
-    data.slice(1).forEach(r => {
+    data.slice(_headerOffsetFromValues('phrases', data)).forEach(r => {
       if (r[0] === '' || r[0] === undefined) return;
       const key = r[0] + '|' + r[1];
       groupCounts[key] = (groupCounts[key] || 0) + 1;
@@ -2146,19 +2268,19 @@ const PhrasesService = {
 
   updatePhrase(rowIndex, text) {
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     if (!text || !text.trim()) throw new Error("La phrase ne peut pas être vide.");
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    if (isNaN(idx) || idx < _firstDataRow('phrases', sheet)) throw new Error("Ligne invalide.");
     sheet.getRange(idx, 3).setValue(text.trim());
     _bumpPhrasesVersion();
   },
 
   deletePhrase(rowIndex) {
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < 2) throw new Error("Ligne invalide.");
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
+    if (isNaN(idx) || idx < _firstDataRow('phrases', sheet)) throw new Error("Ligne invalide.");
     sheet.deleteRow(idx);
     _bumpPhrasesVersion();
   },
@@ -2167,11 +2289,12 @@ const PhrasesService = {
     if (!presetName) throw new Error("Nom de preset manquant.");
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) return;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return;
-    const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('phrases', sheet);
+    if (lastRow < startRow) return;
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).getValues();
     for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i][0].toString() === presetName) sheet.deleteRow(i + 2);
+      if (data[i][0].toString() === presetName) sheet.deleteRow(i + startRow);
     }
     _bumpPhrasesVersion();
   },
@@ -2181,7 +2304,7 @@ const PhrasesService = {
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
     const data = sheet.getDataRange().getValues();
     const groupRows = [];
-    for (let i = 1; i < data.length; i++) {
+    for (let i = _headerOffsetFromValues('phrases', data); i < data.length; i++) {
       if (data[i][0] === preset && data[i][1] === pool) groupRows.push(i + 1);
     }
     const wanted = orderedRowIndexes.map(Number);
@@ -2752,10 +2875,8 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
   try {
     const sheet = ConfigService.getSheets().auditLog;
     if (!sheet) return { success: true, logs: [], total: 0 };
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { success: true, logs: [], total: 0 };
-
-    const data  = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const { values: data, startRow } = _readDataRows('auditLog', sheet, 9);
+    if (!data.length) return { success: true, logs: [], total: 0 };
     // Date bounds parsed in server local time (GAS runs UTC). Frontend sends YYYY-MM-DD.
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end   = endDate   ? new Date(endDate   + 'T23:59:59') : null;
@@ -2775,7 +2896,7 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
         if (haystack.indexOf(needle) === -1) continue;
       }
       filtered.push({
-        id:        i + 2,
+        id:        i + startRow,
         timestamp: ts.toISOString(),
         author:    row[1] ? row[1].toString() : '',
         action:    row[2] ? row[2].toString() : '',
@@ -2807,9 +2928,10 @@ function apiGetAuditActionTypes() {
   try {
     const sheet = ConfigService.getSheets().auditLog;
     if (!sheet) return { success: true, actions: [] };
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { success: true, actions: [] };
-    const col = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('auditLog', sheet);
+    if (lastRow < startRow) return { success: true, actions: [] };
+    const col = sheet.getRange(startRow, 3, lastRow - startRow + 1, 1).getValues();
     const set = new Set();
     col.forEach(r => { if (r[0]) set.add(r[0].toString()); });
     return { success: true, actions: [...set].sort((a, b) => a.localeCompare(b, 'fr')) };
@@ -2873,26 +2995,28 @@ function apiBackfillNoteAuthors(author) {
     return withLock(() => {
       const notesSheet = ConfigService.getSheets().notes;
       if (!notesSheet) return { success: true, matched: 0, skipped: 0 };
-      const lastRow = notesSheet.getLastRow();
-      if (lastRow <= 1) return { success: true, matched: 0, skipped: 0 };
+      const lastRow   = notesSheet.getLastRow();
+      const noteStart = _firstDataRow('notes', notesSheet);
+      if (lastRow < noteStart) return { success: true, matched: 0, skipped: 0 };
 
-      const noteRows = notesSheet.getRange(2, 1, lastRow - 1, 7).getValues();
+      const noteRows = notesSheet.getRange(noteStart, 1, lastRow - noteStart + 1, 7).getValues();
       const candidates = [];
       noteRows.forEach((row, i) => {
         const player    = row[1] ? row[1].toString() : '';
         const text      = row[2] ? row[2].toString() : '';
         const createdBy = row[4] ? row[4].toString() : '';
         if (!createdBy && (player || text)) {
-          candidates.push({ rowIndex: i + 2, player, text, noteId: row[3] ? row[3].toString() : '' });
+          candidates.push({ rowIndex: i + noteStart, player, text, noteId: row[3] ? row[3].toString() : '' });
         }
       });
       if (!candidates.length) return { success: true, matched: 0, skipped: 0 };
 
       const auditSheet = ConfigService.getSheets().auditLog;
       if (!auditSheet) return { success: true, matched: 0, skipped: candidates.length };
-      const auditLastRow = auditSheet.getLastRow();
-      if (auditLastRow <= 1) return { success: true, matched: 0, skipped: candidates.length };
-      const auditData = auditSheet.getRange(2, 1, auditLastRow - 1, 7).getValues();
+      const auditLastRow  = auditSheet.getLastRow();
+      const auditStartRow = _firstDataRow('auditLog', auditSheet);
+      if (auditLastRow < auditStartRow) return { success: true, matched: 0, skipped: candidates.length };
+      const auditData = auditSheet.getRange(auditStartRow, 1, auditLastRow - auditStartRow + 1, 7).getValues();
 
       // Index des entrées "Note ajoutée", clé "joueur : texte" (format de l'époque).
       const byCreation = {};
@@ -3036,9 +3160,10 @@ function apiGetNoteHistory(noteId) {
   try {
     const sheet = ConfigService.getSheets().auditLog;
     if (!sheet || !noteId) return { success: true, entries: [] };
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { success: true, entries: [] };
-    const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('auditLog', sheet);
+    if (lastRow < startRow) return { success: true, entries: [] };
+    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 9).getValues();
     const needle = 'note:' + noteId;
     const entries = [];
     data.forEach(row => {
@@ -3118,9 +3243,10 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
     return withLock(function() {
       var history  = ConfigService.getSheets().history;
       var lastRow  = history.getLastRow();
-      if (lastRow <= 1) return { success: true, skipped: [] };
+      var startRow = _firstDataRow('history', history);
+      if (lastRow < startRow) return { success: true, skipped: [] };
 
-      var allData  = history.getRange(2, 1, lastRow - 1, 7).getValues();
+      var allData  = history.getRange(startRow, 1, lastRow - startRow + 1, 7).getValues();
       var indexSet = new Set(rowIndexes.map(function(ri) { return parseInt(ri, 10); }));
       var skipped  = [];
 
@@ -3133,7 +3259,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
 
       var undoRows = [];
       indexSet.forEach(function(idx) {
-        var rowI = idx - 2;
+        var rowI = idx - startRow;
         if (rowI < 0 || rowI >= allData.length) { skipped.push(idx); return; }
         var row      = allData[rowI];
         var beforeRow = row.slice();
@@ -3158,7 +3284,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
         undoRows.push({ rowIndex: idx, before: beforeRow, after: row.slice() });
       });
 
-      if (undoRows.length) history.getRange(2, 1, lastRow - 1, 7).setValues(allData);
+      if (undoRows.length) history.getRange(startRow, 1, lastRow - startRow + 1, 7).setValues(allData);
 
       var changedFields = Object.keys(partialFields).join(', ');
       AuditService.log(author, 'Modification bulk', 'History', '', changedFields,
@@ -3180,14 +3306,12 @@ function apiDetectDistributedLots() {
     }
 
     const sheet = ConfigService.getSheets().history;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { success: true, lots: [] };
-
     const pad = _pad2;
-    const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    const { values: data, startRow } = _readDataRows('history', sheet, 7);
+    if (!data.length) return { success: true, lots: [] };
     const entries = [];
     for (var i = 0; i < data.length; i++) {
-      var rec = StorageService._parseHistoryRow(data[i], i);
+      var rec = StorageService._parseHistoryRow(data[i], i, startRow);
       if (!rec.dateValid) continue;
       if (rec.groupId) continue;                       // already grouped → skip
       if (!rec.hasEntities || !rec.pointsValid) continue;
@@ -3315,15 +3439,16 @@ function apiGroupDistributedLots(lotsToGroup, author) {
     if (!lotsToGroup || !lotsToGroup.length) throw new Error("Aucun lot fourni.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
-      const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) return { success: true };
-      const colRange = sheet.getRange(2, 6, lastRow - 1, 1);
+      const lastRow  = sheet.getLastRow();
+      const startRow = _firstDataRow('history', sheet);
+      if (lastRow < startRow) return { success: true };
+      const colRange = sheet.getRange(startRow, 6, lastRow - startRow + 1, 1);
       const values = colRange.getValues();
       lotsToGroup.forEach(function(lot) {
         var rows = lot.rowIndexes;
         if (!rows || rows.length < 2) return;
         var gid = _generateGroupId();
-        rows.forEach(function(r) { values[r - 2][0] = gid; });
+        rows.forEach(function(r) { values[r - startRow][0] = gid; });
       });
       colRange.setValues(values);
       AuditService.log(author, 'Lots auto-groupés', 'History', '', '',
@@ -3340,14 +3465,15 @@ function apiGroupRows(rowIndexes, author) {
     if (!rowIndexes || rowIndexes.length < 2) throw new Error("Sélectionnez au moins 2 entrées.");
     return withLock(() => {
       const { history } = ConfigService.getSheets();
-      const lastRow = history.getLastRow();
-      if (lastRow <= 1) throw new Error("Historique vide.");
+      const lastRow  = history.getLastRow();
+      const startRow = _firstDataRow('history', history);
+      if (lastRow < startRow) throw new Error("Historique vide.");
       const gid      = _generateGroupId();
-      const colRange = history.getRange(2, 6, lastRow - 1, 1);
+      const colRange = history.getRange(startRow, 6, lastRow - startRow + 1, 1);
       const values   = colRange.getValues();
       const indexSet = new Set(rowIndexes.map(ri => parseInt(ri, 10)));
       for (let i = 0; i < values.length; i++) {
-        if (indexSet.has(i + 2)) values[i][0] = gid;
+        if (indexSet.has(i + startRow)) values[i][0] = gid;
       }
       colRange.setValues(values);
       AuditService.log(author, 'Groupement lot', 'History', '', '',
@@ -3364,9 +3490,10 @@ function apiUngroupLot(groupId, author) {
     if (!groupId) throw new Error("GroupID manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
-      const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) return { success: true };
-      const colRange = sheet.getRange(2, 6, lastRow - 1, 1);
+      const lastRow  = sheet.getLastRow();
+      const startRow = _firstDataRow('history', sheet);
+      if (lastRow < startRow) return { success: true };
+      const colRange = sheet.getRange(startRow, 6, lastRow - startRow + 1, 1);
       const data = colRange.getValues();
       let modified = false;
       for (var i = 0; i < data.length; i++) {
@@ -3410,73 +3537,6 @@ function apiDetectDuplicates() {
       .sort((a, b) => b.count - a.count);
 
     return { success: true, duplicates };
-  } catch(e) { return fail(e); }
-}
-
-function apiDetectOutlierScores() {
-  try {
-    const rows = StorageService.getFullHistoryRowsCached().filter(r => !r.groupId);
-    const byCategory = {};
-    rows.forEach(r => (byCategory[r.category] = byCategory[r.category] || []).push(r));
-
-    const dayKey = _dayKey;
-
-    // Médiane + MAD (écart absolu médian) plutôt que moyenne + écart-type : ces
-    // dernières se font fausser par l'aberration elle-même sur un petit échantillon
-    // (une seule entrée à 500 pts tire déjà la moyenne et l'écart-type vers le haut,
-    // masquant sa propre anomalie). La médiane/MAD reste stable face à ce cas.
-    function median(values) {
-      const sorted = values.slice().sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-    }
-
-    const outliers = [];
-    Object.keys(byCategory).forEach(cat => {
-      const list = byCategory[cat];
-      if (list.length < 5) return;
-      const points = list.map(r => r.points);
-      const med = median(points);
-      const mad = median(points.map(p => Math.abs(p - med))) || 1; // évite un seuil nul si MAD = 0
-      const highThreshold = med + 5 * mad;
-      const lowThreshold  = med - 5 * mad; // symétrique : une valeur anormalement basse est tout autant une faute de frappe
-      list.forEach(r => {
-        if (r.points > highThreshold || r.points < lowThreshold) {
-          outliers.push({
-            rowIndex: r.rowIndex, player: r.player, category: r.category, points: r.points,
-            categoryAverage: Math.round(med), dateStr: dayKey(r.date)
-          });
-        }
-      });
-    });
-
-    outliers.sort((a, b) => b.points - a.points);
-    return { success: true, outliers };
-  } catch(e) { return fail(e); }
-}
-
-function apiGetInactivePlayers() {
-  try {
-    const players = SettingsService.getEntities('Players');
-    const rows = StorageService.getFullHistoryRowsCached();
-    const lastByPlayer = {};
-    rows.forEach(r => {
-      if (!lastByPlayer[r.player] || r.date > lastByPlayer[r.player]) lastByPlayer[r.player] = r.date;
-    });
-
-    const now = new Date();
-    const inactive = [];
-    const neverActive = [];
-    players.forEach(p => {
-      const last = lastByPlayer[p.name];
-      if (!last) { neverActive.push(p.name); return; }
-      // Clamped to 0: nothing stops a score from being entered with a future
-      // date, which would otherwise show as a negative "days since".
-      inactive.push({ player: p.name, daysSinceLastEntry: Math.max(0, Math.floor((now - last) / 86400000)) });
-    });
-    inactive.sort((a, b) => b.daysSinceLastEntry - a.daysSinceLastEntry);
-
-    return { success: true, inactive, neverActive };
   } catch(e) { return fail(e); }
 }
 
@@ -3648,12 +3708,13 @@ function apiDeleteGroup(groupId, author) {
     if (!groupId) throw new Error("GroupID manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
-      const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) return { success: true };
-      const data = sheet.getRange(2, 6, lastRow - 1, 1).getValues();
+      const lastRow  = sheet.getLastRow();
+      const startRow = _firstDataRow('history', sheet);
+      if (lastRow < startRow) return { success: true };
+      const data = sheet.getRange(startRow, 6, lastRow - startRow + 1, 1).getValues();
       const rowsToDelete = [];
       for (let i = 0; i < data.length; i++) {
-        if (data[i][0] && data[i][0].toString() === groupId) rowsToDelete.push(i + 2);
+        if (data[i][0] && data[i][0].toString() === groupId) rowsToDelete.push(i + startRow);
       }
       if (!rowsToDelete.length) throw new Error("Groupe introuvable.");
       const sorted = rowsToDelete.slice().sort((a, b) => b - a);
@@ -3769,7 +3830,7 @@ function apiApplyMentionFixes(fixes, author) {
         const undoRows = [];
         histFixes.forEach(f => {
           const idx = parseInt(f.rowIndex, 10);
-          if (isNaN(idx) || idx < 2) return;
+          if (isNaN(idx) || idx < _firstDataRow('history', history)) return;
           const beforeRow = history.getRange(idx, 1, 1, 7).getValues()[0];
           StorageService.updateHistoryDescription(idx, f.after);
           const afterRow = history.getRange(idx, 1, 1, 7).getValues()[0];
@@ -3787,7 +3848,7 @@ function apiApplyMentionFixes(fixes, author) {
         const undoRows = [];
         noteFixes.forEach(f => {
           const idx = parseInt(f.rowIndex, 10);
-          if (isNaN(idx) || idx < 2) return;
+          if (isNaN(idx) || idx < _firstDataRow('notes', notes)) return;
           const beforeRow = notes.getRange(idx, 1, 1, 7).getValues()[0];
           NotesService.editNote(idx, f.after, author);
           const afterRow = notes.getRange(idx, 1, 1, 7).getValues()[0];
@@ -3908,20 +3969,24 @@ function apiRepairOrder(author) {
       ['Players', 'Categories'].forEach(type => {
         const sheet = ConfigService.getSheets()[type.toLowerCase()];
         const data  = sheet.getDataRange().getValues();
-        let rows = data.slice(1)
-          .map((r, i) => ({ r, sheetRow: i + 2 }))
+        const off   = _headerOffsetFromValues(type.toLowerCase(), data);
+        let rows = data.slice(off)
+          .map((r, i) => ({ r, sheetRow: i + 1 + off }))
           .filter(x => x.r[0]);
         rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
         rows.forEach((x, idx) => sheet.getRange(x.sheetRow, 5).setValue(idx + 1));
-        if (sheet.getRange(1, 5).getValue() === '') sheet.getRange(1, 5).setValue('Ordre');
+        // Only label the Ordre column when row 1 really is a header — otherwise this
+        // would overwrite the first entity's own Ordre value with the word "Ordre".
+        if (off && sheet.getRange(1, 5).getValue() === '') sheet.getRange(1, 5).setValue('Ordre');
         result[type.toLowerCase()] = rows.length;
       });
 
       const baremeSheet = ConfigService.getSheets().bareme;
       if (baremeSheet) {
         const data = baremeSheet.getDataRange().getValues();
-        const rows = data.slice(1)
-          .map((r, i) => ({ r, sheetRow: i + 2 }))
+        const off  = _headerOffsetFromValues('bareme', data);
+        const rows = data.slice(off)
+          .map((r, i) => ({ r, sheetRow: i + 1 + off }))
           .filter(x => x.r[0] !== '' && x.r[0] !== undefined);
         const groups = {};
         rows.forEach(x => { (groups[x.r[0]] = groups[x.r[0]] || []).push(x); });
@@ -3935,8 +4000,9 @@ function apiRepairOrder(author) {
       const phrasesSheet = ConfigService.getSheets().phrases;
       if (phrasesSheet) {
         const data = phrasesSheet.getDataRange().getValues();
-        const rows = data.slice(1)
-          .map((r, i) => ({ r, sheetRow: i + 2 }))
+        const off  = _headerOffsetFromValues('phrases', data);
+        const rows = data.slice(off)
+          .map((r, i) => ({ r, sheetRow: i + 1 + off }))
           .filter(x => x.r[0] !== '' && x.r[2] !== '');
         const groups = {};
         rows.forEach(x => {
@@ -4039,9 +4105,10 @@ function apiDeletePreset(presetName, author) {
       const sheet = ConfigService.getSheets().phrases;
       const removedRows = [];
       if (sheet) {
-        const lastRow = sheet.getLastRow();
-        if (lastRow > 1) {
-          const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+        const lastRow  = sheet.getLastRow();
+        const startRow = _firstDataRow('phrases', sheet);
+        if (lastRow >= startRow) {
+          const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 3).getValues();
           data.forEach(r => { if (r[0].toString() === presetName) removedRows.push(r); });
         }
       }
@@ -4062,19 +4129,20 @@ function apiRenamePreset(oldName, newName, author) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().phrases;
       if (!sheet) throw new Error("Feuille Phrases introuvable.");
-      const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) return { success: true, phrases: [] };
-      const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      const lastRow  = sheet.getLastRow();
+      const startRow = _firstDataRow('phrases', sheet);
+      if (lastRow < startRow) return { success: true, phrases: [] };
+      const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).getValues();
       const undoRows = [];
       let modified = false;
       for (let i = 0; i < data.length; i++) {
         if (data[i][0].toString() === oldName) {
-          undoRows.push({ rowIndex: i + 2, before: [oldName], after: [newName.trim()] });
+          undoRows.push({ rowIndex: i + startRow, before: [oldName], after: [newName.trim()] });
           data[i][0] = newName.trim();
           modified = true;
         }
       }
-      if (modified) sheet.getRange(2, 1, lastRow - 1, 1).setValues(data);
+      if (modified) sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).setValues(data);
       AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(), '',
         undoRows.length ? { sheet: 'phrases', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
@@ -4170,4 +4238,4 @@ function apiGetChangelog(forceRefresh) {
   } catch (e) {
     return fail(e);
   }
-}
+}

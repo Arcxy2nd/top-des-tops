@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.15.1] - 2026-08-14
+
+### Supprimé
+**Humanisé** : Les outils "Scores aberrants" et "Joueurs inactifs" ont été retirés de l'onglet Outils — ils n'étaient pas utilisés.
+**Technique** : `Index.html` — suppression des cartes `toolOutliersCard` et `toolInactiveCard`, du bouton de navigation rapide correspondant, des fonctions JS (`scanOutliers`, `getDismissedOutlierRowIndexes`, `dismissOutlierRowIndex`, `scanInactivePlayers`) et de leurs event listeners. `Code.gs` — suppression de `apiDetectOutlierScores` et `apiGetInactivePlayers`.
+
 ## [v3.15.0] - 2026-08-13
 
 ### Corrigé

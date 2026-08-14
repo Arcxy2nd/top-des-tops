@@ -4542,9 +4542,7 @@
         <button data-target="toolLotsCard">🔗 Lots répartis</button>
         <button data-target="toolLegacyCard">⚠️ Groupes hérités</button>
         <button data-target="toolDuplicatesCard">🧬 Doublons</button>
-        <button data-target="toolOutliersCard">📈 Scores aberrants</button>
         <button data-target="toolMentionsCard">🏷️ Mentions</button>
-        <button data-target="toolInactiveCard">💤 Inactifs</button>
       </div>
 
       <div class="card card-collapsible" id="toolHealthCard">
@@ -4618,15 +4616,6 @@
         <div id="duplicatesResults" class="detect-results"></div>
       </div>
 
-      <div class="card card-collapsible" id="toolOutliersCard">
-        <div class="card-collapse-header"><h2>📈 Scores aberrants</h2></div>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-          Détecte les entrées dont le nombre de points s'écarte fortement de la valeur habituelle du Top — le plus souvent une faute de frappe à la saisie. Une entrée écartée n'est plus proposée.
-        </p>
-        <button id="detectOutliersBtn" class="primary small">🔍 Scanner l'historique</button>
-        <div id="outliersResults" class="detect-results"></div>
-      </div>
-
       <div class="card card-collapsible" id="toolMentionsCard">
         <div class="card-collapse-header"><h2>🏷️ Mentions manquantes</h2></div>
         <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
@@ -4634,15 +4623,6 @@
         </p>
         <button id="detectMentionsBtn" class="primary small">🔍 Scanner</button>
         <div id="mentionFixResults" class="detect-results"></div>
-      </div>
-
-      <div class="card card-collapsible" id="toolInactiveCard">
-        <div class="card-collapse-header"><h2>💤 Joueurs inactifs</h2></div>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
-          Liste les joueurs sans aucune entrée récente, pour repérer qui décroche.
-        </p>
-        <button id="scanInactiveBtn" class="secondary small">🔄 Actualiser</button>
-        <div id="inactiveResults" style="margin-top:12px;"></div>
       </div>
 
 
@@ -5087,7 +5067,6 @@
               <li class="guide-feature-item"><span class="guide-feature-icon">🗑️</span><div class="guide-feature-body"><strong>Nettoyage</strong><span>Supprime les entrées à 0 point ou orphelines, détecte et fusionne les doublons.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">📦</span><div class="guide-feature-body"><strong>Lots répartis</strong><span>Détecte des chaînes de saisies identiques fractionnées sur plusieurs jours. Propose la fusion en un seul lot avec un bouton <code>⭐ Alt Top</code> intégré.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🔗</span><div class="guide-feature-body"><strong>Groupes hérités</strong><span>Détecte et corrige les anciens identifiants de groupe au format déprécié.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">💤</span><div class="guide-feature-body"><strong>Joueurs inactifs</strong><span>Liste les joueurs sans entrée récente avec leur date de dernière activité.</span></div></li>
             </ul>
           </div>
 
@@ -17125,80 +17104,6 @@
     }, 'Détection doublons', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
   }
 
-  // ── SCORES ABERRANTS ─────────────────────────────────────────────────
-  const DISMISSED_OUTLIERS_KEY = 'tdt_dismissed_outliers';
-  function getDismissedOutlierRowIndexes() {
-    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_OUTLIERS_KEY) || '[]')); }
-    catch (e) { return new Set(); }
-  }
-  function dismissOutlierRowIndex(rowIndex) {
-    const set = getDismissedOutlierRowIndexes();
-    set.add(String(rowIndex));
-    try { localStorage.setItem(DISMISSED_OUTLIERS_KEY, JSON.stringify([...set])); }
-    catch (e) { /* quota dépassé : ignoré, best-effort */ }
-  }
-
-  function scanOutliers() {
-    const btn = document.getElementById('detectOutliersBtn');
-    const container = document.getElementById('outliersResults');
-    showSkeleton(container, { rows: 3, height: 50 });
-    const restore = startBtnLoading(btn, 'Scan…');
-    callServer('apiDetectOutlierScores', [], res => {
-      restore();
-      const dismissed = getDismissedOutlierRowIndexes();
-      const outliers = res.outliers.filter(o => !dismissed.has(String(o.rowIndex)));
-      if (!outliers.length) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
-        return;
-      }
-      container.innerHTML = '';
-      outliers.forEach(o => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const p = cachedPlayers.find(pl => pl.name === o.player);
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(o.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(o.player + ' — ' + o.category + ' : ' + o.points + ' pts'));
-        const span = document.createElement('span');
-        span.textContent = 'Valeur habituelle du Top : ' + o.categoryAverage + ' pts — le ' + o.dateStr;
-        info.appendChild(strong); info.appendChild(span);
-
-        const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:8px;';
-        const btnFix = document.createElement('button');
-        btnFix.className = 'secondary small';
-        btnFix.textContent = 'Corriger';
-        btnFix.addEventListener('click', () => {
-          if (!requireIdentity()) return;
-          const log = histPageLogs.find(l => l.rowIndex === o.rowIndex) ||
-            { rowIndex: o.rowIndex, player: o.player, category: o.category, points: o.points, description: '', saiseur: '', timestamp: null };
-          openFullEditHistoryModal(log);
-        });
-        const btnIgnore = document.createElement('button');
-        btnIgnore.className = 'small';
-        btnIgnore.textContent = 'Ignorer';
-        btnIgnore.title = 'Marquer cette entrée comme vérifiée, sans la modifier';
-        btnIgnore.addEventListener('click', () => {
-          dismissOutlierRowIndex(o.rowIndex);
-          row.remove();
-          showToast('Entrée ignorée.', 'success');
-          if (!container.querySelector('.tool-action')) {
-            container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun score aberrant détecté. Tout est propre ✅</p>';
-          }
-        });
-        actions.appendChild(btnFix); actions.appendChild(btnIgnore);
-        row.appendChild(info); row.appendChild(actions);
-        container.appendChild(row);
-      });
-    }, 'Détection scores aberrants', () => { restore(); container.innerHTML = ''; showToast('Erreur lors du scan.', 'error'); });
-  }
-
   // ── MENTIONS MANQUANTES ───────────────────────────────────────────────
   /** Diff mot-à-mot (LCS) entre deux textes, rendu en HTML échappé avec
    *  <del> (supprimé, avant) / <ins> (ajouté, après). Réutilisable partout
@@ -17311,58 +17216,6 @@
           scanMentionFixes();
         }, 'Application mentions', () => { restore(); showToast('Erreur lors de l\'application.', 'error'); });
       });
-    });
-  }
-
-  // ── JOUEURS INACTIFS ─────────────────────────────────────────────────
-  function scanInactivePlayers() {
-    const container = document.getElementById('inactiveResults');
-    showSkeleton(container, { rows: 3, height: 40 });
-    callServer('apiGetInactivePlayers', [], res => {
-      container.innerHTML = '';
-      res.inactive.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const p = cachedPlayers.find(pl => pl.name === item.player);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(item.player, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(item.player));
-        const span = document.createElement('span');
-        span.textContent = 'Dernière activité il y a ' + item.daysSinceLastEntry + ' jour(s)';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
-      });
-      res.neverActive.forEach(name => {
-        const row = document.createElement('div');
-        row.className = 'tool-action';
-        const p = cachedPlayers.find(pl => pl.name === name);
-        const info = document.createElement('div');
-        info.className = 'tool-action-info';
-        const strong = document.createElement('strong');
-        const avatar = document.createElement('img');
-        avatar.className = 'qs-avatar';
-        avatar.src = getAvatarUrl(name, p ? p.meta : '');
-        avatar.style.cssText = 'width:20px;height:20px;vertical-align:middle;margin-right:6px;';
-        strong.appendChild(avatar);
-        strong.appendChild(document.createTextNode(name));
-        const span = document.createElement('span');
-        span.textContent = 'Jamais actif';
-        info.appendChild(strong); info.appendChild(span);
-        row.appendChild(info);
-        container.appendChild(row);
-      });
-      if (!res.inactive.length && !res.neverActive.length) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun joueur enregistré.</p>';
-      }
-    }, 'Chargement joueurs inactifs', () => {
-      container.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
     });
   }
 
@@ -17922,9 +17775,7 @@
       });
     });
     document.getElementById('detectDuplicatesBtn').addEventListener('click', scanDuplicates);
-    document.getElementById('detectOutliersBtn').addEventListener('click', scanOutliers);
     document.getElementById('detectMentionsBtn').addEventListener('click', scanMentionFixes);
-    document.getElementById('scanInactiveBtn').addEventListener('click', scanInactivePlayers);
     // Hub Statistiques : une seule carte à onglets (Records / Tendances /
     // Jour actif / Duo / Mentions), onglet actif mémorisé. Les graphiques
     // Chart.js créés dans un volet masqué ont une taille nulle : resize()
