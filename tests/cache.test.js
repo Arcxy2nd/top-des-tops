@@ -63,7 +63,9 @@ test('getAllLogs on an empty sheet returns [] and is consistent across requests'
   const b = gas.StorageService.getAllLogs();
   assert.ok(Array.isArray(b));
   assert.strictEqual(b.length, 0);
-  assert.strictEqual(history.reads, 0); // empty sheet (lastRow<=1) is never range-read
+  // A single-row sheet is read once: without reading it there is no way to tell a
+  // lone header from a lone real entry (see SHEET_HEADERS / _readDataRows).
+  assert.strictEqual(history.reads, 1);
 });
 
 test('getHistoryPage reads the sheet once across repeated calls, then again after a write', () => {

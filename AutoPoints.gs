@@ -38,14 +38,14 @@ const AutoPointsService = (() => {
     return !isNaN(d.getTime()) ? d.toISOString() : '';
   }
 
-  function _parseRow(row, i) {
+  function _parseRow(row, i, startRow) {
     const parseIso = (val) => {
       if (!val) return null;
       const d = (val instanceof Date) ? val : new Date(val);
       return !isNaN(d.getTime()) ? d.toISOString() : null;
     };
     return {
-      rowIndex:    i + 2,
+      rowIndex:    i + (startRow === undefined ? 2 : startRow),
       id:          row[0] ? row[0].toString() : '',
       player:      row[1] ? row[1].toString() : '',
       category:    row[2] ? row[2].toString() : '',
@@ -66,10 +66,8 @@ const AutoPointsService = (() => {
   function getRules() {
     const sheet = ConfigService.getSheets().autoRules;
     if (!sheet) return [];
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return [];
-    const data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
-    return data.map(_parseRow).filter(r => r.id);
+    const { values, startRow } = _readDataRows('autoRules', sheet, 14);
+    return values.map((row, i) => _parseRow(row, i, startRow)).filter(r => r.id);
   }
 
   function _clampDayOfMonth(year, monthIndex, day) {
@@ -177,12 +175,13 @@ const AutoPointsService = (() => {
   function _findRowIndex(id) {
     const sheet = ConfigService.getSheets().autoRules;
     if (!sheet) throw new Error("Aucune règle définie.");
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) throw new Error("Règle introuvable.");
+    const lastRow  = sheet.getLastRow();
+    const startRow = _firstDataRow('autoRules', sheet);
+    if (lastRow < startRow) throw new Error("Règle introuvable.");
     const targetId = id != null ? id.toString().trim() : '';
-    const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const ids = sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).getValues();
     for (let i = 0; i < ids.length; i++) {
-      if (ids[i][0] != null && ids[i][0].toString().trim() === targetId) return i + 2;
+      if (ids[i][0] != null && ids[i][0].toString().trim() === targetId) return i + startRow;
     }
     throw new Error("Règle introuvable : " + id);
   }
@@ -191,7 +190,7 @@ const AutoPointsService = (() => {
   function updateRule(id, patch) {
     const sheet = ConfigService.getSheets().autoRules;
     const rowIndex = _findRowIndex(id);
-    const current = _parseRow(sheet.getRange(rowIndex, 1, 1, 14).getValues()[0], rowIndex - 2);
+    const current = _parseRow(sheet.getRange(rowIndex, 1, 1, 14).getValues()[0], 0, rowIndex);
     const merged = Object.assign({}, current, patch);
     const pts = _validate(merged);
     const startDateObj = merged.startDate ? new Date(merged.startDate) : (current.startDate ? new Date(current.startDate) : new Date());
@@ -212,7 +211,7 @@ const AutoPointsService = (() => {
       current.createdBy
     ]]);
     ConfigService.clearCache();
-    return _parseRow(sheet.getRange(rowIndex, 1, 1, 14).getValues()[0], rowIndex - 2);
+    return _parseRow(sheet.getRange(rowIndex, 1, 1, 14).getValues()[0], 0, rowIndex);
   }
 
   function deleteRule(id) {
