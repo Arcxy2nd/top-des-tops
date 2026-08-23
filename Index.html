@@ -8937,6 +8937,10 @@
     const opener = idx === -1 ? null : _modalReturnFocus.splice(idx, 1)[0];
     if (idx !== -1) _modalStack.splice(idx, 1);
     if (!_modalStack.length) document.body.classList.remove('modal-open');
+    // Une fenêtre construite à la volée (overlay d'export) doit quitter le DOM :
+    // la masquer suffirait à la faire disparaître, mais en laisserait une de
+    // plus à chaque ouverture — exactement la fuite qu'on corrige ailleurs.
+    if (modal._ephemeral) modal.remove();
 
     if (modal.id === 'modalBackdrop') {
       const box = document.getElementById('modalBox');
@@ -12110,6 +12114,11 @@
 
     const overlay = document.createElement('div');
     overlay.className = 'export-modal-overlay';
+    // Cette fenetre se fabrique son propre fond : sans l'inscrire dans la pile
+    // des fenetres, elle n'heriterait ni d'Echap, ni du piege de focus, ni du
+    // verrou de defilement (cf. openModal / onModalKeydown).
+    overlay.tabIndex = -1;
+    overlay._ephemeral = true;
 
     const box = document.createElement('div');
     box.className = 'export-modal-box';
@@ -12182,7 +12191,7 @@
       btn.addEventListener('click', () => {
         applyFn();
         saveExportOpts(exportOpts);
-        overlay.remove();
+        closeModal(overlay);
         openExportModal();
       });
       presetsWrap.appendChild(btn);
@@ -12277,16 +12286,17 @@
     btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Fermer'; cancelBtn.type = 'button';
-    cancelBtn.addEventListener('click', () => overlay.remove());
+    cancelBtn.addEventListener('click', () => closeModal(overlay));
     const dlBtn = document.createElement('button');
     dlBtn.className = 'primary'; dlBtn.textContent = '⬇️ Télécharger'; dlBtn.type = 'button';
-    dlBtn.addEventListener('click', () => { generateInfographic(exportOpts); overlay.remove(); });
+    dlBtn.addEventListener('click', () => { generateInfographic(exportOpts); closeModal(overlay); });
     btnRow.appendChild(cancelBtn); btnRow.appendChild(copyBtn); btnRow.appendChild(dlBtn);
     box.appendChild(btnRow);
 
     overlay.appendChild(box);
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(overlay); });
     document.body.appendChild(overlay);
+    openModal(overlay);
 
     async function updatePreview() {
       if (exportOpts.topMover) {

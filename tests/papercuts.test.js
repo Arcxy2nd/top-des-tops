@@ -241,3 +241,23 @@ test('plus aucun handler Échap par champ : le handler global les remplace', () 
   assert.deepStrictEqual(perInput, [],
     'ces Échap par champ font doublon avec onModalKeydown et ne marchaient que le focus dans le champ');
 });
+
+test('la fenêtre Export rejoint la pile des fenêtres et n\'a plus de cycle de vie maison', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'openExportModal');
+  assert.match(src, /openModal\(overlay/, 'l\'overlay Export doit passer par openModal()');
+  assert.match(src, /closeModal\(overlay\)/, 'sa fermeture doit passer par closeModal()');
+  assert.doesNotMatch(src, /overlay\.remove\(\)/,
+    'plus de retrait direct : closeModal() dépile, déverrouille et rend le focus');
+  assert.match(src, /overlay\.tabIndex = -1/, 'l\'overlay doit être focusable pour recevoir le clavier');
+});
+
+test('une fenêtre construite à la volée quitte le DOM à la fermeture', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const close = extractFunction(html, 'closeModal');
+  assert.match(close, /modal\._ephemeral.*modal\.remove\(\)/s,
+    'closeModal doit retirer du DOM les conteneurs éphémères, sinon ils s\'accumulent');
+  const exp = extractFunction(html, 'openExportModal');
+  assert.match(exp, /overlay\._ephemeral = true/,
+    'l\'overlay Export est reconstruit à chaque ouverture : il doit être marqué éphémère');
+});
