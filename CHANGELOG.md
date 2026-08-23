@@ -14,8 +14,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : Les tests des deux outils retirés en v3.15.1 ont été enlevés — ils testaient des fonctions qui n'existent plus et faisaient échouer la suite de tests.
 **Technique** : `tests/outils-nouveaux.test.js` — suppression des 4 cas visant `apiDetectOutlierScores` et `apiGetInactivePlayers`, endpoints supprimés en v3.15.1 sans nettoyage de leurs tests.
 
-### Interne
-**Humanisé** : Le changelog du site s'ouvre désormais en vue "Humanisé" par défaut, et une nouvelle catégorie "Interne" permet de classer les changements qui ne touchent pas directement l'application (méthode de travail, workflow IA, context.md…). Ces entrées sont masquées par défaut — un clic sur le chip "🔧 Interne" les révèle.
+### Modifié
+**Humanisé** : Le changelog du site s'ouvre désormais en vue "Humanisé" par défaut (au lieu de "Tous"), et une nouvelle catégorie "🔧 Interne" permet de classer les changements qui ne touchent pas directement l'application (méthode de travail, workflow IA, context.md…). Ces entrées sont masquées par défaut — un clic sur le chip les révèle.
 **Technique** : `Index.html` — `_clViewMode` initialisé à `'human'` ; nouveau chip `.cl-cat-chip[data-cat="Interne"]` sans classe `active` par défaut ; `_clActiveCats` n'inclut pas `'Interne'` à l'init ni dans `resetChangelogFilters()` ; `formatChangelogBody()` mappe `<h3>Interne</h3>` vers un header stylé `var(--text-muted)` ; CSS `.cl-cat-chip[data-cat="Interne"]` ajouté.
 
 ## [v3.15.1] - 2026-08-14
@@ -223,8 +223,8 @@ Revue par 3 agents Claude indépendants (correction, intégrité des données, s
 
 ## [v3.8.3] - 2026-08-11
 
-### Corrigé
-**Humanisé** : L'outil de test qui permet d'ouvrir l'application sur un ordinateur ne savait pas simuler la création automatique de certaines feuilles (le Journal d'audit, les Réglages, les Points automatiques). Résultat : dans cet outil de test seulement, toute action qui aurait dû s'inscrire dans le Journal d'audit échouait silencieusement, et le Journal semblait vide en permanence — alors que la vraie application fonctionne normalement sur ce point.
+### Interne
+**Humanisé** : L'outil de test local (celui qui sert l'application sur l'ordinateur pour tester sans déployer) ne savait pas simuler la création automatique de certaines feuilles. Dans cet outil seulement, le Journal d'audit semblait vide en permanence — la vraie application déployée n'était pas touchée.
 **Technique** : `tests/frontend/fixtures.js` — `buildSheets()` fournit désormais un mock `spreadsheet.insertSheet(name)` (mappe `AuditLog`/`Settings`/`AutoRules`/`Notes`/`Bareme`/`Phrases`/`Chat`/`AltCategories`/`AltHistory` vers leur clé `ConfigService`), absent jusqu'ici. `AuditService._getOrCreateSheet()` (Code.gs) appelle `ConfigService.getSheets().spreadsheet.insertSheet(...)` pour créer l'onglet à la volée ; sans ce mock, l'appel levait sur `spreadsheet` `undefined`, exception avalée par le `try/catch` volontairement silencieux d'`AuditService.log()`.
 
 ## [v3.8.2] - 2026-08-11
@@ -268,7 +268,8 @@ Revue par 3 agents Claude indépendants (correction, intégrité des données, s
 **Humanisé** : Un test automatique vérifie désormais que l'outil de test connaît bien toutes les fonctions du serveur. Le décalage qui vient d'être corrigé ne peut plus réapparaître en silence à la prochaine fonctionnalité.
 **Technique** : `tests/frontend-guards.test.js` — le test « the harness exposes every server function Index.html calls » extrait les 78 noms passés à `callServer()` dans `Index.html` et échoue si `loadGas()` n'en expose pas un.
 
-**Humanisé** : L'application va être reprise onglet par onglet, chacun examiné à fond puis corrigé et livré séparément. La procédure suivie et le suivi de l'avancement sont écrits noir sur blanc.
+### Interne
+**Humanisé** : Méthode de travail de la session documentée — l'application allait être reprise onglet par onglet avec une procédure précise. Aucun effet sur le site.
 **Technique** : `docs/superpowers/plans/2026-08-11-audit-onglet-par-onglet.md` — protocole en 5 phases (cartographie, sonde comportementale en navigateur, conseil à 5 rôles, vérification adversariale, correction TDD et livraison), grille d'audit à 5 axes, registre des 7 cibles et ligne de base mesurée. `docs/superpowers/plans/2026-08-11-audit-dashboard.md` — passe 1 en cours.
 
 ## [v3.8.0] - 2026-08-10
