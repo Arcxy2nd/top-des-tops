@@ -486,6 +486,50 @@ const AuditService = (() => {
   return { log, undo };
 })();
 
+// ─── BACKUP SERVICE ──────────────────────────────────────────────────────────────
+/**
+ * Manual "Snapshot" tool (Paramètres → Outils) — copies the whole spreadsheet into
+ * a dedicated Drive subfolder next to the source file, as a safety net before a
+ * risky manual operation. No retention policy: the user cleans up in Drive if needed.
+ */
+const BackupService = (() => {
+  const FOLDER_NAME = 'Snapshots top-des-tops';
+
+  /** Finds (or creates) the snapshot folder next to `sourceFile` — same parent as
+   *  the source spreadsheet, or Drive root if the source has none. */
+  function _snapshotFolder(sourceFile) {
+    const parents = sourceFile.getParents();
+    const parent = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+    const existing = parent.getFoldersByName(FOLDER_NAME);
+    if (existing.hasNext()) return existing.next();
+    return parent.createFolder(FOLDER_NAME);
+  }
+
+  function _timestamp(d) {
+    return d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate()) +
+      ' ' + _pad2(d.getHours()) + 'h' + _pad2(d.getMinutes());
+  }
+
+  /** Copies the live spreadsheet into the snapshot folder. Returns { name, url }. */
+  function createSnapshot() {
+    const ss = ConfigService.getSheets().spreadsheet;
+    const sourceFile = DriveApp.getFileById(ss.getId());
+    const name = ss.getName() + ' — Snapshot ' + _timestamp(new Date());
+    const copy = ss.copy(name);
+    const copyFile = DriveApp.getFileById(copy.getId());
+    const folder = _snapshotFolder(sourceFile);
+    folder.addFile(copyFile);
+    const copyParents = copyFile.getParents();
+    while (copyParents.hasNext()) {
+      const p = copyParents.next();
+      if (p.getId() !== folder.getId()) p.removeFile(copyFile);
+    }
+    return { name, url: copy.getUrl() };
+  }
+
+  return { createSnapshot };
+})();
+
 // ─── ORDRE (manual reorder) HELPER ──────────────────────────────────────────────
 /**
  * Sorts `items` by a numeric Ordre value if every item has one (stable sort,
@@ -2971,6 +3015,15 @@ function apiDeleteOrphans(author) {
       return { success: true, deleted: result.deleted };
     });
   } catch(e) { return fail(e); }
+}
+
+function apiCreateSnapshot(author) {
+  try {
+    requireAuthor(author);
+    const result = BackupService.createSnapshot();
+    AuditService.log(author, 'Snapshot créé', 'Backup', '', result.name, '');
+    return { success: true, name: result.name, url: result.url };
+  } catch (e) { return fail(e); }
 }
 
 /**
