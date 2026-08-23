@@ -164,3 +164,51 @@ test('closeModal détruit les éditeurs de la fenêtre qu\'il ferme', () => {
   const src = extractFunction(html, 'closeModal');
   assert.match(src, /_destroy/, 'closeModal doit appeler _destroy() sur les éditeurs de la fenêtre');
 });
+
+const MODAL_CONTAINERS = [
+  'modalBackdrop', 'phraseEditModal', 'presetCreateModal',
+  'presetRenameModal', 'bulkImportModal', 'identityPwdModal'
+];
+
+test('aucune fenêtre ne s\'ouvre en poussant directement son display', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const script = html.slice(html.indexOf('<script>'));
+  const re = new RegExp("getElementById\\('(" + MODAL_CONTAINERS.join('|') + ")'\\)\\.style\\.display = 'flex'");
+  const direct = script.split('\n').map(l => l.trim()).filter(l => re.test(l));
+  assert.deepStrictEqual(direct, [],
+    'toutes les ouvertures doivent passer par openModal() : sinon ni verrou de défilement, ni focus, ni piège de focus');
+});
+
+test('openModal empile, verrouille le défilement, donne le focus et mémorise l\'ouvreur', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'openModal');
+  assert.match(src, /_modalStack\.push/, 'doit empiler le conteneur ouvert');
+  assert.match(src, /classList\.add\((['"])modal-open\1\)/, 'doit verrouiller le défilement du body');
+  assert.match(src, /activeElement/, 'doit mémoriser le bouton qui a ouvert la fenêtre');
+  assert.match(src, /\.focus\(\)/, 'doit donner le focus, sinon Échap est mort');
+});
+
+test('closeModal dépile, déverrouille le défilement et rend le focus', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'closeModal');
+  assert.match(src, /_modalStack/, 'doit dépiler le conteneur');
+  assert.match(src, /classList\.remove\((['"])modal-open\1\)/, 'doit déverrouiller le défilement');
+  assert.match(src, /_modalReturnFocus/, 'doit rendre le focus au bouton d\'origine');
+});
+
+test('closeModal() sans argument vise toujours la fenêtre partagée', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'closeModal');
+  assert.match(src, /el \|\| document\.getElementById\('modalBackdrop'\)/,
+    'les ~40 appels nus closeModal() doivent continuer à viser #modalBackdrop');
+});
+
+test('body.modal-open coupe le défilement et chaque conteneur est focusable', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  assert.match(html, /body\.modal-open\s*\{[^}]*overflow:\s*hidden/,
+    'body.modal-open doit couper le défilement de la page');
+  ['modalBox'].concat(MODAL_CONTAINERS.filter(id => id !== 'modalBackdrop')).forEach(id => {
+    const tag = new RegExp('id="' + id + '"[^>]*tabindex="-1"|tabindex="-1"[^>]*id="' + id + '"');
+    assert.match(html, tag, '#' + id + ' doit être focusable pour recevoir Échap / Tab');
+  });
+});

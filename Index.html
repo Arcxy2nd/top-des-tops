@@ -1201,6 +1201,10 @@
       border: 1px solid var(--border);
       box-shadow: 0 24px 70px rgba(0,0,0,0.55);
     }
+    /* La page ne doit pas défiler derrière une fenêtre ouverte : sans ça, la
+       molette au-dessus du fond fait bouger le contenu du dessous et on perd
+       sa position de lecture (surtout sur mobile). */
+    body.modal-open { overflow: hidden; }
     .modal-box h3 { margin: 0 0 14px; font-size: 1.05rem; font-weight: 800; }
     .modal-box p  { margin: 0 0 20px; line-height: 1.55; }
     .modal-box input { margin-bottom: 10px; }
@@ -5112,7 +5116,7 @@
   </div>
 
   <!-- ══ MODAL : ÉDITION / AJOUT DE PHRASE ════════════════════════════════ -->
-  <div id="phraseEditModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div id="phraseEditModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-box">
       <h3 id="phraseModalTitle">Modifier la phrase</h3>
       <div class="modal-field">
@@ -5134,7 +5138,7 @@
   </div>
 
   <!-- ══ MODAL : RENOMMER UN PRESET ═══════════════════════════════════════ -->
-  <div id="presetRenameModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div id="presetRenameModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-box">
       <h3>Renommer le preset</h3>
       <div class="modal-field">
@@ -5149,7 +5153,7 @@
   </div>
 
   <!-- ══ MODAL : CRÉER UN PRESET ══════════════════════════════════════════ -->
-  <div id="presetCreateModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div id="presetCreateModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-box">
       <h3>Nouveau preset</h3>
       <div class="modal-grid single">
@@ -5173,7 +5177,7 @@
   </div>
 
   <!-- ══ MODAL : MOT DE PASSE IDENTITÉ ════════════════════════════════════ -->
-  <div id="identityPwdModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div id="identityPwdModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-box identity-pwd-box">
       <img class="identity-pwd-avatar" id="identityPwdAvatar" src="" alt="" />
       <h3 id="identityPwdTitle">Confirme ton identité</h3>
@@ -5191,7 +5195,7 @@
   </div>
 
   <!-- ══ MODAL : IMPORT EN MASSE DE PHRASES ════════════════════════════ -->
-  <div id="bulkImportModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div id="bulkImportModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-box bulk-import-modal-box">
       <h3 id="bulkImportModalTitle">Importer des phrases</h3>
       <div class="modal-field">
@@ -5239,7 +5243,7 @@
 
 <!-- ══ MODAL ═══════════════════════════════════════════════════════════ -->
 <div id="modalBackdrop" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
-  <div class="modal-box" id="modalBox"></div>
+  <div class="modal-box" id="modalBox" tabindex="-1"></div>
 </div>
 
 <script>
@@ -6304,12 +6308,11 @@
     if (!phraseTa._autogrown) { phraseTa._autogrown = true; autoGrowTextarea(phraseTa); }
     phraseTa.value = entry ? entry.text : '';
     phraseTa.dispatchEvent(new Event('input'));
-    document.getElementById('phraseEditModal').style.display = 'flex';
-    setTimeout(() => document.getElementById('phraseModalText').focus(), 60);
+    openModal(document.getElementById('phraseEditModal'), { focus: document.getElementById('phraseModalText') });
   }
 
   function closePhraseModal() {
-    document.getElementById('phraseEditModal').style.display = 'none';
+    closeModal(document.getElementById('phraseEditModal'));
     _phraseModalCtx = null;
   }
 
@@ -6357,12 +6360,11 @@
     });
 
     document.getElementById('presetNameInput').value = '';
-    document.getElementById('presetCreateModal').style.display = 'flex';
-    setTimeout(() => document.getElementById('presetNameInput').focus(), 60);
+    openModal(document.getElementById('presetCreateModal'), { focus: document.getElementById('presetNameInput') });
   }
 
   function closeCreatePresetModal() {
-    document.getElementById('presetCreateModal').style.display = 'none';
+    closeModal(document.getElementById('presetCreateModal'));
   }
 
   function saveCreatePreset() {
@@ -6448,13 +6450,13 @@
     const active = getActivePresetId();
     if (active === PHRASES_DEFAULT_ID) return;
     document.getElementById('presetRenameInput').value = active;
-    document.getElementById('presetRenameModal').style.display = 'flex';
     const input = document.getElementById('presetRenameInput');
-    setTimeout(() => { input.focus(); input.select(); }, 60);
+    openModal(document.getElementById('presetRenameModal'), { focus: input });
+    setTimeout(() => input.select(), 0);
   }
 
   function closeRenamePresetModal() {
-    document.getElementById('presetRenameModal').style.display = 'none';
+    closeModal(document.getElementById('presetRenameModal'));
   }
 
   function saveRenamePreset() {
@@ -6881,12 +6883,11 @@
     if (!bulkTa._autogrown) { bulkTa._autogrown = true; autoGrowTextarea(bulkTa, 0.5); }
     bulkTa.value = '';
     document.getElementById('bulkImportCount').textContent = '';
-    document.getElementById('bulkImportModal').style.display = 'flex';
-    setTimeout(() => document.getElementById('bulkImportTextarea').focus(), 60);
+    openModal(document.getElementById('bulkImportModal'), { focus: document.getElementById('bulkImportTextarea') });
   }
 
   function closeBulkImportModal() {
-    document.getElementById('bulkImportModal').style.display = 'none';
+    closeModal(document.getElementById('bulkImportModal'));
     _bulkImportCtx = null;
   }
 
@@ -6908,7 +6909,7 @@
       saveBtn.disabled = false;
       if (gen !== _phrasesReqGen) return;
       _customPhrases = res.phrases;
-      document.getElementById('bulkImportModal').style.display = 'none';
+      closeModal(document.getElementById('bulkImportModal'));
       _bulkImportCtx = null;
       renderPhrasesEditorSection();
       renderPresetChips();
@@ -8902,15 +8903,49 @@
     });
   }
 
-  function closeModal() {
+  // Conteneurs de fenêtre actuellement ouverts — le dernier est l'actif. Une
+  // pile plutôt qu'un booléen : le mot de passe d'identité peut se superposer
+  // à une autre fenêtre, et le verrou de défilement ne doit sauter qu'à la
+  // fermeture de la dernière.
+  const _modalStack = [];
+  // Bouton qui a ouvert chaque fenêtre : le focus lui revient à la fermeture,
+  // sinon on repart du haut de la page à chaque aller-retour.
+  const _modalReturnFocus = [];
+
+  // Point d'entrée unique de TOUTES les fenêtres (partagée et sur-mesure).
+  // Le focus initial n'est pas cosmétique : les raccourcis Échap/Ctrl+Entrée et
+  // le piège de Tab sont servis par onModalKeydown à partir de cette pile ;
+  // sans conteneur empilé, aucun raccourci ne s'applique.
+  function openModal(el, opts) {
+    opts = opts || {};
+    const modal = el || document.getElementById('modalBackdrop');
+    _modalStack.push(modal);
+    _modalReturnFocus.push(document.activeElement);
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    const target = opts.focus || (modal.id === 'modalBackdrop' ? document.getElementById('modalBox') : modal);
+    setTimeout(() => { if (target && target.focus) target.focus(); }, 0);
+  }
+
+  function closeModal(el) {
+    const modal = el || document.getElementById('modalBackdrop');
     closeAllRichSelects();
-    const box = document.getElementById('modalBox');
-    box.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
-    document.getElementById('modalBackdrop').style.display = 'none';
-    box.innerHTML = '';
-    box.style.maxWidth = '';
-    box.classList.remove('wide');
-    box.classList.remove('xl');
+    modal.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
+    modal.style.display = 'none';
+
+    const idx = _modalStack.lastIndexOf(modal);
+    const opener = idx === -1 ? null : _modalReturnFocus.splice(idx, 1)[0];
+    if (idx !== -1) _modalStack.splice(idx, 1);
+    if (!_modalStack.length) document.body.classList.remove('modal-open');
+
+    if (modal.id === 'modalBackdrop') {
+      const box = document.getElementById('modalBox');
+      box.innerHTML = '';
+      box.style.maxWidth = '';
+      box.classList.remove('wide');
+      box.classList.remove('xl');
+    }
+    if (opener && opener.focus) opener.focus();
   }
 
   function openLotRecapModal(plan) {
@@ -8950,7 +8985,7 @@
       '<div class="lot-recap-list">' + rows + '</div>' +
       '<div class="modal-actions"><button id="mRecapClose" class="primary">OK</button></div>';
     document.getElementById('mRecapClose').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function drilldownRowHtml(log) {
@@ -8978,7 +9013,7 @@
     box.innerHTML = '<h3>' + escapeHtml(context.title) + '</h3><div id="drilldownList" class="drilldown-list"><p class="text-muted">Chargement…</p></div>' +
       '<div class="modal-actions"><button id="drilldownAltAssign" class="primary small" style="display:none;">⭐ Affecter ces points au Top Alt</button><button id="drilldownClose" class="secondary">Fermer</button></div>';
     document.getElementById('drilldownClose').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
 
     // Jeton anti-course : si un clic plus récent a relancé le drill-down avant que
     // cette réponse n'arrive, on l'ignore pour ne pas écraser la liste affichée.
@@ -9015,7 +9050,7 @@
       '</div>';
     document.getElementById('mConfirm').onclick = () => { closeModal(); onConfirm(); };
     document.getElementById('mCancel').onclick  = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function openUniversalAltPointPicker(options = {}) {
@@ -9113,7 +9148,7 @@
       </div>
     `;
 
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
 
     const pickerSelectedSet = new Set(preselectedSet);
 
@@ -9312,7 +9347,7 @@
       </div>
     `;
 
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
 
     let qaPlayer = (cachedPlayers[0] && cachedPlayers[0].name) || '';
     let qaAltCat = prefillAltCategory || (cachedAltCategories[0] && cachedAltCategories[0].name) || '';
@@ -9363,7 +9398,7 @@
       </div>
     `;
 
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
     document.getElementById('mAltMgrCloseBtn').onclick = closeModal;
 
     const loadEntriesView = () => {
@@ -9551,7 +9586,7 @@
       }, 'Erreur renommage');
     };
     document.getElementById('mCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   // Cliquer sur le fond n'annule plus la fenêtre : trop d'annulations
@@ -9697,7 +9732,7 @@
   let _identityPwdTarget = null; // player object pending verification
 
   function closeIdentityPwdModal() {
-    document.getElementById('identityPwdModal').style.display = 'none';
+    closeModal(document.getElementById('identityPwdModal'));
     document.getElementById('identityPwdInput').value = '';
     document.getElementById('identityPwdError').style.display = 'none';
     _identityPwdTarget = null;
@@ -9714,8 +9749,7 @@
       .setProperty('--identity-pwd-color', player.color || 'var(--border)');
     document.getElementById('identityPwdError').style.display = 'none';
     document.getElementById('identityPwdInput').value = '';
-    modal.style.display = 'flex';
-    setTimeout(() => document.getElementById('identityPwdInput').focus(), 50);
+    openModal(modal, { focus: document.getElementById('identityPwdInput') });
   }
 
   function submitIdentityPwd() {
@@ -15306,7 +15340,7 @@
       }, 'Édition note');
     };
     document.getElementById('mCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function openBulkEditModal() {
@@ -15460,7 +15494,7 @@
     };
 
     document.getElementById('mbCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function openFullEditHistoryModal(log) {
@@ -15536,7 +15570,7 @@
       );
     };
     document.getElementById('mCancel').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
     setTimeout(function() { const el = document.getElementById('mEditPts'); if (el) el.focus(); }, 50);
   }
 
@@ -15749,7 +15783,7 @@
       }, 'Mise à jour règle auto');
     };
     document.getElementById('mCancelAuto').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function openDuplicateAutoRuleModal(rule) {
@@ -15843,7 +15877,7 @@
       }, 'Duplication règle auto');
     };
     document.getElementById('mCancelDup').onclick = closeModal;
-    document.getElementById('modalBackdrop').style.display = 'flex';
+    openModal();
   }
 
   function renderAutoRules(rules) {
