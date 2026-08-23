@@ -1119,6 +1119,11 @@
     .tool-action-info { flex: 1; min-width: 200px; }
     .tool-action-info strong { display: block; margin-bottom: 4px; }
     .tool-action-info span  { font-size: 0.82rem; color: var(--text-muted); }
+    .tool-action-result {
+      font-size: 0.82rem; color: var(--text-muted);
+      margin: -4px 0 10px; padding: 0 16px;
+    }
+    .tool-action-result a { color: var(--info); font-weight: 600; }
     .qa-field, .qa-input {
       min-height: var(--tap-min);
       box-sizing: border-box;
@@ -4589,6 +4594,14 @@
           </div>
           <button class="secondary small" id="repairOrderBtn">Réparer</button>
         </div>
+        <div class="tool-action">
+          <div class="tool-action-info">
+            <strong>Créer un snapshot</strong>
+            <span>Copie l'intégralité du Sheet dans un fichier Google Sheets séparé (dossier Drive "Snapshots top-des-tops") — filet de sécurité avant une opération risquée.</span>
+          </div>
+          <button class="secondary small" id="createSnapshotBtn">📸 Créer</button>
+        </div>
+        <div id="lastSnapshotInfo" class="tool-action-result" style="display:none;"></div>
       </div>
 
       <div class="card card-collapsible" id="toolLotsCard">
@@ -16674,6 +16687,27 @@
         loadBaremeSettings();
         loadCustomPhrases(() => renderPhrasesEditorSection());
       }, 'Réparation ordre');
+    });
+
+    document.getElementById('createSnapshotBtn').addEventListener('click', () => {
+      if (!requireIdentity()) return;
+      const btn = document.getElementById('createSnapshotBtn');
+      const restore = startBtnLoading(btn, 'Snapshot…');
+      callServer('apiCreateSnapshot', [_whoAmI || ''], res => {
+        restore();
+        showToast('Snapshot créé.', 'success');
+        const info = document.getElementById('lastSnapshotInfo');
+        info.innerHTML = '';
+        const label = document.createElement('span');
+        label.textContent = res.name + ' — ';
+        const link = document.createElement('a');
+        link.href = res.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = 'Ouvrir le snapshot ↗';
+        info.append(label, link);
+        info.style.display = 'block';
+      }, 'Snapshot', () => restore());
     });
 
     initAutoPointsPanel();

@@ -11,8 +11,8 @@ const ROOT      = path.join(__dirname, '..', '..');
 const STUB_PATH = path.join(__dirname, 'stub.js');
 
 function buildGas() {
-  const gas = loadGas();
   const sheets = buildSheets();
+  const gas = loadGas({ DriveApp: sheets.__driveApp });
   gas.ConfigService.getSheets = () => sheets;
   return gas;
 }

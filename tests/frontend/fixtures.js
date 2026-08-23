@@ -1,6 +1,6 @@
 'use strict';
 
-const { makeSheet } = require('../harness.js');
+const { makeSheet, makeFakeDrive } = require('../harness.js');
 
 // The data reproduces the shape observed in production on 2026-08-10 (7 players,
 // several Tops, entries spread over two months): a two-row sheet does not
@@ -69,7 +69,12 @@ function buildSheets() {
                            ['2026-08-01', 'Alik', 'Trou du cul', 7, 'Native', '', '', 'Admin']]),
     altCategories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Trou du cul', 'Gros zgeg', '🤠', '#ee6943']])
   };
-  sheets.spreadsheet = {
+  // BackupService (Snapshot tool) reads getId()/getName()/copy() off the same
+  // `spreadsheet` object the rest of Code.gs already uses for getSheetByName/
+  // insertSheet — a real fake Drive backs it so the preview can exercise the
+  // actual success path (folder creation, file move), not just the error path.
+  const drive = makeFakeDrive();
+  sheets.spreadsheet = Object.assign(drive.makeSpreadsheet('top-des-tops (aperçu local)'), {
     getSheetByName: () => null,
     insertSheet(name) {
       const key = AUTO_CREATE_SHEET_KEY_BY_NAME[name];
@@ -78,7 +83,8 @@ function buildSheets() {
       sheets[key] = sheet;
       return sheet;
     }
-  };
+  });
+  sheets.__driveApp = drive.DriveApp;
   return sheets;
 }
 
