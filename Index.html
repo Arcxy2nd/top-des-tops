@@ -12371,15 +12371,22 @@
     ];
   }
 
-  function exportAsCSV() {
-    if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
+  // Pure builder — no download side-effect, so exportAsCSV() et le pack trimestriel
+  // peuvent tous deux l'appeler sans dupliquer la forme du CSV.
+  function buildCSVBytes() {
+    if (!currentChartData) return null;
     const { labels, datasets } = currentChartData;
     const contextLines = buildExportContextLines().map(([k, v]) => '# ' + k + ' : ' + v);
     const rows = [['Joueur', ...datasets.map(d => d.label)]];
     labels.forEach((l, i) => rows.push([l, ...datasets.map(d => d.data[i] || 0)]));
-    const csv = contextLines.concat(rows.map(r => r.join(','))).join('\n');
+    return new TextEncoder().encode(contextLines.concat(rows.map(r => r.join(','))).join('\n'));
+  }
+
+  function exportAsCSV() {
+    const bytes = buildCSVBytes();
+    if (!bytes) { showToast('Aucune donnée', 'error'); return; }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+    a.href = URL.createObjectURL(new Blob([bytes], {type:'text/csv;charset=utf-8;'}));
     a.download = 'tops-des-tops.csv'; a.click();
     URL.revokeObjectURL(a.href);
     showToast('Export CSV OK', 'success');
@@ -12433,26 +12440,34 @@
     }));
   }
 
+  // Pure builder — no download side-effect, so exportAsExcel() et le pack trimestriel
+  // peuvent tous deux l'appeler sans dupliquer les 3 onglets. Suppose XLSX déjà
+  // chargé (les deux appelants le chargent avant d'appeler cette fonction).
+  function buildExcelWorkbook() {
+    if (!currentChartData) return null;
+    const { labels, datasets } = currentChartData;
+    const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
+    labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    const ranking = computeRankingWithGaps(currentChartData);
+    const rankingData = [['Rang', 'Joueur', 'Total', 'Écart avec le suivant']];
+    ranking.forEach(r => rankingData.push([r.rank, r.player, r.total, r.gapToNext === null ? '' : r.gapToNext]));
+    const wsRanking = XLSX.utils.aoa_to_sheet(rankingData);
+
+    const wsContext = XLSX.utils.aoa_to_sheet(buildExportContextLines());
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+    XLSX.utils.book_append_sheet(wb, wsRanking, 'Classement');
+    XLSX.utils.book_append_sheet(wb, wsContext, 'Contexte');
+    return wb;
+  }
+
   function exportAsExcel() {
     if (!currentChartData) { showToast('Aucune donnée', 'error'); return; }
     loadScriptOnce(EXPORT_LIBS.xlsx).then(() => {
-      const { labels, datasets } = currentChartData;
-      const sheetData = [['Joueur', ...datasets.map(d => d.label)]];
-      labels.forEach((l, i) => sheetData.push([l, ...datasets.map(d => d.data[i] || 0)]));
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-      const ranking = computeRankingWithGaps(currentChartData);
-      const rankingData = [['Rang', 'Joueur', 'Total', 'Écart avec le suivant']];
-      ranking.forEach(r => rankingData.push([r.rank, r.player, r.total, r.gapToNext === null ? '' : r.gapToNext]));
-      const wsRanking = XLSX.utils.aoa_to_sheet(rankingData);
-
-      const contextData = buildExportContextLines();
-      const wsContext = XLSX.utils.aoa_to_sheet(contextData);
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Scores');
-      XLSX.utils.book_append_sheet(wb, wsRanking, 'Classement');
-      XLSX.utils.book_append_sheet(wb, wsContext, 'Contexte');
+      const wb = buildExcelWorkbook();
       XLSX.writeFile(wb, 'tops-des-tops_' + Date.now() + '.xlsx');
       showToast('Export Excel OK', 'success');
     }).catch(e => showToast('Erreur Excel : ' + e.message, 'error'));
