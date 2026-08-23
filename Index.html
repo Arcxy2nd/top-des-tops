@@ -8511,16 +8511,20 @@
     const monday = getMondayOfWeek(t);
     const lastMonday = new Date(monday); lastMonday.setDate(lastMonday.getDate() - 7);
     const lastSunday = new Date(monday); lastSunday.setDate(lastSunday.getDate() - 1);
+    const curQuarter  = quarterBounds(t, 0);
+    const prevQuarter = quarterBounds(t, -1);
     return [
-      { label: '7 derniers jours',  from: mk(y, m, d - 6),  to: mk(y, m, d) },
-      { label: 'Semaine en cours',  from: toDateStr(monday), to: mk(y, m, d) },
-      { label: 'Semaine préc.',     from: toDateStr(lastMonday), to: toDateStr(lastSunday) },
-      { label: '30 derniers jours', from: mk(y, m, d - 29), to: mk(y, m, d) },
-      { label: 'Ce mois',           from: mk(y, m, 1),      to: mk(y, m, d) },
-      { label: 'Mois précédent',    from: mk(y, m - 1, 1),  to: mk(y, m, 0) },
-      { label: '3 derniers mois',   from: mk(y, m - 3, d),  to: mk(y, m, d) },
-      { label: 'Cette année',       from: mk(y, 0, 1),      to: mk(y, m, d) },
-      { label: 'Année préc.',       from: mk(y - 1, 0, 1),  to: mk(y - 1, 11, 31) }
+      { label: '7 derniers jours',   from: mk(y, m, d - 6),  to: mk(y, m, d) },
+      { label: 'Semaine en cours',   from: toDateStr(monday), to: mk(y, m, d) },
+      { label: 'Semaine préc.',      from: toDateStr(lastMonday), to: toDateStr(lastSunday) },
+      { label: '30 derniers jours',  from: mk(y, m, d - 29), to: mk(y, m, d) },
+      { label: 'Ce mois',            from: mk(y, m, 1),      to: mk(y, m, d) },
+      { label: 'Mois précédent',     from: mk(y, m - 1, 1),  to: mk(y, m, 0) },
+      { label: '3 derniers mois',    from: mk(y, m - 3, d),  to: mk(y, m, d) },
+      { label: 'Trimestre en cours', from: toDateStr(curQuarter.from),  to: mk(y, m, d) },
+      { label: 'Trimestre préc.',    from: toDateStr(prevQuarter.from), to: toDateStr(prevQuarter.to) },
+      { label: 'Cette année',        from: mk(y, 0, 1),      to: mk(y, m, d) },
+      { label: 'Année préc.',        from: mk(y - 1, 0, 1),  to: mk(y - 1, 11, 31) }
     ];
   }
 
@@ -8622,6 +8626,17 @@
     return dates.filter(ds => selectedDays.includes(new Date(ds + 'T12:00:00').getDay()));
   }
 
+  // Calendar-quarter boundaries (Q1 janv-mars … Q4 oct-déc). offset=0 = trimestre
+  // contenant refDate, offset=-1 = trimestre précédent. Seule source de la logique
+  // de trimestre — utilisée par les chips Historique/Journal ET les boutons Dashboard.
+  function quarterBounds(refDate, offset) {
+    const q = Math.floor(refDate.getMonth() / 3) + (offset || 0);
+    const year = refDate.getFullYear() + Math.floor(q / 4);
+    const qIdx = ((q % 4) + 4) % 4;
+    const startMonth = qIdx * 3;
+    return { from: new Date(year, startMonth, 1), to: new Date(year, startMonth + 3, 0) };
+  }
+
   // ── PLAGES RAPIDES DE DATE (réutilisable, DRY) ───────────────────────
   // Source unique des plages nommées, partagée par l'Historique, le Journal
   // d'audit et tout futur filtre à dates. Retourne des objets Date (ou null
@@ -8630,23 +8645,27 @@
     const now = new Date();
     const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
     switch (key) {
-      case 'today':     return { from: new Date(y, m, d),      to: new Date(y, m, d) };
-      case '7d':        return { from: new Date(y, m, d - 6),  to: new Date(y, m, d) };
-      case 'month':     return { from: new Date(y, m, 1),      to: new Date(y, m, d) };
-      case 'prevmonth': return { from: new Date(y, m - 1, 1),  to: new Date(y, m, 0) };
-      case '3m':        return { from: new Date(y, m - 3, d),  to: new Date(y, m, d) };
-      case 'year':      return { from: new Date(y, 0, 1),      to: new Date(y, m, d) };
-      default:          return { from: null, to: null }; // 'all'
+      case 'today':      return { from: new Date(y, m, d),      to: new Date(y, m, d) };
+      case '7d':         return { from: new Date(y, m, d - 6),  to: new Date(y, m, d) };
+      case 'month':      return { from: new Date(y, m, 1),      to: new Date(y, m, d) };
+      case 'prevmonth':  return { from: new Date(y, m - 1, 1),  to: new Date(y, m, 0) };
+      case '3m':         return { from: new Date(y, m - 3, d),  to: new Date(y, m, d) };
+      case 'quarter':    return { from: quarterBounds(now, 0).from, to: new Date(y, m, d) };
+      case 'prevquarter': return quarterBounds(now, -1);
+      case 'year':       return { from: new Date(y, 0, 1),      to: new Date(y, m, d) };
+      default:           return { from: null, to: null }; // 'all'
     }
   }
   const DATE_RANGE_CHIPS = [
-    { key: 'today',     label: "Aujourd'hui" },
-    { key: '7d',        label: '7 jours' },
-    { key: 'month',     label: 'Ce mois' },
-    { key: 'prevmonth', label: 'Mois dernier' },
-    { key: '3m',        label: '3 mois' },
-    { key: 'year',      label: 'Cette année' },
-    { key: 'all',       label: 'Tout' }
+    { key: 'today',      label: "Aujourd'hui" },
+    { key: '7d',         label: '7 jours' },
+    { key: 'month',      label: 'Ce mois' },
+    { key: 'prevmonth',  label: 'Mois dernier' },
+    { key: '3m',         label: '3 mois' },
+    { key: 'quarter',    label: 'Trimestre en cours' },
+    { key: 'prevquarter', label: 'Trimestre précédent' },
+    { key: 'year',       label: 'Cette année' },
+    { key: 'all',        label: 'Tout' }
   ];
   // Génère les chips de plage dans `chipsContainer`, les câble aux inputs
   // from/to + au bouton clear, et déclenche `onChange` à chaque changement.
