@@ -212,3 +212,32 @@ test('body.modal-open coupe le défilement et chaque conteneur est focusable', (
     assert.match(html, tag, '#' + id + ' doit être focusable pour recevoir Échap / Tab');
   });
 });
+
+test('un seul handler clavier sert toutes les fenêtres, via la pile', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'onModalKeydown');
+  assert.match(src, /_modalStack\[_modalStack\.length - 1\]/,
+    'le handler doit agir sur la fenêtre active (haut de pile)');
+  assert.match(src, /e\.key === 'Escape'/, 'doit gérer Échap');
+  assert.match(src, /e\.key !== 'Tab'/, 'doit gérer Tab');
+  assert.match(src, /shiftKey/, 'doit gérer Maj+Tab');
+  assert.match(src, /querySelectorAll/,
+    'les champs doivent être cherchés au moment du Tab : le contenu est reconstruit à chaque ouverture');
+});
+
+test('le sélecteur focusable exclut les contrôles désactivés et tabindex="-1"', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const m = /const MODAL_FOCUSABLE_SEL = '([^']+)'/.exec(html);
+  assert.ok(m, 'MODAL_FOCUSABLE_SEL doit être une constante littérale');
+  assert.match(m[1], /:not\(\[disabled\]\)/, 'doit exclure les contrôles désactivés');
+  assert.match(m[1], /tabindex="-1"/, 'doit exclure tabindex="-1"');
+});
+
+test('plus aucun handler Échap par champ : le handler global les remplace', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const script = html.slice(html.indexOf('<script>'));
+  const perInput = script.split('\n').map(l => l.trim()).filter(l =>
+    /e\.key === 'Escape'/.test(l) && /close(Phrase|CreatePreset|RenamePreset|IdentityPwd)Modal/.test(l));
+  assert.deepStrictEqual(perInput, [],
+    'ces Échap par champ font doublon avec onModalKeydown et ne marchaient que le focus dans le champ');
+});
