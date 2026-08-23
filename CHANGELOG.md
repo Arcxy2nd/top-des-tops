@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.19.0] - 2026-08-24
+
+### Ajouté
+**Humanisé** : Le Dashboard sait maintenant filtrer par trimestre — "Trimestre en cours" et "Trimestre précédent" apparaissent à côté des périodes existantes (Historique, Journal d'audit, Dashboard). Un nouveau bouton "🗓️ Ce trimestre" à côté des exports existants télécharge en un clic un pack complet du trimestre en cours (CSV + Excel + une image par type de graphique), sans changer ce qui est affiché à l'écran.
+**Technique** : `Index.html` — nouveau `quarterBounds(refDate, offset)`, seule source de calcul des bornes de trimestre calendaire, consommée par `dateRangePreset()`/`DATE_RANGE_CHIPS` (Historique, Journal d'audit) et `rangePresetItems()` (Dashboard). `exportAsCSV()`/`exportAsExcel()` scindées en builders purs (`buildCSVBytes()`/`buildExcelWorkbook()`) réutilisés par le nouveau `exportSeasonPack()`, qui zip CSV+Excel+PNG (`fflate`, même dépendance que "Tout exporter") et restaure le filtre de période d'avant clic.
+
 ## [v3.18.0] - 2026-08-24
 
 ### Ajouté
