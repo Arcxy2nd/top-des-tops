@@ -4302,6 +4302,7 @@
         <div class="export-buttons">
           <button class="export-btn" id="exportInfographicBtn">🎨 Infographie</button>
           <button class="export-btn" id="exportAllBtn">🗂️ Tout exporter</button>
+          <button class="export-btn" id="exportSeasonBtn">🗓️ Ce trimestre</button>
           <button class="export-btn" data-export="csv">📊 CSV</button>
           <button class="export-btn" data-export="xlsx">📗 Excel</button>
         </div>
@@ -12522,6 +12523,77 @@
     });
   }
 
+  // Filtre temporairement sur le trimestre en cours, construit un seul zip
+  // (CSV + Excel + un PNG par type de graphique compatible), puis restaure le
+  // filtre de période d'avant clic — ce bouton donne un fichier, il ne change
+  // pas ce que le Dashboard affiche.
+  function exportSeasonPack() {
+    const btn = document.getElementById('exportSeasonBtn');
+    const originalLabel = btn.textContent;
+    const originalType  = currentChartType;
+    const originalStart = document.getElementById('startDate').value;
+    const originalEnd   = document.getElementById('endDate').value;
+    btn.disabled = true;
+    btn.textContent = '⏳ Export en cours…';
+
+    const restoreFilters = () => {
+      document.getElementById('startDate').value = originalStart;
+      document.getElementById('endDate').value   = originalEnd;
+      applyFilters();
+    };
+
+    const q = quarterBounds(new Date(), 0);
+    document.getElementById('startDate').value = toDateStr(q.from);
+    document.getElementById('endDate').value   = toDateStr(new Date());
+
+    applyFilters(() => {
+      Promise.all([loadScriptOnce(EXPORT_LIBS.zip), loadScriptOnce(EXPORT_LIBS.xlsx)]).then(async () => {
+        const opts = loadStoredExportOpts();
+        opts._topMoverResult = null;
+        const avatarImages = await loadAvatarImages(getRelevantPlayerNames(), opts.avatars);
+        const files = {};
+
+        const csvBytes = buildCSVBytes();
+        if (csvBytes) files['trimestre.csv'] = csvBytes;
+
+        const wb = buildExcelWorkbook();
+        if (wb) files['trimestre.xlsx'] = new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }));
+
+        for (const type of BATCH_EXPORT_CHART_TYPES) {
+          await new Promise(resolve => switchChartType(type, resolve));
+          if (!chartTypeHasData(type)) continue;
+          const canvas = buildInfographicCanvas(opts, opts.scale, avatarImages);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          const buf = await blob.arrayBuffer();
+          files['trimestre-' + type + '.png'] = new Uint8Array(buf);
+        }
+
+        await new Promise(resolve => switchChartType(originalType, resolve));
+        restoreFilters();
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+
+        if (!Object.keys(files).length) {
+          showToast('Aucune donnée sur ce trimestre.', 'error');
+          return;
+        }
+        const zipped = fflate.zipSync(files);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([zipped], { type: 'application/zip' }));
+        a.download = 'top-des-tops-trimestre-' + toDateStr(q.from) + '.zip';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('Export du trimestre : OK.', 'success');
+      }).catch(e => {
+        switchChartType(originalType, () => {});
+        restoreFilters();
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        showToast('Erreur export trimestre : ' + e.message, 'error');
+      });
+    });
+  }
+
   // ── SAISIE LOT ───────────────────────────────────────────────────────
   function createPtsToggle(defaultVal) {
     const wrap = document.createElement('div');
@@ -17825,6 +17897,7 @@
   function bindExportButtons() {
     document.getElementById('exportInfographicBtn').addEventListener('click', openExportModal);
     document.getElementById('exportAllBtn').addEventListener('click', exportAllCharts);
+    document.getElementById('exportSeasonBtn').addEventListener('click', exportSeasonPack);
     document.querySelectorAll('.export-btn[data-export]').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.dataset.export;
