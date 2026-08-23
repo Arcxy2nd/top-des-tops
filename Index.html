@@ -5744,6 +5744,9 @@
     ta.addEventListener('focus', fit);
     window.addEventListener('resize', fit);
     requestAnimationFrame(fit); // premier ajustement une fois posé dans le DOM
+    // L'écouteur resize est global : sans destroy() il survit au textarea et
+    // se déclenche à chaque redimensionnement, pour un champ qui n'existe plus.
+    fit.destroy = function() { window.removeEventListener('resize', fit); };
     return fit;
   }
 
@@ -5825,7 +5828,7 @@
     // Saisie normale (sans mention) : déclenche quand même le changement/aperçu.
     textarea.addEventListener('input', () => triggerChange());
     // Autocomplétion @Nom, partagée avec les autres champs de l'app.
-    attachMentionAutocomplete(textarea, { onApply: () => triggerChange() });
+    const mention = attachMentionAutocomplete(textarea, { onApply: () => triggerChange() });
 
     wrap.appendChild(toolbar);
     wrap.appendChild(textarea);
@@ -5835,6 +5838,10 @@
     wrap._getValue = () => textarea.value;
     wrap._setValue = v => { textarea.value = v || ''; triggerChange(); refit(); };
     wrap._textarea = textarea;
+    // Un éditeur est reconstruit à chaque ouverture de fenêtre. Sans _destroy(),
+    // chaque ouverture laisse derrière elle une div de suggestions orpheline
+    // sous <body> et des écouteurs globaux qui tournent à chaque défilement.
+    wrap._destroy = () => { mention.destroy(); refit.destroy(); };
 
     return wrap;
   }
@@ -8897,8 +8904,9 @@
 
   function closeModal() {
     closeAllRichSelects();
-    document.getElementById('modalBackdrop').style.display = 'none';
     const box = document.getElementById('modalBox');
+    box.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
+    document.getElementById('modalBackdrop').style.display = 'none';
     box.innerHTML = '';
     box.style.maxWidth = '';
     box.classList.remove('wide');

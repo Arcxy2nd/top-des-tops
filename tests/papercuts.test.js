@@ -142,3 +142,25 @@ test('attachMentionAutocomplete expose destroy() et suit son champ', () => {
   assert.doesNotMatch(src, /addEventListener\((['"])scroll\1, hide/,
     'le popup de mention doit suivre son champ, plus se cacher au défilement');
 });
+
+test('autoGrowTextarea expose destroy() sur son handle de refit', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'autoGrowTextarea');
+  assert.match(src, /fit\.destroy\s*=/, 'le handle de refit doit porter destroy()');
+  assert.match(src, /removeEventListener\((['"])resize\1, fit\)/,
+    'destroy() doit retirer l\'écouteur resize global');
+});
+
+test('buildTextEditor expose _destroy() et débranche ses deux sous-widgets', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'buildTextEditor');
+  assert.match(src, /wrap\._destroy\s*=/, 'buildTextEditor doit exposer _destroy()');
+  assert.match(src, /mention\.destroy\(\)/, '_destroy doit débrancher l\'autocomplétion');
+  assert.match(src, /refit\.destroy\(\)/, '_destroy doit débrancher l\'auto-dimensionnement');
+});
+
+test('closeModal détruit les éditeurs de la fenêtre qu\'il ferme', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'closeModal');
+  assert.match(src, /_destroy/, 'closeModal doit appeler _destroy() sur les éditeurs de la fenêtre');
+});
