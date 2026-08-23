@@ -5581,6 +5581,36 @@
            '&background=2a313d&color=e0e6ed&bold=true&size=64';
   }
 
+  // ── ANCRAGE D'UN ÉLÉMENT FLOTTANT ────────────────────────────────────
+  // Un élément en position:fixed est ancré à l'écran, pas à son bouton : sans
+  // repositionnement, il « flotte » dès que la page défile. Cette brique le
+  // recale à chaque scroll/resize et le détache quand son ancre quitte l'écran
+  // (plus rien à pointer). `place` garde le calcul de position propre à chaque
+  // appelant ; `detach` DOIT être appelé à la fermeture, sinon les écouteurs
+  // globaux survivent à l'élément (fuite : ils tournent à chaque défilement).
+  function anchorFloating(el, anchorEl, place, onDetach) {
+    var attached = true;
+    function detach() {
+      if (!attached) return;
+      attached = false;
+      document.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    }
+    function reposition() {
+      var rect = anchorEl.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        detach();
+        if (onDetach) onDetach();
+        return;
+      }
+      place(rect, el);
+    }
+    document.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    reposition();
+    return detach;
+  }
+
   // ── AUTOCOMPLÉTION DE MENTION (@Nom), réutilisable sur n'importe quel
   // <input>/<textarea> ─────────────────────────────────────────────────
   // Le popup est ajouté à document.body en position:fixed et repositionné via
