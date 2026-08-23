@@ -261,3 +261,10 @@ test('une fenêtre construite à la volée quitte le DOM à la fermeture', () =>
   assert.match(exp, /overlay\._ephemeral = true/,
     'l\'overlay Export est reconstruit à chaque ouverture : il doit être marqué éphémère');
 });
+
+test('Tab depuis le cadre lui-même entre dans la fenêtre au lieu d\'en sortir', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'onModalKeydown');
+  assert.match(src, /focusables\.indexOf\(active\) === -1/,
+    'un focus hors de la liste (cadre lui-même, ou page derrière) doit être ramené dans la fenêtre');
+});

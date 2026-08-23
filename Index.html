@@ -9624,11 +9624,17 @@
     const first = focusables[0];
     const last  = focusables[focusables.length - 1];
     const active = document.activeElement;
-    const atEdge = e.shiftKey ? (active === first) : (active === last);
-    if (atEdge || !modal.contains(active)) {
+
+    // Focus sur le cadre lui-même (état juste après l'ouverture) ou hors de la
+    // fenêtre : Tab entre par le premier champ, Maj+Tab par le dernier. Sans
+    // ce cas, Maj+Tab depuis le cadre repartait dans la page invisible derrière.
+    if (focusables.indexOf(active) === -1) {
       e.preventDefault();
       (e.shiftKey ? last : first).focus();
+      return;
     }
+    if (e.shiftKey && active === first)      { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
   }
   document.addEventListener('keydown', onModalKeydown, true);
 
