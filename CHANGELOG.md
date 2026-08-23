@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.16.1] - 2026-08-23
+
+### Corrigé
+**Humanisé** : Les menus déroulants (filtres Joueur/Top, et le menu du bouton d'identité en haut à droite) restaient figés à l'écran quand on faisait défiler la page pendant qu'ils étaient ouverts — ils se retrouvaient décrochés du bouton qui les avait ouverts. Ils suivent maintenant le bouton en temps réel, comme la bulle d'historique des notes le faisait déjà.
+**Technique** : `Index.html` — `buildRichSelect()` : position du panneau extraite dans `positionPanel()`, ré-appelée sur `scroll` (capture) et `resize` tant que le panneau est ouvert, listeners retirés dans `closePanel()`. Menu `whoAmIDropdown` : même traitement (`positionWhoAmIDropdown()` + listeners scroll/resize attachés à l'ouverture, retirés à la fermeture). Reprend le pattern déjà en place dans `openNoteHistoryPopover()`.
+
 ## [v3.16.0] - 2026-08-14
 
 ### Corrigé

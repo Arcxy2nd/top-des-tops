@@ -8025,18 +8025,10 @@
       });
     }
 
-    function openPanel() {
-      closeAllRichSelects();
-      buildPanel();
-      panel.style.display = '';
-
-      // Reparent to <body> as position:fixed, positioned from the trigger's
-      // own viewport rect. This escapes any ancestor's overflow/scroll
-      // clipping (e.g. a tall modal box) and any local stacking context, so
-      // the panel always renders fully visible and never over a misplaced
-      // hit-area that could close the parent modal by mistake.
-      document.body.appendChild(panel);
-      panel.style.position = 'fixed';
+    // position:fixed est ancré à l'écran, pas au trigger : sans repositionnement,
+    // le panneau "flotte" au lieu de suivre le bouton quand la page défile. On le
+    // recale à chaque scroll/resize tant qu'il est ouvert (cf. openNoteHistoryPopover).
+    function positionPanel() {
       var rect = trigger.getBoundingClientRect();
       var vh = window.innerHeight;
       var margin = 6;
@@ -8053,6 +8045,26 @@
         panel.style.bottom = (vh - rect.top + margin) + 'px';
         panel.style.maxHeight = Math.max(120, Math.min(260, spaceAbove)) + 'px';
       }
+    }
+
+    function onFollowScroll() { positionPanel(); }
+    function onFollowResize() { positionPanel(); }
+
+    function openPanel() {
+      closeAllRichSelects();
+      buildPanel();
+      panel.style.display = '';
+
+      // Reparent to <body> as position:fixed, positioned from the trigger's
+      // own viewport rect. This escapes any ancestor's overflow/scroll
+      // clipping (e.g. a tall modal box) and any local stacking context, so
+      // the panel always renders fully visible and never over a misplaced
+      // hit-area that could close the parent modal by mistake.
+      document.body.appendChild(panel);
+      panel.style.position = 'fixed';
+      positionPanel();
+      document.addEventListener('scroll', onFollowScroll, true);
+      window.addEventListener('resize', onFollowResize);
 
       trigger.classList.add('rs-open');
       trigger.setAttribute('aria-expanded', 'true');
@@ -8064,6 +8076,8 @@
       if (panel.parentNode === document.body) panel.remove();
       panel.style.position = '';
       panel.style.left = panel.style.top = panel.style.bottom = panel.style.width = panel.style.maxHeight = '';
+      document.removeEventListener('scroll', onFollowScroll, true);
+      window.removeEventListener('resize', onFollowResize);
       trigger.classList.remove('rs-open');
       trigger.setAttribute('aria-expanded', 'false');
       var idx = openRichSelectClosers.indexOf(closePanel);
@@ -17836,24 +17850,41 @@
       renderTrends();
     });
 
+    // position:fixed est ancré à l'écran, pas au bouton : sans repositionnement,
+    // le menu "flotte" au lieu de suivre le bouton quand la page défile (cf.
+    // openNoteHistoryPopover / buildRichSelect pour le même correctif).
+    function positionWhoAmIDropdown(btn) {
+      const rect = btn.getBoundingClientRect();
+      const dropdown = document.getElementById('whoAmIDropdown');
+      dropdown.style.top  = (rect.bottom + 6) + 'px';
+      dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
+      dropdown.style.width = '220px';
+    }
+    function closeWhoAmIDropdown() {
+      const wrap = document.getElementById('whoAmIWrap');
+      if (wrap) wrap.classList.remove('open');
+      document.removeEventListener('scroll', onWhoAmIFollow, true);
+      window.removeEventListener('resize', onWhoAmIFollow);
+    }
+    function onWhoAmIFollow() {
+      const btn = document.getElementById('whoAmIBtn');
+      if (btn) positionWhoAmIDropdown(btn);
+    }
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
       const wrap = document.getElementById('whoAmIWrap');
       const isOpen = wrap.classList.contains('open');
       if (!isOpen) {
         renderWhoAmI();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const dropdown = document.getElementById('whoAmIDropdown');
-        dropdown.style.top  = (rect.bottom + 6) + 'px';
-        dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
-        dropdown.style.width = '220px';
+        positionWhoAmIDropdown(e.currentTarget);
+        document.addEventListener('scroll', onWhoAmIFollow, true);
+        window.addEventListener('resize', onWhoAmIFollow);
+        wrap.classList.add('open');
+      } else {
+        closeWhoAmIDropdown();
       }
-      wrap.classList.toggle('open');
     });
-    document.addEventListener('click', () => {
-      const wrap = document.getElementById('whoAmIWrap');
-      if (wrap) wrap.classList.remove('open');
-    });
+    document.addEventListener('click', () => closeWhoAmIDropdown());
 
     document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
     document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
