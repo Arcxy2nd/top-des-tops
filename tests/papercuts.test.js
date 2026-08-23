@@ -109,3 +109,36 @@ test('anchorFloating ne fuit sur aucun des 20 cycles attache/détache', () => {
   assert.strictEqual(env.listenerCount(env.document, 'scroll', true), 0);
   assert.strictEqual((env.window._listeners.resize || []).length, 0);
 });
+
+test('plus aucun élément ancré ne câble ses propres écouteurs scroll/resize', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const script = html.slice(html.indexOf('<script>'));
+
+  // Tout câblage scroll/resize laissé à la main est un bug de repositionnement
+  // en attente. Les seuls tolérés : anchorFloating lui-même, la liste de
+  // messages du tchat (sa propre pagination), la bulle de survol de la nav
+  // (elle se cache, ne suit pas) et autoGrowTextarea (refit, sans ancre).
+  const raw = script.split('\n')
+    .map((line, i) => ({ line: line.trim(), n: i + 1 }))
+    .filter(o => /addEventListener\((['"])(scroll|resize)\1/.test(o.line));
+
+  const allowed = [
+    /messagesEl\.addEventListener/,
+    /group\.addEventListener/,
+    /window\.addEventListener\((['"])resize\1, fit\)/,
+    /document\.addEventListener\((['"])scroll\1, reposition, true\)/,
+    /window\.addEventListener\((['"])resize\1, reposition\)/
+  ];
+  const stray = raw.filter(o => !allowed.some(re => re.test(o.line)));
+  assert.deepStrictEqual(stray.map(o => o.line), [],
+    'ces écouteurs doivent passer par anchorFloating');
+});
+
+test('attachMentionAutocomplete expose destroy() et suit son champ', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'attachMentionAutocomplete');
+  assert.match(src, /destroy/, 'attachMentionAutocomplete doit exposer destroy()');
+  assert.match(src, /anchorFloating\(/, 'le popup doit être ancré à son champ');
+  assert.doesNotMatch(src, /addEventListener\((['"])scroll\1, hide/,
+    'le popup de mention doit suivre son champ, plus se cacher au défilement');
+});

@@ -5629,14 +5629,15 @@
     let activeIdx = 0;
     let range = null; // { start, end } dans inputEl.value du "@partiel"/"#partiel" à remplacer
     let triggerChar = '@';
+    let detachPopup = null;
 
     function hide() {
+      if (detachPopup) { detachPopup(); detachPopup = null; }
       popup.style.display = 'none';
       range = null;
     }
 
-    function position() {
-      const r = inputEl.getBoundingClientRect();
+    function place(r) {
       const width = Math.round(Math.min(Math.max(r.width, 180), 320));
       popup.style.width = width + 'px';
       // Bascule au-dessus du champ quand il n'y a pas la place en dessous — le
@@ -5685,7 +5686,10 @@
         popup.appendChild(item);
       });
       popup.style.display = matches.length ? '' : 'none';
-      if (matches.length) position();
+      if (matches.length) {
+        if (detachPopup) detachPopup();
+        detachPopup = anchorFloating(popup, inputEl, place, hide);
+      }
     }
 
     function check() {
@@ -5716,10 +5720,12 @@
       else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); apply(matches[activeIdx]); }
       else if (e.key === 'Escape') { hide(); }
     });
-    window.addEventListener('scroll', hide, true);
-    window.addEventListener('resize', hide);
-
-    return { hide };
+    return {
+      hide: hide,
+      // Le popup vit sous <body> : sans destroy() il survit à son champ (une
+      // div orpheline de plus à chaque ouverture de fenêtre d'édition).
+      destroy: function() { hide(); popup.remove(); }
+    };
   }
 
   // ── AUTO-DIMENSIONNEMENT DES ZONES DE TEXTE ─────────────────────────────
@@ -8055,30 +8061,28 @@
       });
     }
 
-    // position:fixed est ancré à l'écran, pas au trigger : sans repositionnement,
-    // le panneau "flotte" au lieu de suivre le bouton quand la page défile. On le
-    // recale à chaque scroll/resize tant qu'il est ouvert (cf. openNoteHistoryPopover).
-    function positionPanel() {
-      var rect = trigger.getBoundingClientRect();
+    var detachPanel = null;
+
+    // Le panneau est reparenté sous <body> en position:fixed (cf. openPanel) :
+    // il faut donc le recaler sur son bouton à chaque défilement, sinon il
+    // reste figé à l'écran pendant que le bouton s'en va.
+    function placePanel(rect, node) {
       var vh = window.innerHeight;
       var margin = 6;
       var spaceBelow = vh - rect.bottom - margin;
       var spaceAbove = rect.top - margin;
-      panel.style.left  = rect.left + 'px';
-      panel.style.width = rect.width + 'px';
+      node.style.left  = rect.left + 'px';
+      node.style.width = rect.width + 'px';
       if (spaceBelow >= 140 || spaceBelow >= spaceAbove) {
-        panel.style.top = (rect.bottom + margin) + 'px';
-        panel.style.bottom = '';
-        panel.style.maxHeight = Math.max(120, Math.min(260, spaceBelow)) + 'px';
+        node.style.top = (rect.bottom + margin) + 'px';
+        node.style.bottom = '';
+        node.style.maxHeight = Math.max(120, Math.min(260, spaceBelow)) + 'px';
       } else {
-        panel.style.top = '';
-        panel.style.bottom = (vh - rect.top + margin) + 'px';
-        panel.style.maxHeight = Math.max(120, Math.min(260, spaceAbove)) + 'px';
+        node.style.top = '';
+        node.style.bottom = (vh - rect.top + margin) + 'px';
+        node.style.maxHeight = Math.max(120, Math.min(260, spaceAbove)) + 'px';
       }
     }
-
-    function onFollowScroll() { positionPanel(); }
-    function onFollowResize() { positionPanel(); }
 
     function openPanel() {
       closeAllRichSelects();
@@ -8092,9 +8096,7 @@
       // hit-area that could close the parent modal by mistake.
       document.body.appendChild(panel);
       panel.style.position = 'fixed';
-      positionPanel();
-      document.addEventListener('scroll', onFollowScroll, true);
-      window.addEventListener('resize', onFollowResize);
+      detachPanel = anchorFloating(panel, trigger, placePanel, closePanel);
 
       trigger.classList.add('rs-open');
       trigger.setAttribute('aria-expanded', 'true');
@@ -8102,12 +8104,11 @@
     }
 
     function closePanel() {
+      if (detachPanel) { detachPanel(); detachPanel = null; }
       panel.style.display = 'none';
       if (panel.parentNode === document.body) panel.remove();
       panel.style.position = '';
       panel.style.left = panel.style.top = panel.style.bottom = panel.style.width = panel.style.maxHeight = '';
-      document.removeEventListener('scroll', onFollowScroll, true);
-      window.removeEventListener('resize', onFollowResize);
       trigger.classList.remove('rs-open');
       trigger.setAttribute('aria-expanded', 'false');
       var idx = openRichSelectClosers.indexOf(closePanel);
@@ -15187,8 +15188,7 @@
   function closeNoteHistoryPopover() {
     if (!_activeNoteHistoryPopover) return;
     if (_activeNoteHistoryPopover._onDocClick) document.removeEventListener('click', _activeNoteHistoryPopover._onDocClick);
-    if (_activeNoteHistoryPopover._onScroll) document.removeEventListener('scroll', _activeNoteHistoryPopover._onScroll, true);
-    if (_activeNoteHistoryPopover._onResize) window.removeEventListener('resize', _activeNoteHistoryPopover._onResize);
+    if (_activeNoteHistoryPopover._detach) _activeNoteHistoryPopover._detach();
     _activeNoteHistoryPopover.remove();
     _activeNoteHistoryPopover = null;
   }
@@ -15201,29 +15201,19 @@
     pop.innerHTML = '<div class="nhp-header">Historique des modifications</div><div class="nhp-body"><p class="nhp-empty">Chargement…</p></div>';
     document.body.appendChild(pop);
 
-    // position:fixed est ancré à l'écran, pas au bouton : sans repositionnement, la
-    // bulle "flotte" au lieu de suivre le bouton quand la page défile. On la recale
-    // à chaque scroll/resize tant qu'elle est ouverte, et on la ferme si le bouton
-    // sort complètement de l'écran (plus rien à pointer).
-    function reposition() {
-      const rect = anchorEl.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight) { closeNoteHistoryPopover(); return; }
-      pop.style.top = (rect.bottom + 6) + 'px';
+    function placePopover(rect, node) {
+      node.style.top = (rect.bottom + 6) + 'px';
       let left = rect.left;
       const maxLeft = window.innerWidth - 300 - 8;
       if (left > maxLeft) left = Math.max(8, maxLeft);
-      pop.style.left = left + 'px';
+      node.style.left = left + 'px';
     }
-    reposition();
 
     _activeNoteHistoryPopover = pop;
     const onDocClick = e => { if (!pop.contains(e.target) && e.target !== anchorEl) closeNoteHistoryPopover(); };
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
     pop._onDocClick = onDocClick;
-    pop._onScroll = reposition;
-    pop._onResize = reposition;
-    document.addEventListener('scroll', pop._onScroll, true);
-    window.addEventListener('resize', pop._onResize);
+    pop._detach = anchorFloating(pop, anchorEl, placePopover, closeNoteHistoryPopover);
 
     callServer('apiGetNoteHistory', [noteId], res => {
       if (_activeNoteHistoryPopover !== pop) return; // fermée entre-temps
@@ -17880,39 +17870,27 @@
       renderTrends();
     });
 
-    // position:fixed est ancré à l'écran, pas au bouton : sans repositionnement,
-    // le menu "flotte" au lieu de suivre le bouton quand la page défile (cf.
-    // openNoteHistoryPopover / buildRichSelect pour le même correctif).
-    function positionWhoAmIDropdown(btn) {
-      const rect = btn.getBoundingClientRect();
-      const dropdown = document.getElementById('whoAmIDropdown');
-      dropdown.style.top  = (rect.bottom + 6) + 'px';
-      dropdown.style.left = Math.max(4, rect.right - 220) + 'px';
-      dropdown.style.width = '220px';
+    // Le menu est en position:fixed : sans recalage il reste figé à l'écran
+    // quand la page défile, décroché de son bouton.
+    var detachWhoAmI = null;
+    function placeWhoAmI(rect, node) {
+      node.style.top   = (rect.bottom + 6) + 'px';
+      node.style.left  = Math.max(4, rect.right - 220) + 'px';
+      node.style.width = '220px';
     }
     function closeWhoAmIDropdown() {
+      if (detachWhoAmI) { detachWhoAmI(); detachWhoAmI = null; }
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap) wrap.classList.remove('open');
-      document.removeEventListener('scroll', onWhoAmIFollow, true);
-      window.removeEventListener('resize', onWhoAmIFollow);
-    }
-    function onWhoAmIFollow() {
-      const btn = document.getElementById('whoAmIBtn');
-      if (btn) positionWhoAmIDropdown(btn);
     }
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
       const wrap = document.getElementById('whoAmIWrap');
-      const isOpen = wrap.classList.contains('open');
-      if (!isOpen) {
-        renderWhoAmI();
-        positionWhoAmIDropdown(e.currentTarget);
-        document.addEventListener('scroll', onWhoAmIFollow, true);
-        window.addEventListener('resize', onWhoAmIFollow);
-        wrap.classList.add('open');
-      } else {
-        closeWhoAmIDropdown();
-      }
+      if (wrap.classList.contains('open')) { closeWhoAmIDropdown(); return; }
+      renderWhoAmI();
+      wrap.classList.add('open');
+      detachWhoAmI = anchorFloating(
+        document.getElementById('whoAmIDropdown'), e.currentTarget, placeWhoAmI, closeWhoAmIDropdown);
     });
     document.addEventListener('click', () => closeWhoAmIDropdown());
 
