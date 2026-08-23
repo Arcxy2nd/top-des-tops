@@ -193,7 +193,7 @@ test('closeModal dépile, déverrouille le défilement et rend le focus', () => 
   const src = extractFunction(html, 'closeModal');
   assert.match(src, /_modalStack/, 'doit dépiler le conteneur');
   assert.match(src, /classList\.remove\((['"])modal-open\1\)/, 'doit déverrouiller le défilement');
-  assert.match(src, /_modalReturnFocus/, 'doit rendre le focus au bouton d\'origine');
+  assert.match(src, /opener/, 'doit rendre le focus au bouton d\'origine');
 });
 
 test('closeModal() sans argument vise toujours la fenêtre partagée', () => {
@@ -267,4 +267,20 @@ test('Tab depuis le cadre lui-même entre dans la fenêtre au lieu d\'en sortir'
   const src = extractFunction(html, 'onModalKeydown');
   assert.match(src, /focusables\.indexOf\(active\) === -1/,
     'un focus hors de la liste (cadre lui-même, ou page derrière) doit être ramené dans la fenêtre');
+});
+
+test('rouvrir une fenêtre déjà ouverte ne l\'empile pas deux fois', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const src = extractFunction(html, 'openModal');
+  assert.match(src, /_modalStack\.some\(/,
+    'openModal doit refuser d\'empiler deux fois le même conteneur : sinon closeModal ne dépile qu\'à moitié et le verrou de défilement ne saute jamais');
+});
+
+test('la pile garde conteneur et ouvreur dans le même objet', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const open = extractFunction(html, 'openModal');
+  assert.match(open, /\{ el: modal, opener: document\.activeElement \}/,
+    'deux tableaux parallèles finiraient par se désynchroniser');
+  assert.doesNotMatch(html, /_modalReturnFocus/,
+    'le tableau parallèle ne doit plus exister');
 });

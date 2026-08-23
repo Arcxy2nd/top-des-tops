@@ -8903,14 +8903,13 @@
     });
   }
 
-  // Conteneurs de fenêtre actuellement ouverts — le dernier est l'actif. Une
-  // pile plutôt qu'un booléen : le mot de passe d'identité peut se superposer
-  // à une autre fenêtre, et le verrou de défilement ne doit sauter qu'à la
-  // fermeture de la dernière.
+  // Fenêtres actuellement ouvertes — la dernière est l'active. Une pile plutôt
+  // qu'un booléen : le mot de passe d'identité peut se superposer à une autre
+  // fenêtre, et le verrou de défilement ne doit sauter qu'à la fermeture de la
+  // dernière. Chaque entrée retient aussi le bouton qui a ouvert la fenêtre,
+  // pour lui rendre le focus ; les deux informations vivent dans le même objet,
+  // sinon deux tableaux parallèles finissent par se désynchroniser.
   const _modalStack = [];
-  // Bouton qui a ouvert chaque fenêtre : le focus lui revient à la fermeture,
-  // sinon on repart du haut de la page à chaque aller-retour.
-  const _modalReturnFocus = [];
 
   // Point d'entrée unique de TOUTES les fenêtres (partagée et sur-mesure).
   // Le focus initial n'est pas cosmétique : les raccourcis Échap/Ctrl+Entrée et
@@ -8919,8 +8918,12 @@
   function openModal(el, opts) {
     opts = opts || {};
     const modal = el || document.getElementById('modalBackdrop');
-    _modalStack.push(modal);
-    _modalReturnFocus.push(document.activeElement);
+    // Rouvrir une fenêtre déjà ouverte (double clic, deux réponses serveur qui
+    // se suivent) ne doit pas l'empiler deux fois : elle ne serait dépilée qu'à
+    // moitié et le verrou de défilement ne sauterait plus jamais.
+    if (!_modalStack.some(entry => entry.el === modal)) {
+      _modalStack.push({ el: modal, opener: document.activeElement });
+    }
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
     const target = opts.focus || (modal.id === 'modalBackdrop' ? document.getElementById('modalBox') : modal);
@@ -8933,9 +8936,10 @@
     modal.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
     modal.style.display = 'none';
 
-    const idx = _modalStack.lastIndexOf(modal);
-    const opener = idx === -1 ? null : _modalReturnFocus.splice(idx, 1)[0];
-    if (idx !== -1) _modalStack.splice(idx, 1);
+    let opener = null;
+    for (let i = _modalStack.length - 1; i >= 0; i--) {
+      if (_modalStack[i].el === modal) { opener = _modalStack[i].opener; _modalStack.splice(i, 1); break; }
+    }
     if (!_modalStack.length) document.body.classList.remove('modal-open');
     // Une fenêtre construite à la volée (overlay d'export) doit quitter le DOM :
     // la masquer suffirait à la faire disparaître, mais en laisserait une de
@@ -9602,8 +9606,9 @@
   // Cliquer sur le fond n'annule toujours pas la fenêtre : trop d'annulations
   // accidentelles avec une progression perdue. Seuls Annuler/Échap ferment.
   function onModalKeydown(e) {
-    const modal = _modalStack[_modalStack.length - 1];
-    if (!modal) return;
+    const top = _modalStack[_modalStack.length - 1];
+    if (!top) return;
+    const modal = top.el;
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       const saveBtn = modal.querySelector('#mSave');
@@ -12120,9 +12125,9 @@
 
     const overlay = document.createElement('div');
     overlay.className = 'export-modal-overlay';
-    // Cette fenetre se fabrique son propre fond : sans l'inscrire dans la pile
-    // des fenetres, elle n'heriterait ni d'Echap, ni du piege de focus, ni du
-    // verrou de defilement (cf. openModal / onModalKeydown).
+    // Cette fenêtre se fabrique son propre fond : sans l'inscrire dans la pile
+    // des fenêtres, elle n'hériterait ni d'Échap, ni du piège de focus, ni du
+    // verrou de défilement (cf. openModal / onModalKeydown).
     overlay.tabIndex = -1;
     overlay._ephemeral = true;
 
