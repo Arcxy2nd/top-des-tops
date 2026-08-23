@@ -19,6 +19,10 @@ En cas d'opération de déploiement manuel ou `clasp push` hors CI, il faut **OB
 
 Toute évolution retenue sur la méthode de travail avec l'IA doit être écrite **dans ce fichier**, jamais seulement dans une mémoire externe/globale liée à un outil/LLM/machine précis. Le projet doit rester exploitable seul, peu importe le PC, l'outil ou le LLM utilisé.
 
+## RÈGLE IMPÉRATIVE — FICHIER D'ÉTAT INTER-SESSIONS
+
+`NEXT_SESSION.md` (racine du projet) suit l'état courant, mis à jour **en continu** (dès qu'une décision/bug/config a de la valeur pour la suite), jamais seulement en fin de session. 4 blocs stricts : État courant / Dernière session / Écarts / Rappels+Backlog (modèle `H:/IA/projets/AEVO3/NEXT_SESSION.md`, système généralisé à tout le vault le 2026-08-14). Lu en premier, avant ce fichier (§0). Ne remplace pas `CHANGELOG.md` (historique versionné du produit) ni `memory/MEMORY.md` (mémoire portable détaillée) — `NEXT_SESSION.md` est l'état condensé du moment présent.
+
 ## RÈGLE — PUBLIABLE = ANGLAIS
 
 Tout artefact destiné à être publié (repo, README, commits, releases) : anglais, même si la conversation se fait en français. Le code (§8) est déjà en anglais ; cette règle couvre aussi commits, README, releases.
@@ -35,11 +39,12 @@ Au tout début de chaque session, avant toute action, lire dans cet ordre :
 
 | # | Fichier | Ce qu'on y cherche |
 |---|---------|-------------------|
-| 1 | `context.md` (ce fichier) | Remettre en tête les règles, la stack, les conventions |
-| 2 | `CHANGELOG.md` — seulement les entrées les plus récentes (dernière version, et les précédentes si le sujet de la session y touche) | Comprendre l'état récent du projet — ce qui vient d'être ajouté, corrigé ou supprimé. Pas besoin de lire tout l'historique. |
-| 3 | `DEPLOIEMENT.md` | Rappel du workflow de déploiement si la session touche au déploiement ou aux scripts GAS |
-| 4 | Dernier plan actif dans `docs/superpowers/plans/` (date la plus récente) | S'il y a un plan en cours, s'y référer avant de proposer une approche |
-| 5 | `memory/MEMORY.md` + fichiers pertinents | Mémoire portable du projet — incidents réels, décisions de détail, open questions non couvertes par ce fichier |
+| 1 | `NEXT_SESSION.md` | État courant + prochaine tâche prioritaire, mis à jour en continu (système AEVO3, généralisé à tout le vault le 2026-08-14) — avant tout le reste |
+| 2 | `context.md` (ce fichier) | Remettre en tête les règles, la stack, les conventions |
+| 3 | `CHANGELOG.md` — seulement les entrées les plus récentes (dernière version, et les précédentes si le sujet de la session y touche) | Comprendre l'état récent du projet — ce qui vient d'être ajouté, corrigé ou supprimé. Pas besoin de lire tout l'historique. |
+| 4 | `DEPLOIEMENT.md` | Rappel du workflow de déploiement si la session touche au déploiement ou aux scripts GAS |
+| 5 | Dernier plan actif dans `docs/superpowers/plans/` (date la plus récente) | S'il y a un plan en cours, s'y référer avant de proposer une approche |
+| 6 | `memory/MEMORY.md` + fichiers pertinents | Mémoire portable du projet — incidents réels, décisions de détail, open questions non couvertes par ce fichier |
 
 Après la lecture, si la session porte sur un bug → invoquer `/superpowers:systematic-debugging`. Si c'est une nouvelle feature → `/superpowers:brainstorming`. Dans tous les cas, ne pas coder avant d'avoir lu ces fichiers.
 
