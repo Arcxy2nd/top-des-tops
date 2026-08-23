@@ -71,6 +71,79 @@ function makeSheet(grid) {
   return api;
 }
 
+/**
+ * In-memory fake Drive + Spreadsheet.copy(), for testing BackupService without
+ * touching real Google Drive. A "file" here doubles as both the Drive-file view
+ * (getParents/getId) and the Spreadsheet view (getUrl/copy) — same object, same id,
+ * since BackupService bridges the two via DriveApp.getFileById(spreadsheet.getId()).
+ */
+function makeFakeDrive() {
+  let seq = 0;
+  const filesById = {};
+
+  function makeFolder(name) {
+    const id = 'folder_' + (++seq);
+    const state = { name, folders: [], files: [] };
+    const folder = {
+      getId: () => id,
+      getName: () => state.name,
+      createFolder(n) {
+        const f = makeFolder(n);
+        state.folders.push(f);
+        return f;
+      },
+      getFoldersByName(n) {
+        const matches = state.folders.filter(f => f.getName() === n);
+        let i = 0;
+        return { hasNext: () => i < matches.length, next: () => matches[i++] };
+      },
+      addFile(file) {
+        if (state.files.indexOf(file) === -1) state.files.push(file);
+        file._addParent(folder);
+        return folder;
+      },
+      removeFile(file) {
+        state.files = state.files.filter(f => f !== file);
+        file._removeParent(folder);
+        return folder;
+      },
+      _files: () => state.files.slice()
+    };
+    return folder;
+  }
+
+  const root = makeFolder('My Drive');
+
+  function makeSpreadsheet(name, parentFolder) {
+    const parents = parentFolder === undefined ? [root] : (parentFolder === null ? [] : [parentFolder]);
+    const id = 'sheet_' + (++seq);
+    let currentParents = parents.slice();
+    const file = {
+      getId: () => id,
+      getName: () => name,
+      getUrl: () => 'https://docs.google.com/spreadsheets/d/' + id + '/edit',
+      getParents() {
+        const list = currentParents.slice();
+        let i = 0;
+        return { hasNext: () => i < list.length, next: () => list[i++] };
+      },
+      _addParent(folder) { if (currentParents.indexOf(folder) === -1) currentParents.push(folder); },
+      _removeParent(folder) { currentParents = currentParents.filter(f => f !== folder); },
+      copy(newName) { return makeSpreadsheet(newName); }
+    };
+    parents.forEach(p => p.addFile(file));
+    filesById[id] = file;
+    return file;
+  }
+
+  const DriveApp = {
+    getRootFolder: () => root,
+    getFileById: id => filesById[id]
+  };
+
+  return { DriveApp, root, makeSpreadsheet };
+}
+
 /** Default stand-ins for the Google services referenced in Code.gs.
  *  PropertiesService and CacheService keep persistent per-sandbox stores so that
  *  the versioned cross-request logs cache can be exercised in tests. */
@@ -187,4 +260,4 @@ function injectSheets(gas, sheets) {
   gas.ConfigService.clearCache = () => {};
 }
 
-module.exports = { loadGas, makeSheet, injectSheets };
+module.exports = { loadGas, makeSheet, injectSheets, makeFakeDrive };
