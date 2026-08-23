@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.18.0] - 2026-08-24
+
+### Ajouté
+**Humanisé** : Un nouvel outil "Créer un snapshot" (Paramètres → 🔧 Outils) copie l'intégralité des données de l'app dans un fichier Google Sheets séparé, en un clic — un filet de sécurité à déclencher soi-même avant une opération risquée (nettoyage, suppression de joueur/Top...).
+**Technique** : `Code.gs` — nouveau `BackupService.createSnapshot()` (`spreadsheet.copy()` + déplacement Drive vers un sous-dossier `Snapshots top-des-tops` créé au premier usage à côté du fichier source) et `apiCreateSnapshot(author)`. `Index.html` — bouton dans 🔧 Outils avec lien réel vers la copie (pas de navigation pilotée par script). Pas de rétention automatique. `tests/harness.js` — faux `DriveApp`/`Spreadsheet.copy()` en mémoire (`makeFakeDrive()`), réutilisé par `tests/frontend/fixtures.js` pour que le harness de prévisualisation exerce le vrai chemin de succès.
+
 ## [v3.17.0] - 2026-08-24
 
 ### Corrigé
