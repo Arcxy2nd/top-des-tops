@@ -24,7 +24,8 @@
       --border: rgba(255, 255, 255, 0.09);
       --border-hover: rgba(255, 255, 255, 0.22);
       --border-accent: rgba(255, 71, 87, 0.45);
-      --accent: #ff4757; 
+      --accent: #ff4757;
+      --accent-rgb: 255, 71, 87;
       --accent-hover: #ff6b81;
       --accent-glow: rgba(255, 71, 87, 0.35);
       --text: #f1f5f9; 
@@ -58,7 +59,8 @@
       --border: rgba(0, 0, 0, 0.08);
       --border-hover: rgba(0, 0, 0, 0.18);
       --border-accent: rgba(229, 62, 62, 0.35);
-      --accent: #e53e3e; 
+      --accent: #e53e3e;
+      --accent-rgb: 229, 62, 62;
       --accent-hover: #c53030;
       --accent-glow: rgba(229, 62, 62, 0.2);
       --text: #0f172a; 
@@ -2008,6 +2010,13 @@
       color: var(--text-muted); text-transform: uppercase;
       padding: 4px 10px 10px; margin: 0;
     }
+    .guide-search-wrap { padding: 0 10px 10px; }
+    .guide-search-input {
+      width: 100%; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font: inherit; font-size: 0.82rem;
+    }
+    .guide-search-input:focus { outline: none; border-color: var(--accent); }
     .guide-sidebar-separator {
       height: 1px; background: var(--border); margin: 8px 4px;
     }
@@ -2020,7 +2029,7 @@
       transition: background 0.15s, color 0.15s, transform 0.1s;
     }
     .guide-nav-btn .gnb-icon { font-size: 1.1rem; line-height: 1; width: 22px; text-align: center; flex-shrink: 0; }
-    .guide-nav-btn:hover { background: rgba(var(--accent-rgb, 255,71,87), 0.1); color: var(--text); transform: translateX(2px); }
+    .guide-nav-btn:hover { background: rgba(var(--accent-rgb), 0.1); color: var(--text); transform: translateX(2px); }
     .guide-nav-btn.active {
       background: var(--accent); color: var(--on-accent);
       font-weight: 700; transform: translateX(0);
@@ -2059,20 +2068,27 @@
       border: 1px solid var(--border);
       transition: border-color 0.15s, transform 0.15s;
     }
-    .guide-feature-item:hover { border-color: rgba(var(--accent-rgb, 255,71,87), 0.35); transform: translateY(-1px); }
+    body.light .guide-feature-item { background: rgba(0, 0, 0, 0.04); }
+    .guide-feature-item:hover { border-color: rgba(var(--accent-rgb), 0.35); transform: translateY(-1px); }
     .guide-feature-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
     .guide-feature-body { flex: 1; min-width: 0; }
     .guide-feature-body strong { display: block; color: var(--text); font-size: 0.92rem; margin-bottom: 3px; }
     .guide-feature-body span { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
     .guide-tip {
       display: flex; gap: 12px; align-items: flex-start;
-      background: rgba(var(--accent-rgb, 255,71,87), 0.08);
-      border: 1px solid rgba(var(--accent-rgb, 255,71,87), 0.25);
+      background: rgba(var(--accent-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
       border-radius: 12px; padding: 14px 16px;
       font-size: 0.85rem; color: var(--text); line-height: 1.55;
       margin-bottom: 20px; grid-column: 1 / -1;
     }
     .guide-tip-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .guide-crosslink {
+      background: none; border: none; padding: 0; margin: 0;
+      font: inherit; font-weight: 600; color: var(--accent);
+      cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .guide-crosslink:hover { color: var(--accent-hover); }
     .guide-kbd-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 20px; }
     .guide-kbd-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
     .guide-kbd-table tr:last-child td { border-bottom: none; }
@@ -2093,8 +2109,10 @@
       .guide-layout { flex-direction: column; height: auto; }
       .guide-sidebar { width: 100% !important; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 8px; }
       .guide-resizer { display: none; }
-      .guide-sidebar-title, .guide-sidebar-separator, .guide-nav-group-label { display: none; }
-      .guide-nav-btn { width: auto; font-size: 0.78rem; padding: 6px 10px; }
+      .guide-sidebar-title, .guide-sidebar-separator { display: none; }
+      .guide-search-wrap { flex-basis: 100%; padding: 4px 6px 8px; }
+      .guide-nav-group-label { flex-basis: 100%; padding: 8px 4px 2px; }
+      .guide-nav-btn { width: auto; min-height: var(--tap-min); font-size: 0.78rem; padding: 6px 10px; }
       .guide-content-pane { padding: 18px 16px; }
     }
 
@@ -4927,6 +4945,9 @@
         <!-- ── Sidebar navigation ── -->
         <nav class="guide-sidebar" aria-label="Guide navigation">
           <p class="guide-sidebar-title">❓ Guide d'utilisation</p>
+          <div class="guide-search-wrap">
+            <input type="search" id="guideSearchInput" class="guide-search-input" placeholder="🔎 Rechercher…" aria-label="Rechercher dans le guide">
+          </div>
 
           <div class="guide-nav-group-label">Onglets principaux</div>
           <button type="button" class="guide-nav-btn active" data-section="dashboard"><span class="gnb-icon">📊</span>Dashboard</button>
@@ -4964,7 +4985,7 @@
               <li class="guide-feature-item"><span class="guide-feature-icon">🔀</span><div class="guide-feature-body"><strong>Bascule d'univers</strong><span>Le sélecteur en haut du Dashboard bascule instantanément entre <em>Tops Principaux</em> et <em>⭐ Tops Alternatifs</em> pour les graphiques, podium et classements.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">📈</span><div class="guide-feature-body"><strong>6 types de graphique</strong><span>Empilé, Groupé, Courbes, Radar, Donut, Classement. Filtres croisés par joueurs, Tops et période.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🔍</span><div class="guide-feature-body"><strong>Drilldown &amp; Affectation Alt</strong><span>Cliquer sur une barre ou tranche ouvre la liste détaillée. Bouton <code>⭐ Affecter ces points au Top Alt</code> disponible directement.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">📤</span><div class="guide-feature-body"><strong>Export</strong><span>Infographie (PNG), CSV et Excel disponibles en haut à droite de la card graphique.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📤</span><div class="guide-feature-body"><strong>Export</strong><span>En haut à droite de la card graphique : <code>🎨 Infographie</code> (PNG), <code>🗂️ Tout exporter</code>, <code>🗓️ Ce trimestre</code> (pack CSV+Excel+PNG en un clic sur le trimestre calendaire en cours), <code>📊 CSV</code> et <code>📗 Excel</code>.</span></div></li>
             </ul>
             <div class="guide-tip"><span class="guide-tip-icon">💡</span><span>Le bandeau de statistiques rapides (leader, gap, entrées du mois…) reste toujours ancré sur les Tops Principaux, même si le Dashboard affiche un univers Alternatif.</span></div>
           </div>
@@ -5016,21 +5037,24 @@
               <li class="guide-feature-item"><span class="guide-feature-icon">🖥️</span><div class="guide-feature-body"><strong>Volet latéral / Bouton flottant</strong><span>Sur PC : panneau latéral ancré. Sur mobile : bouton flottant 💬 déplaçable par clic maintenu.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">📝</span><div class="guide-feature-body"><strong>Markdown GFM complet</strong><span>Gras, italique, barré, listes, citations, blocs de code, tableaux… tout le Markdown GitHub est supporté.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🏷️</span><div class="guide-feature-body"><strong>Mentions &amp; Réponses</strong><span>Tape <code>@Joueur</code> ou <code>#Top</code> pour une autocomplétion. Réponds à un message avec aperçu du message cité.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">🔔</span><div class="guide-feature-body"><strong>Badge de messages non lus</strong><span>L'app vérifie les nouveaux messages toutes les 4 secondes. Un badge apparaît quand le panneau est fermé.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔔</span><div class="guide-feature-body"><strong>Badge de messages non lus</strong><span>L'app vérifie les nouveaux messages toutes les 4 secondes quand le panneau est ouvert, toutes les 20 secondes quand il est fermé. Un badge apparaît alors sur le bouton 💬.</span></div></li>
             </ul>
           </div>
 
           <!-- Paramètres -->        
           <div class="guide-content-section" id="gsec-parametres">
             <h3>⚙️ Paramètres — Vue d'ensemble</h3>
-            <p class="guide-section-subtitle">Six sous-onglets pour tout configurer.</p>
+            <p class="guide-section-subtitle">Neuf sous-onglets pour tout configurer.</p>
             <ul class="guide-feature-list">
               <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Joueurs</strong><span>Ajouter, renommer, changer l'avatar (URL) ou la couleur d'un joueur.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🎯</span><div class="guide-feature-body"><strong>Tops principaux</strong><span>Gérer les catégories : nom, description, emoji et couleur d'affichage.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">⭐</span><div class="guide-feature-body"><strong>Tops Alternatifs</strong><span>Créer et éditer les classements parallèles. Voir la section dédiée dans ce guide.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">⭐</span><div class="guide-feature-body"><strong>Tops Alternatifs</strong><span>Créer et éditer les classements parallèles. <button type="button" class="guide-crosslink" data-section="alt">Voir la section dédiée →</button></span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">⚖️</span><div class="guide-feature-body"><strong>Barème</strong><span>Définir les règles de points par Top. Raccourci <kbd>?</kbd> pour l'ouvrir depuis n'importe quel onglet.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🎭</span><div class="guide-feature-body"><strong>Commentaires</strong><span>Gérer les presets de phrases générées pour le podium et les classements.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">🔧</span><div class="guide-feature-body"><strong>Outils de données</strong><span>Nettoyage, détection d'anomalies, automatisations. Voir les sections dédiées.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🔧</span><div class="guide-feature-body"><strong>Outils de données</strong><span>Nettoyage, détection d'anomalies. <button type="button" class="guide-crosslink" data-section="outils">Voir la section dédiée →</button></span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🤖</span><div class="guide-feature-body"><strong>Automatisations</strong><span>Règles de points déclenchées automatiquement. <button type="button" class="guide-crosslink" data-section="automatisations">Voir la section dédiée →</button></span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎨</span><div class="guide-feature-body"><strong>Identité</strong><span>Nom de l'application, URL du logo et style de l'infobulle des graphiques.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📋</span><div class="guide-feature-body"><strong>Changelog</strong><span>Historique des versions récupéré en direct du dépôt Git, avec recherche.</span></div></li>
             </ul>
           </div>
 
@@ -5081,12 +5105,13 @@
           <!-- Outils -->
           <div class="guide-content-section" id="gsec-outils">
             <h3>🔧 Outils de données</h3>
-            <p class="guide-section-subtitle">Paramètres → 🔧 Outils — diagnostique et corrige les anomalies.</p>
+            <p class="guide-section-subtitle">Paramètres → 🔧 Outils — diagnostique et corrige les anomalies. Un sommaire en haut de page saute directement à chaque carte.</p>
             <ul class="guide-feature-list">
-              <li class="guide-feature-item"><span class="guide-feature-icon">🩺</span><div class="guide-feature-body"><strong>Rapport de santé</strong><span>Compte les entrées à 0 point, orphelines et en doublon. Résumé global de l'état des données.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">🗑️</span><div class="guide-feature-body"><strong>Nettoyage</strong><span>Supprime les entrées à 0 point ou orphelines, détecte et fusionne les doublons.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🩺</span><div class="guide-feature-body"><strong>Santé &amp; nettoyage</strong><span>Compte les entrées à 0 point, orphelines et les noms en double (Joueurs/Tops). Actions rapides : supprimer les entrées à 0 point, supprimer les orphelines, rattacher l'auteur des notes anciennes, réparer l'ordre manuel, et créer un <strong>snapshot</strong> (copie du Sheet dans Drive avant une opération risquée).</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">📦</span><div class="guide-feature-body"><strong>Lots répartis</strong><span>Détecte des chaînes de saisies identiques fractionnées sur plusieurs jours. Propose la fusion en un seul lot avec un bouton <code>⭐ Alt Top</code> intégré.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🔗</span><div class="guide-feature-body"><strong>Groupes hérités</strong><span>Détecte et corrige les anciens identifiants de groupe au format déprécié.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🧬</span><div class="guide-feature-body"><strong>Doublons probables</strong><span>Détecte les entrées d'Historique identiques (même joueur, même Top, même date, mêmes points, même description) — souvent une double saisie accidentelle.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🏷️</span><div class="guide-feature-body"><strong>Mentions manquantes</strong><span>Détecte les noms de joueurs tapés en texte brut dans les descriptions et notes, et propose de les convertir en mention cliquable.</span></div></li>
             </ul>
           </div>
 
@@ -5108,6 +5133,7 @@
               <li class="guide-feature-item"><span class="guide-feature-icon">🌙</span><div class="guide-feature-body"><strong>Dark / Light</strong><span>Bascule dans la barre de navigation. La préférence est mémorisée sur cet appareil.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Qui suis-je ?</strong><span>Le sélecteur en haut à droite permet de choisir ton identité parmi les joueurs. Utile pour attribuer les saisies et les notes.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">🔒</span><div class="guide-feature-body"><strong>Identités protégées</strong><span>Les identités marquées 🔒 demandent un mot de passe. Celui-ci se définit dans la colonne D de la feuille <em>Players</em> du Google Sheet.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">🎨</span><div class="guide-feature-body"><strong>Identité de l'app (à ne pas confondre)</strong><span>Paramètres → 🎨 Identité permet de changer le nom affiché de l'application, l'URL du logo et le style de l'infobulle des graphiques — distinct de « Qui suis-je ? » ci-dessus, qui concerne la session du joueur.</span></div></li>
             </ul>
           </div>
 
@@ -16246,38 +16272,83 @@
   // Helper générique pour redimensionnement par glisser-déplacer (Guide, Barème, Panels)
   function setupResizable(triggerEl, containerEl, property, minSize, maxSize, storageKey, invertDirection) {
     if (!triggerEl || !containerEl) return;
-    const saved = localStorage.getItem(storageKey);
+    let saved = null;
+    try { saved = localStorage.getItem(storageKey); } catch (e) {}
     if (saved) containerEl.style[property] = saved + 'px';
 
     let isDragging = false;
     let startPos = 0;
     let startSize = 0;
 
-    triggerEl.addEventListener('mousedown', (e) => {
+    // Plafonne dynamiquement à la largeur de fenêtre courante : maxSize fixe
+    // peut sinon écraser le panneau voisin sur une fenêtre pas assez large.
+    const effectiveMax = () => Math.min(maxSize, Math.max(minSize, window.innerWidth * 0.6));
+
+    const persist = (value) => { try { localStorage.setItem(storageKey, value); } catch (e) {} };
+
+    const dragStart = (clientX) => {
       isDragging = true;
       triggerEl.classList.add('dragging');
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'ew-resize';
-      startPos = e.clientX;
+      startPos = clientX;
       startSize = containerEl.offsetWidth;
-    });
-
-    document.addEventListener('mousemove', (e) => {
+    };
+    const dragMove = (clientX) => {
       if (!isDragging) return;
-      const delta = invertDirection ? (startPos - e.clientX) : (e.clientX - startPos);
-      let newSize = Math.max(minSize, Math.min(maxSize, startSize + delta));
+      const delta = invertDirection ? (startPos - clientX) : (clientX - startPos);
+      const newSize = Math.max(minSize, Math.min(effectiveMax(), startSize + delta));
       containerEl.style[property] = newSize + 'px';
-    });
-
-    document.addEventListener('mouseup', () => {
+    };
+    const dragEnd = () => {
       if (!isDragging) return;
       isDragging = false;
       triggerEl.classList.remove('dragging');
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
       const current = parseInt(containerEl.style[property], 10);
-      if (!isNaN(current)) localStorage.setItem(storageKey, current);
+      if (!isNaN(current)) persist(current);
+    };
+
+    triggerEl.addEventListener('mousedown', (e) => dragStart(e.clientX));
+    document.addEventListener('mousemove', (e) => dragMove(e.clientX));
+    document.addEventListener('mouseup', dragEnd);
+
+    triggerEl.addEventListener('touchstart', (e) => dragStart(e.touches[0].clientX), { passive: true });
+    document.addEventListener('touchmove', (e) => { if (isDragging) dragMove(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('touchend', dragEnd);
+
+    triggerEl.setAttribute('tabindex', '0');
+    triggerEl.setAttribute('role', 'separator');
+    triggerEl.setAttribute('aria-orientation', 'vertical');
+    triggerEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const sign = invertDirection ? -1 : 1;
+      const dir = (e.key === 'ArrowRight' ? 1 : -1) * sign;
+      const next = Math.max(minSize, Math.min(effectiveMax(), containerEl.offsetWidth + dir * 10));
+      containerEl.style[property] = next + 'px';
+      persist(next);
     });
+  }
+
+  function showGuideSection(sidebar, section) {
+    const btn = sidebar.querySelector('.guide-nav-btn[data-section="' + section + '"]');
+    const target = document.getElementById('gsec-' + section);
+    if (!btn || !target) {
+      console.warn('Guide : section introuvable pour data-section="' + section + '"');
+      return;
+    }
+    sidebar.querySelectorAll('.guide-nav-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    document.querySelectorAll('.guide-content-section').forEach(s => s.classList.remove('active'));
+    target.classList.add('active');
+    const pane = document.querySelector('.guide-content-pane');
+    if (pane) pane.scrollTop = 0;
   }
 
   let guideInited = false;
@@ -16285,29 +16356,59 @@
     if (guideInited) return;
     guideInited = true;
     const sidebar = document.querySelector('.guide-sidebar');
-    if (!sidebar) return;
+    const layout = document.querySelector('.guide-layout');
+    if (!sidebar || !layout) return;
     setupResizable(
       document.getElementById('guideResizer'),
       sidebar,
       'width', 180, 480, 'tdt_guide_sidebar_width', false
     );
-    sidebar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.guide-nav-btn');
-      if (!btn) return;
+
+    // Câblage ARIA (comportement onglets) déduit de data-section/gsec-*, pour
+    // ne pas dupliquer la liste des 13 sections en dur dans le HTML.
+    sidebar.setAttribute('role', 'tablist');
+    sidebar.querySelectorAll('.guide-nav-btn').forEach(btn => {
       const section = btn.dataset.section;
       if (!section) return;
-      // Update active nav button
-      sidebar.querySelectorAll('.guide-nav-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      // Show target section, hide others
-      document.querySelectorAll('.guide-content-section').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById('gsec-' + section);
-      if (target) {
-        target.classList.add('active');
-        const pane = document.querySelector('.guide-content-pane');
-        if (pane) pane.scrollTop = 0;
+      const panel = document.getElementById('gsec-' + section);
+      btn.id = 'gnb-' + section;
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-controls', 'gsec-' + section);
+      btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
+      if (panel) {
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-labelledby', btn.id);
       }
     });
+
+    // Un seul écouteur pour la sidebar ET les renvois internes du contenu
+    // (.guide-crosslink) : les deux réutilisent le même data-section.
+    layout.addEventListener('click', (e) => {
+      const el = e.target.closest('.guide-nav-btn, .guide-crosslink');
+      if (!el) return;
+      const section = el.dataset.section;
+      if (!section) return;
+      showGuideSection(sidebar, section);
+    });
+
+    const searchInput = document.getElementById('guideSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
+        sidebar.querySelectorAll('.guide-nav-btn').forEach(btn => {
+          btn.style.display = (!q || btn.textContent.toLowerCase().includes(q)) ? '' : 'none';
+        });
+        sidebar.querySelectorAll('.guide-nav-group-label').forEach(label => {
+          let hasVisible = false;
+          let el = label.nextElementSibling;
+          while (el && el.classList.contains('guide-nav-btn')) {
+            if (el.style.display !== 'none') hasVisible = true;
+            el = el.nextElementSibling;
+          }
+          label.style.display = hasVisible ? '' : 'none';
+        });
+      });
+    }
   }
 
   function goToTab(tabId) {

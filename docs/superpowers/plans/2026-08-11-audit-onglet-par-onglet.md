@@ -60,7 +60,7 @@ Ordre choisi : du plus risqué au plus calme, pour que les gros défauts sortent
 | 4 | ⚙️ Paramètres + 🔧 Outils | `#tab-settings` (l. 4420-4779) | ✅ livré | v3.11.0 | [2026-08-11-audit-parametres-outils.md](2026-08-11-audit-parametres-outils.md) |
 | 5 | 📝 Notes | `#tab-notes` (l. 4779-4790) | ✅ livré | v3.12.0 | [2026-08-11-audit-notes.md](2026-08-11-audit-notes.md) |
 | 6 | 💬 Tchat flottant | widget global, hors onglets | ✅ livré | v3.13.0 | [2026-08-11-audit-tchat.md](2026-08-11-audit-tchat.md) |
-| 7 | ❓ Guide | `#tab-guide` (l. 4846+) | ⬜ à faire | — | — |
+| 7 | ❓ Guide | `#tab-guide` (l. 4934+) | ✅ livré | v3.20.0 | [2026-08-11-audit-guide.md](2026-08-11-audit-guide.md) |
 
 États : ⬜ à faire · 🔄 en cours · ✅ livré · ⏸️ suspendu (raison à noter)
 
@@ -283,8 +283,18 @@ Ce que les passes apprennent — sur l'application, et sur ce protocole. Rempli 
 - **Une suppression qui ne recharge pas depuis le serveur peut laisser des données dérivées (ici : citations d'autres messages) périmées indéfiniment**, même quand la suppression elle-même fonctionne et que le serveur recalcule correctement à la prochaine lecture complète. Le sondage périodique (`pollChat`) avait sa propre heuristique de détection de changement (longueur + dernier id), trop faible pour rattraper ce cas — corrigé en rechargeant systématiquement après une action de suppression plutôt qu'en mutant l'état local, plus simple et plus sûr qu'affiner l'heuristique du sondage.
 - **Un plan issu du conseil à 5 peut recouper le même défaut depuis deux axes indépendants** (C2b sur l'axe « Ça dit vrai » et C54 sur l'axe « Code sain », même cause : absence de déduplication entre messages confirmés et envois optimistes) — signal de fiabilité plutôt que redondance à éliminer : deux angles d'analyse différents qui convergent sur la même ligne de code renforcent la confiance dans le défaut, cohérent avec la méthode de vérification adversariale.
 
+**Passe 7 (Guide) — dernière du registre :**
+
+- **Un onglet de documentation statique peut être aussi périmé qu'un onglet fonctionnel, et personne ne le remarque parce qu'il ne « casse » jamais.** Le Guide décrivait un outil de nettoyage à 4 items alors qu'il y en a 5 réels (Doublons et Mentions absents), un menu Paramètres à 6 sous-onglets au lieu de 9, et une fréquence de sondage du tchat inversée — aucune de ces erreurs ne produit d'erreur console ni de test qui échoue, elles ne sont visibles qu'en comparant le texte écrit à la main au vrai DOM. À généraliser : tout contenu texte statique qui décrit un autre onglet mérite un test d'exhaustivité automatique (comparer les titres de cartes/sous-onglets réels au texte qui prétend les documenter), pas seulement une relecture visuelle ponctuelle — ajouté cette passe (`tests/guide-audit.test.js`), à réutiliser comme modèle si un autre écran développe le même genre de documentation inline.
+- **Une variable CSS jamais déclarée peut survivre des mois derrière un fallback plausible.** `--accent-rgb` n'existait dans aucun `:root`, mais son usage `rgba(var(--accent-rgb, 255,71,87), …)` ne produit aucune erreur — juste une couleur silencieusement figée sur le thème sombre même quand `body.light` est actif. Le même faux-motif existait ailleurs dans le fichier avec un *autre* fallback deviné (`99,102,241`), signe que plusieurs développeurs ont buté sur la même variable fantôme sans jamais la déclarer. Un grep périodique de `var(--\w+, ` comparé à la liste des `:root`/`body.light` déclarées serait plus fiable qu'une découverte au hasard.
+- **Le conseil à 5 en parallèle reste fiable même sur une cible « juste du HTML/CSS statique »** — les 5 rapports se recoupaient sans se contredire (ex. le resizer sans support tactile/clavier a été relevé indépendamment par l'axe correctness ET par l'axe house-rules), et aucun n'a inventé un défaut invérifiable. Pas de leçon négative cette fois, juste une confirmation sur une cible d'un genre différent des 6 précédentes (aucune donnée, aucun appel serveur).
+
 ## Amendements du protocole
 
 Si une passe révèle un défaut qu'aucun des cinq axes n'aurait attrapé, l'axe manquant est ajouté ici **avant** la passe suivante, et le rôle correspondant est ajouté au conseil.
 
 _(aucun)_
+
+## Registre clos
+
+Les 7 cibles connues du registre sont livrées (2026-08-24). Toute nouvelle passe (nouvel écran, refonte majeure d'un onglet existant) reprend ce protocole tel quel — pas de raison de le réécrire.
