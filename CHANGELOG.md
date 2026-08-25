@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.16] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Le texte des boutons de saisie rapide du barème et les descriptions dans l'historique rapide sont désormais systématiquement neutralisés avant affichage, pour qu'aucun caractère spécial saisi dans la feuille ne puisse altérer la présentation.
+**Technique** : Échappement HTML ajouté sur `entry.action` dans `renderBaremeQuickBtns` et remplacement du `.replace(/</g, '&lt;')` incomplet par `escapeHtml()` dans les cartes de `renderHistEntries`.
+
+### Ajouté
+**Humanisé** : Un contrôle automatique veille désormais à ce qu'aucune donnée dynamique ne soit injectée dans la page sans avoir été nettoyée au préalable.
+**Technique** : Nouveau test `tests/innerhtml-audit.test.js` servant de cliquet anti-régression : chaque affectation `innerHTML` doit soit être statique/littérale, soit appeler `escapeHtml()`/`encodeURIComponent()`, soit figurer dans une liste d'exceptions auditées et justifiées.
+
 ## [v3.20.15] - 2026-08-25
 
 ### Corrigé
