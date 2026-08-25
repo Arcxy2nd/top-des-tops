@@ -102,3 +102,37 @@ test('_cachePutChunked ne propage jamais une erreur du cache', () => {
   const exploding = { get: () => null, put() { throw new Error('quota exceeded'); } };
   assert.doesNotThrow(() => gas._cachePutChunked(exploding, 'k', 'valeur', 600));
 });
+
+const fs   = require('node:fs');
+const path = require('node:path');
+
+test('plus aucun site de Code.gs ne mesure son cache en caracteres', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
+  const charGuards = src.split('\n')
+    .map((line, i) => ({ line: line.trim(), n: i + 1 }))
+    .filter(x => /\.length\s*<=\s*(CONFIG\.CACHE_MAX_BYTES|chunkSize)/.test(x.line));
+  assert.deepStrictEqual(
+    charGuards, [],
+    'Sites encore mesures en caracteres :\n' + charGuards.map(x => '  Code.gs:' + x.n + '  ' + x.line).join('\n')
+  );
+});
+
+test('chaque cache.put direct de Code.gs passe par _cachePutChunked', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
+  // Les seuls cache.put legitimes restants sont ceux qui vivent DANS
+  // _cachePutChunked lui-meme ; tout autre appel direct contourne la mesure en
+  // octets et peut rejeter un payload en production sans que les tests le voient.
+  const helperStart = src.indexOf('function _cachePutChunked(');
+  const helperEnd   = src.indexOf('function _cacheGetChunked(');
+  assert.ok(helperStart !== -1 && helperEnd > helperStart, '_cachePutChunked introuvable');
+  const outside = src.slice(0, helperStart) + src.slice(helperEnd);
+  // Pas de numero de ligne ici : `outside` est un recollage, ses indices ne
+  // correspondent plus au fichier. Le texte de la ligne suffit a la retrouver.
+  const strays = outside.split('\n')
+    .map(line => line.trim())
+    .filter(line => /\bcache\.put\(/.test(line));
+  assert.deepStrictEqual(
+    strays, [],
+    'cache.put directs restants :\n' + strays.map(l => '  ' + l).join('\n')
+  );
+});

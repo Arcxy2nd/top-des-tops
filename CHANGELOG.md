@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.14] - 2026-08-25
+
+### Corrigé
+**Humanisé** : La mémoire rapide du serveur ne se coupait plus toute seule dès que les données contenaient beaucoup d'emojis. Douze zones de l'application — classements, records, tendances, notes, tchat, barème, phrases, rapport de santé — la réutilisent désormais quelle que soit la taille des données, au lieu de tout relire depuis Google Sheets à chaque affichage.
+**Technique** : Les 12 sites de `Code.gs` qui gardaient leur écriture par `serial.length <= CONFIG.CACHE_MAX_BYTES` passent par `_cachePutChunked()`/`_cacheGetChunked()`. Le `else _logCacheSkip(...)` mort de `StorageService.getAllLogs` est supprimé (l'aide journalise elle-même).
+
+**Humanisé** : Le rapport de santé des données ne peut plus faire échouer la page entière quand il devient volumineux.
+**Technique** : `AnalyticsService.getDataHealth` écrivait via un `cache.put` nu, sans garde de taille ni `try` — une exception `Argument too large` du service remontait jusqu'à l'appelant. L'écriture passe maintenant par `_cachePutChunked()`, qui ne lève jamais.
+
 ## [v3.20.13] - 2026-08-25
 
 ### Ajouté

@@ -632,7 +632,7 @@ const SettingsService = {
     // entity staying invisible (or a deleted one staying visible) for up to
     // CACHE_TTL_SECONDS.
     const key   = 'ent_' + type.toLowerCase() + '_v' + _settingsVersion() + '_r' + sheet.getLastRow();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -670,7 +670,7 @@ const SettingsService = {
       }
     });
     const serial = JSON.stringify(result);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -1073,7 +1073,7 @@ const StorageService = {
     const key   = 'logs_v' + _logsVersion();
     let result  = null;
 
-    const raw = cache.get(key);
+    const raw = _cacheGetChunked(cache, key);
     if (raw) {
       try {
         result = JSON.parse(raw).map(r => ({
@@ -1087,8 +1087,7 @@ const StorageService = {
       const serial = JSON.stringify(result.map(l => ({
         t: l.timestamp.getTime(), p: l.player, c: l.category, pts: l.points
       })));
-      if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
-      else _logCacheSkip(key, serial.length);
+      _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     }
 
     ConfigService.setLogsCache(result);
@@ -1230,12 +1229,12 @@ const StorageService = {
   getDataHealth() {
     const cache = CacheService.getScriptCache();
     const key   = 'health_v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) { /* corrupt entry → recompute */ }
     }
     const result = this._computeDataHealth();
-    cache.put(key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -1756,7 +1755,7 @@ const NotesService = {
   getAllNotes() {
     const cache = CacheService.getScriptCache();
     const key   = 'notes_all_v' + _notesVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -1785,8 +1784,7 @@ const NotesService = {
     }
     out.reverse();
     const result = { notes: out };
-    const serial = JSON.stringify(result);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -1871,7 +1869,7 @@ const ChatService = {
   getAllMessages() {
     const cache = CacheService.getScriptCache();
     const key   = 'chat_msgs_v' + _chatVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -1907,8 +1905,7 @@ const ChatService = {
       msg.replyToDeleted = !original;
     });
     const result = { messages: rows.slice(-ChatService.MAX_MESSAGES) };
-    const serial = JSON.stringify(result);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -2254,7 +2251,7 @@ const BaremeService = {
     // Same row-count-in-key fix as SettingsService.getEntities — a rule added/
     // removed directly in the Bareme sheet doesn't bump _baremeVersion().
     const key   = 'bareme_entries_v' + _baremeVersion() + '_r' + sheet.getLastRow();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -2281,7 +2278,7 @@ const BaremeService = {
       pts:      x.r[2] !== "" && x.r[2] !== undefined ? Number(x.r[2]) : 0
     }));
     const serial = JSON.stringify(result);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -2362,7 +2359,7 @@ const PhrasesService = {
     // Same row-count-in-key fix as SettingsService.getEntities — a phrase added/
     // removed directly in the Phrases sheet doesn't bump _phrasesVersion().
     const key   = 'phrases_all_v' + _phrasesVersion() + '_r' + sheet.getLastRow();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -2389,7 +2386,7 @@ const PhrasesService = {
       text:     x.r[2].toString()
     }));
     const serial = JSON.stringify(result);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -3476,7 +3473,7 @@ function apiDetectDistributedLots() {
   try {
     const cache = CacheService.getScriptCache();
     const key   = 'lots_v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return { success: true, lots: JSON.parse(raw) }; } catch (e) { /* corrupt entry → recompute */ }
     }
@@ -3558,8 +3555,7 @@ function apiDetectDistributedLots() {
     });
 
     lots.sort(function(a, b) { return b.count - a.count; });
-    const serial = JSON.stringify(lots);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(lots), CONFIG.CACHE_TTL_SECONDS);
     return { success: true, lots: lots };
   } catch(e) { return fail(e); }
 }
@@ -3721,7 +3717,7 @@ function apiGetPlayerRecords(universe) {
     const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
     const key   = 'records_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -3752,8 +3748,7 @@ function apiGetPlayerRecords(universe) {
     });
 
     const res = { success: true, records, globalBest };
-    const serial = JSON.stringify(res);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
 }
@@ -3763,7 +3758,7 @@ function apiGetTrends(universe) {
     const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
     const key   = 'trends_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -3803,8 +3798,7 @@ function apiGetTrends(universe) {
     }).filter(Boolean).sort((a, b) => b.changePct - a.changePct);
 
     const res = { success: true, categoryTrends, playerTrends };
-    const serial = JSON.stringify(res);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
 }
@@ -3814,7 +3808,7 @@ function apiGetActiveWeekday(universe) {
     const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
     const key   = 'weekday_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -3828,8 +3822,7 @@ function apiGetActiveWeekday(universe) {
     for (let i = 1; i < counts.length; i++) if (counts[i] > counts[topIndex]) topIndex = i;
 
     const res = { success: true, byWeekday, topWeekday: rows.length ? labels[topIndex] : null };
-    const serial = JSON.stringify(res);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
 }
@@ -3839,7 +3832,7 @@ function apiGetTopPlayerCategoryPairs(universe) {
     const isAlt = (universe === 'alt');
     const cache = CacheService.getScriptCache();
     const key   = 'pairs_' + (isAlt ? 'alt_' : 'main_') + 'v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
@@ -3858,8 +3851,7 @@ function apiGetTopPlayerCategoryPairs(universe) {
       .slice(0, 10);
 
     const res = { success: true, pairs };
-    const serial = JSON.stringify(res);
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
 }

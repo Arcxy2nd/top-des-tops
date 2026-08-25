@@ -287,28 +287,39 @@ test('PhrasesService.getAll reflects a phrase row appended directly to the Sheet
   assert.deepStrictEqual(after.map(p => p.text), ['A', 'B']);
 });
 
-test('a payload above CACHE_MAX_BYTES is not cached, and the skip is traced', () => {
+test('getAllLogs chunks an oversized payload instead of skipping the cache', () => {
   const gas = loadGas();
-  const skips = [];
-  gas.Logger.log = m => skips.push(String(m));
-
-  // Two rows are far below the ceiling: the cache must be used and stay silent.
   const history = makeSheet([HEADER,
     [D('2026-08-01'), 'Alice', 'Jeux', 5, 'ok', ''],
     [D('2026-08-02'), 'Bob',   'Jeux', 3, 'ok', '']
   ]);
   gas.ConfigService.getSheets = () => ({ history });
-  gas.StorageService.getAllLogs();
-  assert.strictEqual(skips.length, 0, 'a small payload must not log a skip');
 
-  // Force the ceiling down so the same payload is now oversized. A write bumps
-  // the cache version too: the small payload is already cached under the old
-  // version, and a stale hit would skip the put/skip logic entirely.
   gas.CONFIG.CACHE_MAX_BYTES = 1;
-  gas.withLock(() => ({ ok: true }));
-  gas.ConfigService.clearCache();
+  const before = gas.StorageService.getAllLogs();
+  assert.strictEqual(before.length, 2);
+
+  gas.ConfigService.getSheets = () => { throw new Error('sheet should not be re-read — cache miss'); };
+  const after = gas.StorageService.getAllLogs();
+  assert.strictEqual(after.length, 2);
+  assert.strictEqual(after[0].player, 'Alice');
+});
+
+test('a cache write failure in _cachePutChunked is caught and the skip is traced', () => {
+  const skips = [];
+  const cache = {
+    get: () => null,
+    put() { throw new Error('quota exceeded'); }
+  };
+  const gas = loadGas({ CacheService: { getScriptCache: () => cache } });
+  gas.Logger.log = m => skips.push(String(m));
+
+  const history = makeSheet([HEADER,
+    [D('2026-08-01'), 'Alice', 'Jeux', 5, 'ok', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history });
   gas.StorageService.getAllLogs();
-  assert.ok(skips.length >= 1, 'an oversized payload must log a skip');
+  assert.ok(skips.length >= 1, 'a throwing cache must log a skip');
   assert.match(skips[0], /cache skip/);
 });
 
