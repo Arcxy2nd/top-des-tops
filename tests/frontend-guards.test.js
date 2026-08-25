@@ -95,6 +95,26 @@ test('callServer appends _identityPassword to mutating endpoints and not to read
   assert.deepStrictEqual(receivedArgs, ['Alice']);
 });
 
+test('callServer with silent=true suppresses failure toasts on both failure and success-with-error', () => {
+  const { callServer, toasts, sandbox } = loadCallServer();
+  const runner = {
+    withSuccessHandler(h) { return { withFailureHandler(fh) { return {
+      apiFail(...args) { fh(new Error('network glitch')); },
+      apiErrorPayload(...args) { h({ success: false, error: 'service busy' }); }
+    }; } }; }
+  };
+  sandbox.google.script.run = runner;
+
+  let errSeen = 0;
+  callServer('apiFail', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  assert.strictEqual(errSeen, 1, 'onError callback must still be invoked');
+  assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on network failure');
+
+  callServer('apiErrorPayload', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  assert.strictEqual(errSeen, 2, 'onError callback must still be invoked');
+  assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on success:false payload');
+});
+
 test('showSkeleton replaces a stalled skeleton with a readable message', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
   const timers = [];

@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.11] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Les micro-coupures réseau en arrière-plan pendant la relève périodique des messages du tchat n'affichent plus d'infobulle d'erreur rouge intrusive.
+**Technique** : `callServer` (`Index.html:8860`) accepte désormais un paramètre `silent` pour supprimer les notifications `showToast` sur les échecs et erreurs retournées. `pollChat()` (`Index.html:7845`) l'active pour fiabiliser le cycle de polling sans polluer l'interface.
+
 ## [v3.20.10] - 2026-08-25
 
 ### Sécurité

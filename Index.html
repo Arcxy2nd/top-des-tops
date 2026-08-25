@@ -7845,7 +7845,7 @@
         _chatUnreadCount += newCount;
       }
       updateChatBadge();
-    }, 'Actualisation du tchat', () => { _chatPollInFlight = false; });
+    }, 'Actualisation du tchat', () => { _chatPollInFlight = false; }, true);
   }
 
   // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
@@ -8860,11 +8860,11 @@
     'apiAddAutoRule', 'apiUpdateAutoRule', 'apiDeleteAutoRule', 'apiSetAutoTrigger'
   ]);
 
-  function callServer(fn, params, onSuccess, errorLabel, onError) {
+  function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
     let runner = google.script.run
       .withSuccessHandler(res => {
         if (res && res.success === false) {
-          showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
+          if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
           return;
         }
@@ -8876,12 +8876,12 @@
           onSuccess(res);
         } catch (err) {
           console.error('callServer/' + fn, err);
-          showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
+          if (!silent) showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
           if (onError) onError(err);
         }
       })
       .withFailureHandler(err => {
-        showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
+        if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
         if (onError) onError(err);
       });
     const actualParams = _MUTATING_APIS.has(fn)
