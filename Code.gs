@@ -2721,7 +2721,9 @@ function apiGetQuickStats(universe) {
   try {
     const isAlt = (universe === 'alt');
     const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
-    const logs = isAlt ? AltStorageService.getAltLogs() : StorageService.getFilteredLogs(allPlayers, null, null, null);
+    const logs = isAlt
+      ? AltStorageService.getAltLogs().map(l => ({ timestamp: l.date, player: l.player, category: l.category, points: l.points }))
+      : StorageService.getFilteredLogs(allPlayers, null, null, null);
 
     const totals = {};
     allPlayers.forEach(p => { totals[p] = 0; });

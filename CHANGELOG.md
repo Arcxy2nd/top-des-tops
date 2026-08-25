@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.3] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Le résumé rapide du Dashboard plantait dès qu'il y avait au moins une entrée dans un Top Alternatif — la carte restait bloquée en chargement.
+**Technique** : `apiGetQuickStats('alt')` lisait `.timestamp` sur des objets `AltStorageService.getAltLogs()` qui exposent `.date` — `TypeError` garanti. Normalisation au point d'entrée de la fonction (`Code.gs:2724`). Test de régression `tests/quick-stats.test.js`.
+
 ## [v3.20.2] - 2026-08-24
 
 ### Corrigé

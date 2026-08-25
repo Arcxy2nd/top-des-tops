@@ -92,3 +92,26 @@ test('apiGetQuickStats never reports the Players header row as a phantom player'
   assert.strictEqual(res.stats.chaser.player, 'B', 'la ligne d\'en-tête "Name" ne doit jamais se substituer au vrai second joueur');
   assert.strictEqual(res.stats.gap, 10);
 });
+
+test('apiGetQuickStats does not crash on the alt universe and reads dates correctly', () => {
+  const gas = loadGas();
+  const ALT_HEADER = ['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur'];
+  const now = new Date();
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 5, 12, 0, 0);
+  const lastMonth  = new Date(now.getFullYear(), now.getMonth() - 1, 5, 12, 0, 0);
+  const altHistory = makeSheet([
+    ALT_HEADER,
+    [thisMonth, 'A', 'AltTop', 9, '', '', '', ''],
+    [lastMonth, 'B', 'AltTop', 4, '', '', '', '']
+  ]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['A', '', ''], ['B', '', '']]);
+  gas.ConfigService.getSheets = () => ({ altHistory, players });
+
+  const res = gas.apiGetQuickStats('alt');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.stats.leader.player, 'A');
+  assert.strictEqual(res.stats.monthCount, 1);
+  assert.strictEqual(res.stats.lastEvent.player, 'A');
+  assert.strictEqual(res.stats.globalBest.player, 'A');
+});
+
