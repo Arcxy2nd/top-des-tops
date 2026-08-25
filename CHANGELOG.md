@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.10] - 2026-08-25
+
+### Sécurité
+**Humanisé** : Le mot de passe de chaque joueur est désormais vérifié par le serveur sur chaque action de modification, et non plus uniquement à la sélection de l'identité dans l'interface.
+**Technique** : `requireAuthor(author, password)` (`Code.gs:248`) valide le mot de passe via `SettingsService.verifyIdentity` (`Code.gs:760`) sur 49 points d'entrée d'écriture (`Code.gs` et `AutoPoints.gs`). Côté client, `callServer` (`Index.html:8845`) transmet `_identityPassword` en mémoire aux fonctions identifiées dans `_MUTATING_APIS`.
+
 ## [v3.20.9] - 2026-08-25
 
 ### Corrigé

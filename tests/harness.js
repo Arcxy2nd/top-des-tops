@@ -236,7 +236,7 @@ const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
   'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
   'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService',
-  'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp'
+  'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor'
 ];
 
 /**

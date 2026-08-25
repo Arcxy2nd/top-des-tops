@@ -5529,6 +5529,7 @@
 
   const WHO_AM_I_KEY = 'tdt_who_am_i';
   let _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
+  let _identityPassword = '';
 
   // ── Audit log state ──────────────────────────────────────────────────────────
   let _auditCurrentPage = 1;
@@ -8842,6 +8843,23 @@
   }
 
   // ── APPEL SERVEUR ────────────────────────────────────────────────────
+  const _MUTATING_APIS = new Set([
+    'apiSaveAppSettings', 'apiSaveTooltipStyle',
+    'apiAddBaremeEntry', 'apiReorderBareme', 'apiUpdateBaremeEntry', 'apiDeleteBaremeEntry',
+    'apiSetColor', 'apiManageEntity', 'apiReorderEntities', 'apiAddBulkPlan',
+    'apiDeleteHistoryEntries', 'apiAppendAltNativeBatch', 'apiDeleteNativeAltEntry',
+    'apiSaveAltCategories', 'apiLinkHistoryRowsToAltCategory', 'apiUnlinkHistoryRowsFromAltCategory',
+    'apiGroupSimilarEntries', 'apiUndoAuditEntry', 'apiFixZeroPoints', 'apiDeleteOrphans',
+    'apiCreateSnapshot', 'apiBackfillNoteAuthors', 'apiUpdateHistoryDescription',
+    'apiUpdateHistoryEntry', 'apiAddNote', 'apiDeleteNote', 'apiEditNote',
+    'apiPostChatMessage', 'apiDeleteChatMessage', 'apiUpdateBulkEntries',
+    'apiGroupDistributedLots', 'apiGroupRows', 'apiUngroupLot', 'apiRemoveFromGroup',
+    'apiDeleteGroup', 'apiApplyMentionFixes', 'apiReorderPhrases', 'apiRepairOrder',
+    'apiAddPhrase', 'apiSavePhrasesBatch', 'apiUpdatePhrase', 'apiDeletePhrase',
+    'apiDeletePreset', 'apiRenamePreset', 'apiSetActivePhrasePreset',
+    'apiAddAutoRule', 'apiUpdateAutoRule', 'apiDeleteAutoRule', 'apiSetAutoTrigger'
+  ]);
+
   function callServer(fn, params, onSuccess, errorLabel, onError) {
     let runner = google.script.run
       .withSuccessHandler(res => {
@@ -8866,7 +8884,10 @@
         showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
         if (onError) onError(err);
       });
-    runner[fn](...params);
+    const actualParams = _MUTATING_APIS.has(fn)
+      ? [...params, _identityPassword || '']
+      : params;
+    runner[fn](...actualParams);
   }
 
   // ── REORDER (boutons monter/descendre) ───────────────────────────────────
@@ -9869,6 +9890,7 @@
       btn.disabled = false;
       if (_identityPwdTarget !== player) return; // modal was cancelled before this response arrived
       if (res && res.granted) {
+        _identityPassword = pwd;
         applyIdentity(player.name);
         closeIdentityPwdModal();
         showToast(`Identité confirmée : ${player.name}`, 'success');
@@ -9918,6 +9940,7 @@
     if (!_whoAmI) _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
     if (_whoAmI && cachedPlayers.length > 0 && !cachedPlayers.find(p => p.name === _whoAmI)) {
       _whoAmI = null;
+      _identityPassword = '';
       localStorage.removeItem(WHO_AM_I_KEY);
     }
 
@@ -9971,6 +9994,7 @@
           closeWhoAmIDropdown();
           openIdentityPwdModal(p);
         } else {
+          _identityPassword = '';
           applyIdentity(p.name);
         }
       });

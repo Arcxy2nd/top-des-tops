@@ -158,7 +158,10 @@ test('deleting History rows renumbers surviving AltHistory refHistoryRowId and c
     ['2026-08-02', 'Bob',   'Alt 1', 5, 'linked to row that shifts', '3', '', ''],
     ['2026-08-04', 'Dave',  'Alt 1', 5, 'linked to row that shifts twice', '5', '', '']
   ]);
-  gas.ConfigService.getSheets = () => ({ history, altHistory });
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Tester', '', '', '']]);
+  const auditLog = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ history, altHistory, players, auditLog });
+  gas.ConfigService.clearCache = () => {};
 
   const res = gas.apiDeleteHistoryEntries([2], 'Tester');
   assert.strictEqual(res.success, true);

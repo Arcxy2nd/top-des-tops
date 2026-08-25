@@ -13,7 +13,9 @@ function makeContext() {
   ]);
   const categories = makeSheet([['Name', 'Description', 'Emoji icon', 'Hex color']]);
   const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description']]);
-  injectSheets(gas, { players, categories, history });
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  const settings = makeSheet([['Key', 'Value']]);
+  injectSheets(gas, { players, categories, history, auditLog, settings });
   return gas;
 }
 
@@ -74,6 +76,32 @@ function makeContext() {
   // The migrated hash keeps working on every later check, including a bad one.
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alice', 'sesame'), true);
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alice', 'wrong'), false);
+}
+
+// requireAuthor verifies passwords server-side
+{
+  const ctx = makeContext();
+  // Alice has a password:
+  assert.strictEqual(ctx.requireAuthor('Alice', 'sesame'), 'Alice');
+  assert.throws(() => ctx.requireAuthor('Alice', 'wrong'), /Mot de passe invalide/);
+  assert.throws(() => ctx.requireAuthor('Alice', ''), /Mot de passe invalide/);
+  // Bob has no password:
+  assert.strictEqual(ctx.requireAuthor('Bob', ''), 'Bob');
+  assert.strictEqual(ctx.requireAuthor('Bob', undefined), 'Bob');
+  // Missing or unknown author:
+  assert.throws(() => ctx.requireAuthor('', 'x'), /Identité requise/);
+  assert.throws(() => ctx.requireAuthor('Ghost', 'x'), /Mot de passe invalide/);
+}
+
+// Mutating endpoints enforce authorization
+{
+  const ctx = makeContext();
+  const resBad = ctx.apiSaveAppSettings('Title', '', 'Alice', 'wrong');
+  assert.strictEqual(resBad.success, false);
+  assert.match(resBad.error, /Mot de passe invalide/);
+
+  const resOk = ctx.apiSaveAppSettings('Title', '', 'Alice', 'sesame');
+  assert.strictEqual(resOk.success, true);
 }
 
 console.log('identity.test.js OK');

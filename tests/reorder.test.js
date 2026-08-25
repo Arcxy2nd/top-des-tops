@@ -326,7 +326,7 @@ test('apiRepairOrder normalizes Players/Categories to sequential Ordre in curren
 
 test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool group', () => {
   const gas = loadGas();
-  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], ['Alice', '', '', '', 1]]);
   const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
   const bareme = makeSheet([
     ['Top', 'Action', 'Points', 'Ordre'],
@@ -354,7 +354,7 @@ test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool
 
 test('apiRepairOrder preserves an already-valid custom order when it differs from raw row order', () => {
   const gas = loadGas();
-  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], ['Alice', '', '', '', 1]]);
   const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
   const bareme = makeSheet([
     ['Top', 'Action', 'Points', 'Ordre'],

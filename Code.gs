@@ -245,9 +245,14 @@ function withLock(operation) {
  * expects. Centralizes the `{ success: false, error: e.message }` line that was
  * duplicated in every api* endpoint — the returned shape is unchanged.
  */
-function requireAuthor(author) {
-  if (!author || !String(author).trim()) throw new Error("Identité requise pour cette action.");
-  return String(author).trim();
+function requireAuthor(author, password) {
+  const name = author ? String(author).trim() : '';
+  if (!name) throw new Error("Identité requise pour cette action.");
+  let ok;
+  try { ok = SettingsService.verifyIdentity(name, password); }
+  catch (e) { ok = false; } // unknown/renamed-away player → never authorized
+  if (!ok) throw new Error("Mot de passe invalide ou requis pour agir en tant que " + name + " — resélectionne ton identité.");
+  return name;
 }
 
 function _hashPassword(password) {
@@ -2107,9 +2112,9 @@ function apiGetAppSettings() {
   } catch(e) { return fail(e); }
 }
 
-function apiSaveAppSettings(title, logoUrl, author) {
+function apiSaveAppSettings(title, logoUrl, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       SettingsSheetService.setValue('app_title', (title || '').trim());
       SettingsSheetService.setValue('logo_url', (logoUrl || '').trim());
@@ -2120,9 +2125,9 @@ function apiSaveAppSettings(title, logoUrl, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiSaveTooltipStyle(prefsJson, author) {
+function apiSaveTooltipStyle(prefsJson, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       SettingsSheetService.setValue('tooltip_style', (prefsJson || '').trim());
       AuditService.log(author, 'Style infobulle modifié', 'Settings', '', 'Mise à jour infobulles', '');
@@ -2425,9 +2430,9 @@ function apiGetBareme() {
   } catch(e) { return fail(e); }
 }
 
-function apiAddBaremeEntry(top, action, pts, author) {
+function apiAddBaremeEntry(top, action, pts, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       BaremeService.addEntry(top, action, pts);
       const after = [top || '', action || '', String(Number(pts) || 0) + ' pts'].join(' | ');
@@ -2441,9 +2446,9 @@ function apiAddBaremeEntry(top, action, pts, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiReorderBareme(topName, orderedRowIndexes, author) {
+function apiReorderBareme(topName, orderedRowIndexes, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!topName) throw new Error("Top manquant.");
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
@@ -2455,9 +2460,9 @@ function apiReorderBareme(topName, orderedRowIndexes, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateBaremeEntry(rowIndex, action, pts, author) {
+function apiUpdateBaremeEntry(rowIndex, action, pts, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
@@ -2473,9 +2478,9 @@ function apiUpdateBaremeEntry(rowIndex, action, pts, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteBaremeEntry(rowIndex, author) {
+function apiDeleteBaremeEntry(rowIndex, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
@@ -2489,9 +2494,9 @@ function apiDeleteBaremeEntry(rowIndex, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiSetColor(type, rowIndex, expectedName, color, author) {
+function apiSetColor(type, rowIndex, expectedName, color, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
     if (!rowIndex) throw new Error("Ligne non précisée — recharge la page et réessaie.");
     return withLock(() => {
@@ -2517,9 +2522,9 @@ function apiSetColor(type, rowIndex, expectedName, color, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, author, rowIndex) {
+function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, author, rowIndex, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
     return withLock(() => {
@@ -2568,9 +2573,9 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
   } catch(e) { return fail(e); }
 }
 
-function apiReorderEntities(type, orderedRowIndexes, expectedNames, author) {
+function apiReorderEntities(type, orderedRowIndexes, expectedNames, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     if (!Array.isArray(expectedNames) || expectedNames.length !== orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
@@ -2592,9 +2597,9 @@ function apiReorderEntities(type, orderedRowIndexes, expectedNames, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiAddBulkPlan(plan, author) {
+function apiAddBulkPlan(plan, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const startRow = history.getLastRow() + 1;
@@ -2719,9 +2724,9 @@ function apiVerifyIdentity(name, password) {
   }
 }
 
-function apiDeleteHistoryEntries(rowIndexes, author) {
+function apiDeleteHistoryEntries(rowIndexes, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const sorted = [...rowIndexes].sort((a, b) => b - a);
@@ -2833,9 +2838,9 @@ function apiGetQuickStats(universe) {
 
 // ── TOPS ALTERNATIFS & REGROUPEMENT AUTOMATIQUE API ───────────
 
-function apiAppendAltNativeBatch(author, entries) {
+function apiAppendAltNativeBatch(author, entries, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!entries || !entries.length) return fail(new Error('Aucune entrée à enregistrer.'));
     return withLock(function() {
       const count = AltStorageService.addNativeAltEntries(entries);
@@ -2846,9 +2851,9 @@ function apiAppendAltNativeBatch(author, entries) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteNativeAltEntry(author, altCategory, rowIndex, guard) {
+function apiDeleteNativeAltEntry(author, altCategory, rowIndex, guard, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(function() {
       const removed = AltStorageService.deleteNativeAltEntry(rowIndex, altCategory, guard);
       const summary = (removed[1] || '?') + ' — ' + (removed[3] || 0) + ' pt(s)';
@@ -2866,9 +2871,9 @@ function apiGetAltCategories() {
   } catch(e) { return fail(e); }
 }
 
-function apiSaveAltCategories(author, list) {
+function apiSaveAltCategories(author, list, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(function() {
       AltSettingsService.saveAltCategories(list);
       AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', '', '', 'Mise à jour des catégories alternes');
@@ -2877,9 +2882,9 @@ function apiSaveAltCategories(author, list) {
   } catch(e) { return fail(e); }
 }
 
-function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
+function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(function() {
       const count = AltStorageService.linkHistoryRowsToAltCategory(rowIndices, altCategory, author);
       AuditService.log(author, 'Affectation Top Alternatif', altCategory, '', '', count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
@@ -2888,9 +2893,9 @@ function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory) {
   } catch(e) { return fail(e); }
 }
 
-function apiUnlinkHistoryRowsFromAltCategory(author, rowIndices, altCategory) {
+function apiUnlinkHistoryRowsFromAltCategory(author, rowIndices, altCategory, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(function() {
       const count = AltStorageService.unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, author);
       AuditService.log(author, 'Désaffectation Top Alternatif', altCategory || 'Tous', '', '', count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
@@ -2912,9 +2917,9 @@ function apiGetAltCategoryDetails(altCategory) {
   } catch(e) { return fail(e); }
 }
 
-function apiGroupSimilarEntries(author) {
+function apiGroupSimilarEntries(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(function() {
       const result = StorageService.apiGroupSimilarEntries();
       if (result.groupedCount > 0) {
@@ -3042,16 +3047,16 @@ function apiGetAuditActionTypes() {
   } catch(e) { return fail(e); }
 }
 
-function apiUndoAuditEntry(auditRowId, author) {
+function apiUndoAuditEntry(auditRowId, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => AuditService.undo(auditRowId, author));
   } catch (e) { return fail(e); }
 }
 
-function apiFixZeroPoints(author) {
+function apiFixZeroPoints(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const result = StorageService.fixZeroPoints();
       AuditService.log(author, 'Nettoyage zéros', 'History', '', '',
@@ -3063,9 +3068,9 @@ function apiFixZeroPoints(author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteOrphans(author) {
+function apiDeleteOrphans(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const result = StorageService.deleteOrphans();
       AuditService.log(author, 'Nettoyage orphelins', 'History', '', '',
@@ -3077,9 +3082,9 @@ function apiDeleteOrphans(author) {
   } catch(e) { return fail(e); }
 }
 
-function apiCreateSnapshot(author) {
+function apiCreateSnapshot(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     const result = BackupService.createSnapshot();
     AuditService.log(author, 'Snapshot créé', 'Backup', '', result.name, '');
     return { success: true, name: result.name, url: result.url };
@@ -3102,9 +3107,9 @@ function apiCreateSnapshot(author) {
  * création puis en édition, et ainsi de suite en remontant, jusqu'à trouver la
  * création (Créé par obtenu) ou jusqu'à ce que la chaîne casse.
  */
-function apiBackfillNoteAuthors(author) {
+function apiBackfillNoteAuthors(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const notesSheet = ConfigService.getSheets().notes;
       if (!notesSheet) return { success: true, matched: 0, skipped: 0 };
@@ -3187,9 +3192,9 @@ function apiBackfillNoteAuthors(author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateHistoryDescription(rowIndex, description, author) {
+function apiUpdateHistoryDescription(rowIndex, description, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const before = _historyDescSummary(rowIndex);
@@ -3204,9 +3209,9 @@ function apiUpdateHistoryDescription(rowIndex, description, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateHistoryEntry(rowIndex, fields, author) {
+function apiUpdateHistoryEntry(rowIndex, fields, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const before = _historyRowSummary(rowIndex);
@@ -3238,9 +3243,9 @@ function apiGetAllNotes() {
   } catch(e) { return fail(e); }
 }
 
-function apiAddNote(player, text, dateStr, author) {
+function apiAddNote(player, text, dateStr, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const note = NotesService.addNote(player, text, dateStr, author);
       const sheet = ConfigService.getSheets().notes;
@@ -3253,9 +3258,9 @@ function apiAddNote(player, text, dateStr, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteNote(rowIndex, author) {
+function apiDeleteNote(rowIndex, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
@@ -3293,9 +3298,9 @@ function apiGetNoteHistory(noteId) {
   } catch(e) { return fail(e); }
 }
 
-function apiEditNote(rowIndex, newText, author) {
+function apiEditNote(rowIndex, newText, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
@@ -3320,9 +3325,9 @@ function apiGetChatMessages() {
   } catch(e) { return fail(e); }
 }
 
-function apiPostChatMessage(text, replyToId, author) {
+function apiPostChatMessage(text, replyToId, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const msg = ChatService.postMessage(author, text, replyToId);
       const sheet = ConfigService.getSheets().chat;
@@ -3335,9 +3340,9 @@ function apiPostChatMessage(text, replyToId, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteChatMessage(id, author) {
+function apiDeleteChatMessage(id, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const result = ChatService.deleteMessage(id, author);
       AuditService.log(author, 'Message tchat supprimé', 'Chat',
@@ -3348,9 +3353,9 @@ function apiDeleteChatMessage(id, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUpdateBulkEntries(rowIndexes, partialFields, author) {
+function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!rowIndexes || !rowIndexes.length) throw new Error("Aucune ligne sélectionnée.");
     if (!partialFields || !Object.keys(partialFields).length) return { success: true };
     return withLock(function() {
@@ -3546,9 +3551,9 @@ function apiDetectLegacyGroups() {
   } catch(e) { return fail(e); }
 }
 
-function apiGroupDistributedLots(lotsToGroup, author) {
+function apiGroupDistributedLots(lotsToGroup, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!lotsToGroup || !lotsToGroup.length) throw new Error("Aucun lot fourni.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
@@ -3572,9 +3577,9 @@ function apiGroupDistributedLots(lotsToGroup, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiGroupRows(rowIndexes, author) {
+function apiGroupRows(rowIndexes, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!rowIndexes || rowIndexes.length < 2) throw new Error("Sélectionnez au moins 2 entrées.");
     return withLock(() => {
       const { history } = ConfigService.getSheets();
@@ -3597,9 +3602,9 @@ function apiGroupRows(rowIndexes, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUngroupLot(groupId, author) {
+function apiUngroupLot(groupId, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!groupId) throw new Error("GroupID manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
@@ -3801,9 +3806,9 @@ function apiGetTopPlayerCategoryPairs(universe) {
   } catch(e) { return fail(e); }
 }
 
-function apiRemoveFromGroup(rowIndex, author) {
+function apiRemoveFromGroup(rowIndex, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!rowIndex) throw new Error("Index de ligne manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
@@ -3815,9 +3820,9 @@ function apiRemoveFromGroup(rowIndex, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeleteGroup(groupId, author) {
+function apiDeleteGroup(groupId, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!groupId) throw new Error("GroupID manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
@@ -3930,9 +3935,9 @@ function apiScanUnmentionedNames() {
   } catch(e) { return fail(e); }
 }
 
-function apiApplyMentionFixes(fixes, author) {
+function apiApplyMentionFixes(fixes, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!fixes || !fixes.length) throw new Error("Aucune correction sélectionnée.");
     return withLock(() => {
       const { history, notes } = ConfigService.getSheets();
@@ -4059,9 +4064,9 @@ function apiGetPhrases() {
   } catch(e) { return fail(e); }
 }
 
-function apiReorderPhrases(preset, pool, orderedRowIndexes, author) {
+function apiReorderPhrases(preset, pool, orderedRowIndexes, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!preset || !pool) throw new Error("Preset ou pool manquant.");
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
@@ -4073,9 +4078,9 @@ function apiReorderPhrases(preset, pool, orderedRowIndexes, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiRepairOrder(author) {
+function apiRepairOrder(author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const result = { players: 0, categories: 0, bareme: 0, phrases: 0 };
 
@@ -4141,9 +4146,9 @@ function apiRepairOrder(author) {
   } catch(e) { return fail(e); }
 }
 
-function apiAddPhrase(preset, pool, text, author) {
+function apiAddPhrase(preset, pool, text, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       PhrasesService.addPhrase(preset, pool, text);
       const sheet = ConfigService.getSheets().phrases;
@@ -4157,9 +4162,9 @@ function apiAddPhrase(preset, pool, text, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiSavePhrasesBatch(entries, author) {
+function apiSavePhrasesBatch(entries, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const existingSheet = ConfigService.getSheets().phrases;
       const startRow = existingSheet ? existingSheet.getLastRow() + 1 : null;
@@ -4177,9 +4182,9 @@ function apiSavePhrasesBatch(entries, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiUpdatePhrase(rowIndex, text, author) {
+function apiUpdatePhrase(rowIndex, text, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().phrases;
       const before = _phraseRowSummary(rowIndex);
@@ -4195,9 +4200,9 @@ function apiUpdatePhrase(rowIndex, text, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeletePhrase(rowIndex, author) {
+function apiDeletePhrase(rowIndex, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().phrases;
       const before = _phraseRowSummary(rowIndex);
@@ -4211,9 +4216,9 @@ function apiDeletePhrase(rowIndex, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiDeletePreset(presetName, author) {
+function apiDeletePreset(presetName, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const sheet = ConfigService.getSheets().phrases;
       const removedRows = [];
@@ -4234,9 +4239,9 @@ function apiDeletePreset(presetName, author) {
   } catch(e) { return fail(e); }
 }
 
-function apiRenamePreset(oldName, newName, author) {
+function apiRenamePreset(oldName, newName, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!newName || !newName.trim()) throw new Error("Nouveau nom vide.");
     if (oldName === newName.trim()) return { success: true, phrases: PhrasesService.getAll() };
     return withLock(() => {
@@ -4271,9 +4276,9 @@ function apiGetActivePhrasePreset() {
   } catch(e) { return fail(e); }
 }
 
-function apiSetActivePhrasePreset(name, author) {
+function apiSetActivePhrasePreset(name, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     if (!name || !name.trim()) throw new Error("Nom de preset manquant.");
     return withLock(() => {
       const before = PropertiesService.getScriptProperties().getProperty('active_phrase_preset') || '__default__';

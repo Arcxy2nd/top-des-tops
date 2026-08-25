@@ -11,8 +11,9 @@ function makeContext(chatRows) {
   const gas = loadGas();
   const chat = makeSheet(chatRows || [['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ']]);
   const auditLog = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe']]);
-  injectSheets(gas, { chat, auditLog });
-  return { gas, chat, auditLog };
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Alice', '', '', ''], ['Bob', '', '', '']]);
+  injectSheets(gas, { chat, auditLog, players });
+  return { gas, chat, auditLog, players };
 }
 
 test('apiPostChatMessage rejects a missing author before touching the sheet', () => {

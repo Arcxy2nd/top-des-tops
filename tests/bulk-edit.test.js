@@ -10,6 +10,8 @@ const D = s => new Date(s + 'T12:00:00');
 //  0=Date  1=Player  2=Category  3=Points  4=Description  5=GroupId  6=Saiseur
 const HEADER = ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'];
 
+const PLAYERS_FIXTURE = [['Name', 'Avatar URL', 'Hex color', 'Password'], ['Testeur', '', '', '']];
+
 // ── Test 1 : updates only specified fields, leaves others intact ────────────
 test('updates only specified fields, leaves others intact', () => {
   const gas = loadGas();
@@ -18,7 +20,8 @@ test('updates only specified fields, leaves others intact', () => {
     [D('2026-01-01'), 'Alice',   'Jeux',  10, 'orig', '', 'Bob'],
     [D('2026-01-02'), 'Charlie', 'Sport',  5, '',     '', '']
   ]);
-  injectSheets(gas, { history });
+  const players = makeSheet(PLAYERS_FIXTURE);
+  injectSheets(gas, { history, players });
 
   const res = gas.apiUpdateBulkEntries([2, 3], { description: 'edited' }, 'Testeur');
   assert.strictEqual(res.success, true);
@@ -46,7 +49,8 @@ test('updates saiseur when explicitly in partialFields', () => {
     [D('2026-01-01'), 'Alice',   'Jeux',  10, '', '', 'Bob'],
     [D('2026-01-02'), 'Charlie', 'Sport',  5, '', '', 'Dave']
   ]);
-  injectSheets(gas, { history });
+  const players = makeSheet(PLAYERS_FIXTURE);
+  injectSheets(gas, { history, players });
 
   const res = gas.apiUpdateBulkEntries([2, 3], { saiseur: 'Eve' }, 'Testeur');
   assert.strictEqual(res.success, true);
@@ -63,7 +67,8 @@ test('skips invalid row indexes silently', () => {
     HEADER,
     [D('2026-01-01'), 'Alice', 'Jeux', 10, 'orig', '', '']
   ]);
-  injectSheets(gas, { history });
+  const players = makeSheet(PLAYERS_FIXTURE);
+  injectSheets(gas, { history, players });
 
   const res = gas.apiUpdateBulkEntries([99, 2], { description: 'x' }, 'Testeur');
   assert.strictEqual(res.success, true);
@@ -80,7 +85,8 @@ test('returns success immediately when partialFields is empty', () => {
     HEADER,
     [D('2026-01-01'), 'Alice', 'Jeux', 10, '', '', '']
   ]);
-  injectSheets(gas, { history });
+  const players = makeSheet(PLAYERS_FIXTURE);
+  injectSheets(gas, { history, players });
 
   const res = gas.apiUpdateBulkEntries([2], {}, 'Testeur');
   assert.strictEqual(res.success, true);

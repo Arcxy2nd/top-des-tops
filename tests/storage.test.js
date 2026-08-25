@@ -74,7 +74,10 @@ test('apiRemoveFromGroup clears groupId for one row only, leaving siblings group
     [D('2026-01-01'), 'B', 'Jeux', 3, '', 'G1'],
     [D('2026-01-01'), 'C', 'Jeux', 2, '', 'G1']
   ]);
-  gas.ConfigService.getSheets = () => ({ history });
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Tester', '', '', '']]);
+  const auditLog = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']]);
+  gas.ConfigService.getSheets = () => ({ history, players, auditLog });
+  gas.ConfigService.clearCache = () => {};
 
   const res = gas.apiRemoveFromGroup(3, 'Tester');
   assert.strictEqual(res.success, true);

@@ -318,9 +318,9 @@ function apiGetAutoRules() {
   } catch (e) { return fail(e); }
 }
 
-function apiAddAutoRule(rule, author) {
+function apiAddAutoRule(rule, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const created = AutoPointsService.addRule(rule, author);
       AuditService.log(author, 'Création règle auto', 'AutoRules', '', '',
@@ -330,9 +330,9 @@ function apiAddAutoRule(rule, author) {
   } catch (e) { return fail(e); }
 }
 
-function apiUpdateAutoRule(id, patch, author) {
+function apiUpdateAutoRule(id, patch, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       const updated = AutoPointsService.updateRule(id, patch);
       AuditService.log(author, 'Modification règle auto', 'AutoRules', id, '', JSON.stringify(patch));
@@ -341,9 +341,9 @@ function apiUpdateAutoRule(id, patch, author) {
   } catch (e) { return fail(e); }
 }
 
-function apiDeleteAutoRule(id, author) {
+function apiDeleteAutoRule(id, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       AutoPointsService.deleteRule(id);
       AuditService.log(author, 'Suppression règle auto', 'AutoRules', id, '', '');
@@ -352,9 +352,9 @@ function apiDeleteAutoRule(id, author) {
   } catch (e) { return fail(e); }
 }
 
-function apiSetAutoTrigger(enabled, author) {
+function apiSetAutoTrigger(enabled, author, password) {
   try {
-    requireAuthor(author);
+    requireAuthor(author, password);
     return withLock(() => {
       if (enabled) AutoPointsService.installTrigger();
       else AutoPointsService.uninstallTrigger();

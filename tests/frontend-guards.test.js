@@ -30,7 +30,9 @@ function loadCallServer() {
   const sandbox = {
     showToast: (msg, kind) => toasts.push({ msg: String(msg), kind: kind }),
     console: { error: (...a) => errors.push(a.map(String).join(' ')), warn() {}, log() {} },
-    google: { script: { run: null } }
+    google: { script: { run: null } },
+    _MUTATING_APIS: new Set(['apiMutatingTest']),
+    _identityPassword: 'my-secret-pwd'
   };
   vm.createContext(sandbox);
   vm.runInContext(extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;', sandbox);
@@ -73,6 +75,24 @@ test('callServer still passes the payload through on the nominal path', () => {
 
   assert.strictEqual(got.value, 42);
   assert.strictEqual(toasts.length, 0, 'aucun toast sur le chemin nominal');
+});
+
+test('callServer appends _identityPassword to mutating endpoints and not to read endpoints', () => {
+  const { callServer, sandbox } = loadCallServer();
+  let receivedArgs = null;
+  const runner = {
+    withSuccessHandler(h) { return { withFailureHandler(fh) { return {
+      apiMutatingTest(...args) { receivedArgs = args; h({ success: true }); },
+      apiReadTest(...args) { receivedArgs = args; h({ success: true }); }
+    }; } }; }
+  };
+  sandbox.google.script.run = runner;
+
+  callServer('apiMutatingTest', ['Alice', 'data'], () => {});
+  assert.deepStrictEqual(receivedArgs, ['Alice', 'data', 'my-secret-pwd']);
+
+  callServer('apiReadTest', ['Alice'], () => {});
+  assert.deepStrictEqual(receivedArgs, ['Alice']);
 });
 
 test('showSkeleton replaces a stalled skeleton with a readable message', () => {

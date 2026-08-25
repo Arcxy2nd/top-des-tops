@@ -53,13 +53,15 @@ test('getEntities returns an empty list when the sheet only has a header row', (
 function withSettingsSheets(gas, initial) {
   let settingsSheet = initial || null;
   const auditSheet = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Alice', '', '', '']]);
   gas.ConfigService.getSheets = () => ({
     spreadsheet: {
       insertSheet: () => { settingsSheet = makeSheet([]); return settingsSheet; },
       getSheetByName: () => null
     },
     settings: settingsSheet,
-    auditLog: auditSheet
+    auditLog: auditSheet,
+    players: players
   });
   gas.ConfigService.clearCache = () => {};
 }

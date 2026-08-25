@@ -10,7 +10,9 @@ function makeAuditSheet() {
 
 function baseSheets(overrides) {
   return Object.assign({
-    history: makeSheet([]), players: makeSheet([]), categories: makeSheet([]),
+    history: makeSheet([]),
+    players: makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Alice', '', '', '']]),
+    categories: makeSheet([]),
     notes: null, bareme: null, phrases: null, auditLog: makeAuditSheet()
   }, overrides);
 }

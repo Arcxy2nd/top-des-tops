@@ -85,7 +85,7 @@ test('apiScanUnmentionedNames also scans Notes text', () => {
 
 test('apiApplyMentionFixes writes the fixed description back and logs one audit entry', () => {
   const gas = loadGas();
-  const players = makeSheet([['Name', 'Avatar URL', 'Hex color'], ['Jean', '', '']]);
+  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ['Jean', '', '', ''], ['Testeur', '', '', '']]);
   const history = makeSheet([
     HEADER,
     mk('2026-01-10', 'Jean', 'Jeux', 5, 'Jean a gagné')
