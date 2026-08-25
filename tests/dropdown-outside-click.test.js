@@ -36,9 +36,11 @@ function extractFunction(source, name) {
 }
 
 test('le rich-select reconnaît un clic sur son propre panneau (reparenté sous <body>) comme "à l\'intérieur"', () => {
-  const idx = html.indexOf("Close any open RichSelect when clicking outside");
-  assert.notStrictEqual(idx, -1, 'commentaire du garde-fou introuvable');
-  const snippet = html.slice(idx, html.indexOf('});', idx) + 3);
+  const idx = html.indexOf("document.querySelectorAll('.rich-select.open')");
+  assert.notStrictEqual(idx, -1, 'garde-fou introuvable');
+  const listenerStart = html.lastIndexOf("document.addEventListener('click'", idx);
+  assert.notStrictEqual(listenerStart, -1, 'écouteur introuvable');
+  const snippet = html.slice(listenerStart, html.indexOf('});', idx) + 3);
   assert.match(snippet, /e\.target\.closest\(['"]\.rich-select['"]\)/, 'doit toujours reconnaître un clic sur le déclencheur');
   assert.match(snippet, /e\.target\.closest\(['"]\.rs-panel['"]\)/, 'doit aussi reconnaître un clic sur le panneau reparenté, sinon sa barre de défilement referme le menu');
 });
