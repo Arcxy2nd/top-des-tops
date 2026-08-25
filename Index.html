@@ -5625,6 +5625,10 @@
            '&background=2a313d&color=e0e6ed&bold=true&size=64';
   }
 
+  function cssUrl(url) {
+    return 'url("' + String(url || '').replace(/["\\]/g, '\\$&') + '")';
+  }
+
   // ── ANCRAGE D'UN ÉLÉMENT FLOTTANT ────────────────────────────────────
   // Un élément en position:fixed est ancré à l'écran, pas à son bouton : sans
   // repositionnement, il « flotte » dès que la page défile. Cette brique le
@@ -7474,7 +7478,7 @@
 
           const catPlayer = cachedPlayers.find(p => p.name === item.topPlayer);
           const catBg = el.querySelector('.phrase-cat-bg-avatar');
-          catBg.style.backgroundImage = 'url(' + getAvatarUrl(item.topPlayer, catPlayer ? catPlayer.meta : '') + ')';
+          catBg.style.backgroundImage = cssUrl(getAvatarUrl(item.topPlayer, catPlayer ? catPlayer.meta : ''));
 
           body.appendChild(el);
         });
@@ -9288,7 +9292,7 @@
           <td style="text-align:center;padding:6px;"><input type="checkbox" class="u-chk" data-row="${rIdStr}" ${isChecked ? 'checked' : ''}></td>
           <td style="padding:6px;white-space:nowrap;">${dateStr}</td>
           <td style="padding:6px;white-space:nowrap;display:flex;align-items:center;gap:6px;">
-            <img src="${getAvatarUrl(l.player, playerObj ? playerObj.meta : '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+            <img src="${escapeHtml(getAvatarUrl(l.player, playerObj ? playerObj.meta : ''))}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
             <strong style="color:${pColor};">${escapeHtml(l.player)}</strong>
           </td>
           <td style="padding:6px;">${escapeHtml(catDisplay(l.category))}</td>
@@ -9521,7 +9525,7 @@
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:6px;">${dateStr}</td>
               <td style="padding:6px;white-space:nowrap;display:flex;align-items:center;gap:6px;">
-                <img src="${getAvatarUrl(e.player, pl ? pl.meta : '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+                <img src="${escapeHtml(getAvatarUrl(e.player, pl ? pl.meta : ''))}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
                 <strong style="color:${pColor};">${escapeHtml(e.player)}</strong>${nativeBadge}
               </td>
               <td style="padding:6px;"><strong style="color:var(--accent);">${e.points} pts</strong></td>
@@ -15095,7 +15099,7 @@
     const flashAvatarBg = document.createElement('div');
     flashAvatarBg.className = 'notes-flash-avatar-bg';
     const _initFlashPlayer = cachedPlayers.find(p => p.name === _flashPlayer);
-    flashAvatarBg.style.backgroundImage = 'url(' + getAvatarUrl(_flashPlayer, _initFlashPlayer ? _initFlashPlayer.meta : '') + ')';
+    flashAvatarBg.style.backgroundImage = cssUrl(getAvatarUrl(_flashPlayer, _initFlashPlayer ? _initFlashPlayer.meta : ''));
     flash.appendChild(flashAvatarBg);
 
     // Chips joueurs — sélection visuelle immédiate
@@ -15117,7 +15121,7 @@
         _flashPlayer = p.name;
         chipRow.querySelectorAll('.notes-player-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        flashAvatarBg.style.backgroundImage = 'url(' + getAvatarUrl(p.name, p.meta) + ')';
+        flashAvatarBg.style.backgroundImage = cssUrl(getAvatarUrl(p.name, p.meta));
         fInput.focus();
       });
       chipRow.appendChild(chip);
@@ -15366,7 +15370,7 @@
     const noteBg = document.createElement('div');
     noteBg.className = 'note-card-bg';
     const notePlayer = cachedPlayers.find(p => p.name === note.player);
-    noteBg.style.backgroundImage = 'url(' + getAvatarUrl(note.player, notePlayer ? notePlayer.meta : '') + ')';
+    noteBg.style.backgroundImage = cssUrl(getAvatarUrl(note.player, notePlayer ? notePlayer.meta : ''));
     card.appendChild(noteBg);
 
     const headc = document.createElement('div');

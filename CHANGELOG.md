@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.6] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Un joueur pouvait, en réglant son propre avatar sur une adresse bricolée, faire exécuter du code dans le navigateur d'un autre joueur qui consultait l'Historique ou le détail d'un Top Alternatif.
+**Technique** : `getAvatarUrl()` retourne du texte libre (`Players.meta`, jamais validé côté serveur) injecté sans échappement dans deux `<img src="${...}">` (`Index.html:9291`, `9524`) — faille XSS stockée, corrigée par `escapeHtml()`. Quatre constructions `style.backgroundImage = 'url(' + ... + ')'` (non exploitables en XSS — ce sont des affectations de propriété CSSOM, pas de l'innerHTML — mais fragiles si l'URL contient `"`/`\`) durcies via un nouveau helper `cssUrl()`.
+
 ## [v3.20.5] - 2026-08-25
 
 ### Corrigé
