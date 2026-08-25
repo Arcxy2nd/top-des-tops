@@ -9879,12 +9879,29 @@
     }, 'Vérification identité', () => { btn.disabled = false; });
   }
 
+  // Le menu est en position:fixed : sans recalage il reste figé à l'écran
+  // quand la page défile, décroché de son bouton. Défini ici (portée
+  // module, pas dans window.onload) pour que applyIdentity()/renderWhoAmI()
+  // puissent fermer proprement le dropdown (détache aussi les écouteurs de
+  // repositionnement) au lieu de seulement retirer la classe 'open'.
+  var detachWhoAmI = null;
+  function placeWhoAmI(rect, node) {
+    node.style.top   = (rect.bottom + 6) + 'px';
+    node.style.left  = Math.max(4, rect.right - 220) + 'px';
+    node.style.width = '220px';
+  }
+  function closeWhoAmIDropdown() {
+    if (detachWhoAmI) { detachWhoAmI(); detachWhoAmI = null; }
+    const wrap = document.getElementById('whoAmIWrap');
+    if (wrap) wrap.classList.remove('open');
+  }
+
   /** Sets the current identity and refreshes the who-am-i button + dropdown. */
   function applyIdentity(name) {
     _whoAmI = name;
     localStorage.setItem(WHO_AM_I_KEY, name);
     renderWhoAmI();
-    document.getElementById('whoAmIWrap').classList.remove('open');
+    closeWhoAmIDropdown();
   }
 
   function renderWhoAmI() {
@@ -9945,9 +9962,9 @@
       opt.appendChild(badge);
 
       opt.addEventListener('click', () => {
-        if (p.name === _whoAmI) { wrap.classList.remove('open'); return; }
+        if (p.name === _whoAmI) { closeWhoAmIDropdown(); return; }
         if (p.hasPassword) {
-          wrap.classList.remove('open');
+          closeWhoAmIDropdown();
           openIdentityPwdModal(p);
         } else {
           applyIdentity(p.name);
@@ -13252,7 +13269,10 @@
       }
     });
 
-    document.addEventListener('click', () => { altMenu.style.display = 'none'; });
+    // altMenu est scrollable (max-height + overflow-y ci-dessus) : sans la
+    // garde contains(), interagir avec sa propre barre de défilement se lit
+    // comme un clic extérieur et referme le menu en pleine interaction.
+    document.addEventListener('click', (e) => { if (!altMenu.contains(e.target)) altMenu.style.display = 'none'; });
 
     customAltPicker.appendChild(altCb);
     customAltPicker.appendChild(altCatSel);
@@ -18200,19 +18220,6 @@
       renderTrends();
     });
 
-    // Le menu est en position:fixed : sans recalage il reste figé à l'écran
-    // quand la page défile, décroché de son bouton.
-    var detachWhoAmI = null;
-    function placeWhoAmI(rect, node) {
-      node.style.top   = (rect.bottom + 6) + 'px';
-      node.style.left  = Math.max(4, rect.right - 220) + 'px';
-      node.style.width = '220px';
-    }
-    function closeWhoAmIDropdown() {
-      if (detachWhoAmI) { detachWhoAmI(); detachWhoAmI = null; }
-      const wrap = document.getElementById('whoAmIWrap');
-      if (wrap) wrap.classList.remove('open');
-    }
     document.getElementById('whoAmIBtn').addEventListener('click', e => {
       e.stopPropagation();
       const wrap = document.getElementById('whoAmIWrap');
@@ -18222,7 +18229,14 @@
       detachWhoAmI = anchorFloating(
         document.getElementById('whoAmIDropdown'), e.currentTarget, placeWhoAmI, closeWhoAmIDropdown);
     });
-    document.addEventListener('click', () => closeWhoAmIDropdown());
+    // Le dropdown n'est pas reparenté (contrairement au rich-select) : il
+    // reste sous #whoAmIWrap dans le DOM. La garde contains() est quand même
+    // nécessaire — sans elle, interagir avec sa propre barre de défilement
+    // (liste de joueurs longue) se lisait comme un clic extérieur et le
+    // refermait en pleine interaction.
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('whoAmIWrap').contains(e.target)) closeWhoAmIDropdown();
+    });
 
     document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
     document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
@@ -18230,9 +18244,13 @@
       if (e.key === 'Enter') submitIdentityPwd();
     });
 
-    // Close any open RichSelect when clicking outside
+    // Close any open RichSelect when clicking outside. The open panel lives
+    // under <body> while open (see openPanel), not under .rich-select
+    // anymore — without the second check, dragging the panel's own
+    // scrollbar (or clicking any non-option area of it) reads as an
+    // outside click and closes the dropdown mid-interaction.
     document.addEventListener('mousedown', function(e) {
-      if (!e.target.closest('.rich-select')) closeAllRichSelects();
+      if (!e.target.closest('.rich-select') && !e.target.closest('.rs-panel')) closeAllRichSelects();
     });
 
     bootDataLoad();

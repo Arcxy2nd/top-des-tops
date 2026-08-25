@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.1] - 2026-08-24
+
+### Corrigé
+**Humanisé** : Trois menus qui se refermaient tout seuls dès qu'on cliquait dedans (par exemple pour faire défiler une liste avec la barre de défilement) au lieu de rester ouverts : les listes déroulantes de filtre Joueur/Top (Dashboard, Historique, Saisir un Lot...), le sélecteur "⭐ Top Alt" et le menu "Qui suis-je ?" en haut à droite. Cliquer sur une option ou vraiment à l'extérieur continue de fermer le menu normalement.
+**Technique** : `Index.html` — trois vérifications de clic "à l'extérieur" étaient soit incomplètes, soit absentes. Le panneau `.rs-panel` des rich-selects est reparenté sous `<body>` à l'ouverture (`openPanel()`, l. 8145) pour échapper au clipping d'un conteneur ancêtre ; le garde `mousedown` global (l. ~18234) ne testait que `e.target.closest('.rich-select')`, qui ne matche plus rien une fois le panneau déplacé — ajout d'un second test `.closest('.rs-panel')`. `altMenu` (pilule ⭐ Top Alt, `addEntryRow()`) et `#whoAmIDropdown` fermaient sur n'importe quel clic document sans aucune vérification de containment — ajout de `altMenu.contains(e.target)` et `whoAmIWrap.contains(e.target)` respectivement. Pour who-am-i, `closeWhoAmIDropdown()`/`placeWhoAmI()`/`detachWhoAmI` sont remontées de la portée locale de `window.onload` vers la portée module : `applyIdentity()` et les deux branches de sélection dans `renderWhoAmI()` fermaient le dropdown en retirant directement la classe `.open` (sans passer par `closeWhoAmIDropdown()`), ce qui — une fois le clic à l'intérieur exempté de la fermeture globale — aurait laissé fuiter indéfiniment les écouteurs `scroll`/`resize` d'`anchorFloating()` à chaque sélection d'identité (même classe de fuite que celle éliminée par `anchorFloating()` en v3.17.0). Nouveaux tests `tests/dropdown-outside-click.test.js` (5 cas), vérifiés en échouant sur l'ancien code puis passant sur le correctif, plus vérification en direct sur le harness local (clic sur le panneau reste ouvert, clic sur une option ferme, clic réellement extérieur ferme — sur les 3 menus).
+
 ## [v3.20.0] - 2026-08-24
 
 ### Corrigé
