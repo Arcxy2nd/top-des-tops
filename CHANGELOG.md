@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.8] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Réordonner une longue liste de joueurs, de Tops, de règles de barème ou de phrases (glisser-déposer) pouvait ralentir sensiblement à chaque étape, à cause d'un aller-retour réseau par élément déplacé.
+**Technique** : `SettingsService.reorderEntities`, `BaremeService.reorderEntries`, `PhrasesService.reorderPhrases` (`Code.gs`) passent d'un `setValue()` par ligne à un seul `setValues()` sur la colonne Ordre complète. `apiRepairOrder` et les boucles `deleteRow()` (admin, rares) restent inchangés — hors périmètre de ce fix, voir le plan.
+
 ## [v3.20.7] - 2026-08-25
 
 ### Corrigé

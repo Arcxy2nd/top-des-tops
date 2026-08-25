@@ -799,7 +799,14 @@ const SettingsService = {
         throw new Error("Cette liste a changé entre-temps — recharge la page et réessaie.");
       }
     });
-    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 5).setValue(i + 1));
+    const newOrdre = {};
+    wanted.forEach((rowIndex, i) => { newOrdre[rowIndex] = i + 1; });
+    const firstRow = 1 + off;
+    const column = [];
+    for (let r = firstRow; r <= data.length; r++) {
+      column.push([r in newOrdre ? newOrdre[r] : data[r - 1][4]]);
+    }
+    sheet.getRange(firstRow, 5, column.length, 1).setValues(column);
     _bumpSettingsVersion();
   }
 };
@@ -2219,8 +2226,9 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     const data = sheet.getDataRange().getValues();
+    const off = _headerOffsetFromValues('bareme', data);
     const groupRows = [];
-    for (let i = _headerOffsetFromValues('bareme', data); i < data.length; i++) {
+    for (let i = off; i < data.length; i++) {
       if (data[i][0] === topName) groupRows.push(i + 1);
     }
     const wanted = orderedRowIndexes.map(Number);
@@ -2228,7 +2236,14 @@ const BaremeService = {
       groupRows.every(r => wanted.includes(r)) &&
       new Set(wanted).size === wanted.length;
     if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux règles existantes de ce Top.");
-    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 4).setValue(i + 1));
+    const newOrdre = {};
+    wanted.forEach((rowIndex, i) => { newOrdre[rowIndex] = i + 1; });
+    const firstRow = 1 + off;
+    const column = [];
+    for (let r = firstRow; r <= data.length; r++) {
+      column.push([r in newOrdre ? newOrdre[r] : data[r - 1][3]]);
+    }
+    sheet.getRange(firstRow, 4, column.length, 1).setValues(column);
     _bumpBaremeVersion();
   }
 };
@@ -2357,8 +2372,9 @@ const PhrasesService = {
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
     const data = sheet.getDataRange().getValues();
+    const off = _headerOffsetFromValues('phrases', data);
     const groupRows = [];
-    for (let i = _headerOffsetFromValues('phrases', data); i < data.length; i++) {
+    for (let i = off; i < data.length; i++) {
       if (data[i][0] === preset && data[i][1] === pool) groupRows.push(i + 1);
     }
     const wanted = orderedRowIndexes.map(Number);
@@ -2366,7 +2382,14 @@ const PhrasesService = {
       groupRows.every(r => wanted.includes(r)) &&
       new Set(wanted).size === wanted.length;
     if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux phrases existantes de ce pool.");
-    wanted.forEach((rowIndex, i) => sheet.getRange(rowIndex, 4).setValue(i + 1));
+    const newOrdre = {};
+    wanted.forEach((rowIndex, i) => { newOrdre[rowIndex] = i + 1; });
+    const firstRow = 1 + off;
+    const column = [];
+    for (let r = firstRow; r <= data.length; r++) {
+      column.push([r in newOrdre ? newOrdre[r] : data[r - 1][3]]);
+    }
+    sheet.getRange(firstRow, 4, column.length, 1).setValues(column);
     _bumpPhrasesVersion();
   }
 };
