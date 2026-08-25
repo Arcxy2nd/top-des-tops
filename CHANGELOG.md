@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.15] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Le découpage en mémoire rapide de l'historique complet et du changelog se faisait en tranches trop lourdes dès que le texte contenait des emojis, ce qui faisait rejeter la sauvegarde par Google — l'application relisait alors tout à chaque affichage.
+**Technique** : `StorageService.getFullHistoryRowsCached` et `apiGetChangelog` abandonnent leur découpage maison en 90 000 caractères (jusqu'à 360 000 octets par morceau) au profit de `_cachePutChunked()`/`_cacheGetChunked()`, bornés en octets. Le schéma de clés (`key`, `key_chunks`, `key_N`) est conservé, donc les entrées écrites par la v3.20.9 restent lisibles pendant leur TTL.
+
+### Supprimé
+**Humanisé** : Deux copies de la même mécanique de découpage disparaissent du code.
+**Technique** : Suppression de la logique de chunking dupliquée dans les deux fonctions, ainsi que du littéral `600` et du `chunkSize = 90000` codés en dur ; le TTL vient désormais de `CONFIG.CACHE_TTL_SECONDS`.
+
 ## [v3.20.14] - 2026-08-25
 
 ### Corrigé

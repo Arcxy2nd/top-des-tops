@@ -1025,41 +1025,15 @@ const StorageService = {
   getFullHistoryRowsCached() {
     const cache = CacheService.getScriptCache();
     const key   = 'hist_full_v' + _logsVersion();
-    const raw   = cache.get(key);
+    const raw   = _cacheGetChunked(cache, key);
     if (raw) {
       try {
         return JSON.parse(raw).map(r => Object.assign({}, r, { date: new Date(r.date) }));
       } catch (e) { /* corrupt entry → fall through to a fresh read */ }
     }
-    const chunkCountStr = cache.get(key + '_chunks');
-    if (chunkCountStr) {
-      try {
-        const chunkCount = parseInt(chunkCountStr, 10);
-        let fullJson = '';
-        let valid = true;
-        for (let i = 0; i < chunkCount; i++) {
-          const chunk = cache.get(key + '_' + i);
-          if (chunk) { fullJson += chunk; } else { valid = false; break; }
-        }
-        if (valid && fullJson) {
-          return JSON.parse(fullJson).map(r => Object.assign({}, r, { date: new Date(r.date) }));
-        }
-      } catch (e) { /* corrupt chunk set → fall through to a fresh read */ }
-    }
     const result = this._readFullHistoryRows();
     const serial = JSON.stringify(result.map(r => Object.assign({}, r, { date: r.date.toISOString() })));
-    const chunkSize = 90000;
-    try {
-      if (serial.length <= chunkSize) {
-        cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
-      } else {
-        const chunkCount = Math.ceil(serial.length / chunkSize);
-        cache.put(key + '_chunks', String(chunkCount), CONFIG.CACHE_TTL_SECONDS);
-        for (let i = 0; i < chunkCount; i++) {
-          cache.put(key + '_' + i, serial.slice(i * chunkSize, (i + 1) * chunkSize), CONFIG.CACHE_TTL_SECONDS);
-        }
-      }
-    } catch (cacheWriteErr) { _logCacheSkip(key, serial.length); }
+    _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
@@ -4353,28 +4327,8 @@ function apiGetChangelog(forceRefresh) {
     const cache = CacheService.getScriptCache();
     if (!forceRefresh) {
       try {
-        const cached = cache.get(cacheKey);
-        if (cached) {
-          return JSON.parse(cached);
-        }
-        const chunkCountStr = cache.get(cacheKey + '_chunks');
-        if (chunkCountStr) {
-          const chunkCount = parseInt(chunkCountStr, 10);
-          let fullJson = '';
-          let valid = true;
-          for (let i = 0; i < chunkCount; i++) {
-            const chunk = cache.get(cacheKey + '_' + i);
-            if (chunk) {
-              fullJson += chunk;
-            } else {
-              valid = false;
-              break;
-            }
-          }
-          if (valid && fullJson) {
-            return JSON.parse(fullJson);
-          }
-        }
+        const cached = _cacheGetChunked(cache, cacheKey);
+        if (cached) return JSON.parse(cached);
       } catch (cacheReadErr) {
         console.warn('Erreur lecture cache changelog:', cacheReadErr);
       }
@@ -4384,21 +4338,7 @@ function apiGetChangelog(forceRefresh) {
     if (response.getResponseCode() === 200) {
       const content = response.getContentText();
       const result = { success: true, content: content, fetchedAt: new Date().toISOString() };
-      try {
-        const json = JSON.stringify(result);
-        const chunkSize = 90000;
-        if (json.length <= chunkSize) {
-          cache.put(cacheKey, json, 600); // 10 min
-        } else {
-          const chunkCount = Math.ceil(json.length / chunkSize);
-          cache.put(cacheKey + '_chunks', String(chunkCount), 600);
-          for (let i = 0; i < chunkCount; i++) {
-            cache.put(cacheKey + '_' + i, json.slice(i * chunkSize, (i + 1) * chunkSize), 600);
-          }
-        }
-      } catch (cacheWriteErr) {
-        console.warn('Erreur écriture cache changelog:', cacheWriteErr);
-      }
+      _cachePutChunked(cache, cacheKey, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
       return result;
     } else {
       return { success: false, error: 'Impossible de charger le changelog depuis GitHub (Code HTTP ' + response.getResponseCode() + ')' };

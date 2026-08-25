@@ -136,3 +136,53 @@ test('chaque cache.put direct de Code.gs passe par _cachePutChunked', () => {
     'cache.put directs restants :\n' + strays.map(l => '  ' + l).join('\n')
   );
 });
+
+const { makeSheet } = require('./harness');
+
+const HIST_HEADER = ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'];
+
+test('getFullHistoryRowsCached se relit a l identique avec un historique plein d emojis', () => {
+  const cache = byteLimitedCache(95000);
+  const gas = loadGas({ CacheService: { getScriptCache: () => cache } });
+
+  const rows = [HIST_HEADER];
+  for (let i = 0; i < 4000; i++) {
+    rows.push([new Date('2026-03-04T12:00:00'), 'Joueur' + (i % 7), 'Jeux 🏆🎲🎯', 5, 'Partie 🏆 numero ' + i, '', '']);
+  }
+  const history = makeSheet(rows);
+  gas.ConfigService.getSheets = () => ({ history });
+
+  const first = gas.StorageService.getFullHistoryRowsCached();
+  assert.ok(first.length > 0);
+
+  // Le payload doit avoir ete decoupe : sinon le fixture ne prouve rien.
+  assert.ok(Object.keys(cache.store).some(k => k.indexOf('_chunks') !== -1),
+    'le fixture doit forcer un decoupage');
+
+  const second = gas.StorageService.getFullHistoryRowsCached();
+  assert.strictEqual(second.length, first.length);
+  assert.strictEqual(second[0].player, first[0].player);
+  assert.strictEqual(second[0].description, first[0].description);
+  // Cross-realm : comparer la forme, pas via instanceof.
+  assert.strictEqual(Object.prototype.toString.call(second[0].date), '[object Date]');
+  assert.strictEqual(second[0].date.getTime(), first[0].date.getTime());
+});
+
+test('chaque morceau ecrit par getFullHistoryRowsCached tient dans la limite en octets', () => {
+  const cache = byteLimitedCache(95000);
+  const gas = loadGas({ CacheService: { getScriptCache: () => cache } });
+  const rows = [HIST_HEADER];
+  for (let i = 0; i < 4000; i++) {
+    rows.push([new Date('2026-03-04T12:00:00'), 'Joueur' + (i % 7), 'Jeux 🏆🎲🎯', 5, 'Partie 🏆 numero ' + i, '', '']);
+  }
+  gas.ConfigService.getSheets = () => ({ history: makeSheet(rows) });
+
+  // byteLimitedCache leve au-dela de la limite ; si un seul morceau depassait,
+  // _cachePutChunked l'avalerait et le cache resterait vide.
+  gas.StorageService.getFullHistoryRowsCached();
+  const written = Object.keys(cache.store);
+  assert.ok(written.length > 0, 'aucune entree ecrite : un morceau a ete refuse par le service');
+  written.forEach(k => {
+    assert.ok(Buffer.byteLength(cache.store[k], 'utf8') <= 95000, k + ' depasse la limite');
+  });
+});
