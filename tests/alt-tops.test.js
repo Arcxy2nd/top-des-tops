@@ -168,3 +168,23 @@ test('deleting History rows renumbers surviving AltHistory refHistoryRowId and c
   assert.strictEqual(refs[1], '2', 'ref to former row 3 shifts down to 2');
   assert.strictEqual(refs[2], '4', 'ref to former row 5 shifts down to 4');
 });
+
+test('linkHistoryRowsToAltCategory preserves the original History entry date', () => {
+  const gas = loadGas();
+  const originalDate = new Date('2026-03-15T10:00:00');
+  const history = makeSheet([
+    HEADER_HIST,
+    [originalDate, 'Alice', 'Jeux', 5, 'ok', '', '']
+  ]);
+  const altCategories = makeSheet([HEADER_ALT_CAT, ['AltTop', '', '⭐', '#ff0000']]);
+  const altHistory = makeSheet([HEADER_ALT_HIST]);
+  gas.ConfigService.getSheets = () => ({ history, altCategories, altHistory });
+  gas.ConfigService.clearCache = () => {};
+
+  gas.AltStorageService.linkHistoryRowsToAltCategory([2], 'AltTop', 'Alice');
+
+  const writtenDate = new Date(altHistory._grid[1][0]);
+  assert.strictEqual(writtenDate.getTime(), originalDate.getTime(),
+    'the Alt entry must carry the original History date, not the linking timestamp');
+});
+

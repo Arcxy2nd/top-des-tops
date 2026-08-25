@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.4] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Rattacher une entrée de l'Historique principal à un Top Alternatif remplaçait sa date d'origine par la date du jour du rattachement.
+**Technique** : `AltStorageService.linkHistoryRowsToAltCategory` (`Code.gs:1566`) lisait `histItem.timestamp` (inexistant sur les lignes de `getFullHistoryRowsCached()`, qui expose `.date`) — `_buildAltRow` retombait alors sur `new Date()`. Test de régression `tests/alt-tops.test.js`.
+
 ## [v3.20.3] - 2026-08-25
 
 ### Corrigé

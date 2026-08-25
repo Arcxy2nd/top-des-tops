@@ -1563,7 +1563,7 @@ const AltStorageService = {
       const histItem = rowMap[idx];
       if (histItem && !existingRefs.has(histItem.rowIndex.toString())) {
         entriesToAdd.push({
-          date: histItem.timestamp,
+          date: histItem.date,
           player: histItem.player,
           category: altCategory,
           points: histItem.points,
