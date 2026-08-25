@@ -61,20 +61,15 @@ function makeContext() {
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alicia', 'sesame'), true);
 }
 
-// Passwords are hashed at rest, and migrated transparently from legacy plaintext
+// Passwords stored in the sheet are preserved in plaintext as-is
 {
   const ctx = makeContext();
   const players = ctx.ConfigService.getSheets().players;
-  assert.strictEqual(players._grid[1][3], 'sesame', 'fixture starts with a legacy plaintext password');
+  assert.strictEqual(players._grid[1][3], 'sesame', 'fixture starts with a plaintext password');
 
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alice', 'sesame'), true);
+  assert.strictEqual(players._grid[1][3], 'sesame', 'the cell must retain the plaintext password as-is');
 
-  assert.notStrictEqual(players._grid[1][3], 'sesame',
-    'the cell must no longer hold the plaintext password after a successful check');
-  assert.match(players._grid[1][3], /^[0-9a-f]{64}$/i, 'migrated value must be a SHA-256 hex digest');
-
-  // The migrated hash keeps working on every later check, including a bad one.
-  assert.strictEqual(ctx.SettingsService.verifyIdentity('Alice', 'sesame'), true);
   assert.strictEqual(ctx.SettingsService.verifyIdentity('Alice', 'wrong'), false);
 }
 

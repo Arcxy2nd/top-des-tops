@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.12] - 2026-08-25
+
+### Modifié
+**Humanisé** : Annulation du hachage des mots de passe (v3.20.7) : les mots de passe des joueurs restent stockés en clair et visibles directement dans la feuille Google Sheet `Players`.
+**Technique** : Suppression de `_hashPassword` dans `Code.gs` et retour à une comparaison directe chaîne-à-chaîne dans `SettingsService.verifyIdentity` (`Code.gs:760`), sans réécriture ni altération des cellules de la colonne `Password`.
+
 ## [v3.20.11] - 2026-08-25
 
 ### Corrigé
