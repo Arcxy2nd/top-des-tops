@@ -9007,7 +9007,10 @@
   // sans conteneur empilé, aucun raccourci ne s'applique.
   function openModal(el, opts) {
     opts = opts || {};
-    const modal = el || document.getElementById('modalBackdrop');
+    const modal = (el && typeof el.querySelectorAll === 'function')
+      ? el
+      : (typeof el === 'string' ? document.getElementById(el) : document.getElementById('modalBackdrop'));
+    if (!modal) return;
     // Rouvrir une fenêtre déjà ouverte (double clic, deux réponses serveur qui
     // se suivent) ne doit pas l'empiler deux fois : elle ne serait dépilée qu'à
     // moitié et le verrou de défilement ne sauterait plus jamais.
@@ -9021,10 +9024,14 @@
   }
 
   function closeModal(el) {
-    const modal = el || document.getElementById('modalBackdrop');
+    const modal = (el && typeof el.querySelectorAll === 'function')
+      ? el
+      : (typeof el === 'string' ? document.getElementById(el) : document.getElementById('modalBackdrop'));
     closeAllRichSelects();
-    modal.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
-    modal.style.display = 'none';
+    if (modal && modal.querySelectorAll) {
+      modal.querySelectorAll('.md-editor').forEach(ed => { if (ed._destroy) ed._destroy(); });
+      modal.style.display = 'none';
+    }
 
     let opener = null;
     for (let i = _modalStack.length - 1; i >= 0; i--) {
@@ -9034,14 +9041,16 @@
     // Une fenêtre construite à la volée (overlay d'export) doit quitter le DOM :
     // la masquer suffirait à la faire disparaître, mais en laisserait une de
     // plus à chaque ouverture — exactement la fuite qu'on corrige ailleurs.
-    if (modal._ephemeral) modal.remove();
+    if (modal && modal._ephemeral) modal.remove();
 
-    if (modal.id === 'modalBackdrop') {
+    if (modal && modal.id === 'modalBackdrop') {
       const box = document.getElementById('modalBox');
-      box.innerHTML = '';
-      box.style.maxWidth = '';
-      box.classList.remove('wide');
-      box.classList.remove('xl');
+      if (box) {
+        box.innerHTML = '';
+        box.style.maxWidth = '';
+        box.classList.remove('wide');
+        box.classList.remove('xl');
+      }
     }
     if (opener && opener.focus) opener.focus();
   }

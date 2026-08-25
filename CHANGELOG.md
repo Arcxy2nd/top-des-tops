@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.17] - 2026-08-26
+
+### Corrigé
+**Humanisé** : La fermeture des fenêtres de dialogue (modales) ne produit plus d'erreur JavaScript lorsqu'elle est déclenchée directement par un clic sur un bouton d'annulation ou de fermeture.
+**Technique** : `closeModal()` et `openModal()` dans `Index.html` valident que l'argument reçu est bien un élément DOM avec `querySelectorAll` (au lieu d'un objet `MouseEvent` injecté par les callbacks `onclick = closeModal`), évitant l'exception `modal.querySelectorAll is not a function`.
+
 ## [v3.20.16] - 2026-08-25
 
 ### Corrigé

@@ -196,11 +196,37 @@ test('closeModal dépile, déverrouille le défilement et rend le focus', () => 
   assert.match(src, /opener/, 'doit rendre le focus au bouton d\'origine');
 });
 
-test('closeModal() sans argument vise toujours la fenêtre partagée', () => {
+test('closeModal() sans argument ou appelé comme listener d\'événement vise la fenêtre partagée sans planter', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
   const src = extractFunction(html, 'closeModal');
-  assert.match(src, /el \|\| document\.getElementById\('modalBackdrop'\)/,
-    'les ~40 appels nus closeModal() doivent continuer à viser #modalBackdrop');
+  assert.match(src, /document\.getElementById\('modalBackdrop'\)/,
+    'les ~40 appels nus closeModal() ou callbacks doivent continuer à viser #modalBackdrop');
+
+  const env = makeEnv();
+  const backdrop = env.register('modalBackdrop', env.makeEl('div', 'modalBackdrop'));
+  const box = env.register('modalBox', env.makeEl('div', 'modalBox'));
+  backdrop.appendChild(box);
+
+  vm.createContext(env);
+  const code = 'const _modalStack = []; function closeAllRichSelects() {}\n' +
+    extractFunction(html, 'openModal') + '\n' +
+    extractFunction(html, 'closeModal') + '\n' +
+    'this.__openModal = openModal;\nthis.__closeModal = closeModal;';
+  vm.runInContext(code, env);
+
+  // 1. openModal() puis closeModal() sans argument
+  env.__openModal();
+  assert.strictEqual(backdrop.style.display, 'flex');
+  env.__closeModal();
+  assert.strictEqual(backdrop.style.display, 'none');
+
+  // 2. openModal() puis closeModal(event) (simulation clic sur mCancel ou mRecapClose)
+  env.__openModal();
+  assert.strictEqual(backdrop.style.display, 'flex');
+  assert.doesNotThrow(() => {
+    env.__closeModal({ type: 'click', target: {}, preventDefault() {} });
+  }, 'closeModal ne doit pas planter quand un objet Event lui est passé');
+  assert.strictEqual(backdrop.style.display, 'none');
 });
 
 test('body.modal-open coupe le défilement et chaque conteneur est focusable', () => {

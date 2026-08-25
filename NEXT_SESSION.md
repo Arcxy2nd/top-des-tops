@@ -1,18 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.20.16** (2026-08-25) — déployée et validée sur Google Apps Script via CI.
-- Plan achevé : `docs/superpowers/plans/2026-08-25-audit-gemini-3.1-fixes.md` (6 tâches terminées, commitées et déployées).
+- Version livrée : **v3.20.17** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
+- Correctif ponctuel : Résolution sécurisée de l'élément cible dans `closeModal()` / `openModal()` pour éviter le crash `modal.querySelectorAll is not a function` lorsqu'un `MouseEvent` est passé via `onclick = closeModal`.
 - Suite de tests : 297 cas verts (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- Exécution complète du plan `docs/superpowers/plans/2026-08-25-audit-gemini-3.1-fixes.md` (Tâches 1 à 6) :
-  - **Tâche 1 (`v3.20.13`)** : Implémentation des aides de cache en octets UTF-8 stricts (`_byteLength`, `_cachePutChunked`, `_cacheGetChunked`) avec respect des paires de substituts (emojis), gestion du TTL et robustesse face aux quotas/pannes CacheService. Tests unitaires dédiés dans `tests/cache-bytes.test.js`.
-  - **Tâche 2 (`v3.20.14`)** : Migration des 12 sites de cache serveur unitaires vers `_cachePutChunked`/`_cacheGetChunked` et sécurisation du `cache.put` sans garde d'`AnalyticsService.getDataHealth`. Ratchet anti-régression vérifiant l'absence de mesure en caractères ou d'appels directs à `cache.put`.
-  - **Tâche 3 (`v3.20.15`)** : Déduplication et bascule des deux chunkers maison (`StorageService.getFullHistoryRowsCached` et `apiGetChangelog`) vers les fonctions partagées. Conservation de la compatibilité de lecture des clés préexistantes.
-  - **Tâches 4 & 5 (`v3.20.16`)** : Création du cliquet anti-injection `tests/innerhtml-audit.test.js` bloquant toute interpolation de données non échappée dans un sink `innerHTML`. Audit de l'intégralité des affectations dans `Index.html` : correction de l'échappement sur les boutons rapides de barème (`entry.action`) et cartes d'historique rapide (`entry.description`), neutralisation des faux positifs multilignes et constitution de la table d'audit explicite (29 sites documentés et vérifiés uniques).
-  - **Tâche 6** : Déploiement CI vérifié vert sur Google Apps Script (run 32797074918), mise à jour du changelog et clôture.
+- Fix bug `v3.20.17` :
+  - **Correction modales (`Index.html`)** : `openModal()` et `closeModal()` filtrent désormais l'argument reçu pour s'assurer qu'il possède bien `querySelectorAll` (DOM Element) ou qu'il s'agit d'un ID chaîne, et basculent sinon de manière sûre sur `#modalBackdrop`. Évite l'exception `TypeError: modal.querySelectorAll is not a function` lorsque les boutons déclenchent `closeModal` via leur écouteur direct `onclick = closeModal` (qui transmet l'objet `MouseEvent`).
+  - **Mise à jour des tests (`tests/papercuts.test.js`)** : Test unitaire vérifiant la fermeture nominale et la non-régression lors du passage d'un objet événement synthétique.
+  - Tous les 297 tests vérifiés au vert.
 
 ## Écarts
 - Aucun écart par rapport au plan arbitré. Un ajustement a été apporté à `tests/dropdown-outside-click.test.js` pour ancrer l'assertion sur le code exécutable (`document.addEventListener('mousedown')`) plutôt que sur un commentaire éliminé lors du stripping pré-déploiement CI.
