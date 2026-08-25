@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.2] - 2026-08-24
+
+### Corrigé
+**Humanisé** : Une petite fuite technique invisible, trouvée en marge du fix précédent — chaque ligne ajoutée dans "Saisir un Lot" laissait derrière elle, même après suppression de la ligne, un morceau de code toujours actif en mémoire. Sans conséquence visible à court terme, mais qui s'accumulait indéfiniment sur une session avec beaucoup d'ajouts/suppressions de lignes.
+**Technique** : `Index.html` — `addEntryRow()` enregistrait un `document.addEventListener('click', ...)` dédié à chaque appel (fermeture au clic extérieur de la pilule ⭐ Top Alt, ajoutée en v3.20.1), jamais retiré même quand la ligne est supprimée (`delBtn` ne fait que `div.remove()`). Remplacé par un seul écouteur global posé une fois avant `addEntryRow()`, qui ferme tout `.alt-picker-menu` ne contenant pas la cible du clic — le sélecteur CSS étant stable, plus besoin d'un écouteur par instance. Tests `tests/dropdown-outside-click.test.js` étendus (2 cas de plus, vérifiés en échec sur l'ancien code via `git stash`), plus vérification en direct : ajout/ouverture/suppression de 3 lignes sans erreur console, menu toujours fonctionnel après.
+
 ## [v3.20.1] - 2026-08-24
 
 ### Corrigé

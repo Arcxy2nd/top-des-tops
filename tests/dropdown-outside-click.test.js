@@ -44,10 +44,28 @@ test('le rich-select reconnaît un clic sur son propre panneau (reparenté sous 
 });
 
 test('le sélecteur ⭐ Top Alt ne se ferme plus sur un clic à l\'intérieur de son propre menu', () => {
-  const idx = html.indexOf("altMenu est scrollable");
-  assert.notStrictEqual(idx, -1, 'commentaire du garde-fou introuvable');
+  const idx = html.indexOf("querySelectorAll('.alt-picker-menu').forEach(m => {");
+  assert.notStrictEqual(idx, -1, "garde-fou introuvable (querySelectorAll('.alt-picker-menu').forEach(m => {...})");
   const snippet = html.slice(idx, html.indexOf('});', idx) + 3);
-  assert.match(snippet, /altMenu\.contains\(e\.target\)/, 'doit vérifier que le clic est hors du menu avant de le fermer');
+  assert.match(snippet, /m\.contains\(e\.target\)/, 'doit vérifier que le clic est hors du menu avant de le fermer');
+});
+
+test('le garde-fou du sélecteur ⭐ Top Alt est posé une seule fois (pas dans addEntryRow, sinon fuite par ligne)', () => {
+  const closerListenerIdx = html.lastIndexOf("document.addEventListener('click'", html.indexOf("function addEntryRow("));
+  assert.notStrictEqual(closerListenerIdx, -1, 'le garde-fou doit être déclaré avant addEntryRow, en dehors de la fonction');
+  const addEntryRowIdx = html.indexOf('function addEntryRow(');
+  assert.ok(closerListenerIdx < addEntryRowIdx, 'le garde-fou doit être posé une seule fois, pas à chaque appel de addEntryRow');
+
+  const addEntryRowStart = addEntryRowIdx;
+  let depth = 0, i = html.indexOf('{', addEntryRowStart);
+  const open = i;
+  for (; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}') { depth--; if (depth === 0) break; }
+  }
+  const addEntryRowBody = html.slice(open, i + 1);
+  assert.doesNotMatch(addEntryRowBody, /document\.addEventListener\(['"]click['"]/,
+    "addEntryRow ne doit plus enregistrer son propre écouteur document — sinon un par ligne, jamais retiré");
 });
 
 test('"Qui suis-je ?" ne se ferme plus sur un clic à l\'intérieur de son propre menu', () => {

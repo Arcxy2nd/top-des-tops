@@ -12833,6 +12833,19 @@
     div.style.setProperty('--row-accent', categoryColor(categoryName || ''));
   }
 
+  // Fermeture au clic extérieur pour toutes les pilules ⭐ Top Alt (une par
+  // ligne de addEntryRow ci-dessous), postée une seule fois ici plutôt qu'à
+  // chaque appel de addEntryRow : un écouteur document par ligne ne serait
+  // jamais retiré, y compris quand la ligne est supprimée (bouton ✕), et
+  // s'accumulerait indéfiniment sur une session avec beaucoup d'ajouts de
+  // lignes. .alt-picker-menu identifie chaque menu de façon stable, donc un
+  // seul écouteur global peut fermer celui/ceux qui ne contiennent pas la cible.
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.alt-picker-menu').forEach(m => {
+      if (!m.contains(e.target)) m.style.display = 'none';
+    });
+  });
+
   function addEntryRow(preset, animateFromBtn) {
     const container = document.getElementById('entryContainer');
     const es = container.querySelector('.empty-state');
@@ -13268,11 +13281,6 @@
         altMenu.style.display = 'flex';
       }
     });
-
-    // altMenu est scrollable (max-height + overflow-y ci-dessus) : sans la
-    // garde contains(), interagir avec sa propre barre de défilement se lit
-    // comme un clic extérieur et referme le menu en pleine interaction.
-    document.addEventListener('click', (e) => { if (!altMenu.contains(e.target)) altMenu.style.display = 'none'; });
 
     customAltPicker.appendChild(altCb);
     customAltPicker.appendChild(altCatSel);
