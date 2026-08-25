@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.9] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Une fois l'historique assez volumineux, la mise en cache se désactivait silencieusement — chaque changement d'onglet relisait tout le Google Sheet au lieu d'utiliser la copie rapide en mémoire.
+**Technique** : `StorageService.getFullHistoryRowsCached` (`Code.gs:945`) découpe désormais le payload en morceaux de 90 000 caractères sur plusieurs clés `CacheService`, même pattern que `apiGetChangelog` (`Code.gs:4235`), au lieu d'abandonner la mise en cache au-delà de `CACHE_MAX_BYTES`.
+
 ## [v3.20.8] - 2026-08-25
 
 ### Corrigé

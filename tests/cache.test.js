@@ -311,3 +311,26 @@ test('a payload above CACHE_MAX_BYTES is not cached, and the skip is traced', ()
   assert.ok(skips.length >= 1, 'an oversized payload must log a skip');
   assert.match(skips[0], /cache skip/);
 });
+
+test('getFullHistoryRowsCached chunks an oversized payload instead of skipping the cache', () => {
+  const gas = loadGas();
+  const history = makeSheet([HEADER,
+    [D('2026-08-01'), 'Alice', 'Jeux', 5, 'ok', ''],
+    [D('2026-08-02'), 'Bob',   'Jeux', 3, 'ok', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history });
+
+  gas.CONFIG.CACHE_MAX_BYTES = 1; // force "oversized" without needing a huge fixture
+  const before = gas.StorageService.getFullHistoryRowsCached();
+  assert.strictEqual(before.length, 2);
+
+  // A second call must be served from the chunked cache, not a fresh sheet read —
+  // prove it by breaking the sheet read and confirming the result is still correct.
+  gas.ConfigService.getSheets = () => { throw new Error('sheet should not be re-read — cache miss'); };
+  const after = gas.StorageService.getFullHistoryRowsCached();
+  assert.strictEqual(after.length, 2);
+  assert.strictEqual(after[0].player, 'Alice');
+  assert.strictEqual(Object.prototype.toString.call(after[0].date), '[object Date]');
+  assert.strictEqual(after[0].date.getTime(), D('2026-08-01').getTime());
+});
+

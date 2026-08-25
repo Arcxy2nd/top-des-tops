@@ -968,10 +968,35 @@ const StorageService = {
         return JSON.parse(raw).map(r => Object.assign({}, r, { date: new Date(r.date) }));
       } catch (e) { /* corrupt entry → fall through to a fresh read */ }
     }
+    const chunkCountStr = cache.get(key + '_chunks');
+    if (chunkCountStr) {
+      try {
+        const chunkCount = parseInt(chunkCountStr, 10);
+        let fullJson = '';
+        let valid = true;
+        for (let i = 0; i < chunkCount; i++) {
+          const chunk = cache.get(key + '_' + i);
+          if (chunk) { fullJson += chunk; } else { valid = false; break; }
+        }
+        if (valid && fullJson) {
+          return JSON.parse(fullJson).map(r => Object.assign({}, r, { date: new Date(r.date) }));
+        }
+      } catch (e) { /* corrupt chunk set → fall through to a fresh read */ }
+    }
     const result = this._readFullHistoryRows();
     const serial = JSON.stringify(result.map(r => Object.assign({}, r, { date: r.date.toISOString() })));
-    if (serial.length <= CONFIG.CACHE_MAX_BYTES) cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
-    else _logCacheSkip(key, serial.length);
+    const chunkSize = 90000;
+    try {
+      if (serial.length <= chunkSize) {
+        cache.put(key, serial, CONFIG.CACHE_TTL_SECONDS);
+      } else {
+        const chunkCount = Math.ceil(serial.length / chunkSize);
+        cache.put(key + '_chunks', String(chunkCount), CONFIG.CACHE_TTL_SECONDS);
+        for (let i = 0; i < chunkCount; i++) {
+          cache.put(key + '_' + i, serial.slice(i * chunkSize, (i + 1) * chunkSize), CONFIG.CACHE_TTL_SECONDS);
+        }
+      }
+    } catch (cacheWriteErr) { _logCacheSkip(key, serial.length); }
     return result;
   },
 
