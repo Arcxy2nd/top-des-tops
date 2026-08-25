@@ -518,12 +518,7 @@ const BackupService = (() => {
     const copy = ss.copy(name);
     const copyFile = DriveApp.getFileById(copy.getId());
     const folder = _snapshotFolder(sourceFile);
-    folder.addFile(copyFile);
-    const copyParents = copyFile.getParents();
-    while (copyParents.hasNext()) {
-      const p = copyParents.next();
-      if (p.getId() !== folder.getId()) p.removeFile(copyFile);
-    }
+    copyFile.moveTo(folder);
     return { name, url: copy.getUrl() };
   }
 

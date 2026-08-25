@@ -129,7 +129,12 @@ function makeFakeDrive() {
       },
       _addParent(folder) { if (currentParents.indexOf(folder) === -1) currentParents.push(folder); },
       _removeParent(folder) { currentParents = currentParents.filter(f => f !== folder); },
-      copy(newName) { return makeSpreadsheet(newName); }
+      copy(newName) { return makeSpreadsheet(newName); },
+      moveTo(folder) {
+        currentParents.slice().forEach(p => p.removeFile(file));
+        folder.addFile(file);
+        return file;
+      }
     };
     parents.forEach(p => p.addFile(file));
     filesById[id] = file;

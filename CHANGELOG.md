@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.5] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Le bouton "Créer un instantané" (Paramètres → 🔧 Outils) était cassé en production : la permission nécessaire pour écrire sur Google Drive n'était pas déclarée, et la méthode utilisée pour ranger la copie dans le bon dossier est une méthode Google désormais obsolète.
+**Technique** : Ajout du scope `https://www.googleapis.com/auth/drive` dans `appsscript.json` (absent, donc jamais auto-étendu par GAS). `BackupService.createSnapshot` (`Code.gs:514`) remplace le couple déprécié `folder.addFile()`/`parent.removeFile()` (modèle multi-parents) par `copyFile.moveTo(folder)`. `tests/harness.js` : `moveTo` ajouté à la fausse Drive.
+
 ## [v3.20.4] - 2026-08-25
 
 ### Corrigé
