@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.13] - 2026-08-25
+
+### Ajouté
+**Humanisé** : Le serveur sait maintenant mesurer exactement le poids réel de ce qu'il met en mémoire rapide, au lieu de compter les caractères — un emoji de Top pèse quatre fois plus lourd qu'une lettre, et cet écart faisait déborder la mémoire rapide sans prévenir.
+**Technique** : Nouvelles aides top-level dans `Code.gs` — `_byteLength()` (poids UTF-8 exact, y compris paires de substituts), `_cachePutChunked()` (écriture en morceaux bornés en octets, marqueur `_chunks` écrit en dernier, ne lève jamais) et `_cacheGetChunked()` (relecture tolérante, `null` sur morceau expiré). Exportées via `EXPORTED_GLOBALS` dans `tests/harness.js` ; couvertes par `tests/cache-bytes.test.js` sur un faux `CacheService` qui applique la limite en octets.
+
 ## [v3.20.12] - 2026-08-25
 
 ### Modifié

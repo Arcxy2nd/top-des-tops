@@ -68,6 +68,79 @@ function _logCacheSkip(key, size) {
   }
 }
 
+/**
+ * Exact UTF-8 weight of a string. CacheService caps an entry by BYTES, while
+ * `str.length` counts JS characters: one emoji is 2 characters but 4 bytes, so a
+ * character-based guard silently under-measures a payload full of Top emojis and
+ * lets an oversized entry reach the service, which then rejects the whole put.
+ */
+function _byteLength(str) {
+  const s = String(str);
+  let bytes = 0;
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xD800 && code <= 0xDBFF) { bytes += 4; i++; } // surrogate pair
+    else bytes += 3;
+  }
+  return bytes;
+}
+
+/**
+ * Writes `serial` under `key`, splitting it across `key_0`…`key_N-1` plus a
+ * `key_chunks` marker when it exceeds one entry. Splitting instead of dropping
+ * matters because the alternative — the old `if (size <= MAX)` guard — turned the
+ * whole cross-request cache off in production while the two-row test fixtures
+ * stayed comfortably under the limit and green.
+ *
+ * The marker is written LAST: a partially written set must never advertise itself
+ * as complete to a concurrent reader.
+ */
+function _cachePutChunked(cache, key, serial, ttl) {
+  const max = CONFIG.CACHE_MAX_BYTES;
+  const total = _byteLength(serial);
+  try {
+    if (total <= max) { cache.put(key, serial, ttl); return; }
+    const chunks = [];
+    let start = 0, bytes = 0;
+    for (let i = 0; i < serial.length; i++) {
+      const code = serial.charCodeAt(i);
+      const isHigh = code >= 0xD800 && code <= 0xDBFF;
+      const width = isHigh ? 4 : (code < 0x80 ? 1 : (code < 0x800 ? 2 : 3));
+      if (bytes + width > max) { chunks.push(serial.slice(start, i)); start = i; bytes = 0; }
+      bytes += width;
+      if (isHigh) i++; // the low surrogate always travels with its high half
+    }
+    chunks.push(serial.slice(start));
+    for (let i = 0; i < chunks.length; i++) cache.put(key + '_' + i, chunks[i], ttl);
+    cache.put(key + '_chunks', String(chunks.length), ttl);
+  } catch (e) {
+    _logCacheSkip(key, total);
+  }
+}
+
+/**
+ * Reads back whatever `_cachePutChunked` wrote. Returns null when the entry is
+ * absent, or when any single chunk has expired — a chunk set outlived by one of
+ * its members would reassemble into truncated JSON, which is worse than a miss.
+ */
+function _cacheGetChunked(cache, key) {
+  const plain = cache.get(key);
+  if (plain) return plain;
+  const countStr = cache.get(key + '_chunks');
+  if (!countStr) return null;
+  const count = parseInt(countStr, 10);
+  if (!(count > 0)) return null;
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const chunk = cache.get(key + '_' + i);
+    if (chunk === null || chunk === undefined || chunk === '') return null;
+    out += chunk;
+  }
+  return out || null;
+}
+
 // ─── HEADER ROW DETECTION ──────────────────────────────────────────────────────
 /**
  * Canonical row-1 labels of every sheet the app reads, keyed exactly like
