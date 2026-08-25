@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.7] - 2026-08-25
+
+### Corrigé
+**Humanisé** : Les mots de passe des joueurs étaient stockés en clair dans le Google Sheet, lisibles par quiconque ouvre le fichier.
+**Technique** : `SettingsService.verifyIdentity` (`Code.gs:755`) hache désormais en SHA-256 (`Utilities.computeDigest`). Migration transparente : un mot de passe legacy en clair est accepté une dernière fois puis immédiatement réécrit en hash — aucun script de migration séparé, aucune manipulation manuelle du Sheet réel. `tests/harness.js` : `Utilities.computeDigest` ajouté à la sandbox de test.
+
 ## [v3.20.6] - 2026-08-25
 
 ### Corrigé

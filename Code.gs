@@ -250,6 +250,11 @@ function requireAuthor(author) {
   return String(author).trim();
 }
 
+function _hashPassword(password) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
+  return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
 function fail(e) {
   const message = (e && e.message) ? e.message : String(e);
   Logger.log('API error: ' + message + (e && e.stack ? '\n' + e.stack : ''));
@@ -755,7 +760,17 @@ const SettingsService = {
       if (data[i][0] === name) {
         const stored = data[i][3] ? data[i][3].toString().trim() : "";
         if (!stored) return true; // no password configured → free access
-        return stored === (password || "").toString().trim();
+        const supplied = (password || "").toString().trim();
+        if (/^[0-9a-f]{64}$/i.test(stored)) {
+          return stored.toLowerCase() === _hashPassword(supplied);
+        }
+        // Legacy plaintext password: accept on a plain match, then migrate the
+        // cell to a hash so the plaintext value is never written back again.
+        if (stored === supplied) {
+          sheet.getRange(i + 1, 4).setValue(_hashPassword(supplied));
+          return true;
+        }
+        return false;
       }
     }
     throw new Error(`Joueur "${name}" introuvable.`);

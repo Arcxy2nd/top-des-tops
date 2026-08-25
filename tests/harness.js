@@ -179,7 +179,16 @@ function gasMocks() {
     // and in the frontend preview harness alike, undetected because no test ever
     // exercised it.
     Utilities: {
-      getUuid: () => crypto.randomUUID()
+      getUuid: () => crypto.randomUUID(),
+      computeDigest: (algorithm, value) => {
+        const hash = crypto.createHash('sha256').update(value, 'utf8').digest();
+        // Real Apps Script returns a Java byte[] — signed bytes (-128..127), not
+        // unsigned 0..255. Mirrored here so a masking bug (`& 0xFF`) in the
+        // production hashing code would actually show up under test.
+        return Array.from(hash).map(b => (b > 127 ? b - 256 : b));
+      },
+      DigestAlgorithm: { SHA_256: 'SHA_256' },
+      Charset: { UTF_8: 'UTF_8' }
     },
     HtmlService: {
       createHtmlOutputFromFile: name => ({
