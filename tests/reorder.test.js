@@ -352,6 +352,54 @@ test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool
   assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 1], ['Y', 2]]);
 });
 
+// Perf (audit cache 2026-08-26) : apiRepairOrder écrivait l'Ordre de chaque
+// ligne via un setValue() séparé (une requête Sheets par ligne). Doit
+// maintenant écrire chaque colonne concernée en un seul setValues() groupé.
+test('apiRepairOrder writes each Ordre column in a single batched call, not one per row', () => {
+  const gas = loadGas();
+  // Ordre values are deliberately scrambled (not already 1..N in rank order) so
+  // the repair actually rewrites something — physical row order never changes,
+  // only the Ordre column values do, ranked by (ordre, original index).
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['C', '', '', '', 9], ['A', '', '', '', 9], ['B', '', '', '', 1]
+  ]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'A', 1, 9], ['Jeux', 'B', 2, 1]
+  ]);
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'first', 'Z', 9], ['Défaut', 'first', 'Y', 1]
+  ]);
+  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, bareme, phrases, auditLog });
+  gas.ConfigService.clearCache = () => {};
+
+  let setValueCalls = 0;
+  [players, categories, bareme, phrases].forEach(sheet => {
+    const realGetRange = sheet.getRange.bind(sheet);
+    sheet.getRange = (...a) => {
+      const range = realGetRange(...a);
+      const realSetValue = range.setValue.bind(range);
+      range.setValue = (...args) => { setValueCalls++; return realSetValue(...args); };
+      return range;
+    };
+  });
+
+  const res = gas.apiRepairOrder('C');
+  assert.strictEqual(res.success, true, JSON.stringify(res));
+  assert.strictEqual(setValueCalls, 0, 'Ordre columns must be written via setValues (batched), not per-row setValue calls: ' + setValueCalls + ' setValue() calls observed');
+  // Physical row order never changes (still C, A, B) — only the Ordre values do.
+  // Sorted by (ordre, original index): B(1) < C(9, idx0) < A(9, idx1) -> B=1, C=2, A=3.
+  assert.deepStrictEqual(players._grid.slice(1).map(r => [r[0], r[4]]), [['C', 2], ['A', 3], ['B', 1]]);
+  // Sorted: B(1) < A(9) -> B=1, A=2.
+  assert.deepStrictEqual(bareme._grid.slice(1).map(r => [r[1], r[3]]), [['A', 2], ['B', 1]]);
+  // Sorted: Y(1) < Z(9) -> Y=1, Z=2.
+  assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 2], ['Y', 1]]);
+});
+
 test('apiRepairOrder preserves an already-valid custom order when it differs from raw row order', () => {
   const gas = loadGas();
   const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], ['Alice', '', '', '', 1]]);

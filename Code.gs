@@ -1474,6 +1474,10 @@ const StorageService = {
 
     let groupedCount = 0;
     let groupsCreated = 0;
+    // Single batched write instead of one setValue() RPC per row: mutate a
+    // full-height copy of the GroupId column in memory, then write it back
+    // in one setValues() call.
+    const groupIdCol = data.map(r => [r[5] !== undefined ? r[5] : '']);
 
     Object.keys(groups).forEach(key => {
       const rows = groups[key];
@@ -1481,13 +1485,14 @@ const StorageService = {
         const groupId = _generateGroupId();
         groupsCreated++;
         rows.forEach(rIdx => {
-          sheet.getRange(rIdx, 6).setValue(groupId);
+          groupIdCol[rIdx - startRow] = [groupId];
           groupedCount++;
         });
       }
     });
 
     if (groupedCount > 0) {
+      sheet.getRange(startRow, 6, groupIdCol.length, 1).setValues(groupIdCol);
       ConfigService.clearCache();
     }
     return { groupedCount, groupsCreated };
@@ -4262,7 +4267,14 @@ function apiRepairOrder(author, password) {
           .map((r, i) => ({ r, sheetRow: i + 1 + off }))
           .filter(x => x.r[0]);
         rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
-        rows.forEach((x, idx) => sheet.getRange(x.sheetRow, 5).setValue(idx + 1));
+        // Single batched write instead of one setValue() RPC per row: start from
+        // the Ordre column already in `data`, overwrite only the reordered rows,
+        // write the whole column back in one setValues() call.
+        if (rows.length) {
+          const ordreCol = data.slice(off).map(r => [r[4] !== undefined && r[4] !== '' ? r[4] : '']);
+          rows.forEach((x, idx) => { ordreCol[x.sheetRow - 1 - off] = [idx + 1]; });
+          sheet.getRange(off + 1, 5, ordreCol.length, 1).setValues(ordreCol);
+        }
         // Only label the Ordre column when row 1 really is a header — otherwise this
         // would overwrite the first entity's own Ordre value with the word "Ordre".
         if (off && sheet.getRange(1, 5).getValue() === '') sheet.getRange(1, 5).setValue('Ordre');
@@ -4278,11 +4290,15 @@ function apiRepairOrder(author, password) {
           .filter(x => x.r[0] !== '' && x.r[0] !== undefined);
         const groups = {};
         rows.forEach(x => { (groups[x.r[0]] = groups[x.r[0]] || []).push(x); });
-        Object.keys(groups).forEach(key => {
-          const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
-          ordered.forEach((x, idx) => baremeSheet.getRange(x.sheetRow, 4).setValue(idx + 1));
-          result.bareme += ordered.length;
-        });
+        if (rows.length) {
+          const ordreCol = data.slice(off).map(r => [r[3] !== undefined && r[3] !== '' ? r[3] : '']);
+          Object.keys(groups).forEach(key => {
+            const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
+            ordered.forEach((x, idx) => { ordreCol[x.sheetRow - 1 - off] = [idx + 1]; });
+            result.bareme += ordered.length;
+          });
+          baremeSheet.getRange(off + 1, 4, ordreCol.length, 1).setValues(ordreCol);
+        }
       }
 
       const phrasesSheet = ConfigService.getSheets().phrases;
@@ -4297,11 +4313,15 @@ function apiRepairOrder(author, password) {
           const key = x.r[0] + '|' + x.r[1];
           (groups[key] = groups[key] || []).push(x);
         });
-        Object.keys(groups).forEach(key => {
-          const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
-          ordered.forEach((x, idx) => phrasesSheet.getRange(x.sheetRow, 4).setValue(idx + 1));
-          result.phrases += ordered.length;
-        });
+        if (rows.length) {
+          const ordreCol = data.slice(off).map(r => [r[3] !== undefined && r[3] !== '' ? r[3] : '']);
+          Object.keys(groups).forEach(key => {
+            const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
+            ordered.forEach((x, idx) => { ordreCol[x.sheetRow - 1 - off] = [idx + 1]; });
+            result.phrases += ordered.length;
+          });
+          phrasesSheet.getRange(off + 1, 4, ordreCol.length, 1).setValues(ordreCol);
+        }
       }
 
       AuditService.log(author, 'Ordre réparé', 'Ordre', '',

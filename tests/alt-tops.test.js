@@ -99,6 +99,35 @@ test('apiGroupSimilarEntries automatically groups identical ungrouped entries', 
   assert.strictEqual(g3, ''); // Row 3 stayed ungrouped
 });
 
+// Perf (audit cache 2026-08-26) : apiGroupSimilarEntries écrivait le GroupId
+// de chaque ligne via un setValue() séparé. Doit maintenant écrire la
+// colonne GroupId en un seul setValues() groupé.
+test('apiGroupSimilarEntries writes the GroupId column in a single batched call, not one per row', () => {
+  const gas = loadGas();
+  const history = makeSheet([
+    HEADER_HIST,
+    [new Date('2026-08-01T10:00:00Z'), 'Alice', 'Top A', 5, 'Session Mario', ''],
+    [new Date('2026-08-01T10:00:00Z'), 'Alice', 'Top B', 5, 'Session Mario', ''],
+    [new Date('2026-08-01T12:00:00Z'), 'Bob', 'Top A', 10, 'Solo', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ history });
+
+  let setValueCalls = 0;
+  const realGetRange = history.getRange.bind(history);
+  history.getRange = (...a) => {
+    const range = realGetRange(...a);
+    const realSetValue = range.setValue.bind(range);
+    range.setValue = (...args) => { setValueCalls++; return realSetValue(...args); };
+    return range;
+  };
+
+  const result = gas.StorageService.apiGroupSimilarEntries();
+  assert.strictEqual(result.groupedCount, 2);
+  assert.strictEqual(setValueCalls, 0, 'GroupId column must be written via setValues (batched): ' + setValueCalls + ' setValue() calls observed');
+  assert.strictEqual(history._grid[1][5], history._grid[2][5]);
+  assert.strictEqual(history._grid[3][5], '');
+});
+
 test('appendBulkPlan handles subTops and altCategory linking', () => {
   const gas = loadGas();
   const history = makeSheet([HEADER_HIST]);
