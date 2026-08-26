@@ -373,7 +373,7 @@ function withLock(operation) {
   }
   try {
     const result = operation();
-    try { _bumpLogsVersion(); } catch (_) {}  // invalidate cross-request logs cache after any write
+    try { _bumpLogsVersion(); } catch (e) { Logger.log('logs version bump failed (cache invalidation may be stale): ' + (e && e.message)); }
     return result;
   } finally {
     lock.releaseLock();
@@ -494,7 +494,7 @@ const AuditService = (() => {
         snapshot ? JSON.stringify(snapshot) : '',
         ''
       ]);
-    } catch (_) {}
+    } catch (e) { Logger.log('audit log write failed for ' + action + ' on ' + entity + ': ' + (e && e.message)); }
   }
 
   // Snapshots go through JSON.stringify/parse (stored as text in the sheet), which

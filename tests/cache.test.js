@@ -323,6 +323,27 @@ test('a cache write failure in _cachePutChunked is caught and the skip is traced
   assert.match(skips[0], /cache skip/);
 });
 
+// Régression (audit cache 2026-08-26) : un échec de _bumpLogsVersion() à
+// l'intérieur de withLock() était avalé sans trace — une mutation réussie
+// pouvait donc rapporter un succès total alors que l'invalidation croisée
+// de 8 des 14 familles de cache avait silencieusement échoué.
+test('a failed _bumpLogsVersion inside withLock is traced, not swallowed silently', () => {
+  const propStore = { logs_version: '0' };
+  const gas = loadGas({
+    PropertiesService: {
+      getScriptProperties: () => ({
+        getProperty: k => (k in propStore ? propStore[k] : null),
+        setProperty: () => { throw new Error('quota exceeded'); }
+      })
+    }
+  });
+  const logs = [];
+  gas.Logger.log = m => logs.push(String(m));
+  const result = gas.withLock(() => ({ ok: true }));
+  assert.deepStrictEqual(result, { ok: true }, 'the operation itself must still succeed');
+  assert.ok(logs.some(l => /logs.?version|invalidat/i.test(l)), 'a failed cache-invalidation bump must leave a trace: ' + JSON.stringify(logs));
+});
+
 test('getFullHistoryRowsCached chunks an oversized payload instead of skipping the cache', () => {
   const gas = loadGas();
   const history = makeSheet([HEADER,

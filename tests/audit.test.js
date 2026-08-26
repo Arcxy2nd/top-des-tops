@@ -565,3 +565,17 @@ test('apiUpdateBulkEntries snapshot lets undo restore the previous row values', 
   gas.apiUndoAuditEntry(2, 'Alice');
   assert.strictEqual(history._grid[1][4], 'old');
 });
+
+// Régression (audit cache 2026-08-26) : AuditService.log() avalait toute
+// exception d'écriture (sheet.appendRow) sans aucune trace — une mutation
+// réussie pouvait donc être rapportée comme un succès total à l'utilisateur
+// alors que sa ligne de journal d'audit n'avait jamais été écrite.
+test('a failed AuditService.log write is traced, not swallowed silently', () => {
+  const gas = loadGas();
+  const logs = [];
+  gas.Logger.log = m => logs.push(String(m));
+  const brokenAuditLog = { appendRow() { throw new Error('sheet locked'); } };
+  injectSheets(gas, { auditLog: brokenAuditLog });
+  gas.AuditService.log('Alice', 'Test', 'Entity', 'before', 'after', '', null);
+  assert.ok(logs.some(l => /audit/i.test(l)), 'a failed audit-log write must leave a trace: ' + JSON.stringify(logs));
+});
