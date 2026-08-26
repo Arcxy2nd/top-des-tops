@@ -360,3 +360,71 @@ test('SettingsService.renameEntity propagates a player rename to their Chat mess
   assert.strictEqual(chatValues[1][2], 'Alicia', 'le message d\'Alice doit maintenant référencer Alicia');
   assert.strictEqual(chatValues[2][2], 'Bob', 'le message de Bob ne doit pas être touché par le renommage d\'Alice');
 });
+
+// Régression (audit cache 2026-08-26) : renameEntity() propageait déjà le
+// renommage vers Notes/Chat en écriture directe, mais ne bumpait jamais
+// _notesVersion()/_chatVersion() — un lecteur passant par le cache
+// (getAllNotes/getAllMessages) pouvait donc servir l'ancien nom jusqu'à
+// expiration du TTL (600s) après un renommage.
+test('SettingsService.renameEntity invalidates the Notes and Chat caches, not just the raw sheet', () => {
+  const gas = loadGas();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '#ff0000', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  const notes = makeSheet([
+    ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
+    [new Date('2026-01-01'), 'Alice', 'Note sur Alice', 'n1', 'Alice', '', '']
+  ]);
+  const chat = makeSheet([
+    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
+    ['m1', new Date('2026-01-01'), 'Alice', 'Message d\'Alice', '']
+  ]);
+  gas.ConfigService.getSheets = () => ({ players, history, notes, chat, autoRules: null });
+
+  // Populate the caches BEFORE the rename, exactly like a real reader would.
+  const notesBefore = gas.NotesService.getAllNotes();
+  const chatBefore = gas.ChatService.getAllMessages();
+  assert.strictEqual(notesBefore.notes[0].player, 'Alice');
+  assert.strictEqual(chatBefore.messages[0].author, 'Alice');
+
+  gas.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
+
+  // Read again WITHOUT any manual cache-clearing helper — a real cross-request
+  // reader only ever gets a fresh result if the version counter changed.
+  const notesAfter = gas.NotesService.getAllNotes();
+  const chatAfter = gas.ChatService.getAllMessages();
+  assert.strictEqual(notesAfter.notes[0].player, 'Alicia', 'the Notes cache must reflect the rename immediately, not after TTL expiry');
+  assert.strictEqual(chatAfter.messages[0].author, 'Alicia', 'the Chat cache must reflect the rename immediately, not after TTL expiry');
+});
+
+test('SettingsService.renameEntity invalidates the Bareme and Phrases caches on a category rename', () => {
+  const gas = loadGas();
+  const categories = makeSheet([
+    ['Name', 'Description', 'Emoji', 'Hex color'],
+    ['Jeux', '', '🎮', '']
+  ]);
+  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points', 'Ordre'],
+    ['Jeux', 'Gagne', 5, 1]
+  ]);
+  const phrases = makeSheet([
+    ['Preset', 'Pool', 'Phrase', 'Ordre'],
+    ['Défaut', 'cat:Jeux', 'Bravo !', 1]
+  ]);
+  gas.ConfigService.getSheets = () => ({ categories, history, bareme, phrases, autoRules: null });
+
+  const baremeBefore = gas.BaremeService.getEntries();
+  const phrasesBefore = gas.PhrasesService.getAll();
+  assert.strictEqual(baremeBefore[0].top, 'Jeux');
+  assert.strictEqual(phrasesBefore[0].pool, 'cat:Jeux');
+
+  gas.SettingsService.renameEntity('Categories', 2, 'Jeux', 'Gaming', '', '🎮');
+
+  const baremeAfter = gas.BaremeService.getEntries();
+  const phrasesAfter = gas.PhrasesService.getAll();
+  assert.strictEqual(baremeAfter[0].top, 'Gaming', 'the Bareme cache must reflect the category rename immediately');
+  assert.strictEqual(phrasesAfter[0].pool, 'cat:Gaming', 'the Phrases pool cache must reflect the category rename immediately');
+});

@@ -860,6 +860,11 @@ const SettingsService = {
       // author === _whoAmI check, silently losing the ability to delete their own
       // past messages.
       this._renameInColumn('chat', ConfigService.getSheets().chat, 3, oldName, newName);
+      // Notes/Chat are cached independently of Settings (notes_all_v*/chat_msgs_v*) —
+      // without these, a cached reader keeps serving the old name for up to
+      // CACHE_TTL_SECONDS after this rename (audit fix 2026-08-26).
+      _bumpNotesVersion();
+      _bumpChatVersion();
       return;
     }
 
@@ -881,6 +886,11 @@ const SettingsService = {
         if (poolModified) poolRange.setValues(poolVals);
       }
     }
+    // Bareme/Phrases are cached independently of Settings (bareme_entries_v*/
+    // phrases_all_v*) — without these, a cached reader keeps serving the old
+    // category name for up to CACHE_TTL_SECONDS after this rename (audit fix 2026-08-26).
+    _bumpBaremeVersion();
+    _bumpPhrasesVersion();
   },
 
   /** Renames every occurrence of oldName to newName in a single 1-based column of sheet (header row skipped when there is one). No-op if sheet is absent. */
