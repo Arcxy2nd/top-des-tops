@@ -14,7 +14,7 @@
   - **Perf backend** : 4 boucles `setValue()` par ligne (réparation d'ordre × 3, regroupement d'entrées similaires × 1) remplacées par des écritures `setValues()` groupées.
   - **Hygiène CSS** : 15 classes mortes confirmées supprimées (sur ~30 candidats supplémentaires trouvés par un balayage naïf mais écartés — construction dynamique en JS type `rank-${n}`/`audit-cat-`+variable, faux positifs probables, laissés en l'état par prudence). 22 couleurs hexadécimales en dur remplacées par des variables CSS (8 nouveaux tokens `--rank-*`).
   - **Git** : `dev/temp_front.css`/`.js` ajoutés au `.gitignore`.
-  - **Explicitement écarté** : modularisation de `Index.html` en namespaces (suggestion de l'audit Gemini) — contredit la contrainte projet "garder les fichiers monolithiques" (voir `memory/top-des-tops-constraints.md`). Traduction des ~540 commentaires français d'`Index.html` vers l'anglais — reportée (faible priorité, risque de dénaturer des commentaires porteurs d'invariants de sécurité comme le garde-fou anti-perte de joueur).
+  - **Explicitement écarté** : modularisation de `Index.html` en namespaces (suggestion de l'audit Gemini) — contredit la contrainte projet "garder les fichiers monolithiques" (voir `memory/top-des-tops-constraints.md`). Traduction des commentaires français vers l'anglais — **règle définitive du projet, pas juste reportée** : l'utilisateur a tranché après cette session, aucune traduction de commentaires sur ce projet, jamais (§8 de `context.md` mis à jour en conséquence).
   - Chaque tâche vérifiée individuellement (TDD rouge→vert) + suite complète + check visuel navigateur (harness local `tests/frontend/serve.js`, jamais de données réelles) avant commit. 8 commits distincts, un par tâche.
 
 ## Écarts
@@ -24,7 +24,6 @@
 - **Prochaines pistes suggérées** :
   1. Si le taux de hit/miss du cache (nouveau panneau Santé) montre un taux de miss élevé en usage réel, revisiter le TTL de 600s — impossible à trancher sans données d'usage réel (interdiction d'interagir avec les données réelles, donc pas de mesure possible avant mise en prod).
   2. ~30 classes CSS candidates supplémentaires (construction dynamique suspectée : `rank-${n}`, `audit-cat-` + variable, etc.) — nécessiteraient une vérification manuelle par classe avant suppression, non faite cette session par prudence.
-  3. Traduction des commentaires français vers l'anglais (règle §8) — gros volume (~540 dans Index.html, ~100 dans Code.gs), reportée.
 - **Action manuelle requise** : Le propriétaire du projet GAS doit effectuer une re-autorisation OAuth unique dans l'interface Google Apps Script pour valider le scope Drive (`https://www.googleapis.com/auth/drive`).
 - **Piège shell** : les heredocs Git Bash sur cette machine mangent un niveau d'antislash — `\(` devient `\(`. Ne jamais écrire de `new RegExp("...")` via heredoc ; passer par l'outil d'édition ou un fichier de script.
 - **Cross-realm dans les tests `vm`** : `assert.deepStrictEqual` / `instanceof` échoue sur des objets/dates/tableaux construits dans un sandbox `vm` différent du contexte Node — comparer via duck-typing ou `JSON.stringify(...)`.

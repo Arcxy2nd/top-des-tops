@@ -281,7 +281,7 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 ### Règles fondamentales
 
 - **Complétude absolue** — aucun `TODO`, `FIXME`, placeholder, fonction vide. Tout ce qui est écrit est intégralement implémenté.
-- **Code en anglais** — variables, fonctions, commentaires dans le code. Les explications hors code sont en français.
+- **Code en anglais** — variables, fonctions. Les commentaires existants restent en français (convention historique du projet) : ne jamais lancer de chantier de traduction FR→EN sur les commentaires, même partiel. Nouveau commentaire : suivre le style déjà présent dans la fonction/le fichier édité. Les explications hors code sont en français.
 - **Pas de questions** — analyser la demande et livrer directement.
 
 ### Principes de conception
