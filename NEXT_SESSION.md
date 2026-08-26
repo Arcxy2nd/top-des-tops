@@ -1,16 +1,17 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.20.17** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
-- Correctif ponctuel : Résolution sécurisée de l'élément cible dans `closeModal()` / `openModal()` pour éviter le crash `modal.querySelectorAll is not a function` lorsqu'un `MouseEvent` est passé via `onclick = closeModal`.
-- Suite de tests : 297 cas verts (`npm run verify`).
+- Version livrée : **v3.20.18** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
+- Plan achevé : `docs/superpowers/plans/2026-08-26-event-callbacks-hardening.md`.
+- Suite de tests : 299 cas verts (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- Fix bug `v3.20.17` :
-  - **Correction modales (`Index.html`)** : `openModal()` et `closeModal()` filtrent désormais l'argument reçu pour s'assurer qu'il possède bien `querySelectorAll` (DOM Element) ou qu'il s'agit d'un ID chaîne, et basculent sinon de manière sûre sur `#modalBackdrop`. Évite l'exception `TypeError: modal.querySelectorAll is not a function` lorsque les boutons déclenchent `closeModal` via leur écouteur direct `onclick = closeModal` (qui transmet l'objet `MouseEvent`).
-  - **Mise à jour des tests (`tests/papercuts.test.js`)** : Test unitaire vérifiant la fermeture nominale et la non-régression lors du passage d'un objet événement synthétique.
-  - Tous les 297 tests vérifiés au vert.
+- Exécution du plan de durcissement préventif (`v3.20.18`) :
+  - **Durcissement callbacks (`Index.html`)** : Remplacement systématique des gardes fragiles `if (cb) cb()` par `if (typeof cb === 'function') cb()` dans `applyFilters`, `loadEntities`, `loadAppBranding`, `loadCustomPhrases`, `loadAltHistoryMap` et `anchorFloating`.
+  - **Délégation d'événements (`Index.html`)** : Sécurisation de l'écouteur `#trendsScopeToggle` avec `e.target.closest('.chart-type-btn')`.
+  - **Tests (`tests/papercuts.test.js` & `tests/frontend-guards.test.js`)** : Tests unitaires automatisés validant la présence des gardes strictes et l'absence de régression.
+  - 299/299 tests passés avec succès.
 
 ## Écarts
 - Aucun écart par rapport au plan arbitré. Un ajustement a été apporté à `tests/dropdown-outside-click.test.js` pour ancrer l'assertion sur le code exécutable (`document.addEventListener('mousedown')`) plutôt que sur un commentaire éliminé lors du stripping pré-déploiement CI.

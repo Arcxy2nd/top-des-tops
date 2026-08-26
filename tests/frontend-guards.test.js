@@ -234,7 +234,7 @@ test('loadEntities always resolves its onDone callback, success or failure', () 
   const errorBranchStart = fn.indexOf("'Chargement settings'");
   assert.notStrictEqual(errorBranchStart, -1, "l'appel apiGetSettings doit garder son errorLabel 'Chargement settings'");
   const errorBranch = fn.slice(errorBranchStart, fn.indexOf('\n  }', errorBranchStart));
-  assert.match(errorBranch, /if\s*\(onDone\)\s*onDone\(\)/, "le chemin d'erreur d'apiGetSettings doit appeler onDone()");
+  assert.match(errorBranch, /if\s*\(typeof onDone === 'function'\)\s*onDone\(\)/, "le chemin d'erreur d'apiGetSettings doit appeler onDone()");
 });
 
 test('the Podium load has an error path that clears its skeleton', () => {

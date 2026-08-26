@@ -5317,8 +5317,8 @@
       if (res && res.success) {
         cachedAltMap = res.altMap || {};
       }
-      if (callback) callback();
-    }, 'Carte Tops Alternatifs', () => { if (callback) callback(); });
+      if (typeof callback === 'function') callback();
+    }, 'Carte Tops Alternatifs', () => { if (typeof callback === 'function') callback(); });
   }
   let rowCounter       = 0;
   let currentHistoryPage = 1;
@@ -5649,7 +5649,7 @@
       var rect = anchorEl.getBoundingClientRect();
       if (rect.bottom < 0 || rect.top > window.innerHeight) {
         detach();
-        if (onDetach) onDetach();
+        if (typeof onDetach === 'function') onDetach();
         return;
       }
       place(rect, el);
@@ -5944,8 +5944,8 @@
         saveTooltipStylePrefs(res.tooltipStyle, true);
         renderTooltipStyleSettings();
       }
-      if (onDone) onDone();
-    }, 'Chargement identité app', () => { if (onDone) onDone(); });
+      if (typeof onDone === 'function') onDone();
+    }, 'Chargement identité app', () => { if (typeof onDone === 'function') onDone(); });
   }
 
   // ── BANDEAU RÉSUMÉ RAPIDE ─────────────────────────────────────────────
@@ -6113,13 +6113,13 @@
   function loadCustomPhrases(callback) {
     const gen = ++_phrasesReqGen;
     callServer('apiGetPhrases', [], res => {
-      if (gen !== _phrasesReqGen) { if (callback) callback(); return; }
+      if (gen !== _phrasesReqGen) { if (typeof callback === 'function') callback(); return; }
       _customPhrases = res.phrases || [];
-      if (callback) callback();
+      if (typeof callback === 'function') callback();
     }, 'Chargement phrases', () => {
-      if (gen !== _phrasesReqGen) { if (callback) callback(); return; }
+      if (gen !== _phrasesReqGen) { if (typeof callback === 'function') callback(); return; }
       _customPhrases = [];
-      if (callback) callback();
+      if (typeof callback === 'function') callback();
     });
   }
 
@@ -9835,7 +9835,7 @@
       // Une action plus récente (nouveau chargement, réordonnancement) a déjà
       // pris la main entre-temps : appliquer cette réponse maintenant écraserait
       // un état plus frais avec des données obsolètes au moment où elles arrivent.
-      if (gen !== _entitiesReqGen) { if (onDone) onDone(); return; }
+      if (gen !== _entitiesReqGen) { if (typeof onDone === 'function') onDone(); return; }
       cachedPlayers    = res.players    || [];
       cachedCategories = res.categories || [];
       try {
@@ -9844,7 +9844,7 @@
 
       // Rendu complet immédiat avec chargement des données (applyFilters + loadQuickStats)
       _paintEntitiesUI({ withDataLoad: true });
-      if (onDone) onDone();
+      if (typeof onDone === 'function') onDone();
 
       // Chargement en arrière-plan non-bloquant des tops alternatifs
       callServer('apiGetAltCategories', [], resAlt => {
@@ -9861,14 +9861,14 @@
       });
 
     }, 'Chargement settings', () => {
-      if (gen !== _entitiesReqGen) { if (onDone) onDone(); return; }
+      if (gen !== _entitiesReqGen) { if (typeof onDone === 'function') onDone(); return; }
       // apiGetSettings a échoué : effacement des skeletons pour débloquer l'UI
       showSkeleton(document.getElementById('playersList'),    { rows: 0 });
       showSkeleton(document.getElementById('categoriesList'), { rows: 0 });
       _paintEntitiesUI({ withDataLoad: true });
       // Sans ceci, le pending counter de globalRefresh() ne redescend jamais à 0
       // sur une panne : le bouton "Rafraîchir" reste figé en chargement pour toujours.
-      if (onDone) onDone();
+      if (typeof onDone === 'function') onDone();
     });
   }
 
@@ -10277,7 +10277,7 @@
 
     const onChartError = err => {
       showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
-      if (onDone) onDone();
+      if (typeof onDone === 'function') onDone();
     };
 
     document.getElementById('chartSkeleton').style.display = 'block';
@@ -10291,7 +10291,7 @@
         renderChartControls(currentChartType);
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
-        if (onDone) onDone();
+        if (typeof onDone === 'function') onDone();
       }, 'Chargement Dashboard Alternatif', onChartError);
       return;
     }
@@ -10303,7 +10303,7 @@
         renderTrendChart(res.trendData);
         renderChartControls('trend');
         clearTopStatsStrip();
-        if (onDone) onDone();
+        if (typeof onDone === 'function') onDone();
       }, 'Chargement courbes', onChartError);
       return;
     }
@@ -10317,7 +10317,7 @@
         renderChartControls('ranking');
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
-        if (onDone) onDone();
+        if (typeof onDone === 'function') onDone();
       }, 'Chargement total global', onChartError);
       return;
     }
@@ -10335,7 +10335,7 @@
       // Phrases card always populated from global totals
       const ranked = computeRankedTotals(res.chartData);
       renderPhrasesCard(ranked);
-      if (onDone) onDone();
+      if (typeof onDone === 'function') onDone();
     }, 'Chargement graphique', onChartError);
   }
 
@@ -10362,7 +10362,7 @@
     } else {
       clearTopStatsStrip();
     }
-    if (onDone) onDone();
+    if (typeof onDone === 'function') onDone();
   }
 
   // ── BARRE DE TRI / OPTIONS CONTEXTUELLE ──────────────────────────────
@@ -18285,9 +18285,10 @@
       if (savedPane && document.querySelector('#statsHubTabs [data-pane="' + savedPane + '"]')) switchStatsHubPane(savedPane);
     } catch {}
     document.getElementById('trendsScopeToggle').addEventListener('click', e => {
-      if (!e.target.dataset.scope) return;
-      trendsScope = e.target.dataset.scope;
-      document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === e.target));
+      const btn = e.target.closest('.chart-type-btn');
+      if (!btn || !btn.dataset.scope) return;
+      trendsScope = btn.dataset.scope;
+      document.querySelectorAll('#trendsScopeToggle .chart-type-btn').forEach(b => b.classList.toggle('active', b === btn));
       renderTrends();
     });
 

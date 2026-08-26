@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.18] - 2026-08-26
+
+### Modifié
+**Humanisé** : Renforcement préventif du code de l'interface pour garantir qu'aucun clic ou événement système ne puisse déclencher d'erreur silencieuse lors des chargements ou des changements de vues.
+**Technique** : Remplacement systématique des gardes `if (cb) cb()` par `if (typeof cb === 'function') cb()` dans `applyFilters`, `loadEntities`, `loadAppBranding`, `loadCustomPhrases`, `loadAltHistoryMap` et `anchorFloating`. Utilisation de `.closest('.chart-type-btn')` sur `#trendsScopeToggle` pour sécuriser la délégation d'événements. Nouveaux tests de non-régression dans `tests/papercuts.test.js`.
+
 ## [v3.20.17] - 2026-08-26
 
 ### Corrigé

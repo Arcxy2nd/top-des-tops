@@ -310,3 +310,22 @@ test('la pile garde conteneur et ouvreur dans le même objet', () => {
   assert.doesNotMatch(html, /_modalReturnFocus/,
     'le tableau parallèle ne doit plus exister');
 });
+
+test('les fonctions asynchrones gardent leurs callbacks avec typeof === function', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const fns = ['applyFilters', 'loadEntities', 'loadAppBranding', 'loadCustomPhrases', 'loadAltHistoryMap', 'anchorFloating'];
+  fns.forEach(fn => {
+    const src = extractFunction(html, fn);
+    assert.match(src, /typeof (onDone|callback|onDetach) === 'function'/,
+      fn + ' doit vérifier typeof === function avant d\'invoquer son callback');
+    assert.doesNotMatch(src, /if \((onDone|callback|onDetach)\) \1\(/,
+      fn + ' ne doit pas utiliser la garde if (fn) fn() fragile aux objets Event');
+  });
+});
+
+test('trendsScopeToggle utilise closest() pour sécuriser la délégation d\'événement', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  assert.match(html, /trendsScopeToggle['"]\)\.addEventListener\('click',\s*e\s*=>\s*\{\s*const btn = e\.target\.closest\('\.chart-type-btn'\)/,
+    'trendsScopeToggle doit déléguer via closest(\'.chart-type-btn\')');
+});
+
