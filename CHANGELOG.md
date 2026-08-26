@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.20] - 2026-08-26
+
+### Ajouté
+**Humanisé** : Il est désormais possible de se déconnecter de son identité active en un clic depuis le menu « Qui suis-je ? », pour repasser en mode visiteur ou changer facilement de joueur sur un même écran.
+**Technique** : `Index.html` — ajout de la fonction `logoutIdentity()` (`_whoAmI = null`, `_identityPassword = ''`, suppression de la clé `tdt_who_am_i` dans `localStorage`, mise à jour du composant navbar et toast de confirmation) et intégration d'un bouton dédié `🚪 Se déconnecter` séparé par `.who-am-i-divider` dans `renderWhoAmI()`.
+
+### Modifié
+**Humanisé** : Toutes les zones de l'application affichant des modifications avant/après (Journal d'audit, historique des modifications de notes, détection des mentions manquantes) adoptent une présentation visuelle inspirée des diffs GitHub : les suppressions et valeurs précédentes apparaissent en rouge avec un signe −, et les ajouts et nouvelles valeurs apparaissent en vert avec un signe +.
+**Technique** : `Index.html` — harmonisation du design system diff sous `.diff-del`/`.audit-before` (`var(--error)`, fond rouge teinté, préfixe `−`, texte barré) et `.diff-ins`/`.audit-after` (`var(--success)`, fond vert teinté, préfixe `+`). `wordDiffHtml()` regroupe désormais les blocs contigus pour un rendu mot-à-mot net. `openNoteHistoryPopover()` intègre `wordDiffHtml()` pour visualiser les deltas réels sur les notes modifiées. Couverture complète dans `tests/identity-logout-and-diff.test.js` (8/8) et `tests/innerhtml-audit.test.js`.
+
 ## [v3.20.19] - 2026-08-26
 
 ### Ajouté

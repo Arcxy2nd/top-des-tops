@@ -515,6 +515,10 @@
     .who-am-i-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .who-am-i-badge { font-size: 0.75rem; opacity: 0.7; flex-shrink: 0; min-width: 16px; text-align: right; }
     .who-am-i-option.active .who-am-i-badge { color: var(--success); opacity: 1; font-weight: 700; }
+    .who-am-i-divider { height: 1px; background: var(--border); margin: 4px 0; }
+    .who-am-i-logout { color: var(--error); font-weight: 600; }
+    .who-am-i-logout:hover { background: color-mix(in srgb, var(--error) 12%, var(--btn-alt)); color: var(--error); transform: translateX(3px); }
+    .who-am-i-logout-icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex-shrink: 0; }
 
     /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; 
@@ -1977,8 +1981,54 @@
     .detect-summary {
       font-size: 0.82rem; color: var(--text-muted); padding: 10px 0;
     }
-    .diff-del { color: var(--error); text-decoration: line-through; opacity: 0.75; }
-    .diff-ins { color: var(--success); font-weight: 600; text-decoration: none; }
+    /* ── DIFF UNIVERSEL (Style GitHub) ── */
+    .diff-del, .audit-before {
+      color: var(--error);
+      background: color-mix(in srgb, var(--error) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+      border-radius: var(--radius-sm, 4px);
+      padding: 1px 6px;
+      text-decoration: line-through;
+      text-decoration-color: color-mix(in srgb, var(--error) 70%, transparent);
+      font-size: 0.84em;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      line-height: 1.4;
+      vertical-align: middle;
+      box-sizing: border-box;
+    }
+    .diff-del::before, .audit-before::before {
+      content: '−';
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-block;
+      margin-right: 2px;
+      opacity: 0.95;
+    }
+    .diff-ins, .audit-after {
+      color: var(--success);
+      background: color-mix(in srgb, var(--success) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+      border-radius: var(--radius-sm, 4px);
+      padding: 1px 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.84em;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      line-height: 1.4;
+      vertical-align: middle;
+      box-sizing: border-box;
+    }
+    .diff-ins::before, .audit-after::before {
+      content: '+';
+      font-weight: 800;
+      display: inline-block;
+      margin-right: 2px;
+      opacity: 0.95;
+    }
 
     /* ── GUIDE TAB (Premium v3 Desktop Responsive) ── */
     #tab-guide .card { padding: 0; overflow: hidden; }
@@ -3785,9 +3835,7 @@
   .history-tab-pane.active { display: block; }
 
   /* ── AUDIT LOG ── */
-  .audit-before-after { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; flex-wrap: wrap; }
-  .audit-before { color: var(--error); text-decoration: line-through; opacity: 0.85; }
-  .audit-after  { color: var(--success); }
+  .audit-before-after { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; flex-wrap: wrap; }
   .audit-color-dot {
     display: inline-block; width: 10px; height: 10px; border-radius: 50%;
     margin-right: 4px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.3);
@@ -9945,6 +9993,19 @@
     closeWhoAmIDropdown();
   }
 
+  function logoutIdentity() {
+    _whoAmI = null;
+    _identityPassword = '';
+    localStorage.removeItem(WHO_AM_I_KEY);
+    renderWhoAmI();
+    closeWhoAmIDropdown();
+    showToast('Déconnecté.', 'info');
+    if (document.getElementById('chatSidePanel') && document.getElementById('chatSidePanel').classList.contains('open')) {
+      renderChatMessages();
+    }
+  }
+  window.logoutIdentity = logoutIdentity;
+
   function renderWhoAmI() {
     const wrap     = document.getElementById('whoAmIWrap');
     const avatar   = document.getElementById('whoAmIAvatar');
@@ -10015,6 +10076,32 @@
       });
       dropdown.appendChild(opt);
     });
+
+    if (_whoAmI) {
+      const divider = document.createElement('div');
+      divider.className = 'who-am-i-divider';
+      dropdown.appendChild(divider);
+
+      const logoutBtn = document.createElement('button');
+      logoutBtn.type = 'button';
+      logoutBtn.className = 'who-am-i-option who-am-i-logout';
+      logoutBtn.id = 'whoAmILogoutBtn';
+
+      const icon = document.createElement('span');
+      icon.className = 'who-am-i-logout-icon';
+      icon.textContent = '🚪';
+      logoutBtn.appendChild(icon);
+
+      const label = document.createElement('span');
+      label.className = 'who-am-i-label';
+      label.textContent = 'Se déconnecter';
+      logoutBtn.appendChild(label);
+
+      logoutBtn.addEventListener('click', () => {
+        logoutIdentity();
+      });
+      dropdown.appendChild(logoutBtn);
+    }
   }
 
   function renderAltCategoriesList() {
@@ -15556,7 +15643,11 @@
         head.appendChild(who); head.appendChild(span);
         const text = document.createElement('div');
         text.className = 'nhp-entry-text';
-        text.textContent = en.after;
+        if (en.before && en.after && en.before !== en.after) {
+          text.innerHTML = wordDiffHtml(en.before, en.after);
+        } else {
+          text.textContent = en.after || '—';
+        }
         entry.appendChild(head); entry.appendChild(text);
         body.appendChild(entry);
       });
@@ -17577,15 +17668,36 @@
       }
     }
     let i = 0, j = 0;
-    const out = [];
+    const parts = [];
     while (i < n && j < m) {
-      if (tokA[i] === tokB[j]) { out.push(escapeHtml(tokA[i])); i++; j++; }
-      else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push('<del class="diff-del">' + escapeHtml(tokA[i]) + '</del>'); i++; }
-      else { out.push('<ins class="diff-ins">' + escapeHtml(tokB[j]) + '</ins>'); j++; }
+      if (tokA[i] === tokB[j]) {
+        parts.push({ type: 'eq', text: tokA[i] });
+        i++; j++;
+      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        parts.push({ type: 'del', text: tokA[i] });
+        i++;
+      } else {
+        parts.push({ type: 'ins', text: tokB[j] });
+        j++;
+      }
     }
-    while (i < n) { out.push('<del class="diff-del">' + escapeHtml(tokA[i]) + '</del>'); i++; }
-    while (j < m) { out.push('<ins class="diff-ins">' + escapeHtml(tokB[j]) + '</ins>'); j++; }
-    return out.join('');
+    while (i < n) { parts.push({ type: 'del', text: tokA[i] }); i++; }
+    while (j < m) { parts.push({ type: 'ins', text: tokB[j] }); j++; }
+
+    const grouped = [];
+    parts.forEach(p => {
+      if (grouped.length > 0 && grouped[grouped.length - 1].type === p.type) {
+        grouped[grouped.length - 1].text += p.text;
+      } else {
+        grouped.push({ type: p.type, text: p.text });
+      }
+    });
+
+    return grouped.map(g => {
+      if (g.type === 'del') return '<del class="diff-del">' + escapeHtml(g.text) + '</del>';
+      if (g.type === 'ins') return '<ins class="diff-ins">' + escapeHtml(g.text) + '</ins>';
+      return escapeHtml(g.text);
+    }).join('');
   }
 
   function scanMentionFixes() {

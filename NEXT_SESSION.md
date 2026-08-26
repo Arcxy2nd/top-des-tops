@@ -1,19 +1,20 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.20.19** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
-- Plan achevé : `docs/superpowers/plans/2026-08-26-auto-sheet-headers.md`.
-- Suite de tests : 299 cas verts (`npm run verify`).
+- Version livrée : **v3.20.20** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
+- Plan achevé : Déconnexion de l'identité & Universalisation du style Diff GitHub (+ / -).
+- Suite de tests : 307 cas verts (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- Exécution du plan de standardisation automatique des en-têtes (`v3.20.19`) :
-  - **Décalage automatique (`Code.gs`)** : Introduction de `CANONICAL_SHEET_HEADERS` et `_ensureSheetHeaders(sheetKey, sheet, values)`. Lorsqu'une feuille ne possède pas d'en-tête (ligne 1 contenant des données), le script insère une ligne en tête (`insertRowBefore(1)`), décalant toutes les données d'un cran sans perte, et inscrit les titres de colonnes canoniques en gras.
-  - **Intégration transparente** : Détection et décalage automatique lors de `_readDataRows`, `SettingsService.getEntities`, `BaremeService`, `PhrasesService`, `AltSettingsService`, `SettingsSheetService` et maintenance via `apiRepairOrder`.
-  - **Harness & Tests (`tests/harness.js` & `tests/headerless-sheets.test.js`)** : Ajout de `insertRowBefore()` dans le mock et 16/16 tests unitaires au vert (299/299 sur la suite complète).
+- Implémentation de la déconnexion et universalisation des diffs (`v3.20.20`) :
+  - **Déconnexion d'identité (`Index.html`)** : Ajout de la fonction `logoutIdentity()` (réinitialisation de `_whoAmI = null`, mot de passe vidé, suppression de la clé dans `localStorage`, rafraîchissement visuel et feedback toast). Ajout d'un bouton `🚪 Se déconnecter` séparé par `.who-am-i-divider` dans le menu « Qui suis-je ? ».
+  - **Style Diff GitHub universel (`Index.html`)** : Harmonisation des classes `.diff-del`/`.audit-before` (rouge teinté, préfixe `−`, texte barré) et `.diff-ins`/`.audit-after` (vert teinté, préfixe `+`). `wordDiffHtml()` regroupe désormais les blocs contigus de suppression et d'insertion.
+  - **Intégration multi-écrans** : Journal d'audit (colonne Avant → Après), historique des modifications de notes (`openNoteHistoryPopover`) et outil de correction des mentions manquantes (`scanMentionFixes`).
+  - **Harness & Tests (`tests/identity-logout-and-diff.test.js` & `tests/innerhtml-audit.test.js`)** : 8 nouveaux tests unitaires au vert (307/307 sur la suite complète).
 
 ## Écarts
-- Aucun écart par rapport au plan arbitré. Un ajustement a été apporté à `tests/dropdown-outside-click.test.js` pour ancrer l'assertion sur le code exécutable (`document.addEventListener('mousedown')`) plutôt que sur un commentaire éliminé lors du stripping pré-déploiement CI.
+- Aucun écart par rapport au plan approuvé.
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

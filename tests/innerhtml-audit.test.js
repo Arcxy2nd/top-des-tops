@@ -127,6 +127,10 @@ const AUDITED = [
     reason: 'wordDiffHtml échappe chaque token avant de l envelopper dans del ou ins'
   },
   {
+    snippet: "text.innerHTML = wordDiffHtml(en.before, en.after);",
+    reason: 'wordDiffHtml échappe chaque token avant de l envelopper dans del ou ins'
+  },
+  {
     snippet: "catSelect.innerHTML = selectHtml;",
     reason: "selectHtml est construit à partir d'options échappées avec escapeHtml"
   },
