@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.21] - 2026-08-26
+
+### Corrigé
+**Humanisé** : Renommer un joueur ou un Top affiche désormais immédiatement le nouveau nom partout (Notes, Tchat, Barème, Phrases) — auparavant l'ancien nom pouvait rester visible jusqu'à 10 minutes dans ces écrans après un renommage.
+**Technique** : `SettingsService.renameEntity()` (`Code.gs`) bump désormais `_bumpNotesVersion()`/`_bumpChatVersion()` (renommage Joueur) et `_bumpBaremeVersion()`/`_bumpPhrasesVersion()` (renommage Top), en plus de `_bumpSettingsVersion()` déjà en place — alignant son comportement sur celui de l'outil de réparation d'ordre qui bumpait déjà ces trois compteurs ensemble. Deux échecs silencieux durcis en parallèle : un échec d'invalidation de cache (`withLock`) et un échec d'écriture du journal d'audit (`AuditService.log`) laissent maintenant une trace dans les logs au lieu de disparaître sans avertissement.
+
+### Ajouté
+**Humanisé** : Le panneau Rapport de santé (Paramètres → Outils) affiche maintenant un indicateur du taux de réussite du cache serveur, pour voir en un coup d'œil si l'app sert bien ses pages depuis le cache plutôt que de relire le tableur à chaque fois.
+**Technique** : Nouvel endpoint `apiGetCacheStats()` (`Code.gs`), alimenté par un compteur hit/miss instrumenté au point de passage unique `_cacheGetChunked()` (renommé en wrapper autour de `_cacheGetChunkedRaw`), stocké dans `CacheService` sur une fenêtre glissante de 6h. Câblé dans le panneau Santé de `Index.html`.
+
+### Modifié
+**Humanisé** : Certains outils d'administration (réparation de l'ordre, regroupement automatique d'entrées similaires) sont maintenant plus rapides sur les tableurs volumineux, sans changement de comportement visible.
+**Technique** : `apiRepairOrder()` et `StorageService.apiGroupSimilarEntries()` (`Code.gs`) remplacent leurs boucles `forEach(...).setValue(...)` (une requête Sheets par ligne) par un unique `setValues()` par colonne/feuille concernée.
+
+### Supprimé
+**Humanisé** : Nettoyage de code mort dans les styles de l'application — aucun changement visible.
+**Technique** : Suppression de 15 classes CSS non référencées dans `Index.html` (confirmées mortes par une revue exhaustive : `.spotlight-card`, `.d-range`, `.row-tops-group`, `.row-bottom`, `.row-actions`, `.settings-grid`, `.auto-rules-card`, `.row-main-right`, `.row-range-toggle`, `.bareme-settings-section`, `.hist-bulk-desc-wrap`, `.detect-lot-info`, `.detect-summary`, `.row-alt-pill`, `.phrase-podium-header-row`). Remplacement de 22 couleurs hexadécimales en dur par des variables CSS (dont 8 nouveaux tokens `--rank-*` pour les variantes podium). Ajout de `dev/temp_front.css`/`dev/temp_front.js` au `.gitignore`.
+
 ## [v3.20.20] - 2026-08-26
 
 ### Ajouté
