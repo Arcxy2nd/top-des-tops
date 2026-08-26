@@ -44,6 +44,14 @@
       --medal-gold: #ffd700;
       --medal-silver: #c0c0c0;
       --medal-bronze: #cd7f32;
+      --rank-gold-text: #4a3800;
+      --rank-silver-text: #33383d;
+      --rank-bronze-text: #331d0c;
+      --rank-silver-light: #d0d8e0;
+      --rank-bronze-light: #e59866;
+      --rank-gold-grad-end: #ffaa00;
+      --rank-silver-grad-end: #909090;
+      --rank-bronze-grad-end: #9a5518;
       --spotlight-color: rgba(255, 255, 255, 0.05);
       --glass-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
       --radius-lg: 16px;
@@ -756,14 +764,14 @@
     .fchip.active {
       background: var(--fchip-col, linear-gradient(135deg, var(--accent), var(--accent-hover)));
       border-color: transparent;
-      color: #ffffff;
+      color: var(--on-accent);
       font-weight: 700;
       box-shadow: 0 4px 16px rgba(255, 71, 87, 0.35);
     }
     .fchip-all.active {
       background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-      border-color: transparent; 
-      color: #ffffff; 
+      border-color: transparent;
+      color: var(--on-accent);
       box-shadow: 0 4px 16px var(--accent-glow);
     }
     .fchip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.3); }
@@ -796,7 +804,7 @@
     }
     .date-shortcut.active {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: var(--accent);
       box-shadow: 0 4px 12px var(--accent-glow);
     }
@@ -1799,7 +1807,7 @@
     }
     .bd-badge {
       flex-shrink: 0; min-width: 68px; text-align: center;
-      color: #ffffff !important; font-size: 0.78rem; font-weight: 800;
+      color: var(--on-accent) !important; font-size: 0.78rem; font-weight: 800;
       border-radius: var(--radius-full); padding: 4px 10px; letter-spacing: 0.03em;
       box-shadow: 0 2px 6px rgba(0,0,0,0.25); line-height: 1.2;
     }
@@ -2362,7 +2370,7 @@
     body.light .stats-hub-tab { background: rgba(0, 0, 0, 0.04); }
     .stats-hub-tab:hover { color: var(--text); border-color: var(--border-hover); transform: translateY(-1px); }
     .stats-hub-tab.active {
-      background: var(--accent); border-color: transparent; color: #ffffff;
+      background: var(--accent); border-color: transparent; color: var(--on-accent);
       box-shadow: 0 4px 14px var(--accent-glow);
     }
     .stats-hub-pane { display: none; }
@@ -2396,9 +2404,9 @@
       font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums;
       background: var(--btn-alt); color: var(--text-muted); border: 1px solid var(--border);
     }
-    .sr-rank.gold   { background: var(--medal-gold);   color: #4a3800; border-color: var(--medal-gold); box-shadow: 0 0 10px rgba(255,215,0,0.4); }
-    .sr-rank.silver { background: var(--medal-silver); color: #33383d; border-color: var(--medal-silver); }
-    .sr-rank.bronze { background: var(--medal-bronze); color: #331d0c; border-color: var(--medal-bronze); }
+    .sr-rank.gold   { background: var(--medal-gold);   color: var(--rank-gold-text);   border-color: var(--medal-gold); box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+    .sr-rank.silver { background: var(--medal-silver); color: var(--rank-silver-text); border-color: var(--medal-silver); }
+    .sr-rank.bronze { background: var(--medal-bronze); color: var(--rank-bronze-text); border-color: var(--medal-bronze); }
     .sr-avatar {
       width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
       border: 2px solid var(--sr-accent, var(--border));
@@ -2727,7 +2735,7 @@
       box-shadow: 0 8px 28px rgba(255, 215, 0, 0.2);
     }
     .podium-column.rank-1:hover .phrase-podium-card {
-      border-color: #ffd700;
+      border-color: var(--medal-gold);
       box-shadow: 0 14px 40px rgba(255, 215, 0, 0.38), 0 0 0 1px rgba(255,215,0,0.18);
     }
 
@@ -2738,7 +2746,7 @@
       box-shadow: 0 6px 20px rgba(192, 192, 192, 0.12);
     }
     .podium-column.rank-2:hover .phrase-podium-card {
-      border-color: #c0c0c0;
+      border-color: var(--medal-silver);
       box-shadow: 0 12px 32px rgba(192, 192, 192, 0.28), 0 0 0 1px rgba(192,192,192,0.14);
     }
 
@@ -2749,14 +2757,14 @@
       box-shadow: 0 6px 20px rgba(205, 127, 50, 0.12);
     }
     .podium-column.rank-3:hover .phrase-podium-card {
-      border-color: #cd7f32;
+      border-color: var(--medal-bronze);
       box-shadow: 0 12px 32px rgba(205, 127, 50, 0.28), 0 0 0 1px rgba(205,127,50,0.14);
     }
 
     /* Hover unifié du socle */
-    .podium-column.rank-1:hover .podium-step-base { border-color: #ffd700; }
-    .podium-column.rank-2:hover .podium-step-base { border-color: #c0c0c0; }
-    .podium-column.rank-3:hover .podium-step-base { border-color: #cd7f32; }
+    .podium-column.rank-1:hover .podium-step-base { border-color: var(--medal-gold); }
+    .podium-column.rank-2:hover .podium-step-base { border-color: var(--medal-silver); }
+    .podium-column.rank-3:hover .podium-step-base { border-color: var(--medal-bronze); }
 
     /* Socles (Marches de Podium) */
     .podium-step-base {
@@ -2779,21 +2787,21 @@
       height: 80px;
       background: linear-gradient(180deg, rgba(255, 215, 0, 0.3), rgba(218, 165, 32, 0.08));
       border-color: rgba(255, 215, 0, 0.45);
-      color: #ffd700;
+      color: var(--medal-gold);
       font-size: 1.5rem;
     }
     .podium-column.rank-2 .podium-step-base {
       height: 55px;
       background: linear-gradient(180deg, rgba(192, 192, 192, 0.22), rgba(140, 150, 160, 0.06));
       border-color: rgba(192, 192, 192, 0.38);
-      color: #d0d8e0;
+      color: var(--rank-silver-light);
       font-size: 1.25rem;
     }
     .podium-column.rank-3 .podium-step-base {
       height: 36px;
       background: linear-gradient(180deg, rgba(205, 127, 50, 0.22), rgba(140, 75, 25, 0.06));
       border-color: rgba(205, 127, 50, 0.38);
-      color: #e59866;
+      color: var(--rank-bronze-light);
       font-size: 1.1rem;
     }
     .podium-step-number {
@@ -2838,7 +2846,7 @@
       padding: 4px 11px;
       background: rgba(255, 215, 0, 0.16);
       border-color: rgba(255, 215, 0, 0.4);
-      color: #ffd700;
+      color: var(--medal-gold);
     }
 
     .phrase-podium-player {
@@ -2869,7 +2877,7 @@
       width: 64px;
       height: 64px;
       border-width: 3px;
-      border-color: #ffd700;
+      border-color: var(--medal-gold);
       animation: avatarPulse 2.5s ease-in-out infinite;
     }
     @keyframes avatarPulse {
@@ -2891,9 +2899,9 @@
       border-radius: 4px;
       transition: width 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
     }
-    .podium-column.rank-1 .phrase-podium-progress-bar { background: linear-gradient(90deg, #ffd700, #ffaa00); }
-    .podium-column.rank-2 .phrase-podium-progress-bar { background: linear-gradient(90deg, #c0c0c0, #909090); }
-    .podium-column.rank-3 .phrase-podium-progress-bar { background: linear-gradient(90deg, #cd7f32, #9a5518); }
+    .podium-column.rank-1 .phrase-podium-progress-bar { background: linear-gradient(90deg, var(--medal-gold), var(--rank-gold-grad-end)); }
+    .podium-column.rank-2 .phrase-podium-progress-bar { background: linear-gradient(90deg, var(--medal-silver), var(--rank-silver-grad-end)); }
+    .podium-column.rank-3 .phrase-podium-progress-bar { background: linear-gradient(90deg, var(--medal-bronze), var(--rank-bronze-grad-end)); }
 
     .phrase-podium-gap {
       font-size: 0.68rem;
@@ -3065,13 +3073,13 @@
       width: fit-content; position: relative; z-index: 1;
     }
     .phrase-cat-badge.tight {
-      background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3);
+      background: rgba(255, 71, 87, 0.15); color: var(--error); border: 1px solid rgba(255, 71, 87, 0.3);
     }
     .phrase-cat-badge.dominance {
-      background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3);
+      background: rgba(255, 215, 0, 0.15); color: var(--medal-gold); border: 1px solid rgba(255, 215, 0, 0.3);
     }
     .phrase-cat-badge.active-top {
-      background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3);
+      background: rgba(46, 213, 115, 0.15); color: var(--success); border: 1px solid rgba(46, 213, 115, 0.3);
     }
     .phrase-cat-filter-indicator {
       margin-left: auto; font-size: 0.65rem; font-weight: 800; color: var(--phrase-color, var(--accent));
@@ -3177,14 +3185,14 @@
     }
     .bq-btn:hover {
       background: var(--row-accent, var(--accent));
-      color: #ffffff;
+      color: var(--on-accent);
       border-color: var(--row-accent, var(--accent));
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .bq-btn:hover .bq-pts {
       background: rgba(255,255,255,0.25);
-      color: #ffffff;
+      color: var(--on-accent);
     }
     .bq-btn .bq-action { flex: 1; font-weight: 500; }
     .bq-btn .bq-pts {
