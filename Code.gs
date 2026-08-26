@@ -171,6 +171,22 @@ const SHEET_HEADERS = {
                   'daysofweek', 'dayofmonth', 'startdate', 'nextrun', 'lastrun', 'active', 'createdby']
 };
 
+const CANONICAL_SHEET_HEADERS = {
+  players:       ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+  categories:    ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
+  history:       ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'],
+  notes:         ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
+  bareme:        ['Top', 'Action', 'Points', 'Ordre'],
+  phrases:       ['Preset', 'Pool', 'Phrase', 'Ordre'],
+  chat:          ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
+  auditLog:      ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe'],
+  settings:      ['Key', 'Value'],
+  altCategories: ['Name', 'Description', 'Emoji', 'Hex color'],
+  altHistory:    ['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur'],
+  autoRules:     ['ID', 'Joueur', 'Catégorie', 'Points', 'Description', 'Fréquence', 'Intervalle',
+                  'JoursSemaine', 'JourMois', 'DateDébut', 'ProchaineExécution', 'DernièreExécution', 'Actif', 'CrééPar']
+};
+
 // Sheets whose first column always holds a real date. On those, a row 1 whose first
 // cell is not a date cannot be a record — so it is a header even when its wording
 // differs from ours (hand-made sheets carry French or renamed labels).
@@ -229,8 +245,52 @@ function _headerOffsetFromValues(sheetKey, values) {
   return offset;
 }
 
+/**
+ * Ensures the given sheet has a proper canonical header row at row 1.
+ * If the sheet already has a header, this is a no-op.
+ * If the sheet is empty, it appends the header.
+ * If the sheet holds data on row 1 (headerless), it shifts all existing rows down
+ * by 1 (insertRowBefore(1)) and populates row 1 with the canonical column headers,
+ * preserving every single row of existing data without loss.
+ */
+function _ensureSheetHeaders(sheetKey, sheet, values) {
+  if (!sheet) return;
+  const headers = CANONICAL_SHEET_HEADERS[sheetKey];
+  if (!headers || !headers.length) return;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    _headerOffsetMemo[sheetKey] = 1;
+    return;
+  }
+
+  const row1 = (values && values.length) ? values[0] : sheet.getRange(1, 1, 1, Math.max(1, Math.min(headers.length, sheet.getLastColumn() || 1))).getValues()[0];
+  if (_isHeaderRow(sheetKey, row1)) {
+    _headerOffsetMemo[sheetKey] = 1;
+    return;
+  }
+
+  // Row 1 is real data -> shift all rows down and write standard headers
+  sheet.insertRowBefore(1);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  _headerOffsetMemo[sheetKey] = 1;
+}
+
+function _ensureAllSheetHeaders() {
+  const sheets = ConfigService.getSheets();
+  const keys = ['players', 'categories', 'history', 'notes', 'bareme', 'phrases', 'chat', 'auditLog', 'settings', 'altCategories', 'altHistory', 'autoRules'];
+  keys.forEach(k => {
+    if (sheets[k]) _ensureSheetHeaders(k, sheets[k]);
+  });
+}
+
 /** 1-based index of the first data row of a sheet. */
-function _firstDataRow(sheetKey, sheet) { return 1 + _headerOffset(sheetKey, sheet); }
+function _firstDataRow(sheetKey, sheet) {
+  return 1 + _headerOffset(sheetKey, sheet);
+}
 
 /**
  * Reads every data row of a sheet in a SINGLE range call: row 1 is fetched with the
@@ -240,10 +300,18 @@ function _firstDataRow(sheetKey, sheet) { return 1 + _headerOffset(sheetKey, she
  */
 function _readDataRows(sheetKey, sheet, numCols) {
   const lastRow = sheet.getLastRow();
-  if (lastRow < 1) { _headerOffsetMemo[sheetKey] = 1; return { values: [], startRow: 2 }; }
+  if (lastRow < 1) {
+    _ensureSheetHeaders(sheetKey, sheet);
+    _headerOffsetMemo[sheetKey] = 1;
+    return { values: [], startRow: 2 };
+  }
   const all = sheet.getRange(1, 1, lastRow, numCols).getValues();
-  const off = _headerOffsetFromValues(sheetKey, all);
-  return { values: all.slice(off), startRow: 1 + off };
+  if (!_isHeaderRow(sheetKey, all[0])) {
+    _ensureSheetHeaders(sheetKey, sheet, all);
+    return { values: all, startRow: 2 };
+  }
+  _headerOffsetMemo[sheetKey] = 1;
+  return { values: all.slice(1), startRow: 2 };
 }
 
 // ─── CONFIG SERVICE ────────────────────────────────────────────────────────────
@@ -637,13 +705,15 @@ const SettingsService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data  = sheet.getDataRange().getValues();
-    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
-    // Le vrai numéro de ligne est attaché ici, avant filtre/tri — jamais recalculé
-    // depuis la position dans le tableau final (voir BaremeService.getEntries pour
-    // le même piège) : deleteEntity/renameEntity s'en servent pour cibler la bonne
-    // ligne physique même quand deux entités partagent le même nom.
-    let rows = data.slice(off)
-      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
+    if (!data.length) return [];
+    let rowsData = data;
+    if (!_isHeaderRow(type.toLowerCase(), data[0])) {
+      _ensureSheetHeaders(type.toLowerCase(), sheet, data);
+    } else {
+      rowsData = data.slice(1);
+    }
+    let rows = rowsData
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
       .filter(x => x.r[0]);
     rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
     const result = rows.map(x => {
@@ -677,6 +747,7 @@ const SettingsService = {
   addEntity(type, name, meta, icon) {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = sheet.getDataRange().getValues();
     const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     // A duplicate name isn't just cosmetic here: deleteEntity() removes every
@@ -700,6 +771,7 @@ const SettingsService = {
   // le premier match.
   setEntityColor(type, rowIndex, expectedName, color) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = sheet.getDataRange().getValues();
     const idx = rowIndex - 1;
     if (!data[idx] || data[idx][0] !== expectedName) {
@@ -719,6 +791,7 @@ const SettingsService = {
   // toucher la mauvaise ligne.
   deleteEntity(type, rowIndex, expectedName) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = sheet.getDataRange().getValues();
     const row = data[rowIndex - 1];
     if (!row || row[0] !== expectedName) {
@@ -731,6 +804,7 @@ const SettingsService = {
   renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon) {
     if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = sheet.getDataRange().getValues();
     const idx = rowIndex - 1;
     if (!data[idx] || data[idx][0] !== oldName) {
@@ -847,6 +921,7 @@ const SettingsService = {
   // silencieusement réordonnée sous une identité que l'utilisateur n'a pas vue.
   reorderEntities(type, orderedRowIndexes, expectedNames) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = sheet.getDataRange().getValues();
     const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     const validRowIndexes = [];
@@ -1384,8 +1459,12 @@ const AltSettingsService = {
 
   getAltCategories() {
     const sheet = this._sheet();
+    if (!sheet) return [];
     const data = sheet.getDataRange().getValues();
     if (!data || !data.length) return [];
+    if (!_isHeaderRow('altCategories', data[0])) {
+      _ensureSheetHeaders('altCategories', sheet, data);
+    }
     const off = _headerOffsetFromValues('altCategories', data);
     return data
       .filter((r, i) => i >= off && r[0] && r[0].toString() !== 'Name')
@@ -2185,6 +2264,9 @@ const SettingsSheetService = {
     const sheet = ConfigService.getSheets().settings;
     if (!sheet) return {};
     const data = sheet.getDataRange().getValues();
+    if (data.length && !_isHeaderRow('settings', data[0])) {
+      _ensureSheetHeaders('settings', sheet, data);
+    }
     const result = {};
     for (let i = _headerOffsetFromValues('settings', data); i < data.length; i++) {
       if (data[i][0]) result[data[i][0].toString()] = data[i][1] ? data[i][1].toString() : '';
@@ -2230,9 +2312,15 @@ const BaremeService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data = sheet.getDataRange().getValues();
-    const off  = _headerOffsetFromValues('bareme', data);
-    let rows = data.slice(off)
-      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
+    if (!data.length) return [];
+    let rowsData = data;
+    if (!_isHeaderRow('bareme', data[0])) {
+      _ensureSheetHeaders('bareme', sheet, data);
+    } else {
+      rowsData = data.slice(1);
+    }
+    let rows = rowsData
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
       .filter(x => x.r[0] !== "" && x.r[0] !== undefined);
     const groups = {};
     const groupOrder = [];
@@ -2338,9 +2426,15 @@ const PhrasesService = {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const data = sheet.getDataRange().getValues();
-    const off  = _headerOffsetFromValues('phrases', data);
-    let rows = data.slice(off)
-      .map((r, i) => ({ r, rowIndex: i + 1 + off }))
+    if (!data.length) return [];
+    let rowsData = data;
+    if (!_isHeaderRow('phrases', data[0])) {
+      _ensureSheetHeaders('phrases', sheet, data);
+    } else {
+      rowsData = data.slice(1);
+    }
+    let rows = rowsData
+      .map((r, i) => ({ r, rowIndex: i + 2 }))
       .filter(x => x.r[0] !== '' && x.r[2] !== '');
     const groups = {};
     const groupOrder = [];
@@ -4106,6 +4200,7 @@ function apiRepairOrder(author, password) {
   try {
     requireAuthor(author, password);
     return withLock(() => {
+      _ensureAllSheetHeaders();
       const result = { players: 0, categories: 0, bareme: 0, phrases: 0 };
 
       ['Players', 'Categories'].forEach(type => {

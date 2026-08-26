@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.19] - 2026-08-26
+
+### Ajouté
+**Humanisé** : Les feuilles Google Sheets qui ont été créées sans ligne de titres reçoivent désormais automatiquement leurs en-têtes de colonnes officiels : les données existantes sont automatiquement décalées d'une ligne vers le bas sans aucune perte, et les titres officiels sont inscrits en ligne 1 en gras pour rendre le tableur parfaitement lisible aux humains.
+**Technique** : `Code.gs` — introduction de `CANONICAL_SHEET_HEADERS` et de `_ensureSheetHeaders(sheetKey, sheet, values)` : si une feuille commence par une ligne de données, elle subit `sheet.insertRowBefore(1)` et reçoit la ligne d'en-tête canonique. Intégré de façon transparente dans `_readDataRows`, `SettingsService.getEntities`, `BaremeService`, `PhrasesService`, `AltSettingsService`, `SettingsSheetService` et `apiRepairOrder`. `tests/harness.js` enrichi de `insertRowBefore()` et 16 tests validés dans `tests/headerless-sheets.test.js`.
+
 ## [v3.20.18] - 2026-08-26
 
 ### Modifié

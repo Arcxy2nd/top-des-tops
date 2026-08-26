@@ -1,17 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.20.18** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
-- Plan achevé : `docs/superpowers/plans/2026-08-26-event-callbacks-hardening.md`.
+- Version livrée : **v3.20.19** (2026-08-26) — déployée et validée sur Google Apps Script via CI.
+- Plan achevé : `docs/superpowers/plans/2026-08-26-auto-sheet-headers.md`.
 - Suite de tests : 299 cas verts (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- Exécution du plan de durcissement préventif (`v3.20.18`) :
-  - **Durcissement callbacks (`Index.html`)** : Remplacement systématique des gardes fragiles `if (cb) cb()` par `if (typeof cb === 'function') cb()` dans `applyFilters`, `loadEntities`, `loadAppBranding`, `loadCustomPhrases`, `loadAltHistoryMap` et `anchorFloating`.
-  - **Délégation d'événements (`Index.html`)** : Sécurisation de l'écouteur `#trendsScopeToggle` avec `e.target.closest('.chart-type-btn')`.
-  - **Tests (`tests/papercuts.test.js` & `tests/frontend-guards.test.js`)** : Tests unitaires automatisés validant la présence des gardes strictes et l'absence de régression.
-  - 299/299 tests passés avec succès.
+- Exécution du plan de standardisation automatique des en-têtes (`v3.20.19`) :
+  - **Décalage automatique (`Code.gs`)** : Introduction de `CANONICAL_SHEET_HEADERS` et `_ensureSheetHeaders(sheetKey, sheet, values)`. Lorsqu'une feuille ne possède pas d'en-tête (ligne 1 contenant des données), le script insère une ligne en tête (`insertRowBefore(1)`), décalant toutes les données d'un cran sans perte, et inscrit les titres de colonnes canoniques en gras.
+  - **Intégration transparente** : Détection et décalage automatique lors de `_readDataRows`, `SettingsService.getEntities`, `BaremeService`, `PhrasesService`, `AltSettingsService`, `SettingsSheetService` et maintenance via `apiRepairOrder`.
+  - **Harness & Tests (`tests/harness.js` & `tests/headerless-sheets.test.js`)** : Ajout de `insertRowBefore()` dans le mock et 16/16 tests unitaires au vert (299/299 sur la suite complète).
 
 ## Écarts
 - Aucun écart par rapport au plan arbitré. Un ajustement a été apporté à `tests/dropdown-outside-click.test.js` pour ancrer l'assertion sur le code exécutable (`document.addEventListener('mousedown')`) plutôt que sur un commentaire éliminé lors du stripping pré-déploiement CI.

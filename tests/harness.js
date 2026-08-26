@@ -63,6 +63,7 @@ function makeSheet(grid) {
     },
     getDataRange() { return api.getRange(1, 1, grid.length, api.getLastColumn()); },
     appendRow(row) { grid.push(row.slice()); },
+    insertRowBefore(idx) { grid.splice(idx - 1, 0, []); },
     deleteRow(idx) { grid.splice(idx - 1, 1); },
     clearContents() { grid.length = 0; },
     copyTo() { return { setName() {} }; },
@@ -237,7 +238,8 @@ const EXPORTED_GLOBALS = [
   'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
   'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor',
-  '_byteLength', '_cachePutChunked', '_cacheGetChunked'
+  '_byteLength', '_cachePutChunked', '_cacheGetChunked',
+  '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS'
 ];
 
 /**

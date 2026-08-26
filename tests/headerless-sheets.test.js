@@ -15,19 +15,20 @@ const { loadGas, makeSheet } = require('./harness.js');
 
 // ── Players ──────────────────────────────────────────────────────────────────
 
-test('getEntities reads the very first row of a Players sheet that has no header', () => {
+test('getEntities reads the very first row of a Players sheet that has no header and inserts headers', () => {
   const gas = loadGas();
-  gas.ConfigService.getSheets = () => ({
-    players: makeSheet([
-      ['Ilker',   'https://i.imgur.com/a.jpeg', '#00ff91', 'Nur',  1],
-      ['Antoine', 'https://i.imgur.com/b.jpeg', '#80eaff', 'Pied', 2]
-    ])
-  });
+  const playersSheet = makeSheet([
+    ['Ilker',   'https://i.imgur.com/a.jpeg', '#00ff91', 'Nur',  1],
+    ['Antoine', 'https://i.imgur.com/b.jpeg', '#80eaff', 'Pied', 2]
+  ]);
+  gas.ConfigService.getSheets = () => ({ players: playersSheet });
   const players = gas.SettingsService.getEntities('Players');
   assert.deepStrictEqual(players.map(p => p.name), ['Ilker', 'Antoine']);
-  assert.strictEqual(players[0].rowIndex, 1, 'la ligne 1 doit être adressée comme ligne 1');
+  assert.strictEqual(players[0].rowIndex, 2, 'la donnée est décalée en ligne 2 après insertion de l\'en-tête');
   assert.strictEqual(players[0].color, '#00ff91');
   assert.strictEqual(players[0].hasPassword, true);
+  assert.deepStrictEqual(playersSheet._grid[0], ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], 'la ligne 1 a reçu les titres canoniques');
+  assert.strictEqual(playersSheet._grid.length, 3, 'le tableau contient l\'en-tête + les 2 joueurs');
 });
 
 test('getEntities still skips the header row when the Players sheet has one', () => {
@@ -52,7 +53,7 @@ test('addEntity refuses to duplicate the player sitting on row 1 of a headerless
   ]);
   gas.ConfigService.getSheets = () => ({ players });
   assert.throws(() => gas.SettingsService.addEntity('Players', 'Ilker', '', ''), /existe déjà/);
-  assert.strictEqual(players._grid.length, 2, 'aucune ligne en double ne doit être ajoutée');
+  assert.strictEqual(players._grid.length, 3, 'en-tête inséré + 2 joueurs existants conservés sans doublon');
 });
 
 test('addEntity numbers the next Ordre from every row of a headerless sheet', () => {
@@ -63,42 +64,42 @@ test('addEntity numbers the next Ordre from every row of a headerless sheet', ()
   ]);
   gas.ConfigService.getSheets = () => ({ players });
   gas.SettingsService.addEntity('Players', 'Nicolas', '', '');
-  assert.strictEqual(players._grid[2][4], 3, "l'Ordre doit suivre les 2 joueurs déjà présents");
+  assert.strictEqual(players._grid[3][4], 3, "l'Ordre doit suivre les 2 joueurs déjà présents");
 });
 
-test('setEntityColor targets row 1 of a headerless sheet', () => {
+test('setEntityColor targets row after header insertion of a headerless sheet', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Ilker',   '', '#00ff91', '', 1],
     ['Antoine', '', '#80eaff', '', 2]
   ]);
   gas.ConfigService.getSheets = () => ({ players });
-  gas.SettingsService.setEntityColor('Players', 1, 'Ilker', '#123456');
-  assert.strictEqual(players._grid[0][2], '#123456');
-  assert.strictEqual(players._grid[1][2], '#80eaff', "le 2e joueur ne doit pas bouger");
+  gas.SettingsService.setEntityColor('Players', 2, 'Ilker', '#123456');
+  assert.strictEqual(players._grid[1][2], '#123456');
+  assert.strictEqual(players._grid[2][2], '#80eaff', "le 2e joueur ne doit pas bouger");
 });
 
-test('deleteEntity removes row 1 of a headerless sheet', () => {
+test('deleteEntity removes row after header insertion of a headerless sheet', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Ilker',   '', '', '', 1],
     ['Antoine', '', '', '', 2]
   ]);
   gas.ConfigService.getSheets = () => ({ players, history: makeSheet([]) });
-  gas.SettingsService.deleteEntity('Players', 1, 'Ilker');
-  assert.deepStrictEqual(players._grid.map(r => r[0]), ['Antoine']);
+  gas.SettingsService.deleteEntity('Players', 2, 'Ilker');
+  assert.deepStrictEqual(players._grid.slice(1).map(r => r[0]), ['Antoine']);
 });
 
-test('reorderEntities accepts row 1 of a headerless sheet in the permutation', () => {
+test('reorderEntities accepts row after header insertion in the permutation', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Ilker',   '', '', '', 1],
     ['Antoine', '', '', '', 2]
   ]);
   gas.ConfigService.getSheets = () => ({ players });
-  gas.SettingsService.reorderEntities('Players', [2, 1], ['Antoine', 'Ilker']);
-  assert.strictEqual(players._grid[1][4], 1, 'Antoine passe premier');
-  assert.strictEqual(players._grid[0][4], 2, 'Ilker passe second');
+  gas.SettingsService.reorderEntities('Players', [3, 2], ['Antoine', 'Ilker']);
+  assert.strictEqual(players._grid[2][4], 1, 'Antoine passe premier');
+  assert.strictEqual(players._grid[1][4], 2, 'Ilker passe second');
 });
 
 test('verifyIdentity does not accept a header row as a player', () => {
@@ -114,35 +115,39 @@ test('verifyIdentity does not accept a header row as a player', () => {
 
 // ── Categories ───────────────────────────────────────────────────────────────
 
-test('getEntities reads the very first row of a Categories sheet that has no header', () => {
+test('getEntities reads the very first row of a Categories sheet that has no header and inserts headers', () => {
   const gas = loadGas();
+  const catSheet = makeSheet([
+    ['Mauvais', 'Celui qui prend mal ce qu\'on lui dit', '😠', '#ff4757', 1],
+    ['Méchant', 'Celui qui est méchant',                 '😡', '#ffa502', 2]
+  ]);
   gas.ConfigService.getSheets = () => ({
-    categories: makeSheet([
-      ['Mauvais', 'Celui qui prend mal ce qu\'on lui dit', '😠', '#ff4757', 1],
-      ['Méchant', 'Celui qui est méchant',                 '😡', '#ffa502', 2]
-    ])
+    categories: catSheet
   });
   const cats = gas.SettingsService.getEntities('Categories');
   assert.deepStrictEqual(cats.map(c => c.name), ['Mauvais', 'Méchant']);
-  assert.strictEqual(cats[0].rowIndex, 1);
+  assert.strictEqual(cats[0].rowIndex, 2);
   assert.strictEqual(cats[0].icon, '😠');
+  assert.deepStrictEqual(catSheet._grid[0], ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']);
 });
 
 // ── History ──────────────────────────────────────────────────────────────────
 
-test('the first score of a headerless History sheet is counted', () => {
+test('the first score of a headerless History sheet is counted and headers inserted', () => {
   const gas = loadGas();
+  const histSheet = makeSheet([
+    [new Date('2026-01-05T12:00:00Z'), 'Ilker',   'Mauvais', 5, '', '', ''],
+    [new Date('2026-01-06T12:00:00Z'), 'Antoine', 'Mauvais', 3, '', '', '']
+  ]);
   gas.ConfigService.getSheets = () => ({
-    history: makeSheet([
-      [new Date('2026-01-05T12:00:00Z'), 'Ilker',   'Mauvais', 5, '', '', ''],
-      [new Date('2026-01-06T12:00:00Z'), 'Antoine', 'Mauvais', 3, '', '', '']
-    ])
+    history: histSheet
   });
   gas.ConfigService.getLogsCache = () => null;
   gas.ConfigService.setLogsCache = () => {};
   const logs = gas.StorageService._readLogsFromSheet();
   assert.strictEqual(logs.length, 2, 'les 2 scores doivent être lus');
   assert.strictEqual(logs[0].player, 'Ilker');
+  assert.deepStrictEqual(histSheet._grid[0], ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']);
 });
 
 test('the header row of a History sheet is still skipped', () => {
@@ -162,72 +167,83 @@ test('the header row of a History sheet is still skipped', () => {
 
 // ── Bareme ───────────────────────────────────────────────────────────────────
 
-test('getEntries reads the very first row of a headerless Bareme sheet', () => {
+test('getEntries reads the very first row of a headerless Bareme sheet and inserts headers', () => {
   const gas = loadGas();
+  const baremeSheet = makeSheet([
+    ['Mauvais', 'Râler', 2, 1],
+    ['Mauvais', 'Bouder', 3, 2]
+  ]);
   gas.ConfigService.getSheets = () => ({
-    bareme: makeSheet([
-      ['Mauvais', 'Râler', 2, 1],
-      ['Mauvais', 'Bouder', 3, 2]
-    ])
+    bareme: baremeSheet
   });
   const entries = gas.BaremeService.getEntries();
   assert.deepStrictEqual(entries.map(e => e.action), ['Râler', 'Bouder']);
-  assert.strictEqual(entries[0].rowIndex, 1);
+  assert.strictEqual(entries[0].rowIndex, 2);
+  assert.deepStrictEqual(baremeSheet._grid[0], ['Top', 'Action', 'Points', 'Ordre']);
 });
 
 // ── Phrases ──────────────────────────────────────────────────────────────────
 
-test('getAll reads the very first row of a headerless Phrases sheet', () => {
+test('getAll reads the very first row of a headerless Phrases sheet and inserts headers', () => {
   const gas = loadGas();
+  const phrasesSheet = makeSheet([
+    ['Défaut', 'first',  '{player} domine', 1],
+    ['Défaut', 'second', '{player} suit',   1]
+  ]);
   gas.ConfigService.getSheets = () => ({
-    phrases: makeSheet([
-      ['Défaut', 'first',  '{player} domine', 1],
-      ['Défaut', 'second', '{player} suit',   1]
-    ])
+    phrases: phrasesSheet
   });
   const all = gas.PhrasesService.getAll();
   assert.deepStrictEqual(all.map(p => p.text), ['{player} domine', '{player} suit']);
-  assert.strictEqual(all[0].rowIndex, 1);
+  assert.strictEqual(all[0].rowIndex, 2);
+  assert.deepStrictEqual(phrasesSheet._grid[0], ['Preset', 'Pool', 'Phrase', 'Ordre']);
 });
 
 // ── Notes ────────────────────────────────────────────────────────────────────
 
-test('the first note of a headerless Notes sheet is returned', () => {
+test('the first note of a headerless Notes sheet is returned and headers inserted', () => {
   const gas = loadGas();
+  const notesSheet = makeSheet([
+    [new Date('2026-01-05T12:00:00Z'), 'Ilker', 'Première note'],
+    [new Date('2026-01-06T12:00:00Z'), 'Ilker', 'Deuxième note']
+  ]);
   gas.ConfigService.getSheets = () => ({
-    notes: makeSheet([
-      [new Date('2026-01-05T12:00:00Z'), 'Ilker', 'Première note'],
-      [new Date('2026-01-06T12:00:00Z'), 'Ilker', 'Deuxième note']
-    ])
+    notes: notesSheet
   });
   const res = gas.NotesService.getAllNotes();
   assert.strictEqual(res.notes.length, 2);
+  assert.deepStrictEqual(notesSheet._grid[0], ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']);
 });
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
-test('the first message of a headerless Chat sheet is returned', () => {
+test('the first message of a headerless Chat sheet is returned and headers inserted', () => {
   const gas = loadGas();
+  const chatSheet = makeSheet([
+    ['id-1', new Date('2026-01-05T12:00:00Z'), 'Ilker',   'Salut', ''],
+    ['id-2', new Date('2026-01-05T12:01:00Z'), 'Antoine', 'Yo',    '']
+  ]);
   gas.ConfigService.getSheets = () => ({
-    chat: makeSheet([
-      ['id-1', new Date('2026-01-05T12:00:00Z'), 'Ilker',   'Salut', ''],
-      ['id-2', new Date('2026-01-05T12:01:00Z'), 'Antoine', 'Yo',    '']
-    ])
+    chat: chatSheet
   });
   const res = gas.ChatService.getAllMessages();
   assert.strictEqual(res.messages.length, 2);
+  assert.deepStrictEqual(chatSheet._grid[0], ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ']);
 });
 
 // ── Alt categories ───────────────────────────────────────────────────────────
 
-test('the first alt category of a headerless AltCategories sheet is returned', () => {
+test('the first alt category of a headerless AltCategories sheet is returned and headers inserted', () => {
   const gas = loadGas();
+  const altSheet = makeSheet([
+    ['Bonus',  'Points bonus', '🎁', '#2ed573'],
+    ['Malus',  'Points malus', '💀', '#ff4757']
+  ]);
   gas.ConfigService.getSheets = () => ({
-    altCategories: makeSheet([
-      ['Bonus',  'Points bonus', '🎁', '#2ed573'],
-      ['Malus',  'Points malus', '💀', '#ff4757']
-    ])
+    altCategories: altSheet
   });
   const cats = gas.AltSettingsService.getAltCategories();
   assert.deepStrictEqual(cats.map(c => c.name), ['Bonus', 'Malus']);
+  assert.deepStrictEqual(altSheet._grid[0], ['Name', 'Description', 'Emoji', 'Hex color']);
 });
+
