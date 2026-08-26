@@ -15965,6 +15965,16 @@
           (couleur, renommage bloqué). À corriger à la main dans le Google Sheet.
         </div>
       ` : '');
+      callServer('apiGetCacheStats', [], stats => {
+        if (!stats || !stats.success) return;
+        const rate = stats.hitRate === null ? '—' : stats.hitRate + '%';
+        grid.insertAdjacentHTML('beforeend', `
+          <div class="health-stat ok">
+            <div class="stat-value">${rate}</div>
+            <div class="stat-label">Cache (${stats.hits}/${stats.hits + stats.misses}, 6h)</div>
+          </div>
+        `);
+      }, null, null, true);
     }, 'Chargement santé', () => {
       grid.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
     });

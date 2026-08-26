@@ -125,7 +125,7 @@ function _cachePutChunked(cache, key, serial, ttl) {
  * absent, or when any single chunk has expired — a chunk set outlived by one of
  * its members would reassemble into truncated JSON, which is worse than a miss.
  */
-function _cacheGetChunked(cache, key) {
+function _cacheGetChunkedRaw(cache, key) {
   const plain = cache.get(key);
   if (plain) return plain;
   const countStr = cache.get(key + '_chunks');
@@ -139,6 +139,47 @@ function _cacheGetChunked(cache, key) {
     out += chunk;
   }
   return out || null;
+}
+
+/**
+ * Thin wrapper around _cacheGetChunkedRaw that records a hit/miss for the
+ * observability panel — a single chokepoint since every one of the 14 cached
+ * reads in this file calls _cacheGetChunked. Counters live in CacheService
+ * (not PropertiesService, which backs the invalidation version counters and
+ * is the more write-quota-sensitive resource) under their own short TTL, so
+ * they represent a rolling recent window rather than growing unbounded.
+ */
+function _cacheGetChunked(cache, key) {
+  const result = _cacheGetChunkedRaw(cache, key);
+  _recordCacheStat(cache, result !== null);
+  return result;
+}
+
+function _recordCacheStat(cache, hit) {
+  try {
+    const key = hit ? 'stat_cache_hits' : 'stat_cache_misses';
+    const current = parseInt(cache.get(key) || '0', 10);
+    // Routed through _cachePutChunked (never a raw cache.put) to keep the
+    // codebase-wide invariant that every write goes through the byte-length
+    // guard, even though this particular payload is always a tiny integer.
+    _cachePutChunked(cache, key, String(current + 1), 21600); // 6h — Apps Script's own cache TTL ceiling
+  } catch (_) {}
+}
+
+/** Rolling hit/miss snapshot for the "Rapport de santé" panel. Best-effort:
+ *  counters reset every 6h (CacheService TTL ceiling) and can under-count
+ *  under concurrent writes — acceptable for a qualitative gauge, not an
+ *  exact metric. */
+function _getCacheStats() {
+  try {
+    const cache = CacheService.getScriptCache();
+    const hits = parseInt(cache.get('stat_cache_hits') || '0', 10);
+    const misses = parseInt(cache.get('stat_cache_misses') || '0', 10);
+    const total = hits + misses;
+    return { hits, misses, hitRate: total > 0 ? Math.round((hits / total) * 100) : null };
+  } catch (_) {
+    return { hits: 0, misses: 0, hitRate: null };
+  }
 }
 
 // ─── HEADER ROW DETECTION ──────────────────────────────────────────────────────
@@ -4417,6 +4458,16 @@ function apiSetActivePhrasePreset(name, author, password) {
       return { success: true };
     });
   } catch(e) { return fail(e); }
+}
+
+// ── Observabilité cache ───────────────────────────────────────────────────────────
+
+/** Taux de hit/miss du cache serveur sur les 6 dernières heures glissantes,
+ *  affiché dans le panneau Paramètres → Outils → Rapport de santé. */
+function apiGetCacheStats() {
+  try {
+    return Object.assign({ success: true }, _getCacheStats());
+  } catch (e) { return fail(e); }
 }
 
 // ── Changelog ───────────────────────────────────────────────────────────────────

@@ -344,6 +344,22 @@ test('a failed _bumpLogsVersion inside withLock is traced, not swallowed silentl
   assert.ok(logs.some(l => /logs.?version|invalidat/i.test(l)), 'a failed cache-invalidation bump must leave a trace: ' + JSON.stringify(logs));
 });
 
+test('apiGetCacheStats reports hit/miss counts across cached reads', () => {
+  const gas = loadGas();
+  const history = countingHistory([HEADER, [D('2026-03-04'), 'A', 'Jeux', 5, '', '']]);
+  gas.ConfigService.getSheets = () => ({ history });
+
+  gas.StorageService.getAllLogs();   // cache miss (first read)
+  gas.ConfigService.clearCache();    // bypass the L1 in-process cache, force a CacheService lookup
+  gas.StorageService.getAllLogs();   // cache hit (same version)
+
+  const stats = gas.apiGetCacheStats();
+  assert.strictEqual(stats.success, true);
+  assert.ok(stats.hits >= 1, 'expected at least one recorded hit: ' + JSON.stringify(stats));
+  assert.ok(stats.misses >= 1, 'expected at least one recorded miss: ' + JSON.stringify(stats));
+  assert.ok(typeof stats.hitRate === 'number' && stats.hitRate >= 0 && stats.hitRate <= 100);
+});
+
 test('getFullHistoryRowsCached chunks an oversized payload instead of skipping the cache', () => {
   const gas = loadGas();
   const history = makeSheet([HEADER,
