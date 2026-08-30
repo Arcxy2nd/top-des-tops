@@ -262,15 +262,15 @@ test('getEntities reflects a player row appended directly to the Sheet, bypassin
 test('BaremeService.getEntries reflects a rule row appended directly to the Sheet, bypassing addEntry()', () => {
   const gas = loadGas();
   const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'Gagne', 5, 1]
+    ['Top', 'Action', 'Points'],
+    ['Jeux', 'Gagne', 5]
   ]);
   gas.ConfigService.getSheets = () => ({ bareme });
 
   gas.BaremeService.getEntries();
-  bareme._grid.push(['Jeux', 'Perd', -2, 2]);
+  bareme._grid.push(['Jeux', 'Perd', -2]);
   const after = gas.BaremeService.getEntries();
-  assert.deepStrictEqual(after.map(e => e.action), ['Gagne', 'Perd']);
+  assert.deepStrictEqual(Array.from(after.map(e => e.action)), ['Perd', 'Gagne']);
 });
 
 test('PhrasesService.getAll reflects a phrase row appended directly to the Sheet, bypassing addPhrase()', () => {

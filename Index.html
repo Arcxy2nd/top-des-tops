@@ -8363,7 +8363,8 @@
     if (!startStr) return 0;
     if (!endStr) return 1;
     const a = new Date(startStr + 'T12:00:00'), b = new Date(endStr + 'T12:00:00');
-    return Math.max(1, Math.round((b - a) / 86400000) + 1);
+    if (isNaN(a) || isNaN(b)) return 1;
+    return Math.max(1, Math.round(Math.abs(b - a) / 86400000) + 1);
   }
 
   /**
@@ -8467,33 +8468,6 @@
           ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
           : 'Cliquez le 1er jour de la période');
       wrap.appendChild(hint);
-
-      // Saisie manuelle : les deux dates restent modifiables au clavier / au sélecteur natif.
-      const manual = document.createElement('div');
-      manual.className = 'd-cal-manual';
-      const mkField = (labelText, srcInput, isEnd) => {
-        const lab = document.createElement('label'); lab.textContent = labelText;
-        const inp = document.createElement('input');
-        inp.type = 'date'; inp.value = srcInput.value || '';
-        inp.addEventListener('change', () => {
-          if (!inp.value) { inp.value = srcInput.value; return; }
-          startInput.value = startInput.value || inp.value;
-          endInput.value   = endInput.value   || inp.value;
-          srcInput.value = inp.value;
-          // Borne saisie à l'envers : l'autre borne suit (période d'1 jour) — la
-          // date que l'utilisateur vient de taper est toujours celle qui est gardée.
-          if (startInput.value > endInput.value) {
-            if (isEnd) startInput.value = inp.value; else endInput.value = inp.value;
-          }
-          anchor = null; hoverDs = null;
-          if (!isEnd) syncViewToStart();
-          commit();
-        });
-        manual.appendChild(lab); manual.appendChild(inp);
-      };
-      mkField('Du', startInput, false);
-      mkField('Au', endInput, true);
-      wrap.appendChild(manual);
     }
 
     wrap.refresh = () => { anchor = null; hoverDs = null; syncViewToStart(); render(); };
@@ -8527,11 +8501,14 @@
   }
 
   // Remplit un conteneur de chips de sélection rapide pour un input date (date unique).
-  function buildRowDateShortcuts(el, targetInput) {
+  function buildRowDateShortcuts(el, targetInput, onChange) {
     dateShortcutItems().forEach(s => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'row-shortcut'; b.textContent = s.label;
-      b.addEventListener('click', () => { targetInput.value = s.value; });
+      b.addEventListener('click', () => {
+        targetInput.value = s.value;
+        if (typeof onChange === 'function') onChange();
+      });
       el.appendChild(b);
     });
   }
@@ -8811,7 +8788,7 @@
   // ── APPEL SERVEUR ────────────────────────────────────────────────────
   const _MUTATING_APIS = new Set([
     'apiSaveAppSettings', 'apiSaveTooltipStyle',
-    'apiAddBaremeEntry', 'apiReorderBareme', 'apiUpdateBaremeEntry', 'apiDeleteBaremeEntry',
+    'apiAddBaremeEntry', 'apiUpdateBaremeEntry', 'apiDeleteBaremeEntry',
     'apiSetColor', 'apiManageEntity', 'apiReorderEntities', 'apiAddBulkPlan',
     'apiDeleteHistoryEntries', 'apiAppendAltNativeBatch', 'apiDeleteNativeAltEntry',
     'apiSaveAltCategories', 'apiLinkHistoryRowsToAltCategory', 'apiUnlinkHistoryRowsFromAltCategory',
@@ -13037,7 +13014,11 @@
     singlePanel.className = 'd-single';
     const startShortcuts = document.createElement('div');
     startShortcuts.className = 'row-shortcuts';
-    buildRowDateShortcuts(startShortcuts, startInput);
+    buildRowDateShortcuts(startShortcuts, startInput, () => {
+      cal.refresh();
+      updateDatePreview();
+      updateLotSummary();
+    });
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
@@ -13072,7 +13053,10 @@
     periodLeftCol.appendChild(auWrap);
 
     // 2. Colonne Milieu : Mini-calendrier (position Cercle Vert)
-    const cal = createMiniCalendar(startInput, endInput, () => updateDatePreview());
+    const cal = createMiniCalendar(startInput, endInput, () => {
+      updateDatePreview();
+      updateLotSummary();
+    });
 
     // 3. Colonne Droite : Boutons & Mode de score (position Cercle Bleu - aligné sous la 3e colonne de points)
     const periodRightCol = document.createElement('div');
@@ -13092,12 +13076,17 @@
         const dt = new Date(base + 'T12:00:00');
         dt.setDate(dt.getDate() + n - 1);
         endInput.value = toDateStr(dt);
-        cal.refresh(); updateDatePreview();
+        cal.refresh();
+        updateDatePreview();
+        updateLotSummary();
       });
       durationShortcuts.appendChild(b);
     });
 
-    const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => updateDatePreview());
+    const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => {
+      updateDatePreview();
+      updateLotSummary();
+    });
 
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
@@ -13133,7 +13122,7 @@
       }
     }
 
-    // Bascule de mode : synchronise range-cb + panneaux + aperçu.
+    // Bascule de mode : synchronise range-cb + panneaux + aperçu + total lot.
     function setDateMode(range) {
       rangeCb.checked = range;
       modeRange.classList.toggle('active', range);
@@ -13143,22 +13132,40 @@
       if (range) {
         duWrap.appendChild(startInput);
         if (!endInput.value) endInput.value = startInput.value;
-        cal.refresh(); updateDatePreview();
+        cal.refresh();
+        updateDatePreview();
       } else {
         singlePanel.insertBefore(startInput, startShortcuts);
         endInput.value = '';
       }
+      updateLotSummary();
     }
     modeSingle.addEventListener('click', () => setDateMode(false));
     modeRange.addEventListener('click', () => setDateMode(true));
 
-    startInput.addEventListener('change', () => { cal.refresh(); updateDatePreview(); });
+    const onDateInputChange = (isEnd) => {
+      if (startInput.value && endInput.value && startInput.value > endInput.value) {
+        if (isEnd) startInput.value = endInput.value;
+        else endInput.value = startInput.value;
+      }
+      cal.refresh();
+      updateDatePreview();
+      updateLotSummary();
+    };
+
+    startInput.addEventListener('change', () => onDateInputChange(false));
+    startInput.addEventListener('input', () => onDateInputChange(false));
+    endInput.addEventListener('change', () => onDateInputChange(true));
+    endInput.addEventListener('input', () => onDateInputChange(true));
 
     div.__applyDate = (start, end, fill) => {
-      startInput.value = start; endInput.value = end || '';
+      startInput.value = start;
+      endInput.value = end || '';
       setLineFill(fillToggle, fill);
       setDateMode(!!end);
-      cal.refresh(); updateDatePreview();
+      cal.refresh();
+      updateDatePreview();
+      updateLotSummary();
     };
 
     dateCell.appendChild(rangeCb);
@@ -13957,10 +13964,11 @@
     const start = startStr || toDateStr(new Date());
     if (!endStr) return [start];
     const a = new Date(start + 'T12:00:00'), b = new Date(endStr + 'T12:00:00');
-    if (isNaN(a) || isNaN(b) || b <= a) return [start];
+    if (isNaN(a) || isNaN(b)) return [start];
+    const minD = a <= b ? a : b, maxD = a <= b ? b : a;
     const out = [];
-    const d = new Date(a);
-    while (d <= b) { out.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
+    const d = new Date(minD);
+    while (d <= maxD) { out.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
     return out;
   }
 
@@ -16841,6 +16849,7 @@
         // Chaque ligne expose __applyDate (pose date/période/fill + bascule le mode).
         if (typeof row.__applyDate === 'function') row.__applyDate(defStart, defEnd, defFill);
       });
+      updateLotSummary();
 
       const what = isRange ? 'Période' : 'Date';
       showToast(`${what} appliquée à ${rows.length} ligne(s).`, 'success');
@@ -18238,6 +18247,17 @@
       };
       modeSingle.addEventListener('click', () => setMode(false));
       modeRange.addEventListener('click', () => setMode(true));
+
+      const onDefDateChange = (isEnd) => {
+        if (startEl.value && endEl.value && startEl.value > endEl.value) {
+          if (isEnd) startEl.value = endEl.value;
+          else endEl.value = startEl.value;
+        }
+      };
+      startEl.addEventListener('change', () => onDefDateChange(false));
+      startEl.addEventListener('input', () => onDefDateChange(false));
+      endEl.addEventListener('change', () => onDefDateChange(true));
+      endEl.addEventListener('input', () => onDefDateChange(true));
     })();
 
     // Dashboard : par défaut AUCUN filtre de date → total global (toutes les années).
@@ -18410,7 +18430,7 @@
     if (!container) return;
     container.innerHTML = '';
     cachedCategories.forEach(cat => {
-      const catEntries = entries.filter(e => e.top === cat.name);
+      const catEntries = (entries || []).filter(e => e.top === cat.name).sort((a, b) => (a.pts - b.pts) || (a.rowIndex - b.rowIndex));
       const col        = categoryColor(cat.name);
       const block      = document.createElement('div');
       block.className  = 'bsect';
@@ -18508,15 +18528,6 @@
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
     row.appendChild(pts); row.appendChild(action); row.appendChild(btns);
-    const [upBtn, downBtn] = buildMoveButtons(entriesCont, '.bsect-entry', row, () => {
-      const orderedRowIndexes = Array.from(entriesCont.querySelectorAll('.bsect-entry')).map(el => Number(el.dataset.rowIndex));
-      const gen = ++_baremeReqGen;
-      callServer('apiReorderBareme', [entry.top, orderedRowIndexes, _whoAmI || ''], res => {
-        if (gen !== _baremeReqGen) return;
-        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
-      }, 'Réordonner barème', () => renderBaremeSettings(baremeEntries));
-    });
-    btns.prepend(downBtn); btns.prepend(upBtn);
     return row;
   }
 

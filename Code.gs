@@ -201,7 +201,7 @@ const SHEET_HEADERS = {
   categories:    ['name', 'description', 'emoji', 'hex color', 'ordre'],
   history:       ['date', 'player', 'category', 'points', 'description', 'groupid', 'saiseur'],
   notes:         ['date', 'joueur', 'note', 'noteid', 'créépar', 'modifiépar', 'modifiéle'],
-  bareme:        ['top', 'action', 'points', 'ordre'],
+  bareme:        ['top', 'action', 'points'],
   phrases:       ['preset', 'pool', 'phrase', 'ordre'],
   chat:          ['id', 'date', 'auteur', 'texte', 'réponseà'],
   auditLog:      ['timestamp', 'auteur', 'action', 'entité', 'avant', 'après', 'détail', 'snapshot', 'annuléle'],
@@ -217,7 +217,7 @@ const CANONICAL_SHEET_HEADERS = {
   categories:    ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
   history:       ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'],
   notes:         ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
-  bareme:        ['Top', 'Action', 'Points', 'Ordre'],
+  bareme:        ['Top', 'Action', 'Points'],
   phrases:       ['Preset', 'Pool', 'Phrase', 'Ordre'],
   chat:          ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
   auditLog:      ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe'],
@@ -2350,12 +2350,12 @@ const BaremeService = {
     const cache = ConfigService.getSheets();
     if (cache.bareme) return cache.bareme;
     const sheet = cache.spreadsheet.insertSheet('Bareme');
-    sheet.appendRow(['Top', 'Action', 'Points', 'Ordre']);
+    sheet.appendRow(['Top', 'Action', 'Points']);
     ConfigService.clearCache();
     return ConfigService.getSheets().bareme;
   },
 
-  /** Returns all entries with 1-based sheet row indices (row 1 is data unless it holds the header labels). */
+  /** Returns all entries with 1-based sheet row indices, sorted strictly by ascending points per Top group. */
   getEntries() {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return [];
@@ -2376,25 +2376,25 @@ const BaremeService = {
       rowsData = data.slice(1);
     }
     let rows = rowsData
-      .map((r, i) => ({ r, rowIndex: i + 2 }))
-      .filter(x => x.r[0] !== "" && x.r[0] !== undefined);
+      .map((r, i) => ({
+        rowIndex: i + 2,
+        top:      r[0] !== undefined && r[0] !== null ? r[0].toString() : "",
+        action:   r[1] ? r[1].toString() : "",
+        pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0
+      }))
+      .filter(x => x.top !== "");
     const groups = {};
     const groupOrder = [];
     rows.forEach(x => {
-      const k = x.r[0];
+      const k = x.top;
       if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
       groups[k].push(x);
     });
-    const ordered = [];
-    groupOrder.forEach(k => { ordered.push.apply(ordered, _sortByOrdreOrOriginal(groups[k], x => x.r[3])); });
-    rows.length = ordered.length;
-    for (let i = 0; i < ordered.length; i++) rows[i] = ordered[i];
-    const result = rows.map(x => ({
-      rowIndex: x.rowIndex,
-      top:      x.r[0].toString(),
-      action:   x.r[1] ? x.r[1].toString() : "",
-      pts:      x.r[2] !== "" && x.r[2] !== undefined ? Number(x.r[2]) : 0
-    }));
+    const result = [];
+    groupOrder.forEach(k => {
+      groups[k].sort((a, b) => (a.pts - b.pts) || (a.rowIndex - b.rowIndex));
+      result.push.apply(result, groups[k]);
+    });
     const serial = JSON.stringify(result);
     _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
@@ -2404,9 +2404,7 @@ const BaremeService = {
     if (!top   || !top.trim())    throw new Error("Top manquant.");
     if (!action || !action.trim()) throw new Error("Action vide.");
     const sheet = this._getOrCreateSheet();
-    const data  = sheet.getDataRange().getValues();
-    const nextOrdre = data.slice(_headerOffsetFromValues('bareme', data)).filter(r => r[0] === top.trim()).length + 1;
-    sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0, nextOrdre]);
+    sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0]);
     _bumpBaremeVersion();
   },
 
@@ -2422,31 +2420,6 @@ const BaremeService = {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) throw new Error("Feuille Bareme introuvable.");
     sheet.deleteRow(rowIndex);
-    _bumpBaremeVersion();
-  },
-
-  reorderEntries(topName, orderedRowIndexes) {
-    const sheet = ConfigService.getSheets().bareme;
-    if (!sheet) throw new Error("Feuille Bareme introuvable.");
-    const data = sheet.getDataRange().getValues();
-    const off = _headerOffsetFromValues('bareme', data);
-    const groupRows = [];
-    for (let i = off; i < data.length; i++) {
-      if (data[i][0] === topName) groupRows.push(i + 1);
-    }
-    const wanted = orderedRowIndexes.map(Number);
-    const isPermutation = wanted.length === groupRows.length &&
-      groupRows.every(r => wanted.includes(r)) &&
-      new Set(wanted).size === wanted.length;
-    if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux règles existantes de ce Top.");
-    const newOrdre = {};
-    wanted.forEach((rowIndex, i) => { newOrdre[rowIndex] = i + 1; });
-    const firstRow = 1 + off;
-    const column = [];
-    for (let r = firstRow; r <= data.length; r++) {
-      column.push([r in newOrdre ? newOrdre[r] : data[r - 1][3]]);
-    }
-    sheet.getRange(firstRow, 4, column.length, 1).setValues(column);
     _bumpBaremeVersion();
   }
 };
@@ -2625,19 +2598,7 @@ function apiAddBaremeEntry(top, action, pts, author, password) {
   } catch(e) { return fail(e); }
 }
 
-function apiReorderBareme(topName, orderedRowIndexes, author, password) {
-  try {
-    requireAuthor(author, password);
-    if (!topName) throw new Error("Top manquant.");
-    if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
-    return withLock(() => {
-      BaremeService.reorderEntries(topName, orderedRowIndexes);
-      AuditService.log(author, 'Ordre modifié', 'Barème: ' + topName, '', orderedRowIndexes.join(' → '), '', null);
-      ConfigService.clearCache();
-      return { success: true, entries: BaremeService.getEntries() };
-    });
-  } catch(e) { return fail(e); }
-}
+
 
 function apiUpdateBaremeEntry(rowIndex, action, pts, author, password) {
   try {
@@ -4281,26 +4242,6 @@ function apiRepairOrder(author, password) {
         result[type.toLowerCase()] = rows.length;
       });
 
-      const baremeSheet = ConfigService.getSheets().bareme;
-      if (baremeSheet) {
-        const data = baremeSheet.getDataRange().getValues();
-        const off  = _headerOffsetFromValues('bareme', data);
-        const rows = data.slice(off)
-          .map((r, i) => ({ r, sheetRow: i + 1 + off }))
-          .filter(x => x.r[0] !== '' && x.r[0] !== undefined);
-        const groups = {};
-        rows.forEach(x => { (groups[x.r[0]] = groups[x.r[0]] || []).push(x); });
-        if (rows.length) {
-          const ordreCol = data.slice(off).map(r => [r[3] !== undefined && r[3] !== '' ? r[3] : '']);
-          Object.keys(groups).forEach(key => {
-            const ordered = _sortByOrdreOrOriginal(groups[key], x => x.r[3]);
-            ordered.forEach((x, idx) => { ordreCol[x.sheetRow - 1 - off] = [idx + 1]; });
-            result.bareme += ordered.length;
-          });
-          baremeSheet.getRange(off + 1, 4, ordreCol.length, 1).setValues(ordreCol);
-        }
-      }
-
       const phrasesSheet = ConfigService.getSheets().phrases;
       if (phrasesSheet) {
         const data = phrasesSheet.getDataRange().getValues();
@@ -4325,10 +4266,9 @@ function apiRepairOrder(author, password) {
       }
 
       AuditService.log(author, 'Ordre réparé', 'Ordre', '',
-        result.players + ' joueur(s), ' + result.categories + ' top(s), ' + result.bareme + ' règle(s), ' + result.phrases + ' phrase(s)',
+        result.players + ' joueur(s), ' + result.categories + ' top(s), ' + result.phrases + ' phrase(s)',
         '', null);
       _bumpSettingsVersion();
-      _bumpBaremeVersion();
       _bumpPhrasesVersion();
       ConfigService.clearCache();
       return Object.assign({ success: true }, result);

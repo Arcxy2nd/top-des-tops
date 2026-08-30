@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.20.22] - 2026-08-30
+
+### Corrigé
+**Humanisé** : Dans la saisie de lot, le choix d'une période de dates et le calcul des points fonctionnent désormais de manière totalement fluide et instantanée : les raccourcis de durée (+3 j, +7 j, etc.), le changement de mode (répartir ou répéter) et la saisie de dates mettent à jour automatiquement le résumé du lot et le calendrier sans nécessiter de rafraîchissement ni laisser de champs en doublon.
+**Technique** : `Index.html` — écouteurs `change` et `input` câblés sur `startInput` et `endInput`, normalisation automatique des bornes inversées (`startInput > endInput`), appel systématique de `updateLotSummary()` sur les raccourcis de durée, `createFillToggle`, `setDateMode` et `applyDateAllBtn`. Suppression du bloc manuel redondant `.d-cal-manual` dans `createMiniCalendar`. Sécurisation de `lineDates()` et `daysBetweenInclusive()` pour garantir une correspondance exacte du nombre de jours. Suite de tests unitaires dédiée dans `tests/lot-period.test.js`.
+
+### Modifié
+**Humanisé** : Les règles du barème de chaque Top sont désormais toujours classées automatiquement par ordre croissant de points (du plus petit au plus grand, valeurs négatives d'abord), sans bouton de déplacement ni colonne d'ordre manuel superflue.
+**Technique** : `Code.gs` — suppression de la colonne `Ordre` pour `Bareme` (`SHEET_HEADERS`, `CANONICAL_SHEET_HEADERS`, `_getOrCreateSheet`, `addEntry`, `apiRepairOrder`), tri naturel dans `BaremeService.getEntries()` par `(a.pts - b.pts) || (a.rowIndex - b.rowIndex)` préservant le `rowIndex` physique. Suppression de `BaremeService.reorderEntries` et `apiReorderBareme`. `Index.html` — suppression de `buildMoveButtons` dans `buildBsectRow`, retrait de `apiReorderBareme` de la liste `_MUTATING_APIS` et tri ascendant systématique dans `renderBaremeSettings`, `renderBaremeDrawer` et `renderBaremeQuickBtns`.
+
 ## [v3.20.21] - 2026-08-26
 
 ### Corrigé

@@ -74,6 +74,7 @@ Hébergée sur **Google Apps Script** — pas de serveur, pas de base de donnée
 | Frontend    | HTML/CSS/JS (`.html`)     |
 | Stockage    | Google Sheets             |
 | Graphiques  | Chart.js 4.5.1 (CDN jsDelivr, version figée) |
+| Tests       | Node.js test runner natif (`node --test`, `npm test`, `npm run verify`), VM GAS et stubs DOM |
 | Déploiement | Web App GAS (`/exec` URL) |
 
 Pas de build, pas de framework, aucune dépendance npm à l'exécution. Deux librairies sont chargées depuis un CDN dans `<head>` (Chart.js, GSAP) et trois à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
@@ -85,16 +86,21 @@ Pas de build, pas de framework, aucune dépendance npm à l'exécution. Deux lib
 ### Structure des feuilles
 
 ```
-History    : Date | Player | Category | Points | Description | [GroupId]
-Players    : Name | Avatar URL | Hex color | Password (optionnel, jamais affiché dans l'UI)
-Categories : Name | Description | Emoji | Hex color
-Notes      : Date | Player | Note text
-Bareme     : Action (text) | Points
-Phrases    : Preset | Pool | Phrase
-Chat       : Id | Date | Author | Text | ReplyToId
+History       : Date | Player | Category | Points | Description | [GroupId] | [Saiseur]
+Players       : Name | Avatar URL | Hex color | Password (optionnel, jamais affiché dans l'UI) | [Ordre]
+Categories    : Name | Description | Emoji | Hex color | [Ordre]
+Notes         : Date | Player | Note text | [NoteId] | [CrééPar] | [ModifiéPar] | [ModifiéLe]
+Bareme        : Top | Action (text) | Points  (pas de colonne Ordre, tri strict par points croissants)
+Phrases       : Preset | Pool | Phrase | [Ordre]
+Chat          : Id | Date | Author | Text | ReplyToId
+AuditLog      : Timestamp | Auteur | Action | Entité | Avant | Après | Détail | [Snapshot] | [AnnuléLe]
+Settings      : Key | Value
+AltCategories : Name | Description | Emoji | Hex color
+AltHistory    : Date | Player | Category | Points | Description | [RefHistoryRowId] | [GroupId] | [Saiseur]
+AutoRules     : ID | Joueur | Catégorie | Points | Description | Fréquence | Intervalle | JoursSemaine | JourMois | DateDébut | ProchaineExécution | DernièreExécution | Actif | CrééPar
 ```
 
-Les feuilles **Notes**, **Bareme**, **Phrases** et **Chat** sont optionnelles — créées automatiquement si absentes.
+Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory** et **AutoRules** sont optionnelles — créées automatiquement si absentes.
 
 ### Ligne 1 : en-tête non garanti
 
@@ -104,7 +110,7 @@ Règle : passer par `_readDataRows()` / `_firstDataRow()` / `_headerOffsetFromVa
 
 ---
 
-## §4 — BACKEND (`Code.gs`)
+## §4 — BACKEND (`Code.gs` & `AutoPoints.gs`)
 
 Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern : service → fonctions `api*` exposées à l'appel GAS via `callServer()`.
 
@@ -115,9 +121,13 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `StorageService` | Lecture/écriture History, gestion des lots (groupement, répartition par plage de dates) |
 | `NotesService` | CRUD notes par joueur, auto-création de la feuille |
 | `AnalyticsService` | Agrégation des scores filtrés (joueurs, catégories, période), données pour graphiques, santé des données |
-| `BaremeService` | CRUD règles de points (barème), auto-création de la feuille |
+| `BaremeService` | CRUD règles de points (barème), tri croissant automatique par points, auto-création de la feuille |
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
 | `ChatService` | Messages du tchat flottant (lecture, envoi, suppression de ses propres messages), résolution du message cité par une réponse, auto-création de la feuille |
+| `AuditService` | Journalisation des opérations, annulation d'écritures, snapshots, auto-création de la feuille |
+| `SettingsSheetService` | Gestion des paramètres de l'application dans la feuille Settings |
+| `AltSettingsService` / `AltStorageService` | Gestion des catégories et scores du Top Alt |
+| `AutoRulesService` | Gestion et exécution automatique des règles récurrentes de points |
 
 ---
 
@@ -162,6 +172,21 @@ Widget indépendant des graphiques, toujours visible dans le Dashboard. Affiche 
 - Presets custom : CRUD complet (créer depuis zéro ou copier un existant, renommer, supprimer)
 - Stockage dans la feuille `Phrases` ; preset actif persiste en localStorage
 - Repli automatique pool par pool sur les phrases usine si un pool est vide
+
+### Barème des Tops
+
+- **Tri strict par points croissants** : Les règles du barème sont systématiquement affichées par ordre croissant de points (`pts` croissant : négatifs en premier, zéro, puis positifs) au sein de chaque Top, sans notion d'ordre manuel ni boutons de réordonnancement / drag-and-drop.
+- **Accès universel** : Accessible en consultation rapide (tiroir `?` / bouton navbar `#baremeBtn`), en raccourcis sur chaque ligne de saisie de lot, et en gestion complète dans l'onglet Paramètres.
+- **Préservation physique** : Le `rowIndex` réel de la feuille Google Sheets est préservé pour que la mise à jour et la suppression de règles ciblent toujours la bonne ligne sans décalage.
+
+### Saisie de lot & Mode Période
+
+- **Mode « Un jour » vs « Une période »** : Permet d'assigner une date unique ou une plage `[Du, Au]` avec mode de calcul (`Répéter` le score sur chaque jour ou `Répartir` le total équitablement sur la durée).
+- **Invariant de robustesse & recalcul dynamique** :
+  - Écouteurs `input` et `change` sur les bornes début/fin déclenchant immédiatement la mise à jour du résumé du lot (`updateLotSummary()`), du mini-calendrier (`cal.refresh()`) et de l'aperçu textuel (`updateDatePreview()`).
+  - Normalisation automatique des bornes inversées (`startInput > endInput`) sans blocage.
+  - Recalcul instantané du lot sur les raccourcis de durée (`+3 j`, `+7 j`, `+14 j`, `+1 mois`), l'interrupteur de mode, le mode de score et « Appliquer à toutes les lignes ».
+  - Cohérence stricte entre `lineDates()` et `daysBetweenInclusive()`.
 
 ### Patterns frontend clés
 
@@ -326,7 +351,7 @@ Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé`. Les deu
 
 ### Tester
 
-Le projet n'a pas de suite de tests automatisés. Vérifier les changements via le harness Node VM local ou l'app déployée. Invoquer `/run` après tout changement fonctionnel.
+Le projet dispose d'une suite de tests automatisés Node.js native (`npm test`, `npm run verify` via `node --test`, sans dépendance externe). Les tests couvrent la logique métier GAS via un harness VM (`tests/harness.js`) et le comportement DOM via des stubs légers (`tests/dom-stub.js`). Toujours exécuter `npm test` et `npm run verify` pour valider toute modification avant livraison.
 
 ### Commit & push (Double Déploiement Obligatoire)
 

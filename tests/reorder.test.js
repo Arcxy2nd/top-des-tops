@@ -157,77 +157,53 @@ test('apiReorderEntities returns the fresh players/categories lists in the new o
   assert.deepStrictEqual(res.categories.map(c => c.name), ['Jeux', 'Défis']);
 });
 
-test('BaremeService.getEntries sorts by Ordre and keeps rowIndex pointing at the real sheet row', () => {
+test('BaremeService.getEntries sorts strictly by ascending points per Top group and keeps rowIndex pointing at the real sheet row', () => {
   const gas = loadGas();
   const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'Gagne',  5, 2],
-    ['Jeux', 'Perd',  -2, 1]
+    ['Top', 'Action', 'Points'],
+    ['Jeux', 'Gagne',  5],
+    ['Jeux', 'Perd',  -2],
+    ['Jeux', 'Égalité', 0]
   ]);
   gas.ConfigService.getSheets = () => ({ bareme });
   const entries = gas.BaremeService.getEntries();
-  assert.deepStrictEqual(entries.map(e => e.action), ['Perd', 'Gagne']);
+  assert.deepStrictEqual(Array.from(entries.map(e => e.action)), ['Perd', 'Égalité', 'Gagne']);
+  assert.deepStrictEqual(Array.from(entries.map(e => e.pts)), [-2, 0, 5]);
   assert.strictEqual(entries[0].rowIndex, 3); // "Perd" is physically on sheet row 3
-  assert.strictEqual(entries[1].rowIndex, 2); // "Gagne" is physically on sheet row 2
+  assert.strictEqual(entries[1].rowIndex, 4); // "Égalité" is physically on sheet row 4
+  assert.strictEqual(entries[2].rowIndex, 2); // "Gagne" is physically on sheet row 2
 });
 
-test('BaremeService.getEntries preserves one group\'s valid custom order even when a different, unrelated group has an invalid/missing Ordre', () => {
+test('BaremeService.getEntries sorts by ascending points independently within each Top group', () => {
   const gas = loadGas();
   const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Mauvais', 'A', 1, 3],
-    ['Mauvais', 'B', 2, 1],
-    ['Mauvais', 'C', 3, 2],
-    ['Légende', 'X', 9, '']   // unrelated group, Ordre missing entirely
+    ['Top', 'Action', 'Points'],
+    ['Jeux',  'Gagne', 5],
+    ['Jeux',  'Perd', -2],
+    ['Défis', 'Grand défi', 10],
+    ['Défis', 'Petit défi', 1]
   ]);
   gas.ConfigService.getSheets = () => ({ bareme });
   const entries = gas.BaremeService.getEntries();
-  assert.deepStrictEqual(entries.filter(e => e.top === 'Mauvais').map(e => e.action), ['B', 'C', 'A']);
+  const jeux = entries.filter(e => e.top === 'Jeux');
+  const defis = entries.filter(e => e.top === 'Défis');
+  assert.deepStrictEqual(Array.from(jeux.map(e => e.action)), ['Perd', 'Gagne']);
+  assert.deepStrictEqual(Array.from(defis.map(e => e.action)), ['Petit défi', 'Grand défi']);
 });
 
-test('BaremeService.addEntry assigns Ordre scoped to its own Top group', () => {
+test('BaremeService.addEntry appends [top, action, pts] without Ordre column', () => {
   const gas = loadGas();
   const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux',  'Gagne', 5, 1],
-    ['Défis', 'Réussi', 3, 1]
+    ['Top', 'Action', 'Points'],
+    ['Jeux',  'Gagne', 5]
   ]);
   gas.ConfigService.getSheets = () => ({ bareme });
   gas.BaremeService.addEntry('Jeux', 'Perd', -2);
-  const row = bareme._grid[3];
+  const row = bareme._grid[2];
   assert.strictEqual(row[0], 'Jeux');
   assert.strictEqual(row[1], 'Perd');
   assert.strictEqual(row[2], -2);
-  assert.strictEqual(row[3], 2); // 2nd entry within "Jeux", not 3rd overall
-});
-
-test('BaremeService.reorderEntries only touches rows within the given Top group', () => {
-  const gas = loadGas();
-  const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux',  'A', 1, 1],
-    ['Jeux',  'B', 2, 2],
-    ['Défis', 'C', 3, 1]
-  ]);
-  gas.ConfigService.getSheets = () => ({ bareme });
-  gas.BaremeService.reorderEntries('Jeux', [3, 2]); // rowIndex 3 = "B", rowIndex 2 = "A" -> new order B, A
-  const entries = gas.BaremeService.getEntries();
-  assert.deepStrictEqual(entries.filter(e => e.top === 'Jeux').map(e => e.action), ['B', 'A']);
-  assert.strictEqual(entries.find(e => e.top === 'Défis').action, 'C'); // untouched
-});
-
-test('apiReorderBareme rejects a rowIndex list that does not match the Top group', () => {
-  const gas = loadGas();
-  const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'A', 1, 1],
-    ['Jeux', 'B', 2, 2]
-  ]);
-  const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ bareme, auditLog });
-  gas.ConfigService.clearCache = () => {};
-  const res = gas.apiReorderBareme('Jeux', [2], 'Alice'); // missing row 3
-  assert.strictEqual(res.success, false);
+  assert.strictEqual(row.length, 3);
 });
 
 test('PhrasesService.getAll sorts by Ordre within preset+pool and keeps rowIndex accurate', () => {
@@ -324,31 +300,21 @@ test('apiRepairOrder normalizes Players/Categories to sequential Ordre in curren
   assert.deepStrictEqual(players._grid.slice(1).map(r => [r[0], r[4]]), [['Bob', 1], ['Alice', 2], ['Carl', 3]]);
 });
 
-test('apiRepairOrder normalizes Bareme per Top group and Phrases per preset+pool group', () => {
+test('apiRepairOrder normalizes Phrases per preset+pool group', () => {
   const gas = loadGas();
   const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], ['Alice', '', '', '', 1]]);
   const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
-  const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'A', 1, ''],
-    ['Défis', 'X', 5, 1],
-    ['Jeux', 'B', 2, '']
-  ]);
   const phrases = makeSheet([
     ['Preset', 'Pool', 'Phrase', 'Ordre'],
     ['Défaut', 'first', 'Z', ''],
     ['Défaut', 'first', 'Y', '']
   ]);
   const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ players, categories, bareme, phrases, auditLog });
+  gas.ConfigService.getSheets = () => ({ players, categories, phrases, auditLog });
   gas.ConfigService.clearCache = () => {};
 
   const res = gas.apiRepairOrder('Alice');
-  assert.strictEqual(res.bareme, 3);
   assert.strictEqual(res.phrases, 2);
-  assert.deepStrictEqual(bareme._grid.slice(1).map(r => [r[0], r[1], r[3]]), [
-    ['Jeux', 'A', 1], ['Défis', 'X', 1], ['Jeux', 'B', 2]
-  ]);
   assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 1], ['Y', 2]]);
 });
 
@@ -365,20 +331,16 @@ test('apiRepairOrder writes each Ordre column in a single batched call, not one 
     ['C', '', '', '', 9], ['A', '', '', '', 9], ['B', '', '', '', 1]
   ]);
   const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
-  const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'A', 1, 9], ['Jeux', 'B', 2, 1]
-  ]);
   const phrases = makeSheet([
     ['Preset', 'Pool', 'Phrase', 'Ordre'],
     ['Défaut', 'first', 'Z', 9], ['Défaut', 'first', 'Y', 1]
   ]);
   const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ players, categories, bareme, phrases, auditLog });
+  gas.ConfigService.getSheets = () => ({ players, categories, phrases, auditLog });
   gas.ConfigService.clearCache = () => {};
 
   let setValueCalls = 0;
-  [players, categories, bareme, phrases].forEach(sheet => {
+  [players, categories, phrases].forEach(sheet => {
     const realGetRange = sheet.getRange.bind(sheet);
     sheet.getRange = (...a) => {
       const range = realGetRange(...a);
@@ -394,30 +356,25 @@ test('apiRepairOrder writes each Ordre column in a single batched call, not one 
   // Physical row order never changes (still C, A, B) — only the Ordre values do.
   // Sorted by (ordre, original index): B(1) < C(9, idx0) < A(9, idx1) -> B=1, C=2, A=3.
   assert.deepStrictEqual(players._grid.slice(1).map(r => [r[0], r[4]]), [['C', 2], ['A', 3], ['B', 1]]);
-  // Sorted: B(1) < A(9) -> B=1, A=2.
-  assert.deepStrictEqual(bareme._grid.slice(1).map(r => [r[1], r[3]]), [['A', 2], ['B', 1]]);
   // Sorted: Y(1) < Z(9) -> Y=1, Z=2.
   assert.deepStrictEqual(phrases._grid.slice(1).map(r => [r[2], r[3]]), [['Z', 2], ['Y', 1]]);
 });
 
-test('apiRepairOrder preserves an already-valid custom order when it differs from raw row order', () => {
+test('apiRepairOrder preserves an already-valid custom order for Players when it differs from raw row order', () => {
   const gas = loadGas();
-  const players = makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'], ['Alice', '', '', '', 1]]);
-  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
-  const bareme = makeSheet([
-    ['Top', 'Action', 'Points', 'Ordre'],
-    ['Jeux', 'A', 1, 2],      // row 2: Ordre=2 (should be 2nd in display order)
-    ['Jeux', 'B', 2, 1]       // row 3: Ordre=1 (should be 1st in display order)
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
+    ['Alice', '', '', '', 2],
+    ['Bob',   '', '', '', 1]
   ]);
+  const categories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  const phrases = makeSheet([['Preset', 'Pool', 'Phrase', 'Ordre']]);
   const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ players, categories, bareme, auditLog });
+  gas.ConfigService.getSheets = () => ({ players, categories, phrases, auditLog });
   gas.ConfigService.clearCache = () => {};
 
   const res = gas.apiRepairOrder('Alice');
   assert.strictEqual(res.success, true);
-
-  // Effective order before repair (sorted by valid Ordre) is B (Ordre=1), then A (Ordre=2)
-  // apiRepairOrder should preserve this order, not reset to raw row order (A in row 2, B in row 3)
-  const entries = gas.BaremeService.getEntries().filter(e => e.top === 'Jeux');
-  assert.deepStrictEqual(entries.map(e => e.action), ['B', 'A']);
+  const entities = gas.SettingsService.getEntities('Players');
+  assert.deepStrictEqual(entities.map(e => e.name), ['Bob', 'Alice']);
 });

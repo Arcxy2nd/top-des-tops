@@ -170,16 +170,16 @@ test('the header row of a History sheet is still skipped', () => {
 test('getEntries reads the very first row of a headerless Bareme sheet and inserts headers', () => {
   const gas = loadGas();
   const baremeSheet = makeSheet([
-    ['Mauvais', 'Râler', 2, 1],
-    ['Mauvais', 'Bouder', 3, 2]
+    ['Mauvais', 'Râler', 2],
+    ['Mauvais', 'Bouder', 3]
   ]);
   gas.ConfigService.getSheets = () => ({
     bareme: baremeSheet
   });
   const entries = gas.BaremeService.getEntries();
-  assert.deepStrictEqual(entries.map(e => e.action), ['Râler', 'Bouder']);
+  assert.deepStrictEqual(Array.from(entries.map(e => e.action)), ['Râler', 'Bouder']);
   assert.strictEqual(entries[0].rowIndex, 2);
-  assert.deepStrictEqual(baremeSheet._grid[0], ['Top', 'Action', 'Points', 'Ordre']);
+  assert.deepStrictEqual(baremeSheet._grid[0], ['Top', 'Action', 'Points']);
 });
 
 // ── Phrases ──────────────────────────────────────────────────────────────────
