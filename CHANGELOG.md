@@ -4,7 +4,7 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
-## [v3.20.22] - 2026-08-30
+## [v3.21.0] - 2026-08-30
 
 ### Corrigé
 **Humanisé** : Dans la saisie de lot, le choix d'une période de dates et le calcul des points fonctionnent désormais de manière totalement fluide et instantanée : les raccourcis de durée (+3 j, +7 j, etc.), le changement de mode (répartir ou répéter) et la saisie de dates mettent à jour automatiquement le résumé du lot et le calendrier sans nécessiter de rafraîchissement ni laisser de champs en doublon.

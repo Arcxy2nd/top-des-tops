@@ -1,18 +1,18 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.20.22** (2026-08-30) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
+- Version livrée : **v3.21.0** (2026-08-30) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
 - Plan achevé : Tri croissant strict du Barème par points + fiabilisation complète de la saisie de lot en mode période.
 - Suite de tests : **317 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Barème — Tri croissant par points** (`v3.20.22`) :
+- **Barème — Tri croissant par points** (`v3.21.0`) :
   - Suppression de la colonne `Ordre` et des boutons de réordonnancement manuel (up/down).
   - Tri ascendant systématique et strict des règles de chaque Top par leurs points (`pts` croissant : négatifs d'abord, zéro, puis positifs).
   - Préservation du `rowIndex` physique pour la mise à jour et suppression de règles sans altération des lignes.
   - Nettoyage du backend (`_getOrCreateSheet`, `SHEET_HEADERS`, `CANONICAL_SHEET_HEADERS`, suppression de `BaremeService.reorderEntries` et `apiReorderBareme`).
-- **Saisie de lots — Mode Période** (`v3.20.22`) :
+- **Saisie de lots — Mode Période** (`v3.21.0`) :
   - Rétablissement complet de la réactivité et des recalculs dynamiques : écouteurs `input` et `change` sur `startInput` et `endInput`.
   - Normalisation automatique des bornes inversées (`startInput > endInput`).
   - Déclenchement systématique de `updateLotSummary()` sur les raccourcis de durée (`+3 j`, `+7 j`, `+14 j`, `+1 mois`), le mode de score (`distribute` / `repeat`), `setDateMode()` et « Appliquer à toutes les lignes ».
