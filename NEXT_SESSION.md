@@ -1,27 +1,27 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.21.0** (2026-08-30) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
-- Plan achevé : Tri croissant strict du Barème par points + fiabilisation complète de la saisie de lot en mode période.
-- Suite de tests : **317 cas verts** (`npm run verify`).
+- Version livrée : **v3.22.0** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
+- Plan achevé : Correction exhaustive des 32 problèmes UX mobile (z-index, anti-zoom iOS Safari, cibles tactiles 44px, breakpoint unique 768px, mini-calendrier tactile, overflow horizontal, défilement sous-onglets).
+- Suite de tests : **324 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Barème — Tri croissant par points** (`v3.21.0`) :
-  - Suppression de la colonne `Ordre` et des boutons de réordonnancement manuel (up/down).
-  - Tri ascendant systématique et strict des règles de chaque Top par leurs points (`pts` croissant : négatifs d'abord, zéro, puis positifs).
-  - Préservation du `rowIndex` physique pour la mise à jour et suppression de règles sans altération des lignes.
-  - Nettoyage du backend (`_getOrCreateSheet`, `SHEET_HEADERS`, `CANONICAL_SHEET_HEADERS`, suppression de `BaremeService.reorderEntries` et `apiReorderBareme`).
-- **Saisie de lots — Mode Période** (`v3.21.0`) :
-  - Rétablissement complet de la réactivité et des recalculs dynamiques : écouteurs `input` et `change` sur `startInput` et `endInput`.
-  - Normalisation automatique des bornes inversées (`startInput > endInput`).
-  - Déclenchement systématique de `updateLotSummary()` sur les raccourcis de durée (`+3 j`, `+7 j`, `+14 j`, `+1 mois`), le mode de score (`distribute` / `repeat`), `setDateMode()` et « Appliquer à toutes les lignes ».
-  - Suppression des champs manuels en double (`.d-cal-manual`) dans `createMiniCalendar`.
-  - Sécurisation de `lineDates()` et `daysBetweenInclusive()`.
-  - Suite de tests unitaires dédiée dans `tests/lot-period.test.js`.
+- **Refonte UX Mobile Complète (`v3.22.0`)** :
+  - Restructuration propre de la hiérarchie des `z-index` : `#toastContainer` (11000) > `#chatSidePanel` mobile & `.bareme-drawer` (10000) > `.bareme-backdrop` (9999) > `#mobileBottomNav` (9000).
+  - Repositionnement sticky de `#lotSummaryBar` (`bottom: calc(68px + env(safe-area-inset-bottom, 0px))`) et de `#toastContainer` (`bottom: calc(72px + env(safe-area-inset-bottom, 0px))`) au-dessus de la barre de navigation du bas.
+  - Suppression de `user-scalable=0` et `maximum-scale=1.0` du viewport (conforme WCAG 1.4.4).
+  - Forçage strict de `font-size: 16px !important` sur tous les champs de saisie (`input`, `select`, `textarea`) sur mobile pour interdire l'auto-zoom d'iOS Safari.
+  - Agrandissement des cibles tactiles : top bar mobile (44x44px), mini-calendrier `.d-cal-day` (32px de haut au lieu de 15px), raccourcis points et dates (44px), chips Notes et filtres (≥40px).
+  - Unification de tous les styles responsive sous le breakpoint standard unique `@media (max-width: 768px)`.
+  - Protection globale contre le débordement horizontal (`html, body { overflow-x: hidden; }`).
+  - Défilement tactile fluide des sous-onglets Paramètres et Historique (`overflow-x: auto; flex-wrap: nowrap`).
+  - Accessibilité tactile des actions du Tchat (`@media (hover: none)`) et fermeture au toucher en dehors de l'infobulle Chart.js.
+  - Persistance de la fermeture de la bannière CTA dans `localStorage`.
+  - Suite de tests unitaires dédiée ajoutée dans `tests/mobile-audit.test.js`.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (317/317).
+- Aucun écart. Tous les tests sont au vert (324/324).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :
@@ -31,4 +31,5 @@
 - **Piège shell** : les heredocs Git Bash sur cette machine mangent un niveau d'antislash — `\(` devient `\(`. Ne jamais écrire de `new RegExp("...")` via heredoc ; passer par l'outil d'édition ou un fichier de script.
 - **Cross-realm dans les tests `vm`** : `assert.deepStrictEqual` / `instanceof` échoue sur des objets/dates/tableaux construits dans un sandbox `vm` différent du contexte Node — comparer via duck-typing ou `JSON.stringify(...)`.
 - **Environnement de prévisualisation** : le pane du navigateur intégré peut rapporter `window.innerWidth === 0` juste après un `preview_start` frais, forçant `body.mobile-layout` même sur un onglet destiné au desktop — toujours appeler `resize_window` avant de lire un état dépendant de la largeur sur un tab tout juste ouvert.
-- Garde-fous en place : `tests/papercuts.test.js`, `tests/guide-audit.test.js`, `tests/dropdown-outside-click.test.js`, `tests/cache-bytes.test.js`, `tests/innerhtml-audit.test.js`.
+- Garde-fous en place : `tests/mobile-audit.test.js`, `tests/papercuts.test.js`, `tests/guide-audit.test.js`, `tests/dropdown-outside-click.test.js`, `tests/cache-bytes.test.js`, `tests/innerhtml-audit.test.js`.
+

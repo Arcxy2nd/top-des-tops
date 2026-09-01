@@ -4,7 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
-## [v3.21.0] - 2026-08-30
+## [v3.22.0] - 2026-09-02
+
+### Corrigé
+**Humanisé** : Refonte ergonomique complète de l'expérience sur smartphone et tablette : fin des superpositions gênantes entre la barre de navigation du bas et les fenêtres (Tchat en plein écran, tiroir du Barème, notifications et récapitulatif de saisie de lot), suppression définitive du zoom automatique intempestif sur iPhone lors de la frappe dans les formulaires, cibles tactiles agrandies pour un appui facile au doigt partout dans l'app, et défilement horizontal fluide des sous-onglets.
+**Technique** : `Index.html` — restructuration de la hiérarchie des `z-index` (Toast `11000` > Chat plein écran & Tiroir Barème `10000` > Barre de navigation mobile `9000`), réalignement de `#lotSummaryBar` et `#toastContainer` au-dessus des 62px de la bottom nav avec `calc(68px + env(safe-area-inset-bottom, 0px))`. Suppression du bridage `user-scalable=0` du meta viewport (conforme WCAG 1.4.4) et passage de tous les champs de formulaire (`input`, `select`, `textarea`) à `16px !important` sur mobile pour bloquer l'auto-zoom iOS Safari. Cibles tactiles portées à ≥ 44px (boutons top bar 44x44px, mini-calendrier de lot `.d-cal-day` à 32px de haut, chips filtres et raccourcis). Harmonisation sous le breakpoint unique `@media (max-width: 768px)` (élimination des seuils 640px/680px), protection `overflow-x: hidden` globale, affichage garanti des actions du Tchat sur tactile (`@media (hover: none)`), fermeture tactile de l'infobulle Chart.js et persistance de la bannière CTA dans `localStorage`. Suite de tests dédiée dans `tests/mobile-audit.test.js`.
 
 ### Corrigé
 **Humanisé** : Dans la saisie de lot, le choix d'une période de dates et le calcul des points fonctionnent désormais de manière totalement fluide et instantanée : les raccourcis de durée (+3 j, +7 j, etc.), le changement de mode (répartir ou répéter) et la saisie de dates mettent à jour automatiquement le résumé du lot et le calendrier sans nécessiter de rafraîchissement ni laisser de champs en doublon.

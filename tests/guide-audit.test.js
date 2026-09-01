@@ -90,7 +90,8 @@ test('initGuideAccordion délègue aussi les clics sur .guide-crosslink (renvois
 });
 
 test('.guide-nav-btn respecte la cible tactile minimale en mobile', () => {
-  const mobileBlock = block('@media (max-width: 680px)', '\n    }');
+  const mobileBlock = block('/* Mobile: stack layout */', '/* ── EXPORT MODAL ── */');
+  assert.match(mobileBlock, /@media\s*\(max-width:\s*768px\)/);
   assert.match(mobileBlock, /\.guide-nav-btn\s*\{[^}]*min-height:\s*var\(--tap-min\)/s);
 });
 
