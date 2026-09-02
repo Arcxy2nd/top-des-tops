@@ -154,3 +154,23 @@ test('Alt mode period expansion correctly generates daily items for repeat and d
   assert.strictEqual(dist.reduce((s, x) => s + x.points, 0), 10);
 });
 
+test('Horizontal period selection CSS and DOM structure are properly configured', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  // .d-mode-seg is horizontal flex
+  assert.match(html, /\.d-mode-seg\s*\{[^}]*flex-direction:\s*row/s);
+
+  // .fill-choice is horizontal flex
+  assert.match(html, /\.fill-choice\s*\{[^}]*flex-direction:\s*row/s);
+
+  // .d-period contains horizontal controls and compact calendar
+  assert.match(html, /\.d-period-controls\s*\{/);
+  assert.match(html, /\.d-period-dates-wrap\s*\{/);
+  assert.match(html, /\.d-period-score-wrap\s*\{/);
+  assert.match(html, /\.d-period-shortcuts\s*\{/);
+
+  // Mini calendar width is compact
+  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*0\s+0\s+215px/s);
+});
+
+

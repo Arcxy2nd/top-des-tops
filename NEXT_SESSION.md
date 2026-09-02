@@ -1,24 +1,23 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.23.0** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
-- Plan achevé : Correction complète du mode Période en saisie de lots (mini-calendrier, layout flexible sans débordement, gestion Alt) et garantie du tri strictement croissant du Barème.
-- Suite de tests : **325 cas verts** (`npm run verify`).
+- Version livrée : **v3.24.2** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
+- Plan achevé : Réorganisation horizontale du sélecteur de période en saisie de lot (optimisation de l'empreinte verticale, agencement horizontal des contrôles, mini-calendrier compact).
+- Suite de tests : **326 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Saisie de lots en mode Période & Barème strictement croissant (`v3.23.0`)** :
-  - Refonte du mini-calendrier `createMiniCalendar` : suppression des re-renders intempestifs (`wrap.innerHTML = ''`) lors du survol de la souris au profit d'une mise à jour ciblée des classes CSS (`.is-preview`, `.in-range`, `.is-end`) et du texte de résumé.
-  - Confort visuel et ergonomique : cases de jours agrandies à `26px` de haut sur desktop (et `32px` sur mobile).
-  - Assouplissement du layout `.d-cell` et `.d-period` (`flex-wrap: wrap`) pour supprimer tout débordement horizontal ou écrasement lorsque le panneau de tchat est ouvert ou sur écran moyen.
-  - Normalisation de la largeur de `startInput` en mode jour unique (`width: auto`) et initialisation automatique de la date de départ sur les raccourcis de durée (`+3 j`, etc.).
-  - Extension du support des périodes (répétition / répartition) en mode Alt dans `submitBulk` et préservation intégrale des données de périodes et sous-tops lors de la bascule d'univers dans `setLotUniverse`.
-  - Tri systématique par points croissants `(a.pts - b.pts) || (a.rowIndex - b.rowIndex)` dans le tiroir du barème (`renderBaremeDrawer`) et les raccourcis de saisie (`renderBaremeQuickBtns`).
-  - Nettoyage des libellés et toasts d'administration de l'outil « Réparer l'ordre » (`Index.html` et `Code.gs`) pour éliminer toute mention obsolète du barème.
-  - Nouveaux tests de validation ajoutés dans `tests/lot-period.test.js` (325/325 tests au vert).
+- **Réorganisation horizontale du sélecteur de période (`v3.24.2`)** :
+  - Passage de l'interrupteur de mode `.d-mode-seg` en disposition horizontale (`flex-direction: row`).
+  - Restructuration du panneau de période `.d-period` : création d'un conteneur de contrôles `.d-period-controls` agencé en 2 rangées horizontales compactes (Rangée 1 : `Du` / `Au` reliés par `→` + 4 raccourcis de durée `+3 j..` ; Rangée 2 : choix de score Répéter/Répartir `.fill-choice` en segment horizontal + aperçu du calcul chiffré `.d-fill-preview`).
+  - Positionnement du mini-calendrier `.d-cal` à côté du bloc de contrôles avec un format compact (`215px` de large, cases de `22px` de haut sur desktop, tout en préservant les cibles tactiles de `32px` sur mobile).
+  - Alignement horizontal du sélecteur de date/période par défaut `#defaultDateWrap` en en-tête d'onglet.
+  - Nettoyage des styles inline dynamiques redondants dans `createEntryRow` au profit de classes CSS propres.
+  - Nouveaux tests de structure dans `tests/lot-period.test.js` (326/326 tests au vert).
+
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (325/325).
+- Aucun écart. Tous les tests sont au vert (326/326).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

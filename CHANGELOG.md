@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.24.2] - 2026-09-02
+
+### Modifié
+**Humanisé** : Le sélecteur de période en saisie de lot a été réorganisé à l'horizontale pour diviser par deux son encombrement vertical et fluidifier la saisie.
+**Technique** : `Index.html` — passage de `.d-mode-seg` et `.fill-choice` en disposition horizontale (`flex-direction: row`), réorganisation de `.d-period` avec un bloc de contrôles compact (`.d-period-controls` : rangée 1 `Du` → `Au` + raccourcis `+3j..`, rangée 2 choix Répéter/Répartir + aperçu live) positionné à côté du mini-calendrier (`.d-cal` compacté à 215px avec cases de 22px sur desktop), alignement horizontal du bloc de dates par défaut (`#defaultDateWrap`), et suppression des styles inline redondants dans `createEntryRow`. Tests enrichis dans `tests/lot-period.test.js`.
+
 ## [v3.24.1] - 2026-09-02
 
 ### Corrigé
@@ -526,23 +532,18 @@ Revue par 3 agents Claude indépendants (correction, intégrité des données, s
 **Humanisé** : Suppression des fonctions et endpoints orphelins devenus inutiles.
 **Technique** : `Index.html` — `openAltCategoryLinkModal()`, `confirmGroupRows()`. `Code.gs` — `apiGetMobileBootstrap()`. `AutoPoints.gs` — `apiRunAutoRulesNow()`. `tests/harness.js` — listes d'exposition mises à jour.
 
-## [v3.5.6] - 2026-08-06
-
-### Modifié
-**Humanisé** : Agrandissement de la barre de navigation (56px) pour un meilleur confort tactile et ajustement des compteurs.
-**Technique** : `Index.html` — augmentation de la hauteur `.nav-container` à `56px`, `min-height: 56px` et `padding: 12px 10px` sur `.nav-btn` pour une hitbox verticale étendue, et resserrement `gap: 2px` / `margin-left: 2px` sur `.nav-count`.
-
-## [v3.5.5] - 2026-08-06
+## [v3.5.1] - 2026-08-06
 
 ### Corrigé
 **Humanisé** : Nettoyage fiable des commentaires avant le déploiement pour éviter que Google ne corrompe la syntaxe du code.
 **Technique** : `.github/scripts/strip-comments.js` (nouveau) — retire les commentaires `//` et `/* */` de tous les fichiers `.gs`/`.html` juste avant `clasp push`, uniquement dans la copie éphémère du CI (jamais le dépôt source), avec une analyse consciente des chaînes/template literals (ne touche jamais le contenu entre guillemets ou backticks). `.github/scripts/deploy-gas.sh` — invoque ce nettoyage avant la boucle de déploiement des deux cibles. Comportement vérifié identique avant/après sur toute la suite de tests.
 
-## [v3.5.4] - 2026-08-06
-
-### Corrigé
 **Humanisé** : Résolution de l'écran blanc au chargement en servant directement le fichier HTML sans passer par le moteur de template.
 **Technique** : `Code.gs` — `doGet()` sert désormais `Index.html` via `HtmlService.createHtmlOutputFromFile()` au lieu de `createTemplateFromFile().evaluate()` : le moteur de template GAS, en évaluant le scriptlet `<?!= JSON.stringify(appUrl) ?>`, tronquait silencieusement environ 28 000 caractères du fichier livré (confirmé en comparant le script servi en production, via extraction directe du payload `goog.script.init`, au source versionné), provoquant une `Uncaught SyntaxError` bloquant tout le JavaScript de la page. `Index.html` — suppression de la variable `APP_URL` (jamais utilisée ailleurs dans le code) et de son scriptlet, rendant tout rendu templaté inutile.
+
+### Modifié
+**Humanisé** : Agrandissement de la barre de navigation (56px) pour un meilleur confort tactile et ajustement des compteurs.
+**Technique** : `Index.html` — augmentation de la hauteur `.nav-container` à `56px`, `min-height: 56px` et `padding: 12px 10px` sur `.nav-btn` pour une hitbox verticale étendue, et resserrement `gap: 2px` / `margin-left: 2px` sur `.nav-count`.
 
 ## [v3.5.0] - 2026-08-06
 
@@ -550,36 +551,24 @@ Revue par 3 agents Claude indépendants (correction, intégrité des données, s
 **Humanisé** : Saisie directe de points dans les Tops Alternatifs (saisie native) via un sélecteur d'univers en Saisie de lot et un bouton dédié sur le Dashboard.
 **Technique** : `Code.gs` — `AltStorageService.addNativeAltEntries()` (validation joueur/altCat/pts, écriture dans `AltHistory` avec `refHistoryRowId` vide), `_parseAltHistoryRow` expose `isNative`, nouveau endpoint `apiAppendAltNativeBatch(author, entries)` avec audit `'Saisie native Alt'`. `Index.html` — variable `activeLotUniverse`, segmented control `#lotUniverseSeg` dans l'onglet Saisie, type `'altCategory'` dans `buildRichSelect` (peuple avec `cachedAltCategories`), branche Alt dans `submitBulk()`, fonction `openAltNativeQuickAddModal()` appelée par `#dashAltAddBtn` (visible seulement en mode Alt Dashboard), badge `✏️ natif` dans `openAltCategoryManagerModal` pour les entrées sans `refHistoryRowId`.
 
-## [v3.4.5] - 2026-08-05
-
-
-### Corrigé
-**Humanisé** : Suppression du rechargement intempestif de la bannière de statistiques rapides lors du basculement d'univers.
-**Technique** : `Index.html` — retrait de `loadQuickStats()` de la fonction `refreshDashboardStats()`, garantissant le maintien fixe du bandeau `quickStatsBar` sans requête réseau inutile lors du changement d'univers.
-
-## [v3.4.4] - 2026-08-05
+## [v3.4.1] - 2026-08-05
 
 ### Modifié
 **Humanisé** : Élargissement et optimisation des modales sur grand écran, avec affichage en grille responsive pour les notes.
 **Technique** : `Index.html` — ajout des variantes CSS `.modal-box.xl` et `.modal-scroll-list`, bascule des modales universelles d'affectation Alt, gestionnaire Alt et drilldown de graphiques vers `.xl`, correction du vidage de classe dans `closeModal()`, et réorganisation de `#notesBlocksContainer` en grille 1/2/3 colonnes avec CSS responsive `@media`.
 
-## [v3.4.3] - 2026-08-05
-
-### Modifié
 **Humanisé** : Ajustement dynamique du Guide sur grand écran et panneaux latéraux (Guide et Barème) redimensionnables par glisser-déposer.
 **Technique** : `Index.html` — refonte CSS de `.guide-layout` (`height: clamp()`, layout responsive 2-colonnes `@media (min-width: 900px)`), ajout des séparateurs `.guide-resizer` et `.bareme-resizer`, et création de la fonction utilitaire JS `setupResizable()` avec persistance `localStorage`.
 
-## [v3.4.2] - 2026-08-05
-
-### Corrigé
-**Humanisé** : Correction de la navigation par clic entre les sections dans le menu latéral du Guide.
-**Technique** : `Index.html` — extraction de `initGuideAccordion()` au niveau du scope global JS et invocation dans `bindButtons()` et `goToTab('tab-guide')`.
-
-## [v3.4.1] - 2026-08-05
-
-### Modifié
 **Humanisé** : Mise à jour complète du Guide avec une section dédiée aux Tops Alternatifs et aux nouvelles fonctionnalités.
 **Technique** : `Index.html` — ajout de la tuile et du template `guideContent-alt` dans `tab-guide`, enregistrement dans `GUIDE_TITLES`, et mise à jour des templates de guide Dashboard, Saisie, Paramètres, Historique et Tchat.
+
+### Corrigé
+**Humanisé** : Suppression du rechargement intempestif de la bannière de statistiques rapides lors du basculement d'univers.
+**Technique** : `Index.html` — retrait de `loadQuickStats()` de la fonction `refreshDashboardStats()`, garantissant le maintien fixe du bandeau `quickStatsBar` sans requête réseau inutile lors du changement d'univers.
+
+**Humanisé** : Correction de la navigation par clic entre les sections dans le menu latéral du Guide.
+**Technique** : `Index.html` — extraction de `initGuideAccordion()` au niveau du scope global JS et invocation dans `bindButtons()` et `goToTab('tab-guide')`.
 
 ## [v3.4.0] - 2026-08-04
 
@@ -587,77 +576,53 @@ Revue par 3 agents Claude indépendants (correction, intégrité des données, s
 **Humanisé** : Gestion complète des Tops Alternatifs : sélecteur universel, badges ⭐ dans l'historique, filtres dédiés et gestionnaire dans les Paramètres.
 **Technique** : `Code.gs` — implémentation de `AltStorageService.getAltHistoryMap()`, `unlinkHistoryRowsFromAltCategory()`, `getAltCategoryDetails()`, et des fonctions API correspondantes (`apiGetAltHistoryMap`, `apiUnlinkHistoryRowsFromAltCategory`, `apiGetAltCategoryDetails`). `Index.html` — création des modales `openUniversalAltPointPicker` et `openAltCategoryManagerModal`, intégration des badges ⭐ dans l'historique et des filtres par puces.
 
-## [v3.3.5] - 2026-08-04
-
-### Corrigé
-**Humanisé** : Retrait de l'effet néon sur le bouton Top Alternatif ⭐ pour réserver l'effet aux contrôles neutres.
-**Technique** : `Index.html` — ajout de l'invalidation `:not(.alt-picker-btn)` sur les règles CSS néon et dans le sélecteur `initSpotlightCards()`.
-
-## [v3.3.4] - 2026-08-04
-
-### Corrigé
-**Humanisé** : Restriction du contour néon aux seuls boutons neutres, en excluant les boutons colorés et les règles du barème.
-**Technique** : `Index.html` — restriction des sélecteurs CSS et du JS `initSpotlightCards()` avec l'invalidation `:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header)` pour empêcher le ciblage intempestif des boutons de règles et de barème.
-
-## [v3.3.3] - 2026-08-04
-
-### Corrigé
-**Humanisé** : Masquage du titre textuel sur mobile pour n'afficher que le logo et optimiser l'en-tête.
-**Technique** : `Index.html` — ajout de `display: none !important` sur `.app-brand-title` en mobile (`body:not(.desktop-layout)` et `@media (max-width: 640px)`), ajout de l'élément de repli d'icône `#appBrandDefaultIcon` (`🏆`) et ajustement dans `applyAppBranding()` pour garantir l'affichage de l'icône seule en toutes circonstances.
-
-## [v3.3.2] - 2026-08-04
-
-### Corrigé
-**Humanisé** : Automatisation du remplacement et de l'archivage des anciens déploiements lors des mises en production.
-**Technique** : `.github/scripts/deploy-gas.sh` — suppression du mode de mise à jour réutilisant `clasp deploy -i` ; force la création d'une nouvelle URL via `clasp deploy --description` suivie de l'invalidation/archivage de tous les anciens déploiements via `clasp undeploy <old_id>`, puis mise à jour de Short.io.
-
-## [v3.3.1] - 2026-08-04
+## [v3.3.0] - 2026-08-04
 
 ### Modifié
 **Humanisé** : Remplacement de la bordure rouge des boutons neutres par un contour néon cyan-blanc au survol.
 **Technique** : `Index.html` — passage de la couleur de base du `radial-gradient` de rouge `rgba(255, 60, 95)` à un néon blanc/cyan neutre `rgba(255, 255, 255, 0.95)` / `rgba(160, 215, 255, 0.75)`, et ajout de `border-color: transparent !important` au survol pour annuler la bordure rouge/accent statique par défaut.
 
-## [v3.3.0] - 2026-08-04
-
-### Modifié
 **Humanisé** : Reciblage de l'effet néon sur les boutons et filtres interactifs, et retrait des grands conteneurs pour épurer l'interface.
 **Technique** : `Index.html` — restriction des règles CSS néon spotlight et de la fonction `initSpotlightCards()` aux sélecteurs `button.secondary`, `button:not(.primary):not(.danger)`, `.qs-pill`, `.nav-btn`, `.nav-item`, `.subtab-btn`, `select`, `.custom-select-trigger`, `.fchip`, `.d-mode-btn`, `.chart-type-btn`, `.export-btn`, `.who-am-i-btn`, `.nav-refresh-btn`, `.nav-bareme-btn`, `.nav-chat-btn`, `.quick-btn`, `.fill-opt`. Retrait définitif de `.card::before`/`.after`, `.filter-panel` et `.modal-content`.
 
-## [v3.2.6] - 2026-08-04
-
 ### Corrigé
-**Humanisé** : Fusion visuelle monobloc entre les cartes joueurs du podium et leurs socles.
-**Technique** : `Index.html` — modification de `.phrase-podium-card` (`border-radius: 16px 16px 0 0`, `border-bottom: none`), ajustement de `.podium-step-base` (`margin-top: 0`, `border-top: none`) et ajout des règles d'accentuation unifiée de couleur de bordure au survol (`.podium-column.rank-*:hover .podium-step-base`).
+**Humanisé** : Retrait de l'effet néon sur le bouton Top Alternatif ⭐ pour réserver l'effet aux contrôles neutres.
+**Technique** : `Index.html` — ajout de l'invalidation `:not(.alt-picker-btn)` sur les règles CSS néon et dans le sélecteur `initSpotlightCards()`.
 
-## [v3.2.5] - 2026-08-04
+**Humanisé** : Restriction du contour néon aux seuls boutons neutres, en excluant les boutons colorés et les règles du barème.
+**Technique** : `Index.html` — restriction des sélecteurs CSS et du JS `initSpotlightCards()` avec l'invalidation `:not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header)` pour empêcher le ciblage intempestif des boutons de règles et de barème.
+
+**Humanisé** : Masquage du titre textuel sur mobile pour n'afficher que le logo et optimiser l'en-tête.
+**Technique** : `Index.html` — ajout de `display: none !important` sur `.app-brand-title` en mobile (`body:not(.desktop-layout)` et `@media (max-width: 640px)`), ajout de l'élément de repli d'icône `#appBrandDefaultIcon` (`🏆`) et ajustement dans `applyAppBranding()` pour garantir l'affichage de l'icône seule en toutes circonstances.
+
+**Humanisé** : Automatisation du remplacement et de l'archivage des anciens déploiements lors des mises en production.
+**Technique** : `.github/scripts/deploy-gas.sh` — suppression du mode de mise à jour réutilisant `clasp deploy -i` ; force la création d'une nouvelle URL via `clasp deploy --description` suivie de l'invalidation/archivage de tous les anciens déploiements via `clasp undeploy <old_id>`, puis mise à jour de Short.io.
+
+## [v3.2.2] - 2026-08-04
 
 ### Modifié
 **Humanisé** : Refonte visuelle du Podium : avatars agrandis avec halo animé, socles 3D rehaussés et animations d'entrée dynamiques.
 **Technique** : `Index.html` — CSS : alignement centré dans `.phrase-podium-card`, taille des avatars portée à 44px (64px pour `.rank-1` avec animation `avatarPulse`), animations d'entrée `podiumDropIn` / `podiumSlideLeft` / `podiumSlideRight`, socles 80/55/36px, `crownBounce` retravaillé, mini-barre `.phrase-podium-progress-bar` avec `--score-pct`. JS : restructuration du DOM dans `renderPhrasesCard` pour centrer avatar + médaille + nom + chip points + barre de progression.
 
-## [v3.2.4] - 2026-08-02
+### Corrigé
+**Humanisé** : Fusion visuelle monobloc entre les cartes joueurs du podium et leurs socles.
+**Technique** : `Index.html` — modification de `.phrase-podium-card` (`border-radius: 16px 16px 0 0`, `border-bottom: none`), ajustement de `.podium-step-base` (`margin-top: 0`, `border-top: none`) et ajout des règles d'accentuation unifiée de couleur de bordure au survol (`.podium-column.rank-*:hover .podium-step-base`).
+
+## [v3.2.1] - 2026-08-02
 
 ### Corrigé
 **Humanisé** : Maintien des statistiques globales du bandeau supérieur lors du passage en mode Tops Alternatifs sur le Dashboard.
 **Technique** : `Index.html` — modification de `loadQuickStats()` pour forcer l'appel serveur sur l'univers `'main'` (`apiGetQuickStats('main')`), garantissant que le bandeau `#quickStatsBar` reste ancré sur les statistiques globales du site indépendamment du mode d'affichage actif sur le Dashboard.
 
-## [v3.2.3] - 2026-08-02
+**Humanisé** : Correction de l'édition, de la duplication et de la suppression de la planification des automatisations dans les Paramètres.
+**Technique** : `AutoPoints.gs` — normalisation des dates dans `_parseRow` sous forme de chaînes ISO sérialisables, sécurisation de `updateRule`/`runDue` avec des garde-fous sur l'extension `.toISOString()`, et fiabilisation de `_findRowIndex()`. `Index.html` — refonte complète des modales `openEditAutoRuleModal` et `openDuplicateAutoRuleModal` incluant tous les champs de planification (`interval`, `daysOfWeek`, `dayOfMonth`, `startDate`) avec bascule dynamique d'affichage selon la fréquence choisie, et sécurisation du formatage de date dans `renderAutoRules`.
 
 ### Modifié
 **Humanisé** : Intensification du contour néon au survol avec rotation chromatique fluide.
 **Technique** : `Index.html` — augmentation de l'opacité et de la saturation du `radial-gradient` au curseur (de 0.45 à 0.95), élargissement du rayon (160px), et ajout de `@keyframes neonHueCycle` avec `filter: hue-rotate(0deg → 360deg)` en boucle continue (10s).
 
-## [v3.2.2] - 2026-08-02
-
-### Modifié
 **Humanisé** : Intégration d'un effet néon interactif qui s'illumine dynamiquement sous le curseur sur les éléments cliquables.
 **Technique** : `Index.html` — extension de la règle CSS de spotlight avec `radial-gradient` à tous les composants interactifs (`button`, `.card`, `.filter-panel`, `.qs-pill`, `.lot-row`, `.modal-content`, `.settings-section`, etc.) avec `-webkit-mask-composite: xor` / `mask-composite: exclude` ; optimisation de `initSpotlightCards()` grâce à `e.target.closest(selector)` pour un suivi ultra-fluide à 60 FPS sans surconsommation CPU.
-
-## [v3.2.1] - 2026-08-02
-
-### Corrigé
-**Humanisé** : Correction de l'édition, de la duplication et de la suppression de la planification des automatisations dans les Paramètres.
-**Technique** : `AutoPoints.gs` — normalisation des dates dans `_parseRow` sous forme de chaînes ISO sérialisables, sécurisation de `updateRule`/`runDue` avec des garde-fous sur l'extension `.toISOString()`, et fiabilisation de `_findRowIndex()`. `Index.html` — refonte complète des modales `openEditAutoRuleModal` et `openDuplicateAutoRuleModal` incluant tous les champs de planification (`interval`, `daysOfWeek`, `dayOfMonth`, `startDate`) avec bascule dynamique d'affichage selon la fréquence choisie, et sécurisation du formatage de date dans `renderAutoRules`.
 
 ## [v3.2.0] - 2026-08-02
 
