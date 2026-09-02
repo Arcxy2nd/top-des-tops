@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.24.2] - 2026-09-02
 
 ### Modifié
-**Humanisé** : Le sélecteur de période en saisie de lot a été réorganisé à l'horizontale pour diviser par deux son encombrement vertical et fluidifier la saisie.
-**Technique** : `Index.html` — passage de `.d-mode-seg` et `.fill-choice` en disposition horizontale (`flex-direction: row`), réorganisation de `.d-period` avec un bloc de contrôles compact (`.d-period-controls` : rangée 1 `Du` → `Au` + raccourcis `+3j..`, rangée 2 choix Répéter/Répartir + aperçu live) positionné à côté du mini-calendrier (`.d-cal` compacté à 215px avec cases de 22px sur desktop), alignement horizontal du bloc de dates par défaut (`#defaultDateWrap`), et suppression des styles inline redondants dans `createEntryRow`. Tests enrichis dans `tests/lot-period.test.js`.
+**Humanisé** : Le sélecteur de période en saisie de lot a été réorganisé en 3 colonnes équilibrées sur toute la largeur (Dates + raccourcis à gauche, mini-calendrier au centre, mode de score à droite), réduisant son encombrement vertical de moitié sans aucun espace vide.
+**Technique** : `Index.html` — restructuration de `.d-period` en 3 colonnes horizontales de même hauteur (~130px contre 255px auparavant) : `.d-period-left-col` (interrupteur de mode horizontal `.d-mode-seg` + dates `Du`/`Au` côte-à-côte + 4 raccourcis de durée en ligne), `.d-cal` compacté à 200px avec cases de 18px au centre, et `.d-period-right-col` (choix Répéter/Répartir + aperçu chiffré live). Alignement horizontal du bloc par défaut `#defaultDateWrap`. Tests enrichis dans `tests/lot-period.test.js`.
 
 ## [v3.24.1] - 2026-09-02
 

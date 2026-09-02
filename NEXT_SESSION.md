@@ -7,13 +7,13 @@
 - Init recommandé : standard.
 
 ## Dernière session
-- **Réorganisation horizontale du sélecteur de période (`v3.24.2`)** :
-  - Passage de l'interrupteur de mode `.d-mode-seg` en disposition horizontale (`flex-direction: row`).
-  - Restructuration du panneau de période `.d-period` : création d'un conteneur de contrôles `.d-period-controls` agencé en 2 rangées horizontales compactes (Rangée 1 : `Du` / `Au` reliés par `→` + 4 raccourcis de durée `+3 j..` ; Rangée 2 : choix de score Répéter/Répartir `.fill-choice` en segment horizontal + aperçu du calcul chiffré `.d-fill-preview`).
-  - Positionnement du mini-calendrier `.d-cal` à côté du bloc de contrôles avec un format compact (`215px` de large, cases de `22px` de haut sur desktop, tout en préservant les cibles tactiles de `32px` sur mobile).
-  - Alignement horizontal du sélecteur de date/période par défaut `#defaultDateWrap` en en-tête d'onglet.
-  - Nettoyage des styles inline dynamiques redondants dans `createEntryRow` au profit de classes CSS propres.
-  - Nouveaux tests de structure dans `tests/lot-period.test.js` (326/326 tests au vert).
+- **Réorganisation équilibrée du sélecteur de période (`v3.24.2`)** :
+  - Restructuration du panneau `.d-period` en 3 colonnes réparties sur toute la largeur de la carte (hauteur réduite de 255px à ~130px) sans zone vide :
+    - Colonne 1 (`.d-period-left-col`) : interrupteur de mode horizontal `.d-mode-seg` + dates `Du`/`Au` côte-à-côte + 4 raccourcis de durée en ligne.
+    - Colonne 2 (`.d-cal`) : mini-calendrier compacté (200px de large, cases de 18px sur desktop, 32px préservés sur mobile).
+    - Colonne 3 (`.d-period-right-col`) : libellé, options de score Répéter/Répartir `.fill-choice` et badge d'aperçu live `.d-fill-preview`.
+  - Harmonisation du sélecteur de date par défaut `#defaultDateWrap` en en-tête.
+  - Tests unitaires et d'intégration validés dans `tests/lot-period.test.js` (326/326 tests au vert).
 
 
 ## Écarts

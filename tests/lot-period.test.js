@@ -160,17 +160,15 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   // .d-mode-seg is horizontal flex
   assert.match(html, /\.d-mode-seg\s*\{[^}]*flex-direction:\s*row/s);
 
-  // .fill-choice is horizontal flex
-  assert.match(html, /\.fill-choice\s*\{[^}]*flex-direction:\s*row/s);
-
-  // .d-period contains horizontal controls and compact calendar
-  assert.match(html, /\.d-period-controls\s*\{/);
-  assert.match(html, /\.d-period-dates-wrap\s*\{/);
-  assert.match(html, /\.d-period-score-wrap\s*\{/);
+  // .d-period contains 3 balanced columns across the width
+  assert.match(html, /\.d-period-left-col\s*\{/);
+  assert.match(html, /\.d-period-right-col\s*\{/);
+  assert.match(html, /\.d-period-dates-row\s*\{/);
   assert.match(html, /\.d-period-shortcuts\s*\{/);
 
-  // Mini calendar width is compact
-  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*0\s+0\s+215px/s);
+  // Mini calendar width and cell height are compact
+  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*0\s+0\s+200px/s);
+  assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*18px/s);
 });
 
 
