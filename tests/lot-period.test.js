@@ -118,3 +118,39 @@ test('computeRowTotalPoints computes points correctly for single date and period
   const r5 = makeRow(5, true, '2026-08-01', '2026-08-03', 'repeat', [2]);
   assert.strictEqual(computeRowTotalPoints(r5), 21);
 });
+
+test('Alt mode period expansion correctly generates daily items for repeat and distribute', () => {
+  const { lineDates } = loadLotFns(['lineDates']);
+
+  const expandAltItem = (player, altCategory, points, dStart, dEnd, isRange, fill, desc) => {
+    const dates = lineDates(dStart, isRange && dEnd ? dEnd : '');
+    const altItems = [];
+    if (dates.length === 1 || fill === 'repeat') {
+      dates.forEach(dk => {
+        altItems.push({ player, altCategory, points, date: dk, description: desc || '' });
+      });
+    } else {
+      const n = dates.length, base = Math.floor(points / n), rem = points % n;
+      dates.forEach((dk, k) => {
+        const val = base + (k < rem ? 1 : 0);
+        if (val > 0) {
+          altItems.push({ player, altCategory, points: val, date: dk, description: desc || '' });
+        }
+      });
+    }
+    return altItems;
+  };
+
+  // Repeat 10 pts over 3 days -> 3 items of 10 pts
+  const rep = expandAltItem('Alice', 'Gaming', 10, '2026-08-01', '2026-08-03', true, 'repeat');
+  assert.strictEqual(rep.length, 3);
+  assert.deepStrictEqual(rep.map(x => x.points), [10, 10, 10]);
+  assert.deepStrictEqual(rep.map(x => x.date), ['2026-08-01', '2026-08-02', '2026-08-03']);
+
+  // Distribute 10 pts over 3 days -> 4, 3, 3 pts
+  const dist = expandAltItem('Bob', 'Gaming', 10, '2026-08-01', '2026-08-03', true, 'distribute');
+  assert.strictEqual(dist.length, 3);
+  assert.deepStrictEqual(dist.map(x => x.points), [4, 3, 3]);
+  assert.strictEqual(dist.reduce((s, x) => s + x.points, 0), 10);
+});
+

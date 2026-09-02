@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.23.0] - 2026-09-02
+
+### Corrigé
+**Humanisé** : La saisie de lots en mode Période et son calendrier sont désormais totalement stables et fluides : les cases du mini-calendrier sont agrandies et confortables à cliquer sur ordinateur, le survol de la souris ne fait plus clignoter la grille, le tableau s'adapte parfaitement à la largeur de l'écran sans déborder quand le tchat est ouvert, et l'enregistrement de périodes fonctionne également dans les Tops Alternatifs.
+**Technique** : `Index.html` — refonte de `createMiniCalendar` avec mise à jour ciblée des classes CSS (`.is-preview`, `.in-range`, `.is-end`) et du résumé lors du survol sans destruction de DOM, agrandissement des cases de jours à 26px de haut sur desktop, assouplissement de `.d-cell` et `.d-period` en `flex-wrap: wrap` pour supprimer les débordements horizontaux, fiabilisation du dimensionnement de `startInput` en mode jour unique (`width: auto`) et initialisation propre de `startInput` sur les raccourcis de durée. Extension du support des périodes (répartition/répétition par jour) en mode Alt dans `submitBulk`, et persistance complète des plages et sous-tops dans `setLotUniverse`. Tests étendus dans `tests/lot-period.test.js`.
+
+### Modifié
+**Humanisé** : Le barème de chaque Top est garanti strictement classé par ordre croissant de points sur toutes les vues (Paramètres, tiroir latéral et raccourcis rapides de saisie), et les mentions obsolètes de colonne d'ordre ont été retirées des outils d'administration.
+**Technique** : `Index.html` — tri explicite par points croissants `(a.pts - b.pts) || (a.rowIndex - b.rowIndex)` dans `renderBaremeDrawer` et `renderBaremeQuickBtns`, nettoyage des libellés et toasts de l'outil « Réparer l'ordre ». `Code.gs` — retrait de la clé `bareme` du retour et de l'audit log de `apiRepairOrder`.
+
 ## [v3.22.0] - 2026-09-02
 
 ### Corrigé

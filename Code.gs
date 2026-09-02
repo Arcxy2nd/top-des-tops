@@ -4218,7 +4218,7 @@ function apiRepairOrder(author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       _ensureAllSheetHeaders();
-      const result = { players: 0, categories: 0, bareme: 0, phrases: 0 };
+      const result = { players: 0, categories: 0, phrases: 0 };
 
       ['Players', 'Categories'].forEach(type => {
         const sheet = ConfigService.getSheets()[type.toLowerCase()];

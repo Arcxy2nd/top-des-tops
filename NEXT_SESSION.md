@@ -1,27 +1,24 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.22.0** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
-- Plan achevé : Correction exhaustive des 32 problèmes UX mobile (z-index, anti-zoom iOS Safari, cibles tactiles 44px, breakpoint unique 768px, mini-calendrier tactile, overflow horizontal, défilement sous-onglets).
-- Suite de tests : **324 cas verts** (`npm run verify`).
+- Version livrée : **v3.23.0** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
+- Plan achevé : Correction complète du mode Période en saisie de lots (mini-calendrier, layout flexible sans débordement, gestion Alt) et garantie du tri strictement croissant du Barème.
+- Suite de tests : **325 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Refonte UX Mobile Complète (`v3.22.0`)** :
-  - Restructuration propre de la hiérarchie des `z-index` : `#toastContainer` (11000) > `#chatSidePanel` mobile & `.bareme-drawer` (10000) > `.bareme-backdrop` (9999) > `#mobileBottomNav` (9000).
-  - Repositionnement sticky de `#lotSummaryBar` (`bottom: calc(68px + env(safe-area-inset-bottom, 0px))`) et de `#toastContainer` (`bottom: calc(72px + env(safe-area-inset-bottom, 0px))`) au-dessus de la barre de navigation du bas.
-  - Suppression de `user-scalable=0` et `maximum-scale=1.0` du viewport (conforme WCAG 1.4.4).
-  - Forçage strict de `font-size: 16px !important` sur tous les champs de saisie (`input`, `select`, `textarea`) sur mobile pour interdire l'auto-zoom d'iOS Safari.
-  - Agrandissement des cibles tactiles : top bar mobile (44x44px), mini-calendrier `.d-cal-day` (32px de haut au lieu de 15px), raccourcis points et dates (44px), chips Notes et filtres (≥40px).
-  - Unification de tous les styles responsive sous le breakpoint standard unique `@media (max-width: 768px)`.
-  - Protection globale contre le débordement horizontal (`html, body { overflow-x: hidden; }`).
-  - Défilement tactile fluide des sous-onglets Paramètres et Historique (`overflow-x: auto; flex-wrap: nowrap`).
-  - Accessibilité tactile des actions du Tchat (`@media (hover: none)`) et fermeture au toucher en dehors de l'infobulle Chart.js.
-  - Persistance de la fermeture de la bannière CTA dans `localStorage`.
-  - Suite de tests unitaires dédiée ajoutée dans `tests/mobile-audit.test.js`.
+- **Saisie de lots en mode Période & Barème strictement croissant (`v3.23.0`)** :
+  - Refonte du mini-calendrier `createMiniCalendar` : suppression des re-renders intempestifs (`wrap.innerHTML = ''`) lors du survol de la souris au profit d'une mise à jour ciblée des classes CSS (`.is-preview`, `.in-range`, `.is-end`) et du texte de résumé.
+  - Confort visuel et ergonomique : cases de jours agrandies à `26px` de haut sur desktop (et `32px` sur mobile).
+  - Assouplissement du layout `.d-cell` et `.d-period` (`flex-wrap: wrap`) pour supprimer tout débordement horizontal ou écrasement lorsque le panneau de tchat est ouvert ou sur écran moyen.
+  - Normalisation de la largeur de `startInput` en mode jour unique (`width: auto`) et initialisation automatique de la date de départ sur les raccourcis de durée (`+3 j`, etc.).
+  - Extension du support des périodes (répétition / répartition) en mode Alt dans `submitBulk` et préservation intégrale des données de périodes et sous-tops lors de la bascule d'univers dans `setLotUniverse`.
+  - Tri systématique par points croissants `(a.pts - b.pts) || (a.rowIndex - b.rowIndex)` dans le tiroir du barème (`renderBaremeDrawer`) et les raccourcis de saisie (`renderBaremeQuickBtns`).
+  - Nettoyage des libellés et toasts d'administration de l'outil « Réparer l'ordre » (`Index.html` et `Code.gs`) pour éliminer toute mention obsolète du barème.
+  - Nouveaux tests de validation ajoutés dans `tests/lot-period.test.js` (325/325 tests au vert).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (324/324).
+- Aucun écart. Tous les tests sont au vert (325/325).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

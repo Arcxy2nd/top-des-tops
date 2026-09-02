@@ -997,15 +997,15 @@
     .row-date-line {
       display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
     }
-    /* .d-cell & .d-period : alignement strict 3 colonnes horizontales sans retour à la ligne */
+    /* .d-cell & .d-period : alignement adaptatif 3 colonnes */
     .d-cell {
-      display: flex !important; align-items: flex-start !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; width: 100% !important;
+      display: flex; align-items: flex-start; flex-direction: row; flex-wrap: wrap; gap: 8px; width: 100%;
     }
     .d-single {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1 1 auto;
     }
     .d-period {
-      display: none; flex-direction: row !important; align-items: flex-start !important; gap: 8px !important; flex-wrap: nowrap !important; flex: 1 1 auto !important; min-width: 0 !important;
+      display: none; flex-direction: row; align-items: stretch; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;
     }
     /* Compatibilité — .row-top est gardé pour les éventuels sélecteurs CSS existants */
     .row-top { display: contents; }
@@ -1540,41 +1540,33 @@
     .d-mode-seg .d-mode-btn:hover { color: var(--text); }
     .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
 
-    /* Mini-calendrier : positionné au centre (emplacement cercle vert) */
+    /* Mini-calendrier : positionné au centre */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 3px 6px; flex: 1 1 auto; max-width: 380px; min-width: 250px; width: auto; box-sizing: border-box; flex-shrink: 1;
+      padding: 6px 8px; flex: 1 1 240px; max-width: 340px; min-width: 220px; box-sizing: border-box;
     }
-    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.72rem; }
-    .d-cal-title { font-size: 0.72rem; font-weight: 700; color: var(--text); }
-    .d-cal-nav, .d-cal-today { padding: 0 5px; font-size: 0.68rem; min-height: 18px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 0.78rem; }
+    .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); }
+    .d-cal-nav, .d-cal-today { padding: 2px 8px; font-size: 0.74rem; min-height: 24px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
     .d-cal-nav:hover, .d-cal-today:hover { background: var(--accent); color: var(--on-accent); }
-    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: 0.68rem; }
-    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 0; font-size: 0.62rem; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 0.72rem; }
+    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 1px 0; font-size: 0.68rem; }
     .d-cal-day {
-      width: 100%; min-width: 0; height: 15px; line-height: 15px; padding: 0;
+      width: 100%; min-width: 0; height: 26px; line-height: 26px; padding: 0;
       border: 1px solid transparent; background: transparent;
-      color: var(--text); font-family: inherit; font-size: 0.66rem; cursor: pointer;
-      border-radius: 3px; transition: background 0.1s;
+      color: var(--text); font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      border-radius: 4px; transition: background 0.1s, color 0.1s;
       display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+      font-weight: 500;
     }
     .d-cal-day:hover { background: var(--btn-alt); }
-    .d-cal-day.in-range { background: rgba(59, 130, 246, 0.25); }
-    .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 800; }
-    .d-cal-hint { font-size: 0.64rem; color: var(--text-muted); text-align: center; margin-top: 2px; }
     .d-cal-day.is-today { border-color: var(--accent); font-weight: 700; }
     .d-cal-day.in-range { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
-    .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
-    /* Survol pendant la sélection : aperçu de la période avant le 2e clic */
     .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+    .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+    .d-cal-hint { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 4px; }
     /* Saisie manuelle masquée dans le calendrier car déjà affichée à gauche */
     .d-cal-manual { display: none; }
-    .d-cal-today {
-      background: var(--btn-alt); border: 1px solid var(--border); border-radius: 6px;
-      color: var(--text); cursor: pointer; height: 28px; min-height: 0; padding: 0 8px;
-      font-size: 0.68rem; font-weight: 700;
-    }
-    .d-cal-today:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     /* Choix « comment poser le score » en langage clair (le jargon disparaît) */
     .fill-choice {
       display: flex; flex-direction: column; gap: 4px; margin: 0;
@@ -4647,7 +4639,7 @@
         <div class="tool-action">
           <div class="tool-action-info">
             <strong>Réparer l'ordre</strong>
-            <span>Recalcule et enregistre l'ordre manuel (Joueurs, Tops, Barème, Phrases) sans rien réorganiser visuellement — corrige seulement les colonnes Ordre manquantes ou incomplètes.</span>
+            <span>Recalcule et enregistre l'ordre manuel (Joueurs, Tops, Phrases) sans rien réorganiser visuellement — corrige seulement les colonnes Ordre manquantes ou incomplètes.</span>
           </div>
           <button class="secondary small" id="repairOrderBtn">Réparer</button>
         </div>
@@ -8456,9 +8448,6 @@
     const wrap = document.createElement('div');
     wrap.className = 'd-cal';
     const view = { y: 0, m: 0 };
-    // Jour d'ancrage du 1er clic : tant qu'on n'a pas cliqué le 2e jour, la période
-    // vaut [ancre, ancre] (1 jour) — jamais une fin vide, sinon la répartition
-    // retombait silencieusement sur une seule date.
     let anchor = null;
     let hoverDs = null;
 
@@ -8469,27 +8458,49 @@
     };
     syncViewToStart();
 
-    const commit = () => { render(); if (typeof onChange === 'function') onChange(); };
+    let hintEl = null;
+    let dayButtons = [];
+
+    function updateHighlight(lo, hi, isAnchor) {
+      const todayStr = toDateStr(new Date());
+      dayButtons.forEach(({ btn, ds }) => {
+        btn.classList.toggle('is-today', ds === todayStr);
+        const inSpan = lo && hi && ds >= lo && ds <= hi;
+        btn.classList.toggle('in-range', !isAnchor && inSpan);
+        btn.classList.toggle('is-preview', isAnchor && inSpan);
+        btn.classList.toggle('is-end', ds === lo || ds === hi);
+      });
+      if (hintEl) {
+        const nd = daysBetweenInclusive(lo, hi);
+        hintEl.textContent = isAnchor
+          ? 'Cliquez le dernier jour (ou changez de mois) — ' + nd + ' jour' + (nd > 1 ? 's' : '')
+          : (lo && hi
+            ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(lo) + ' au ' + fmtDateShort(hi))
+            : 'Cliquez le 1er jour de la période');
+      }
+    }
 
     function pick(ds) {
       if (anchor === null) {
         anchor = ds;
-        startInput.value = ds; endInput.value = ds;
+        startInput.value = ds;
+        endInput.value = ds;
+        updateHighlight(ds, ds, true);
       } else {
-        startInput.value = ds < anchor ? ds : anchor;
-        endInput.value   = ds < anchor ? anchor : ds;
+        const lo = ds < anchor ? ds : anchor;
+        const hi = ds < anchor ? anchor : ds;
+        startInput.value = lo;
+        endInput.value   = hi;
         anchor = null;
+        hoverDs = null;
+        updateHighlight(lo, hi, false);
       }
-      hoverDs = null;
-      commit();
+      if (typeof onChange === 'function') onChange();
     }
 
     function render() {
       wrap.innerHTML = '';
-      const s = startInput.value, e = endInput.value;
-      // Bornes affichées : pendant une sélection en cours, on montre l'aperçu ancre↔survol.
-      const lo = anchor && hoverDs ? (hoverDs < anchor ? hoverDs : anchor) : s;
-      const hi = anchor && hoverDs ? (hoverDs < anchor ? anchor : hoverDs) : e;
+      dayButtons = [];
 
       // En-tête : ‹ mois année › + retour au mois courant
       const head = document.createElement('div');
@@ -8521,31 +8532,39 @@
       const lead = (first.getDay() + 6) % 7; // Lundi = 0
       const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
       for (let i = 0; i < lead; i++) grid.appendChild(document.createElement('div'));
-      const todayStr = toDateStr(new Date());
       for (let d = 1; d <= daysInMonth; d++) {
         const ds = toDateStr(new Date(view.y, view.m, d));
         const cell = document.createElement('button');
         cell.type = 'button'; cell.className = 'd-cal-day'; cell.textContent = String(d);
-        if (ds === todayStr) cell.classList.add('is-today');
-        if (lo && hi && ds >= lo && ds <= hi) cell.classList.add(anchor ? 'is-preview' : 'in-range');
-        if (ds === lo || ds === hi) cell.classList.add('is-end');
         cell.addEventListener('click', () => pick(ds));
-        cell.addEventListener('mouseenter', () => { if (anchor) { hoverDs = ds; render(); } });
+        cell.addEventListener('mouseenter', () => {
+          if (anchor) {
+            hoverDs = ds;
+            const lo = hoverDs < anchor ? hoverDs : anchor;
+            const hi = hoverDs < anchor ? anchor : hoverDs;
+            updateHighlight(lo, hi, true);
+          }
+        });
         grid.appendChild(cell);
+        dayButtons.push({ btn: cell, ds });
       }
-      grid.addEventListener('mouseleave', () => { if (anchor && hoverDs) { hoverDs = null; render(); } });
+      grid.addEventListener('mouseleave', () => {
+        if (anchor) {
+          hoverDs = null;
+          updateHighlight(anchor, anchor, true);
+        }
+      });
       wrap.appendChild(grid);
 
       // Indice + résumé
-      const hint = document.createElement('div');
-      hint.className = 'd-cal-hint';
-      const nd = daysBetweenInclusive(lo, hi);
-      hint.textContent = anchor
-        ? 'Cliquez le dernier jour (ou changez de mois) — ' + nd + ' jour' + (nd > 1 ? 's' : '')
-        : (s && e
-          ? (nd + ' jour' + (nd > 1 ? 's' : '') + ' : du ' + fmtDateShort(s) + ' au ' + fmtDateShort(e))
-          : 'Cliquez le 1er jour de la période');
-      wrap.appendChild(hint);
+      hintEl = document.createElement('div');
+      hintEl.className = 'd-cal-hint';
+      wrap.appendChild(hintEl);
+
+      const s = startInput.value, e = endInput.value;
+      const lo = anchor && hoverDs ? (hoverDs < anchor ? hoverDs : anchor) : (anchor || s);
+      const hi = anchor && hoverDs ? (hoverDs < anchor ? anchor : hoverDs) : (anchor || e);
+      updateHighlight(lo, hi, !!anchor);
     }
 
     wrap.refresh = () => { anchor = null; hoverDs = null; syncViewToStart(); render(); };
@@ -13102,23 +13121,21 @@
     singlePanel.appendChild(startInput);
     singlePanel.appendChild(startShortcuts);
 
-    // ── Panneau « Une période » (3 colonnes : 1. Du/Au à gauche, 2. Calendrier élargi au milieu, 3. Boutons à droite) ───────────
+    // ── Panneau « Une période » (3 colonnes : 1. Du/Au à gauche, 2. Calendrier au milieu, 3. Boutons à droite) ───────────
     const periodPanel = document.createElement('div');
     periodPanel.className = 'd-period';
 
     // 1. Colonne Gauche : Boutons / Champs "Du" et "Au"
     const periodLeftCol = document.createElement('div');
     periodLeftCol.className = 'd-period-left-col';
-    periodLeftCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex:0 0 auto; min-width:130px;';
+    periodLeftCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex:0 0 140px; min-width:130px; box-sizing:border-box;';
 
     const duWrap = document.createElement('div');
     duWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
     const lblDu = document.createElement('span');
     lblDu.style.cssText = 'font-size:0.72rem; color:var(--text-muted); font-weight:700;';
     lblDu.textContent = '📅 Du :';
-    startInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; width:100%; box-sizing:border-box;';
     duWrap.appendChild(lblDu);
-    duWrap.appendChild(startInput);
 
     const auWrap = document.createElement('div');
     auWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
@@ -13132,16 +13149,16 @@
     periodLeftCol.appendChild(duWrap);
     periodLeftCol.appendChild(auWrap);
 
-    // 2. Colonne Milieu : Mini-calendrier (position Cercle Vert)
+    // 2. Colonne Milieu : Mini-calendrier
     const cal = createMiniCalendar(startInput, endInput, () => {
       updateDatePreview();
       updateLotSummary();
     });
 
-    // 3. Colonne Droite : Boutons & Mode de score (position Cercle Bleu - aligné sous la 3e colonne de points)
+    // 3. Colonne Droite : Boutons & Mode de score
     const periodRightCol = document.createElement('div');
     periodRightCol.className = 'd-period-right-col';
-    periodRightCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; width:165px; flex:0 0 165px;';
+    periodRightCol.style.cssText = 'display:flex; flex-direction:column; gap:6px; justify-content:center; width:165px; flex:0 0 165px; box-sizing:border-box;';
 
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'row-shortcuts';
@@ -13153,6 +13170,7 @@
       b.title = 'Période de ' + n + ' jours à partir du jour de début';
       b.addEventListener('click', () => {
         const base = startInput.value || toDateStr(new Date());
+        startInput.value = base;
         const dt = new Date(base + 'T12:00:00');
         dt.setDate(dt.getDate() + n - 1);
         endInput.value = toDateStr(dt);
@@ -13210,11 +13228,13 @@
       periodPanel.style.display = range ? 'flex' : 'none';
       singlePanel.style.display = range ? 'none' : 'flex';
       if (range) {
+        startInput.style.cssText = 'padding:4px 6px; font-size:0.78rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; width:100%; box-sizing:border-box;';
         duWrap.appendChild(startInput);
         if (!endInput.value) endInput.value = startInput.value;
         cal.refresh();
         updateDatePreview();
       } else {
+        startInput.style.cssText = 'padding:6px 10px; font-size:0.82rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:600; min-width:140px; box-sizing:border-box;';
         singlePanel.insertBefore(startInput, startShortcuts);
         endInput.value = '';
       }
@@ -13591,7 +13611,9 @@
 
     function renderBaremeQuickBtns(entries, topName) {
       bqBtns.innerHTML = '';
-      const matching = entries.filter(e => e.top === topName);
+      const matching = (entries || [])
+        .filter(e => e.top === topName)
+        .sort((a, b) => (a.pts - b.pts) || (a.rowIndex - b.rowIndex));
       if (!matching.length) { baremeRow.classList.remove('has-entries'); return; }
       baremeRow.classList.add('has-entries');
       matching.forEach(entry => {
@@ -14085,16 +14107,44 @@
         const cSel   = r.querySelector('.c-sel'); // in alt mode c-sel holds the alt category
         const ptsEl  = r.querySelector('.custom-pts-in');
         const dStart = r.querySelector('.d-start');
-        const descEl = r.querySelector('.desc-in');
+        const dEnd   = r.querySelector('.d-end');
+        const rangeCb = r.querySelector('.range-cb');
+        const fillTg  = r.querySelector('.line-fill');
+        const descEl  = r.querySelector('.desc-in');
+        const isRange = rangeCb && rangeCb.checked;
         if (!pSel || !cSel || !ptsEl || !dStart) return;
-        altItems.push({
-          player:      pSel.value,
-          altCategory: cSel.value,
-          points:      parseInt(ptsEl.value, 10),
-          date:        dStart.value || toDateStr(new Date()),
-          description: descEl ? descEl.value.trim() : '',
-          saiseur:     _whoAmI || ''
-        });
+
+        const pts = parseInt(ptsEl.value, 10);
+        const dates = lineDates(dStart.value, isRange && dEnd ? dEnd.value : '');
+        const fill = fillTg ? fillTg.dataset.fill : 'repeat';
+
+        if (dates.length === 1 || fill === 'repeat') {
+          dates.forEach(dk => {
+            altItems.push({
+              player:      pSel.value,
+              altCategory: cSel.value,
+              points:      pts,
+              date:        dk,
+              description: descEl ? descEl.value.trim() : '',
+              saiseur:     _whoAmI || ''
+            });
+          });
+        } else {
+          const n = dates.length, base = Math.floor(pts / n), rem = pts % n;
+          dates.forEach((dk, k) => {
+            const val = base + (k < rem ? 1 : 0);
+            if (val > 0) {
+              altItems.push({
+                player:      pSel.value,
+                altCategory: cSel.value,
+                points:      val,
+                date:        dk,
+                description: descEl ? descEl.value.trim() : '',
+                saiseur:     _whoAmI || ''
+              });
+            }
+          });
+        }
       });
       if (!altItems.length) { showToast('Ajoutez au moins une ligne.', 'error'); return; }
 
@@ -16884,9 +16934,21 @@
           const cSel   = r.querySelector('.c-sel');
           const ptsEl  = r.querySelector('.custom-pts-in');
           const dStart = r.querySelector('.d-start');
+          const dEnd   = r.querySelector('.d-end');
+          const rangeCb = r.querySelector('.range-cb');
+          const fillTg  = r.querySelector('.line-fill');
+          const dayPickerWr = r.querySelector('.day-picker-wrap');
           const descEl = r.querySelector('.desc-in');
           const altCb  = r.querySelector('.row-alt-cb');
           const altSel = r.querySelector('.row-alt-select');
+          const subTops = [];
+          r.querySelectorAll('.sub-top-item').forEach(st => {
+            const catSelect = st.querySelector('.sub-cat-select');
+            const ptsInput = st.querySelector('.sub-pts-input');
+            if (catSelect && ptsInput) {
+              subTops.push({ category: catSelect.value, points: ptsInput.value });
+            }
+          });
           presets.push({
             player: pSel ? pSel.value : '',
             mainCategory:        wasAlt ? (r.dataset.mainCategory || '') : (cSel ? cSel.value : ''),
@@ -16897,6 +16959,10 @@
             altCategory: altSel ? altSel.value : '',
             customPts: ptsEl ? ptsEl.value : '1',
             date: dStart ? dStart.value : toDateStr(new Date()),
+            dateEnd: (rangeCb && rangeCb.checked && dEnd) ? dEnd.value : '',
+            fill: fillTg ? fillTg.dataset.fill : 'repeat',
+            days: (rangeCb && rangeCb.checked && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
+            subTops: subTops,
             description: descEl ? descEl.value : ''
           });
         });
@@ -17086,7 +17152,7 @@
       if (!requireIdentity()) return;
       buzz();
       callServer('apiRepairOrder', [_whoAmI || ''], res => {
-        showToast(`Ordre réparé : ${res.players} joueur(s), ${res.categories} top(s), ${res.bareme} règle(s), ${res.phrases} phrase(s).`, 'success');
+        showToast(`Ordre réparé : ${res.players} joueur(s), ${res.categories} top(s), ${res.phrases} phrase(s).`, 'success');
         loadEntities(); applyFilters();
         loadBaremeSettings();
         loadCustomPhrases(() => renderPhrasesEditorSection());
@@ -18739,7 +18805,7 @@
       if (query) {
         catEntries = catEntries.filter(e => e.action.toLowerCase().includes(query) || cat.name.toLowerCase().includes(query));
       }
-      // Ordre déjà fourni par le serveur (BaremeService.getEntries) — pas de tri client ici.
+      catEntries.sort((a, b) => (a.pts - b.pts) || (a.rowIndex - b.rowIndex));
       if (!catEntries.length) return;
       hasAny = true;
 
