@@ -3864,12 +3864,57 @@
   .cl-cat-chip[data-cat="Corrigé"] { border-color: var(--warn); background: rgba(255, 165, 0, 0.15); color: var(--warn); }
   .cl-cat-chip[data-cat="Supprimé"] { border-color: var(--error); background: rgba(255, 71, 87, 0.15); color: var(--error); }
   .cl-cat-chip[data-cat="Interne"] { border-color: var(--text-muted); background: rgba(154, 165, 190, 0.1); color: var(--text-muted); }
+  .cl-interne { background: rgba(154, 165, 190, 0.15); color: var(--text-muted); }
   .cl-tag {
     display: inline-block; font-size: 0.72rem; font-weight: 700;
     padding: 2px 7px; border-radius: 4px; margin-right: 6px;
   }
   .cl-human { background: rgba(46, 213, 115, 0.12); color: var(--success); }
   .cl-tech { background: rgba(124, 140, 255, 0.12); color: var(--info); }
+  .cl-voice-entry {
+    margin-bottom: 12px;
+    transition: all 0.15s ease;
+  }
+  .cl-voice-entry:last-child {
+    margin-bottom: 4px;
+  }
+  .cl-voice-human {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(46, 213, 115, 0.05);
+    border-left: 3px solid var(--success);
+    line-height: 1.6;
+  }
+  .cl-voice-tech {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(124, 140, 255, 0.05);
+    border-left: 3px solid var(--info);
+    line-height: 1.55;
+    margin-top: 8px;
+  }
+  .cl-voice-legacy {
+    padding: 4px 0;
+    line-height: 1.6;
+  }
+  .cl-voice-label {
+    margin-bottom: 6px;
+  }
+  .cl-voice-content {
+    font-size: 0.88rem;
+  }
+  .cl-voice-tech .cl-voice-content {
+    color: var(--text);
+    font-size: 0.86rem;
+  }
+  .cl-voice-tech ul.md-list {
+    margin: 6px 0 6px 16px;
+    padding: 0;
+  }
+  .cl-voice-tech li {
+    margin-bottom: 6px;
+    line-height: 1.45;
+  }
   .changelog-body ul { margin: 6px 0 12px 18px; padding: 0; }
   .changelog-body li { margin-bottom: 8px; line-height: 1.5; font-size: 0.88rem; }
 
@@ -5560,14 +5605,14 @@
     const codeBlocks = [];
     src = src.replace(/```([\s\S]*?)```/g, (m, code) => {
       codeBlocks.push('<pre class="md-code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
-      return ' ___CODEBLOCK_' + (codeBlocks.length - 1) + '___ ';
+      return '%%CODEBLOCK' + (codeBlocks.length - 1) + '%%';
     });
 
     // 2) Code inline
     const inlineCodes = [];
     src = src.replace(/`([^`]+)`/g, (m, code) => {
       inlineCodes.push('<code>' + escapeHtml(code) + '</code>');
-      return ' ___INLINECODE_' + (inlineCodes.length - 1) + '___ ';
+      return '%%INLINECODE' + (inlineCodes.length - 1) + '%%';
     });
 
     // 3) Échappement HTML du texte hors code
@@ -5671,8 +5716,8 @@
     src = renderCategoryMentions(src);
 
     // 13) Restauration des blocs et du code inline
-    src = src.replace(/ ___INLINECODE_(\d+)___ /g, (m, idx) => inlineCodes[parseInt(idx, 10)]);
-    src = src.replace(/ ___CODEBLOCK_(\d+)___ /g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
+    src = src.replace(/%%INLINECODE(\d+)%%/g, (m, idx) => inlineCodes[parseInt(idx, 10)]);
+    src = src.replace(/%%CODEBLOCK(\d+)%%/g, (m, idx) => codeBlocks[parseInt(idx, 10)]);
 
     return src;
   }
@@ -6829,16 +6874,100 @@
     return { introHtml, rawItems };
   }
 
+  function filterChangelogCatBody(catBody, viewMode) {
+    if (viewMode === 'all') return catBody;
+    const markerRegex = /(\*\*(?:Humanisé|Technique)\*\*\s*:?)/gi;
+    const parts = catBody.split(markerRegex);
+    if (parts.length <= 1) return catBody;
+
+    let out = '';
+    if (parts[0].trim()) out += parts[0].trim() + '\n\n';
+
+    for (let i = 1; i < parts.length; i += 2) {
+      const marker = parts[i];
+      const content = (parts[i + 1] || '').trim();
+      const isHuman = /Humanisé/i.test(marker);
+      const isTech = /Technique/i.test(marker);
+
+      if (viewMode === 'human') {
+        if (isHuman && content) out += marker + ' ' + content + '\n\n';
+      } else if (viewMode === 'tech') {
+        if (isTech && content) out += marker + ' ' + content + '\n\n';
+      }
+    }
+    return out.trim();
+  }
+
   function formatChangelogBody(bodyContent) {
-    let formatted = renderMarkdown(bodyContent);
-    formatted = formatted.replace(/<h3>Ajouté<\/h3>/g, '<div class="cl-sec-header cl-added">✨ Ajouté</div>');
-    formatted = formatted.replace(/<h3>Modifié<\/h3>/g, '<div class="cl-sec-header cl-modified">⚡ Modifié</div>');
-    formatted = formatted.replace(/<h3>Corrigé<\/h3>/g, '<div class="cl-sec-header cl-fixed">🐛 Corrigé</div>');
-    formatted = formatted.replace(/<h3>Supprimé<\/h3>/g, '<div class="cl-sec-header cl-removed">🗑️ Supprimé</div>');
-    formatted = formatted.replace(/<h3>Interne<\/h3>/g, '<div class="cl-sec-header" style="color:var(--text-muted); border-color:var(--text-muted);">🔧 Interne</div>');
-    formatted = formatted.replace(/<strong>Humanisé<\/strong>\s*:/g, '<span class="cl-tag cl-human">👤 Humanisé</span>');
-    formatted = formatted.replace(/<strong>Technique<\/strong>\s*:/g, '<span class="cl-tag cl-tech">💻 Technique</span>');
-    return formatted;
+    const catBlocks = bodyContent.split(/^###\s+/m);
+    let html = '';
+
+    catBlocks.forEach((block, bIdx) => {
+      if (bIdx === 0) {
+        if (block.trim()) html += '<div class="cl-preamble" style="margin-bottom:12px;">' + renderMarkdown(block.trim()) + '</div>';
+        return;
+      }
+
+      const bFirstLineEnd = block.indexOf('\n');
+      const catName = (bFirstLineEnd !== -1 ? block.substring(0, bFirstLineEnd) : block).trim();
+      const catBody = (bFirstLineEnd !== -1 ? block.substring(bFirstLineEnd + 1) : '').trim();
+
+      const catClassMap = {
+        'Ajouté': 'cl-added',
+        'Modifié': 'cl-modified',
+        'Corrigé': 'cl-fixed',
+        'Supprimé': 'cl-removed',
+        'Sécurité': 'cl-fixed',
+        'Interne': 'cl-interne'
+      };
+      const catIconMap = {
+        'Ajouté': '✨',
+        'Modifié': '⚡',
+        'Corrigé': '🐛',
+        'Supprimé': '🗑️',
+        'Sécurité': '🛡️',
+        'Interne': '🔧'
+      };
+      const icon = catIconMap[catName] || '📌';
+      const headerClass = catClassMap[catName] || 'cl-added';
+
+      html += '<div class="cl-category-section" style="margin-top:14px; margin-bottom:12px;">';
+      html += '<div class="cl-sec-header ' + headerClass + '">' + icon + ' ' + escapeHtml(catName) + '</div>';
+
+      const markerRegex = /(\*\*(?:Humanisé|Technique)\*\*\s*:?)/gi;
+      const parts = catBody.split(markerRegex);
+
+      if (parts.length <= 1) {
+        html += '<div class="cl-voice-entry cl-voice-legacy">' + renderMarkdown(catBody) + '</div>';
+      } else {
+        if (parts[0].trim()) {
+          html += '<div class="cl-voice-entry cl-voice-legacy">' + renderMarkdown(parts[0].trim()) + '</div>';
+        }
+        for (let i = 1; i < parts.length; i += 2) {
+          const marker = parts[i];
+          const content = (parts[i + 1] || '').trim();
+          const isHuman = /Humanisé/i.test(marker);
+          const isTech = /Technique/i.test(marker);
+
+          if (isHuman) {
+            html += '<div class="cl-voice-entry cl-voice-human">' +
+                    '<div class="cl-voice-label"><span class="cl-tag cl-human">👤 Humanisé</span></div>' +
+                    '<div class="cl-voice-content">' + renderMarkdown(content) + '</div>' +
+                    '</div>';
+          } else if (isTech) {
+            html += '<div class="cl-voice-entry cl-voice-tech">' +
+                    '<div class="cl-voice-label"><span class="cl-tag cl-tech">💻 Technique</span></div>' +
+                    '<div class="cl-voice-content">' + renderMarkdown(content) + '</div>' +
+                    '</div>';
+          } else {
+            html += '<div class="cl-voice-entry">' + renderMarkdown(content) + '</div>';
+          }
+        }
+      }
+      html += '</div>';
+    });
+
+    return html;
   }
 
   function buildChangelogVersionCard(item) {
@@ -6933,12 +7062,7 @@
 
         if (!_clActiveCats.has(catName)) return;
 
-        let filteredCatBody = catBody;
-        if (_clViewMode === 'human') {
-          filteredCatBody = filteredCatBody.split('\n').filter(line => !line.includes('**Technique**')).join('\n');
-        } else if (_clViewMode === 'tech') {
-          filteredCatBody = filteredCatBody.split('\n').filter(line => !line.includes('**Humanisé**')).join('\n');
-        }
+        let filteredCatBody = filterChangelogCatBody(catBody, _clViewMode);
 
         if (filteredCatBody.trim()) {
           newBodyContent += '### ' + catName + '\n' + filteredCatBody + '\n\n';

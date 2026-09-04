@@ -1,26 +1,25 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.26.0** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Plan achevé : Audit Superteam complet (score global 9.1/10) + 8 améliorations majeures du mode sélection et de l'historique (rendu in-memory 0 ms, lots préservés en sélection avec master checkbox tri-state, persistance inter-pages, barre sticky flottante, Shift+Clic, bouton déplier/replier lots, création rapide de note, rollback Undo 1-clic avec tracking auditRowId).
-- Suite de tests : **330 cas verts** (`npm run verify`).
+- Version livrée : **v3.26.1** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Plan achevé : Étanchéité et refonte visuelle des voix Humanisé / Technique du Changelog + Résolution de la corruption des jetons `INLINECODE` dans `renderMarkdown()`.
+- Suite de tests : **333 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Étanchéité & Boîtes visuelles du Changelog (`v3.26.1`)** :
+  - *Diagnostic* : le filtre par vue (`_clViewMode === 'human'`) filtrait ligne par ligne en cherchant `'**Technique**'`, ne retirant que la ligne de titre technique et laissant fuiter toutes les puces techniques et fichiers dans la vue humanisée. Par ailleurs, `renderMarkdown()` utilisait des balises de remplacement temporaires contenant des underscores (`___INLINECODE_N___`) qui étaient capturées et corrompues par la règle de mise en italique Markdown (`_(.*?)_`), laissant des jetons bruts `( INLINECODE0 )` dans l'interface.
+  - *Correctifs apportés* :
+    - `Index.html` : remplacement du filtrage par ligne par `filterChangelogCatBody()`, qui segmente le corps de chaque catégorie en blocs par marqueurs (`**Humanisé**` et `**Technique**`) et garantit une étanchéité absolue entre les vues.
+    - `Index.html` : refonte de `formatChangelogBody()` générant des boîtes visuelles dédiées (`.cl-voice-human` avec bordure verte et `.cl-voice-tech` avec bordure bleue) pour une séparation claire et sans ambiguïté en mode « Tous » comme dans les vues spécialisées.
+    - `Index.html` : remplacement des balises temporaires de `renderMarkdown()` par `%%INLINECODE_N%%` et `%%CODEBLOCK_N%%` insensibles à la mise en italique ou gras Markdown.
+    - `tests/changelog-parser.test.js` : nouvelle suite de tests unitaires dédiés (333 tests au total).
 - **Audit Superteam & Modernisation de la Sélection d'Historique (`v3.26.0`)** :
-  - *Mode sélection in-memory (0 ms)* : élimination du rechargement réseau et du clignotement de squelette via la mise en cache de `_lastHistPageRes`.
-  - *Préservation des lots en sélection* : conservation de l'arbre visuel des lots, ajout d'une case à cocher maîtresse tri-state (`indeterminate`) dans l'en-tête de lot et ajout de la cellule Saiseur pour parité des colonnes.
-  - *Persistance inter-pages* : maintien de `histSelected` lors de la navigation entre pages avec affichage dynamique `X sélectionné(s) (Y sur cette page)`.
-  - *Barre d'actions groupées sticky flottante* : `position: sticky; bottom: 20px; z-index: 8500` avec flou d'arrière-plan, ombre et marge d'encoche mobile.
-  - *Sélection par plage (Shift + Clic)* : sélection/désélection continue via `_lastCheckedRowIndex`.
-  - *Bouton global déplier/replier les lots* : `#histToggleGroupsBtn` dynamique dans la barre de filtres.
-  - *Création rapide de note in-situ* : bouton discret `+ note` au survol des cellules sans note.
-  - *Undo 1-clic sur Bulk Edit* : `AuditService.log` renvoie la ligne d'audit créée, `apiUpdateBulkEntries` expose `auditRowId`, et toast interactif « Annuler » câblé sur `apiUndoAuditEntry`.
-  - *Règle context.md ajoutée* : merge et déploiement systématiques sans demander confirmation dès validation des tests.
-  - *Tests unitaires* : test d'audit et rollback ajouté dans `tests/audit.test.js` (330 tests passants).
+  - Lots préservés en sélection, cases à cocher maîtresses tri-state, sélection continue Shift+Clic, barre sticky flottante, bascule 0 ms in-memory, bouton déplier/replier global, note rapide in-situ, rollback Undo 1-clic avec tracking `auditRowId`.
+  - Règle impérative inscrite dans `context.md` : fusionner et déployer systématiquement sans demander confirmation dès validation des tests.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (330/330).
+- Aucun écart. Tous les tests sont au vert (333/333).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

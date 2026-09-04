@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.26.1] - 2026-09-04
+
+### Corrigé
+**Humanisé** : Séparation nette et hermétique entre les explications humanisées et les détails techniques dans le Changelog : fini les puces techniques ou les codes bruts qui fuitaient dans la vue humanisée, et chaque voix dispose désormais de sa propre boîte visuelle claire et aérée.
+**Technique** : `Index.html` —
+- *Étanchéité des vues Changelog* : remplacement du filtrage par ligne incomplet (`filter(line => !line.includes('...'))`) par `filterChangelogCatBody(catBody, viewMode)` découpant le contenu par blocs d'entrées (`**Humanisé**` et `**Technique**`) et isolant strictement chaque voix selon `_clViewMode` (`'human'`, `'tech'`, `'all'`).
+- *Boîtes visuelles dédiées* : refonte de `formatChangelogBody` générant des conteneurs distincts `.cl-voice-human` (bordure verte accentuée, fond doux teinté, badge `👤 Humanisé`) et `.cl-voice-tech` (bordure bleue accentuée, fond teinté, badge `💻 Technique`), éliminant la confusion visuelle.
+- *Résolution des jetons INLINECODE* : substitution des balises temporaires de `renderMarkdown()` contenant des underscores (`___INLINECODE_N___`) par des délimiteurs `%%INLINECODE_N%%` insensibles à la mise en italique Markdown, empêchant la corruption des balises de code en texte brut. Nouveaux tests unitaires dans `tests/changelog-parser.test.js`.
+
 ## [v3.26.0] - 2026-09-04
 
 ### Ajouté
