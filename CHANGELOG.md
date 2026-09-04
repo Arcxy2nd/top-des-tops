@@ -11,14 +11,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Technique** : `Index.html` —
 - *Séparation accordéon / sélection des lots* : dans `enableDragMultiSelect` -> `checkboxAt(el)`, exclusion des clics sur `.hist-group-row` situés hors de la cellule de sélection (`.hist-sel-th`), ainsi que des clics sur `.hist-add-note-hint` et `.alt-badge`, empêchant le gestionnaire de glisser/déposer de basculer la sélection maîtresse du lot lors d'un clic de dépliage/repliage.
 - *Isolation des clics d'en-tête de lot* : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` dans `renderGroupHeader` et d'une garde dans le gestionnaire de clic de `headerTr` (`if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;`), garantissant une étanchéité complète entre le contrôle de sélection et l'accordéon.
-- *Couverture de tests* : nouvelle suite unitaire dans `tests/history-group-selection.test.js` (335 tests au total).
+- *Couverture de tests* : nouvelle suite unitaire dans `tests/history-group-selection.test.js`.
+
+**Humanisé** : Correction d'une anomalie dans le Changelog où des mentions en cours de phrase créaient des boîtes parasites avec un mot isolé (comme « et »).
+**Technique** : `Index.html` —
+- *Ancrage en début de ligne des marqueurs de voix* : création de `parseChangelogVoiceBlocks(catBody)` avec l'expression `/(?:^|\r?\n)[ \t]*(?:[-*]\s*)?(\*\*(?:Humanisé|Technique)\*\*\s*:?\s*)/gi` pour garantir que seules les véritables en-têtes de voix en début de ligne sont segmentées, et factorisation DRY dans `filterChangelogCatBody` et `formatChangelogBody`.
+- *Couverture de tests* : nouveaux cas de test dans `tests/changelog-parser.test.js` (336 tests au total).
 
 ## [v3.26.1] - 2026-09-04
 
 ### Corrigé
 **Humanisé** : Séparation nette et hermétique entre les explications humanisées et les détails techniques dans le Changelog : fini les puces techniques ou les codes bruts qui fuitaient dans la vue humanisée, et chaque voix dispose désormais de sa propre boîte visuelle claire et aérée.
 **Technique** : `Index.html` —
-- *Étanchéité des vues Changelog* : remplacement du filtrage par ligne incomplet (`filter(line => !line.includes('...'))`) par `filterChangelogCatBody(catBody, viewMode)` découpant le contenu par blocs d'entrées (`**Humanisé**` et `**Technique**`) et isolant strictement chaque voix selon `_clViewMode` (`'human'`, `'tech'`, `'all'`).
+- *Étanchéité des vues Changelog* : remplacement du filtrage par ligne incomplet (`filter(line => !line.includes('...'))`) par `filterChangelogCatBody(catBody, viewMode)` découpant le contenu par blocs d'entrées et isolant strictement chaque voix selon `_clViewMode` (`'human'`, `'tech'`, `'all'`).
 - *Boîtes visuelles dédiées* : refonte de `formatChangelogBody` générant des conteneurs distincts `.cl-voice-human` (bordure verte accentuée, fond doux teinté, badge `👤 Humanisé`) et `.cl-voice-tech` (bordure bleue accentuée, fond teinté, badge `💻 Technique`), éliminant la confusion visuelle.
 - *Résolution des jetons INLINECODE* : substitution des balises temporaires de `renderMarkdown()` contenant des underscores (`___INLINECODE_N___`) par des délimiteurs `%%INLINECODE_N%%` insensibles à la mise en italique Markdown, empêchant la corruption des balises de code en texte brut. Nouveaux tests unitaires dans `tests/changelog-parser.test.js`.
 

@@ -55,7 +55,7 @@ test('renderMarkdown : inline code ne corrompt pas les placeholders en INLINECOD
 });
 
 test('filterChangelogCatBody : sépare strictement le contenu humanisé du contenu technique', () => {
-  const { filterChangelogCatBody } = loadFns(['filterChangelogCatBody']);
+  const { filterChangelogCatBody } = loadFns(['parseChangelogVoiceBlocks', 'filterChangelogCatBody']);
 
   const catBody = `**Humanisé** : Le mode de sélection d'historique passe à la vitesse supérieure.
 **Technique** : \`Index.html\` —
@@ -89,7 +89,7 @@ test('filterChangelogCatBody : sépare strictement le contenu humanisé du conte
 });
 
 test('formatChangelogBody : structure les voix Humanisé et Technique dans des boîtes visuelles dédiées', () => {
-  const { formatChangelogBody } = loadFns(['renderMarkdown', 'formatChangelogBody']);
+  const { formatChangelogBody } = loadFns(['renderMarkdown', 'parseChangelogVoiceBlocks', 'formatChangelogBody']);
 
   const bodyContent = `### Ajouté
 **Humanisé** : Description claire pour l'utilisateur.
@@ -107,3 +107,28 @@ test('formatChangelogBody : structure les voix Humanisé et Technique dans des b
   assert.ok(html.includes('<code>Index.html</code>'), 'Doit restituer le code formaté');
   assert.ok(!html.includes('INLINECODE'), 'Aucun token INLINECODE brut ne doit être présent');
 });
+
+test('parseChangelogVoiceBlocks : mentions inline de **Humanisé** ou **Technique** dans le texte ne créent pas de faux blocs', () => {
+  const { parseChangelogVoiceBlocks, filterChangelogCatBody, formatChangelogBody } = loadFns(['renderMarkdown', 'parseChangelogVoiceBlocks', 'filterChangelogCatBody', 'formatChangelogBody']);
+
+  const catBody = `**Humanisé** : Séparation nette et hermétique entre les explications humanisées et les détails techniques dans le Changelog : fini les puces techniques ou les codes bruts qui fuitaient dans la vue humanisée, et chaque voix dispose désormais de sa propre boîte visuelle claire et aérée.
+**Technique** : \`Index.html\` —
+- *Étanchéité des vues Changelog* : remplacement du filtrage par ligne incomplet (\`filter(line => !line.includes('...'))\`) par \`filterChangelogCatBody(catBody, viewMode)\` découpant le contenu par blocs d'entrées (\`**Humanisé**\` et \`**Technique**\`) et isolant strictement chaque voix selon \`_clViewMode\` ('human', 'tech', 'all').
+- *Boîtes visuelles dédiées* : refonte de \`formatChangelogBody\` générant des conteneurs distincts \`.cl-voice-human\` (bordure verte accentuée, fond doux teinté, badge \`👤 Humanisé\`) et \`.cl-voice-tech\` (bordure bleue accentuée, fond teinté, badge \`💻 Technique\`), éliminant la confusion visuelle.`;
+
+  const blocks = parseChangelogVoiceBlocks(catBody);
+  assert.strictEqual(blocks.length, 2, 'Ne doit détecter exactement que 2 blocs (1 humanisé et 1 technique), aucun bloc parasite pour "et"');
+  assert.strictEqual(blocks[0].type, 'human');
+  assert.strictEqual(blocks[1].type, 'tech');
+
+  // En vue humanisée, on ne doit avoir qu'une seule entrée et aucune trace de "et" isolé
+  const humanFiltered = filterChangelogCatBody(catBody, 'human');
+  assert.ok(!humanFiltered.includes('Index.html'));
+  assert.ok(!humanFiltered.match(/\*\*Humanisé\*\*\s*:?\s*et\b/));
+
+  // Le rendu HTML ne doit contenir qu'une seule boîte cl-voice-human
+  const html = formatChangelogBody('### Corrigé\n' + humanFiltered);
+  const humanBoxCount = (html.match(/cl-voice-human/g) || []).length;
+  assert.strictEqual(humanBoxCount, 1, 'Il ne doit y avoir qu\x27une seule boîte humanisée, pas de boîte parasite');
+});
+

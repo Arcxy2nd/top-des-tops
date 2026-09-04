@@ -6874,27 +6874,44 @@
     return { introHtml, rawItems };
   }
 
+  function parseChangelogVoiceBlocks(catBody) {
+    if (!catBody) return [];
+    const markerRegex = /(?:^|\r?\n)[ \t]*(?:[-*]\s*)?(\*\*(?:Humanisé|Technique)\*\*\s*:?\s*)/gi;
+    const parts = catBody.split(markerRegex);
+    if (parts.length <= 1) {
+      return [{ type: 'legacy', marker: '', content: catBody.trim() }];
+    }
+    const blocks = [];
+    if (parts[0].trim()) {
+      blocks.push({ type: 'legacy', marker: '', content: parts[0].trim() });
+    }
+    for (let i = 1; i < parts.length; i += 2) {
+      const marker = parts[i].trim();
+      const content = (parts[i + 1] || '').trim();
+      if (!content) continue;
+      const type = /Humanisé/i.test(marker) ? 'human' : (/Technique/i.test(marker) ? 'tech' : 'other');
+      blocks.push({ type, marker, content });
+    }
+    return blocks;
+  }
+
   function filterChangelogCatBody(catBody, viewMode) {
     if (viewMode === 'all') return catBody;
-    const markerRegex = /(\*\*(?:Humanisé|Technique)\*\*\s*:?)/gi;
-    const parts = catBody.split(markerRegex);
-    if (parts.length <= 1) return catBody;
+    const blocks = parseChangelogVoiceBlocks(catBody);
+    if (blocks.length === 1 && blocks[0].type === 'legacy') return catBody;
 
     let out = '';
-    if (parts[0].trim()) out += parts[0].trim() + '\n\n';
-
-    for (let i = 1; i < parts.length; i += 2) {
-      const marker = parts[i];
-      const content = (parts[i + 1] || '').trim();
-      const isHuman = /Humanisé/i.test(marker);
-      const isTech = /Technique/i.test(marker);
-
-      if (viewMode === 'human') {
-        if (isHuman && content) out += marker + ' ' + content + '\n\n';
-      } else if (viewMode === 'tech') {
-        if (isTech && content) out += marker + ' ' + content + '\n\n';
+    blocks.forEach(b => {
+      if (b.type === 'legacy') {
+        out += b.content + '\n\n';
+      } else if (viewMode === 'human' && b.type === 'human') {
+        const marker = b.marker.includes(':') ? b.marker : (b.marker + ' :');
+        out += marker + ' ' + b.content + '\n\n';
+      } else if (viewMode === 'tech' && b.type === 'tech') {
+        const marker = b.marker.includes(':') ? b.marker : (b.marker + ' :');
+        out += marker + ' ' + b.content + '\n\n';
       }
-    }
+    });
     return out.trim();
   }
 
@@ -6934,36 +6951,22 @@
       html += '<div class="cl-category-section" style="margin-top:14px; margin-bottom:12px;">';
       html += '<div class="cl-sec-header ' + headerClass + '">' + icon + ' ' + escapeHtml(catName) + '</div>';
 
-      const markerRegex = /(\*\*(?:Humanisé|Technique)\*\*\s*:?)/gi;
-      const parts = catBody.split(markerRegex);
-
-      if (parts.length <= 1) {
-        html += '<div class="cl-voice-entry cl-voice-legacy">' + renderMarkdown(catBody) + '</div>';
-      } else {
-        if (parts[0].trim()) {
-          html += '<div class="cl-voice-entry cl-voice-legacy">' + renderMarkdown(parts[0].trim()) + '</div>';
+      const blocks = parseChangelogVoiceBlocks(catBody);
+      blocks.forEach(b => {
+        if (b.type === 'human') {
+          html += '<div class="cl-voice-entry cl-voice-human">' +
+                  '<div class="cl-voice-label"><span class="cl-tag cl-human">👤 Humanisé</span></div>' +
+                  '<div class="cl-voice-content">' + renderMarkdown(b.content) + '</div>' +
+                  '</div>';
+        } else if (b.type === 'tech') {
+          html += '<div class="cl-voice-entry cl-voice-tech">' +
+                  '<div class="cl-voice-label"><span class="cl-tag cl-tech">💻 Technique</span></div>' +
+                  '<div class="cl-voice-content">' + renderMarkdown(b.content) + '</div>' +
+                  '</div>';
+        } else {
+          html += '<div class="cl-voice-entry cl-voice-legacy">' + renderMarkdown(b.content) + '</div>';
         }
-        for (let i = 1; i < parts.length; i += 2) {
-          const marker = parts[i];
-          const content = (parts[i + 1] || '').trim();
-          const isHuman = /Humanisé/i.test(marker);
-          const isTech = /Technique/i.test(marker);
-
-          if (isHuman) {
-            html += '<div class="cl-voice-entry cl-voice-human">' +
-                    '<div class="cl-voice-label"><span class="cl-tag cl-human">👤 Humanisé</span></div>' +
-                    '<div class="cl-voice-content">' + renderMarkdown(content) + '</div>' +
-                    '</div>';
-          } else if (isTech) {
-            html += '<div class="cl-voice-entry cl-voice-tech">' +
-                    '<div class="cl-voice-label"><span class="cl-tag cl-tech">💻 Technique</span></div>' +
-                    '<div class="cl-voice-content">' + renderMarkdown(content) + '</div>' +
-                    '</div>';
-          } else {
-            html += '<div class="cl-voice-entry">' + renderMarkdown(content) + '</div>';
-          }
-        }
-      }
+      });
       html += '</div>';
     });
 

@@ -2,24 +2,25 @@
 
 ## État courant
 - Version livrée : **v3.26.2** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Plan achevé : Découplage strict entre l'accordéon (déplier/replier) et la sélection de groupe dans l'historique en mode sélection.
-- Suite de tests : **335 cas verts** (`npm run verify`).
+- Plan achevé : Découplage accordéon/sélection d'historique + Résolution des fausses boîtes de voix du Changelog sur mentions en cours de phrase.
+- Suite de tests : **336 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Découplage Accordéon / Sélection de Groupe dans l'Historique (`v3.26.2`)** :
-  - *Diagnostic* : `enableDragMultiSelect` écoutait sur l'ensemble de `#historyTableBody`. Lors d'un clic sur une ligne d'en-tête de lot (`.hist-group-row`), `checkboxAt(el)` identifiait `groupChk` car l'en-tête est un `<tr>` contenant la case maîtresse. Le `mousedown` basculait immédiatement l'état coché de la case maîtresse et dispatchait un événement `change`, sélectionnant/désélectionnant tous les membres du lot lors d'un simple clic pour déplier ou replier l'accordéon.
-  - *Correctifs apportés* :
-    - `Index.html` : exclusion dans `checkboxAt(el)` des clics sur `.hist-group-row` lorsqu'ils ne sont pas situés à l'intérieur de `.hist-sel-th`, ainsi que des clics sur `.hist-add-note-hint` et `.alt-badge`.
-    - `Index.html` : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` dans `renderGroupHeader` et d'un garde-fou explicite `if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;` sur le gestionnaire de clic de `headerTr`.
-    - `tests/history-group-selection.test.js` : nouvelle suite de tests unitaires (335 tests verts au total).
+- **Découplage Accordéon / Sélection & Étanchéité Voix Changelog (`v3.26.2`)** :
+  - *Accordéon / Sélection d'Historique* :
+    - `Index.html` : exclusion dans `checkboxAt(el)` des clics sur `.hist-group-row` hors `.hist-sel-th`, ainsi que sur `.hist-add-note-hint` et `.alt-badge`.
+    - `Index.html` : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` et garde dans le listener de clic de `headerTr` (`if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;`).
+    - `tests/history-group-selection.test.js` : tests unitaires dédiés.
+  - *Résolution de l'anomalie des boîtes de voix parasites dans le Changelog* :
+    - *Diagnostic* : le regex `(\*\*(?:Humanisé|Technique)\*\*\s*:?)` matchait toute mention de `**Humanisé**` ou `**Technique**` n'importe où dans le texte, même en cours de phrase (ex. `découpant le contenu par blocs d'entrées (**Humanisé** et **Technique**)` dans v3.26.1). Cela scindait le texte et créait une boîte humanisée parasite contenant uniquement le mot « et ».
+    - *Correctif* : introduction de `parseChangelogVoiceBlocks(catBody)` ancrant les marqueurs de voix en début de ligne (`/(?:^|\r?\n)[ \t]*(?:[-*]\s*)?(\*\*(?:Humanisé|Technique)\*\*\s*:?\s*)/gi`), ignorant les mentions inline en cours de phrase et ignorant les blocs vides. Factorisation DRY dans `filterChangelogCatBody` et `formatChangelogBody`.
+    - `tests/changelog-parser.test.js` : test unitaire dédié validant l'absence de faux blocs sur mentions inline (336 tests verts au total).
 - **Étanchéité & Boîtes visuelles du Changelog (`v3.26.1`)** :
   - Filtre par vue isolant strictement les blocs par marqueurs (`**Humanisé**` et `**Technique**`), boîtes visuelles dédiées (`.cl-voice-human` et `.cl-voice-tech`), jetons `%%INLINECODE_N%%` pour éviter la corruption en italique.
-- **Audit Superteam & Modernisation de la Sélection d'Historique (`v3.26.0`)** :
-  - Lots préservés en sélection, cases à cocher maîtresses tri-state, sélection continue Shift+Clic, barre sticky flottante, bascule 0 ms in-memory, bouton déplier/replier global, note rapide in-situ, rollback Undo 1-clic avec tracking `auditRowId`.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (335/335).
+- Aucun écart. Tous les tests sont au vert (336/336).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :
