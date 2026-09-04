@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.26.0] - 2026-09-04
+
+### Ajouté
+**Humanisé** : Le mode de sélection d'historique passe à la vitesse supérieure : activation instantanée (zéro temps d'attente ni rechargement), conservation complète de la structure des lots avec case à cocher maîtresse pour sélectionner tout un lot en un clic, sélection rapide par plage (Shift + Clic), persistance des sélections d'une page à l'autre, et bouton global pour déplier ou replier tous les lots en un clin d'œil.
+**Technique** : `Index.html` —
+- *Mode sélection in-memory (0 ms)* : mise en cache du résultat de page (`_lastHistPageRes`) permettant à `toggleHistSelectMode()` de re-rendre immédiatement via `_renderHistoryPage()` sans roundtrip réseau vers Google Apps Script ni clignotement de squelette.
+- *Préservation des lots en sélection* : maintien de la structure visuelle groupée en mode sélection (`renderItems.forEach`), ajout d'une case à cocher maîtresse (`.hist-group-master-chk`) dans l'en-tête de lot gérant l'état indéterminé (`indeterminate`) et permettant de cocher/décocher l'ensemble des membres du groupe. Ajout de la cellule manquante « Saiseur » dans l'en-tête pour aligner parfaitement les colonnes.
+- *Persistance inter-pages* : suppression du vidage intempestif de `histSelected` lors des changements de page dans `_doLoadHistoryPage()` ; mise à jour du compteur de la barre d'action (`X sélectionné(s) (Y sur cette page)`).
+- *Sélection par plage (Shift + Clic)* : suivi de `_lastCheckedRowIndex` pour sélectionner ou désélectionner d'un coup toute une plage contiguë de lignes visibles.
+- *Dépliage / repliage global* : bouton dynamique `#histToggleGroupsBtn` (`⊞ Déplier lots` / `⊟ Replier lots`) dans les filtres d'historique s'affichant dès qu'une page contient des lots groupés.
+- *Création rapide de note in-situ* : bouton discret `+ note` (`.hist-add-note-hint`) au survol des cellules sans description dans l'historique permettant d'ajouter immédiatement un commentaire sans ouvrir le formulaire complet.
+- *Annulation en 1 clic (Undo) des modifications groupées* : `AuditService.log` (`Code.gs`) renvoie désormais le numéro de ligne d'audit créé (`sheet.getLastRow()`). `apiUpdateBulkEntries` retourne `auditRowId` et l'interface propose un toast interactif avec bouton `Annuler` déclenchant `apiUndoAuditEntry`. Tests unitaires validés dans `tests/audit.test.js`.
+
+### Modifié
+**Humanisé** : La barre d'actions groupées devient flottante et immédiatement accessible en bas d'écran sans avoir à scroller jusqu'au bas de la page, tout en s'adaptant élégamment sur mobile.
+**Technique** : `Index.html` — passage de `.hist-bulk-bar` en `position: sticky; bottom: 20px; z-index: 8500` avec flou d'arrière-plan (`backdrop-filter: blur(12px)`), ombre portée marquée et marge dynamique au-dessus de la barre de navigation mobile (`bottom: calc(72px + env(safe-area-inset-bottom, 0px))`).
+
 ## [v3.25.0] - 2026-09-04
 
 ### Ajouté

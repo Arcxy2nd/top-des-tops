@@ -13,6 +13,10 @@ Au début de chaque session (rituel d'initialisation, prise de connaissance du c
 Toute modification livrée doit **IMPÉRATIVEMENT** être poussée via `git push` sur `main` afin d'actualiser et déployer **les deux instances de l'application (« Site tops » et « Tops RDS »)** via le workflow GitHub Actions (`.github/workflows/deploy-gas.yml`).
 En cas d'opération de déploiement manuel ou `clasp push` hors CI, il faut **OBLIGATOIREMENT** exécuter la mise à jour sur les 2 cibles listées dans `deploy-targets.json`. Aucune livraison ne doit laisser l'une des deux copies non mise à jour.
 
+## RÈGLE IMPÉRATIVE — MERGE ET DÉPLOIEMENT SYSTÉMATIQUES SANS DEMANDER
+
+Dès qu'une tâche, un audit ou une PR est validé(e) par la suite de tests (`npm run verify` à 100%), **TOUJOURS** fusionner et pousser sur `main` pour déployer sans attendre. Ne **JAMAIS** poser la question ou demander l'autorisation (« Souhaitez-vous que je merge / déploie ? ») — exécuter l'action directement et confirmer une fois le déploiement lancé.
+
 ---
 
 ## RÈGLE IMPÉRATIVE — PORTABILITÉ DE LA MÉMOIRE

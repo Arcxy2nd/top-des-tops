@@ -1,28 +1,26 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.25.0** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Plan achevé : Enrichissement complet des journaux d'audit (14 actions) + Refonte ergonomique de l'édition d'historique (édition directe de lots, bulk sécurisé avec cases à cocher, navigation/raccourcis modal unitaire, duplication 1-clic, modification rapide de notes en ligne).
-- Suite de tests : **329 cas verts** (`npm run verify`).
+- Version livrée : **v3.26.0** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Plan achevé : Audit Superteam complet (score global 9.1/10) + 8 améliorations majeures du mode sélection et de l'historique (rendu in-memory 0 ms, lots préservés en sélection avec master checkbox tri-state, persistance inter-pages, barre sticky flottante, Shift+Clic, bouton déplier/replier lots, création rapide de note, rollback Undo 1-clic avec tracking auditRowId).
+- Suite de tests : **330 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Enrichissement des journaux d'audit (`v3.25.0`)** :
-  - Diagnostic : `AUDIT_NO_DIFF_ACTIONS` forçait des tirets vides dans la colonne Avant → Après pour les actions clés, et plusieurs backends GAS omettaient de remplir les colonnes `after` et `detail` avec les données concrètes des opérations.
-  - Corrections apportées :
-    - `Code.gs` : `apiAddBulkPlan` détaille désormais le nombre d'entrées, points cumulés, joueurs, catégories et dates ; `apiUpdateBulkEntries` liste les champs modifiés et leurs nouvelles valeurs ; `apiDeleteHistoryEntries`, `apiDeleteGroup`, `apiUngroupLot`, `apiRemoveFromGroup`, `apiFixZeroPoints`, `apiDeleteOrphans`, `apiCreateSnapshot`, `apiSavePhrasesBatch`, `apiDeletePreset`, `apiGroupDistributedLots`, `apiGroupRows` enregistrent tous des descriptions complètes et exploitables.
-    - `AutoPoints.gs` : `apiDeleteAutoRule` et `apiSetAutoTrigger` intègrent le détail précis de la règle et de l'état.
-    - `Index.html` : retrait de `'Saisie de points'` et `'Modification bulk'` de `AUDIT_NO_DIFF_ACTIONS` pour afficher la pastille d'ajout/modification sous forme de diff propre.
-    - Tests ajoutés dans `tests/audit.test.js` garantissant le format des logs (329 tests au total).
-- **Amélioration ergonomique de l'édition d'historique (`v3.25.0`)** :
-  - *Édition directe de lots* : bouton `✏️` sur les en-têtes de lots (`renderGroupHeader`) ouvrant `openGroupEditModal` pour synchroniser Date, Top, Description ou Saiseur sur l'ensemble du lot sans sélection manuelle préalable.
-  - *Modification multiple sécurisée* : ajout de commutateurs d'activation par champ (`.mb-field-toggle` avec cases à cocher) dans `openBulkEditModal` pour protéger contre les écrasements involontaires de champs non ciblés.
-  - *Navigation et raccourcis dans l'éditeur unitaire* : boutons `◀ Entrée précédente` et `▶ Entrée suivante`, bouton `💾 Enregistrer & suivante`, et support du raccourci `Ctrl+Enter` / `Cmd+Enter` dans `openFullEditHistoryModal`.
-  - *Duplication en 1 clic* : action `📋` sur chaque ligne de score (`duplicateHistoryEntry`) clonant l'entrée pour aujourd'hui avec gestion du snapshot et notification d'annulation (Undo).
-  - *Édition rapide de la note* : bouton `✏️ Modifier la note` déployé au clic sur une note longue (`openQuickDescEditor`), permettant une mise à jour instantanée sans ouvrir le modal complet.
+- **Audit Superteam & Modernisation de la Sélection d'Historique (`v3.26.0`)** :
+  - *Mode sélection in-memory (0 ms)* : élimination du rechargement réseau et du clignotement de squelette via la mise en cache de `_lastHistPageRes`.
+  - *Préservation des lots en sélection* : conservation de l'arbre visuel des lots, ajout d'une case à cocher maîtresse tri-state (`indeterminate`) dans l'en-tête de lot et ajout de la cellule Saiseur pour parité des colonnes.
+  - *Persistance inter-pages* : maintien de `histSelected` lors de la navigation entre pages avec affichage dynamique `X sélectionné(s) (Y sur cette page)`.
+  - *Barre d'actions groupées sticky flottante* : `position: sticky; bottom: 20px; z-index: 8500` avec flou d'arrière-plan, ombre et marge d'encoche mobile.
+  - *Sélection par plage (Shift + Clic)* : sélection/désélection continue via `_lastCheckedRowIndex`.
+  - *Bouton global déplier/replier les lots* : `#histToggleGroupsBtn` dynamique dans la barre de filtres.
+  - *Création rapide de note in-situ* : bouton discret `+ note` au survol des cellules sans note.
+  - *Undo 1-clic sur Bulk Edit* : `AuditService.log` renvoie la ligne d'audit créée, `apiUpdateBulkEntries` expose `auditRowId`, et toast interactif « Annuler » câblé sur `apiUndoAuditEntry`.
+  - *Règle context.md ajoutée* : merge et déploiement systématiques sans demander confirmation dès validation des tests.
+  - *Tests unitaires* : test d'audit et rollback ajouté dans `tests/audit.test.js` (330 tests passants).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (329/329).
+- Aucun écart. Tous les tests sont au vert (330/330).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :
