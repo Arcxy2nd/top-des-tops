@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.26.2] - 2026-09-04
+
+### Corrigé
+**Humanisé** : En mode sélection d'historique, cliquer sur un lot pour le déplier ou le replier ne sélectionne plus par erreur tout le groupe ; la sélection d'un lot se fait désormais uniquement via sa case à cocher dédiée.
+**Technique** : `Index.html` —
+- *Séparation accordéon / sélection des lots* : dans `enableDragMultiSelect` -> `checkboxAt(el)`, exclusion des clics sur `.hist-group-row` situés hors de la cellule de sélection (`.hist-sel-th`), ainsi que des clics sur `.hist-add-note-hint` et `.alt-badge`, empêchant le gestionnaire de glisser/déposer de basculer la sélection maîtresse du lot lors d'un clic de dépliage/repliage.
+- *Isolation des clics d'en-tête de lot* : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` dans `renderGroupHeader` et d'une garde dans le gestionnaire de clic de `headerTr` (`if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;`), garantissant une étanchéité complète entre le contrôle de sélection et l'accordéon.
+- *Couverture de tests* : nouvelle suite unitaire dans `tests/history-group-selection.test.js` (335 tests au total).
+
 ## [v3.26.1] - 2026-09-04
 
 ### Corrigé

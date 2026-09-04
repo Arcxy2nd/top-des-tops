@@ -1,25 +1,25 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.26.1** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Plan achevé : Étanchéité et refonte visuelle des voix Humanisé / Technique du Changelog + Résolution de la corruption des jetons `INLINECODE` dans `renderMarkdown()`.
-- Suite de tests : **333 cas verts** (`npm run verify`).
+- Version livrée : **v3.26.2** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Plan achevé : Découplage strict entre l'accordéon (déplier/replier) et la sélection de groupe dans l'historique en mode sélection.
+- Suite de tests : **335 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Étanchéité & Boîtes visuelles du Changelog (`v3.26.1`)** :
-  - *Diagnostic* : le filtre par vue (`_clViewMode === 'human'`) filtrait ligne par ligne en cherchant `'**Technique**'`, ne retirant que la ligne de titre technique et laissant fuiter toutes les puces techniques et fichiers dans la vue humanisée. Par ailleurs, `renderMarkdown()` utilisait des balises de remplacement temporaires contenant des underscores (`___INLINECODE_N___`) qui étaient capturées et corrompues par la règle de mise en italique Markdown (`_(.*?)_`), laissant des jetons bruts `( INLINECODE0 )` dans l'interface.
+- **Découplage Accordéon / Sélection de Groupe dans l'Historique (`v3.26.2`)** :
+  - *Diagnostic* : `enableDragMultiSelect` écoutait sur l'ensemble de `#historyTableBody`. Lors d'un clic sur une ligne d'en-tête de lot (`.hist-group-row`), `checkboxAt(el)` identifiait `groupChk` car l'en-tête est un `<tr>` contenant la case maîtresse. Le `mousedown` basculait immédiatement l'état coché de la case maîtresse et dispatchait un événement `change`, sélectionnant/désélectionnant tous les membres du lot lors d'un simple clic pour déplier ou replier l'accordéon.
   - *Correctifs apportés* :
-    - `Index.html` : remplacement du filtrage par ligne par `filterChangelogCatBody()`, qui segmente le corps de chaque catégorie en blocs par marqueurs (`**Humanisé**` et `**Technique**`) et garantit une étanchéité absolue entre les vues.
-    - `Index.html` : refonte de `formatChangelogBody()` générant des boîtes visuelles dédiées (`.cl-voice-human` avec bordure verte et `.cl-voice-tech` avec bordure bleue) pour une séparation claire et sans ambiguïté en mode « Tous » comme dans les vues spécialisées.
-    - `Index.html` : remplacement des balises temporaires de `renderMarkdown()` par `%%INLINECODE_N%%` et `%%CODEBLOCK_N%%` insensibles à la mise en italique ou gras Markdown.
-    - `tests/changelog-parser.test.js` : nouvelle suite de tests unitaires dédiés (333 tests au total).
+    - `Index.html` : exclusion dans `checkboxAt(el)` des clics sur `.hist-group-row` lorsqu'ils ne sont pas situés à l'intérieur de `.hist-sel-th`, ainsi que des clics sur `.hist-add-note-hint` et `.alt-badge`.
+    - `Index.html` : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` dans `renderGroupHeader` et d'un garde-fou explicite `if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;` sur le gestionnaire de clic de `headerTr`.
+    - `tests/history-group-selection.test.js` : nouvelle suite de tests unitaires (335 tests verts au total).
+- **Étanchéité & Boîtes visuelles du Changelog (`v3.26.1`)** :
+  - Filtre par vue isolant strictement les blocs par marqueurs (`**Humanisé**` et `**Technique**`), boîtes visuelles dédiées (`.cl-voice-human` et `.cl-voice-tech`), jetons `%%INLINECODE_N%%` pour éviter la corruption en italique.
 - **Audit Superteam & Modernisation de la Sélection d'Historique (`v3.26.0`)** :
   - Lots préservés en sélection, cases à cocher maîtresses tri-state, sélection continue Shift+Clic, barre sticky flottante, bascule 0 ms in-memory, bouton déplier/replier global, note rapide in-situ, rollback Undo 1-clic avec tracking `auditRowId`.
-  - Règle impérative inscrite dans `context.md` : fusionner et déployer systématiquement sans demander confirmation dès validation des tests.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (333/333).
+- Aucun écart. Tous les tests sont au vert (335/335).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

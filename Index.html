@@ -8175,7 +8175,8 @@
       const direct = el.closest(checkboxSelector);
       if (direct) return direct;
       if (!rowSelector) return null;
-      if (el.closest('button, a, input:not([type="checkbox"]), select, textarea, .hist-desc-toggle')) return null;
+      if (el.closest('.hist-group-row') && !el.closest('.hist-sel-th')) return null;
+      if (el.closest('button, a, input:not([type="checkbox"]), select, textarea, .hist-desc-toggle, .hist-add-note-hint, .alt-badge')) return null;
       const row = el.closest(rowSelector);
       return row ? row.querySelector(checkboxSelector) : null;
     }
@@ -15143,6 +15144,7 @@
           };
           headerTr._updateGroupMasterState = updateGroupMasterState;
           updateGroupMasterState();
+          selCell.addEventListener('click', (e) => e.stopPropagation());
           groupChk.addEventListener('click', (e) => e.stopPropagation());
           groupChk.addEventListener('change', () => {
             if (groupChk.checked) {
@@ -15343,7 +15345,8 @@
           actCell.appendChild(deleteGroupBtn);
         }
 
-        headerTr.addEventListener('click', () => {
+        headerTr.addEventListener('click', (e) => {
+          if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;
           childrenVisible = !childrenVisible;
           chevron.classList.toggle('open', childrenVisible);
           childRows.forEach(cr => cr.style.display = childrenVisible ? '' : 'none');
