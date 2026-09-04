@@ -2747,9 +2747,36 @@ function apiAddBulkPlan(plan, author, password) {
       const endRow = history.getLastRow();
       const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 7).getValues() : [];
       const totalEntries = plan.reduce(function(s, d) { return s + (d.entries || []).length; }, 0);
-      const firstDate    = plan[0] && plan[0].date ? plan[0].date : '';
+      let totalPts = 0;
+      const playerSet = {};
+      const catSet = {};
+      plan.forEach(function(d) {
+        (d.entries || []).forEach(function(e) {
+          totalPts += (parseInt(e.points, 10) || 0) * (parseInt(e.times, 10) || 1);
+          if (e.player) playerSet[e.player] = true;
+          if (e.category) catSet[e.category] = true;
+        });
+      });
+      const players = Object.keys(playerSet);
+      const cats = Object.keys(catSet);
+      const dates = plan.map(function(d) { return d.date; }).filter(Boolean);
+      let dateInfo = '';
+      if (dates.length === 1) {
+        dateInfo = 'du ' + dates[0];
+      } else if (dates.length > 1) {
+        dateInfo = dates.length + ' dates (du ' + dates[0] + ' au ' + dates[dates.length - 1] + ')';
+      }
+
+      let detail = totalEntries + ' entrée' + (totalEntries > 1 ? 's' : '') + ' (+' + totalPts + ' pts) : '
+        + (players.length <= 3 ? players.join(', ') : (players.slice(0, 3).join(', ') + ' +' + (players.length - 3)))
+        + ' · ' + (cats.length <= 2 ? cats.join(', ') : (cats.slice(0, 2).join(', ') + ' +' + (cats.length - 2)))
+        + (dateInfo ? ' · ' + dateInfo : '');
+      if (totalEntries === 1 && plan[0] && plan[0].entries && plan[0].entries[0] && plan[0].entries[0].description) {
+        detail += ' — "' + plan[0].entries[0].description.slice(0, 40) + '"';
+      }
+
       AuditService.log(author, 'Saisie de points', 'History', '', totalEntries + ' entrée(s)',
-        firstDate ? 'à partir du ' + firstDate : '',
+        detail,
         addedRows.length ? { sheet: 'history', op: 'insertMany', rows: addedRows } : null);
       return { success: true };
     });
@@ -2873,7 +2900,14 @@ function apiDeleteHistoryEntries(rowIndexes, author, password) {
       const removedRows = sorted.map(ri => history.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => history.deleteRow(ri));
       AltStorageService.adjustRefsAfterHistoryDelete(sorted);
-      AuditService.log(author, 'Suppression bulk', 'History', '', '', rowIndexes.length + ' entrée(s)',
+      const delPts = removedRows.reduce(function(s, r) { return s + (parseInt(r[3], 10) || 0); }, 0);
+      const delPlayers = [...new Set(removedRows.map(function(r) { return r[1]; }).filter(Boolean))];
+      const delCats = [...new Set(removedRows.map(function(r) { return r[2]; }).filter(Boolean))];
+      const detail = rowIndexes.length + ' entrée' + (rowIndexes.length > 1 ? 's' : '') + ' supprimée' + (rowIndexes.length > 1 ? 's' : '')
+        + ' (−' + delPts + ' pts) : '
+        + (delPlayers.length <= 3 ? delPlayers.join(', ') : (delPlayers.slice(0, 3).join(', ') + ' +' + (delPlayers.length - 3)))
+        + ' · ' + (delCats.length <= 2 ? delCats.join(', ') : (delCats.slice(0, 2).join(', ') + ' +' + (delCats.length - 2)));
+      AuditService.log(author, 'Suppression bulk', 'History', '', '', detail,
         { sheet: 'history', op: 'deleteMany', rows: removedRows });
       ConfigService.clearCache();
       return { success: true };
@@ -3199,8 +3233,11 @@ function apiFixZeroPoints(author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       const result = StorageService.fixZeroPoints();
+      const zeroDetail = result.deleted
+        ? (result.deleted + ' entrée(s) avec score ≤ 0 supprimée(s)')
+        : 'Aucune entrée avec score ≤ 0 trouvée';
       AuditService.log(author, 'Nettoyage zéros', 'History', '', '',
-        result.deleted + ' entrée(s) supprimée(s)',
+        zeroDetail,
         result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
@@ -3213,8 +3250,11 @@ function apiDeleteOrphans(author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       const result = StorageService.deleteOrphans();
+      const orphanDetail = result.deleted
+        ? (result.deleted + ' entrée(s) orpheline(s) supprimée(s)')
+        : 'Aucune entrée orpheline trouvée';
       AuditService.log(author, 'Nettoyage orphelins', 'History', '', '',
-        result.deleted + ' entrée(s) supprimée(s)',
+        orphanDetail,
         result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
       return { success: true, deleted: result.deleted };
@@ -3226,7 +3266,7 @@ function apiCreateSnapshot(author, password) {
   try {
     requireAuthor(author, password);
     const result = BackupService.createSnapshot();
-    AuditService.log(author, 'Snapshot créé', 'Backup', '', result.name, '');
+    AuditService.log(author, 'Snapshot créé', 'Backup', '', result.name, 'Sauvegarde créée : ' + result.name);
     return { success: true, name: result.name, url: result.url };
   } catch (e) { return fail(e); }
 }
@@ -3544,9 +3584,20 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
 
       if (undoRows.length) history.getRange(startRow, 1, lastRow - startRow + 1, 7).setValues(allData);
 
-      var changedFields = Object.keys(partialFields).join(', ');
-      AuditService.log(author, 'Modification bulk', 'History', '', changedFields,
-        (rowIndexes.length - skipped.length) + ' entrée(s) modifiée(s)',
+      const fieldSummaries = [];
+      if (hasDate)   fieldSummaries.push('Date → ' + partialFields.date);
+      if (hasPlayer) fieldSummaries.push('Joueur → ' + partialFields.player);
+      if (hasCat)    fieldSummaries.push('Top → ' + partialFields.category);
+      if (hasPts)    fieldSummaries.push('Points → ' + partialFields.points + ' pts');
+      if (hasDesc)   fieldSummaries.push('Description → ' + (partialFields.description ? '"' + partialFields.description.slice(0, 30) + '"' : '(vide)'));
+      if (hasSais)   fieldSummaries.push('Saiseur → ' + (partialFields.saiseur || '(aucun)'));
+
+      const affectedCount = rowIndexes.length - skipped.length;
+      const changedSummary = fieldSummaries.join(', ');
+      const detail = affectedCount + ' entrée' + (affectedCount > 1 ? 's' : '') + ' modifiée' + (affectedCount > 1 ? 's' : '')
+        + (changedSummary ? ' : ' + changedSummary : '');
+      AuditService.log(author, 'Modification bulk', 'History', '', changedSummary,
+        detail,
         undoRows.length ? { sheet: 'history', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
       return { success: true, skipped: skipped };
@@ -3708,8 +3759,9 @@ function apiGroupDistributedLots(lotsToGroup, author, password) {
         rows.forEach(function(r) { values[r - startRow][0] = gid; });
       });
       colRange.setValues(values);
+      const totalGrouped = lotsToGroup.reduce(function(s, l) { return s + (l.rowIndexes ? l.rowIndexes.length : 0); }, 0);
       AuditService.log(author, 'Lots auto-groupés', 'History', '', '',
-        lotsToGroup.length + ' lot(s)');
+        lotsToGroup.length + ' lot(s) auto-groupé(s) (' + totalGrouped + ' entrées au total)');
       ConfigService.clearCache();
       return { success: true };
     });
@@ -3734,7 +3786,7 @@ function apiGroupRows(rowIndexes, author, password) {
       }
       colRange.setValues(values);
       AuditService.log(author, 'Groupement lot', 'History', '', '',
-        rowIndexes.length + ' entrée(s), gid: ' + gid);
+        rowIndexes.length + ' entrées regroupées dans le lot ' + gid);
       ConfigService.clearCache();
       return { success: true };
     });
@@ -3753,14 +3805,17 @@ function apiUngroupLot(groupId, author, password) {
       const colRange = sheet.getRange(startRow, 6, lastRow - startRow + 1, 1);
       const data = colRange.getValues();
       let modified = false;
+      let ungroupCount = 0;
       for (var i = 0; i < data.length; i++) {
         if (data[i][0] && data[i][0].toString() === groupId) {
           data[i][0] = '';
+          ungroupCount++;
           modified = true;
         }
       }
       if (modified) colRange.setValues(data);
-      AuditService.log(author, 'Dégroupement lot', 'History', '', '', 'gid: ' + groupId);
+      AuditService.log(author, 'Dégroupement lot', 'History', '', '',
+        ungroupCount + ' entrée' + (ungroupCount > 1 ? 's' : '') + ' dissociée' + (ungroupCount > 1 ? 's' : '') + ' (groupe ' + groupId + ')');
       ConfigService.clearCache();
       return { success: true };
     });
@@ -3947,8 +4002,11 @@ function apiRemoveFromGroup(rowIndex, author, password) {
     if (!rowIndex) throw new Error("Index de ligne manquant.");
     return withLock(() => {
       const sheet = ConfigService.getSheets().history;
+      const rowVals = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+      const pName = rowVals[1] || '?', catName = rowVals[2] || '?', pPts = rowVals[3] || '?';
       sheet.getRange(rowIndex, 6).setValue('');
-      AuditService.log(author, 'Retrait du groupe', 'History', '', '', 'ligne #' + rowIndex);
+      AuditService.log(author, 'Retrait du groupe', 'History', '', '',
+        'Entrée de ' + pName + ' (' + catName + ', ' + pPts + ' pts) retirée du groupe (ligne #' + rowIndex + ')');
       ConfigService.clearCache();
       return { success: true };
     });
@@ -3974,8 +4032,15 @@ function apiDeleteGroup(groupId, author, password) {
       const snapshotRows = sorted.map(ri => sheet.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => sheet.deleteRow(ri));
       AltStorageService.adjustRefsAfterHistoryDelete(sorted);
+      const delPts = snapshotRows.reduce(function(s, r) { return s + (parseInt(r[3], 10) || 0); }, 0);
+      const delPlayers = [...new Set(snapshotRows.map(function(r) { return r[1]; }).filter(Boolean))];
+      const delCats = [...new Set(snapshotRows.map(function(r) { return r[2]; }).filter(Boolean))];
+      const detail = rowsToDelete.length + ' entrée' + (rowsToDelete.length > 1 ? 's' : '') + ' supprimée' + (rowsToDelete.length > 1 ? 's' : '')
+        + ' (−' + delPts + ' pts) : '
+        + (delPlayers.length <= 3 ? delPlayers.join(', ') : (delPlayers.slice(0, 3).join(', ') + ' +' + (delPlayers.length - 3)))
+        + ' · ' + (delCats.length <= 2 ? delCats.join(', ') : (delCats.slice(0, 2).join(', ') + ' +' + (delCats.length - 2)));
       AuditService.log(author, 'Suppression groupe', 'History', groupId, '',
-        rowsToDelete.length + ' entrée(s)', { sheet: 'history', op: 'deleteMany', rows: snapshotRows });
+        detail, { sheet: 'history', op: 'deleteMany', rows: snapshotRows });
       ConfigService.clearCache();
       return { success: true };
     });
@@ -4300,11 +4365,11 @@ function apiSavePhrasesBatch(entries, author, password) {
       const startRow = existingSheet ? existingSheet.getLastRow() + 1 : null;
       PhrasesService.saveBatch(entries);
       const preset = entries && entries.length ? entries[0].preset : '';
-      const finalSheet = ConfigService.getSheets().phrases;
       const addedRows = (startRow && entries && entries.length)
         ? finalSheet.getRange(startRow, 1, entries.length, 3).getValues() : [];
+      const pools = [...new Set((entries || []).map(function(e) { return e.pool; }).filter(Boolean))];
       AuditService.log(author, 'Phrases batch', 'Phrases: ' + (preset || ''), '', '',
-        (entries || []).length + ' phrase(s)',
+        (entries || []).length + ' phrase(s) ajoutée(s)' + (pools.length ? ' dans ' + pools.join(', ') : ''),
         addedRows.length ? { sheet: 'phrases', op: 'insertMany', rows: addedRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
@@ -4361,7 +4426,8 @@ function apiDeletePreset(presetName, author, password) {
         }
       }
       PhrasesService.deletePreset(presetName);
-      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '', '',
+      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '',
+        removedRows.length + ' phrase(s) supprimée(s) avec le preset « ' + presetName + ' »',
         removedRows.length ? { sheet: 'phrases', op: 'deleteMany', rows: removedRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };

@@ -1,23 +1,28 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.24.2** (2026-09-02) — commitée et poussée sur `main` (déploiement CI vers les deux cibles).
-- Plan achevé : Réorganisation horizontale du sélecteur de période en saisie de lot (optimisation de l'empreinte verticale, agencement horizontal des contrôles, mini-calendrier compact).
-- Suite de tests : **326 cas verts** (`npm run verify`).
+- Version livrée : **v3.25.0** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Plan achevé : Enrichissement complet des journaux d'audit (14 actions) + Refonte ergonomique de l'édition d'historique (édition directe de lots, bulk sécurisé avec cases à cocher, navigation/raccourcis modal unitaire, duplication 1-clic, modification rapide de notes en ligne).
+- Suite de tests : **329 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Réorganisation équilibrée du sélecteur de période (`v3.24.2`)** :
-  - Restructuration du panneau `.d-period` en 3 colonnes réparties sur toute la largeur de la carte (hauteur réduite de 255px à ~130px) sans zone vide :
-    - Colonne 1 (`.d-period-left-col`) : interrupteur de mode horizontal `.d-mode-seg` + dates `Du`/`Au` côte-à-côte + 4 raccourcis de durée en ligne.
-    - Colonne 2 (`.d-cal`) : mini-calendrier compacté (200px de large, cases de 18px sur desktop, 32px préservés sur mobile).
-    - Colonne 3 (`.d-period-right-col`) : libellé, options de score Répéter/Répartir `.fill-choice` et badge d'aperçu live `.d-fill-preview`.
-  - Harmonisation du sélecteur de date par défaut `#defaultDateWrap` en en-tête.
-  - Tests unitaires et d'intégration validés dans `tests/lot-period.test.js` (326/326 tests au vert).
-
+- **Enrichissement des journaux d'audit (`v3.25.0`)** :
+  - Diagnostic : `AUDIT_NO_DIFF_ACTIONS` forçait des tirets vides dans la colonne Avant → Après pour les actions clés, et plusieurs backends GAS omettaient de remplir les colonnes `after` et `detail` avec les données concrètes des opérations.
+  - Corrections apportées :
+    - `Code.gs` : `apiAddBulkPlan` détaille désormais le nombre d'entrées, points cumulés, joueurs, catégories et dates ; `apiUpdateBulkEntries` liste les champs modifiés et leurs nouvelles valeurs ; `apiDeleteHistoryEntries`, `apiDeleteGroup`, `apiUngroupLot`, `apiRemoveFromGroup`, `apiFixZeroPoints`, `apiDeleteOrphans`, `apiCreateSnapshot`, `apiSavePhrasesBatch`, `apiDeletePreset`, `apiGroupDistributedLots`, `apiGroupRows` enregistrent tous des descriptions complètes et exploitables.
+    - `AutoPoints.gs` : `apiDeleteAutoRule` et `apiSetAutoTrigger` intègrent le détail précis de la règle et de l'état.
+    - `Index.html` : retrait de `'Saisie de points'` et `'Modification bulk'` de `AUDIT_NO_DIFF_ACTIONS` pour afficher la pastille d'ajout/modification sous forme de diff propre.
+    - Tests ajoutés dans `tests/audit.test.js` garantissant le format des logs (329 tests au total).
+- **Amélioration ergonomique de l'édition d'historique (`v3.25.0`)** :
+  - *Édition directe de lots* : bouton `✏️` sur les en-têtes de lots (`renderGroupHeader`) ouvrant `openGroupEditModal` pour synchroniser Date, Top, Description ou Saiseur sur l'ensemble du lot sans sélection manuelle préalable.
+  - *Modification multiple sécurisée* : ajout de commutateurs d'activation par champ (`.mb-field-toggle` avec cases à cocher) dans `openBulkEditModal` pour protéger contre les écrasements involontaires de champs non ciblés.
+  - *Navigation et raccourcis dans l'éditeur unitaire* : boutons `◀ Entrée précédente` et `▶ Entrée suivante`, bouton `💾 Enregistrer & suivante`, et support du raccourci `Ctrl+Enter` / `Cmd+Enter` dans `openFullEditHistoryModal`.
+  - *Duplication en 1 clic* : action `📋` sur chaque ligne de score (`duplicateHistoryEntry`) clonant l'entrée pour aujourd'hui avec gestion du snapshot et notification d'annulation (Undo).
+  - *Édition rapide de la note* : bouton `✏️ Modifier la note` déployé au clic sur une note longue (`openQuickDescEditor`), permettant une mise à jour instantanée sans ouvrir le modal complet.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (326/326).
+- Aucun écart. Tous les tests sont au vert (329/329).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

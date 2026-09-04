@@ -579,3 +579,73 @@ test('a failed AuditService.log write is traced, not swallowed silently', () => 
   gas.AuditService.log('Alice', 'Test', 'Entity', 'before', 'after', '', null);
   assert.ok(logs.some(l => /audit/i.test(l)), 'a failed audit-log write must leave a trace: ' + JSON.stringify(logs));
 });
+
+test('apiAddBulkPlan writes rich detail with players, points, category and date into audit log', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  const plan = [{
+    date: '2026-09-02',
+    entries: [
+      { player: 'Alice', category: 'Jeux', points: 10, times: 1, description: 'Partie d\'échecs' },
+      { player: 'Bob', category: 'Jeux', points: 5, times: 1 }
+    ]
+  }];
+  gas.apiAddBulkPlan(plan, 'Admin');
+  assert.strictEqual(audit._grid.length, 2);
+  const auditRow = audit._grid[1];
+  assert.strictEqual(auditRow[2], 'Saisie de points');
+  assert.ok(auditRow[6].includes('2 entrées (+15 pts)'), 'detail mentions entries and total pts');
+  assert.ok(auditRow[6].includes('Alice') && auditRow[6].includes('Bob'), 'detail mentions players');
+  assert.ok(auditRow[6].includes('Jeux'), 'detail mentions category');
+  assert.ok(auditRow[6].includes('2026-09-02'), 'detail mentions date');
+});
+
+test('apiUpdateBulkEntries writes rich detail with changed fields and values into audit log', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, 'old', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiUpdateBulkEntries([2], { category: 'Jeux', points: 20 }, 'Admin');
+  assert.strictEqual(audit._grid.length, 2);
+  const auditRow = audit._grid[1];
+  assert.strictEqual(auditRow[2], 'Modification bulk');
+  assert.ok(auditRow[6].includes('1 entrée modifiée'), 'detail mentions affected count');
+  assert.ok(auditRow[6].includes('Top → Jeux'), 'detail mentions category change');
+  assert.ok(auditRow[6].includes('Points → 20 pts'), 'detail mentions points change');
+});
+
+test('apiDeleteHistoryEntries writes rich detail with deleted points and player info into audit log', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, 'old', '', ''],
+    [new Date('2026-01-02'), 'Alice', 'Jeux', 15, 'old2', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  gas.apiDeleteHistoryEntries([2, 3], 'Admin');
+  assert.strictEqual(audit._grid.length, 2);
+  const auditRow = audit._grid[1];
+  assert.strictEqual(auditRow[2], 'Suppression bulk');
+  assert.ok(auditRow[6].includes('2 entrées supprimées (−25 pts)'), 'detail mentions count and points');
+  assert.ok(auditRow[6].includes('Bob') && auditRow[6].includes('Alice'), 'detail mentions players');
+});

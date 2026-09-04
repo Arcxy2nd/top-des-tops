@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.25.0] - 2026-09-04
+
+### Ajouté
+**Humanisé** : L'édition de l'historique devient bien plus fluide et puissante : modification directe de lots entiers depuis l'en-tête de groupe, modification multiple sécurisée avec cases d'activation par champ, navigation fluide (entrées précédente/suivante et raccourcis clavier) dans l'éditeur complet, duplication de score en un clic, et édition instantanée des descriptions sans quitter la liste.
+**Technique** : `Index.html` —
+- *Édition directe de lot* : bouton `✏️` sur les en-têtes de groupe (`renderGroupHeader`) ouvrant le modal dédié `openGroupEditModal` pour synchroniser d'un coup la Date, le Top, la Description ou le Saiseur de toutes les entrées du lot (`apiUpdateBulkEntries`).
+- *Modification multiple sécurisée* : ajout de commutateurs d'activation explicites (`.mb-field-toggle` avec cases à cocher) dans `openBulkEditModal` empêchant tout écrasement accidentel des champs non modifiés.
+- *Navigation et raccourcis dans l'éditeur unitaire* : boutons `◀ Entrée précédente` et `▶ Entrée suivante`, bouton `💾 Enregistrer & suivante`, et support du raccourci clavier `Ctrl+Enter`/`Cmd+Enter` dans `openFullEditHistoryModal`.
+- *Duplication 1-clic* : action `📋` par ligne (`duplicateHistoryEntry`) dupliquant un score pour aujourd'hui avec snapshot et notification d'annulation (Undo).
+- *Édition en ligne de note* : bouton `✏️ Modifier la note` accessible lors du dépliage d'une note longue (`openQuickDescEditor`), permettant une sauvegarde immédiate sans ouvrir le modal complet.
+
+### Corrigé
+**Humanisé** : Le journal d'audit affiche désormais le contenu détaillé des opérations pour toutes les actions (saisie de points, modifications groupées, suppressions par lot, règles automatiques, instantanés, etc.), éliminant les tirets vides dans les colonnes Avant/Après et Détail.
+**Technique** : `Code.gs`, `AutoPoints.gs` et `Index.html` — enrichissement systématique des paramètres `after` et `detail` passés à `AuditService.log` pour `apiAddBulkPlan` (nombre d'entrées, points totaux, joueurs, catégories, dates), `apiUpdateBulkEntries` (détail des champs modifiés et nouvelles valeurs), `apiDeleteHistoryEntries`, `apiDeleteGroup`, `apiUngroupLot`, `apiRemoveFromGroup`, `apiFixZeroPoints`, `apiDeleteOrphans`, `apiCreateSnapshot`, `apiSavePhrasesBatch`, `apiDeletePreset`, `apiGroupDistributedLots`, `apiGroupRows`, `apiDeleteAutoRule`, `apiSetAutoTrigger`. Retrait de `'Saisie de points'` et `'Modification bulk'` de `AUDIT_NO_DIFF_ACTIONS` dans `Index.html` pour un affichage net de la pastille de création/modification dans la colonne Avant → Après. Tests unitaires ajoutés dans `tests/audit.test.js`.
+
 ## [v3.24.2] - 2026-09-02
 
 ### Modifié

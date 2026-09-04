@@ -1226,6 +1226,23 @@
     .modal-field { display: flex; flex-direction: column; gap: 5px; }
     .modal-field label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
     .modal-field input, .modal-field textarea, .modal-field select { margin: 0; }
+    .mb-field-toggle {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      text-transform: none !important;
+      font-size: 0.8rem !important;
+      color: var(--text) !important;
+      font-weight: 600 !important;
+    }
+    .mb-field-toggle input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--accent);
+      width: 15px;
+      height: 15px;
+    }
     .modal-color-preview {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 12px; background: rgba(0,0,0,0.1);
@@ -14476,8 +14493,8 @@
   // contenu utile est déjà dans Détail, donc on n'affiche rien ici plutôt qu'un
   // fragment sans signification ("" → "3 entrée(s)").
   const AUDIT_NO_DIFF_ACTIONS = new Set([
-    'Saisie de points', 'Suppression bulk', 'Nettoyage zéros', 'Nettoyage orphelins',
-    'Modification bulk', 'Phrases batch', 'Lots auto-groupés', 'Groupement lot',
+    'Suppression bulk', 'Nettoyage zéros', 'Nettoyage orphelins',
+    'Phrases batch', 'Lots auto-groupés', 'Groupement lot',
     'Dégroupement lot', 'Retrait du groupe', 'Suppression groupe', 'Action annulée'
   ]);
 
@@ -14981,6 +14998,16 @@
         const actCell = headerTr.insertCell();
         actCell.style.whiteSpace = 'nowrap';
         if (groupId) {
+          const editGroupBtn = document.createElement('button');
+          editGroupBtn.className = 'small'; editGroupBtn.textContent = '✏️';
+          editGroupBtn.title = 'Modifier ce groupe (' + members.length + ' entrées)';
+          editGroupBtn.style.marginRight = '4px';
+          editGroupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openGroupEditModal(groupId, members);
+          });
+          actCell.appendChild(editGroupBtn);
+
           const ungroupBtn = document.createElement('button');
           ungroupBtn.className = 'small'; ungroupBtn.textContent = '🔓';
           ungroupBtn.title = 'Dissocier ce groupe';
@@ -15198,6 +15225,7 @@
         full.innerHTML = renderMarkdown(log.description);
         descEl.style.whiteSpace = 'normal';
         catCell.appendChild(full);
+        attachDescEditBtn(log, catCell, descEl, full);
       });
       catCell.appendChild(descEl);
     }
@@ -15249,6 +15277,14 @@
     fullEditBtn.style.marginRight = '4px';
     fullEditBtn.addEventListener('click', () => openFullEditHistoryModal(log));
     actCell.appendChild(fullEditBtn);
+
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'small';
+    dupBtn.textContent = '📋';
+    dupBtn.title = 'Dupliquer cette entrée pour aujourd\'hui';
+    dupBtn.style.marginRight = '4px';
+    dupBtn.addEventListener('click', () => duplicateHistoryEntry(log));
+    actCell.appendChild(dupBtn);
 
     if (log.groupId) {
       const unlinkBtn = document.createElement('button');
@@ -15810,13 +15846,11 @@
     if (!requireIdentity()) return;
     if (!histSelected.size) return;
 
-    // Collecter les logs des lignes sélectionnées
     const selectedLogs = histPageLogs.filter(function(l) {
       return histSelected.has(l.rowIndex);
     });
     if (!selectedLogs.length) return;
 
-    // Analyser chaque champ : identique → pré-rempli, différent → mixte
     function analyze(fn) {
       const vals = selectedLogs.map(fn);
       const first = vals[0];
@@ -15824,9 +15858,7 @@
       return { value: allSame ? first : null, mixed: !allSame };
     }
 
-    const aDate = analyze(function(l) {
-      return l.timestamp ? toDateStr(new Date(l.timestamp)) : '';
-    });
+    const aDate = analyze(function(l) { return l.timestamp ? toDateStr(new Date(l.timestamp)) : ''; });
     const aPts  = analyze(function(l) { return String(l.points || ''); });
     const aPlay = analyze(function(l) { return l.player || ''; });
     const aCat  = analyze(function(l) { return l.category || ''; });
@@ -15839,103 +15871,114 @@
 
     box.innerHTML =
       '<h3>✏️ Modifier ' + n + ' entrée' + (n > 1 ? 's' : '') + '</h3>' +
+      '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">' +
+        'Cochez les champs à modifier pour les appliquer à toutes les entrées sélectionnées :' +
+      '</p>' +
       '<div class="modal-grid">' +
-        '<div class="modal-field"><label>Date</label>' +
-          '<input type="date" id="mbDate"' + (aDate.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aDate.value || '') + '"') + '></div>' +
-        '<div class="modal-field"><label>Points</label>' +
-          '<input type="number" id="mbPts" min="1" step="1" inputmode="numeric"' + (aPts.mixed ? ' class="rs-mixed-input" placeholder="— Valeurs mixtes —"' : ' value="' + escapeHtml(aPts.value || '') + '"') + '></div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbToggleDate"> Modifier la Date</label>' +
+          '<input type="date" id="mbDate" value="' + escapeHtml(aDate.value || '') + '" disabled>' +
+        '</div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbTogglePts"> Modifier les Points</label>' +
+          '<input type="number" id="mbPts" min="1" step="1" inputmode="numeric" value="' + escapeHtml(aPts.value || '') + '" disabled placeholder="' + (aPts.mixed ? 'Points mixtes' : 'Points') + '">' +
+        '</div>' +
       '</div>' +
       '<div class="modal-grid">' +
-        '<div class="modal-field"><label>Joueur</label><div id="mbPlayerRS"></div></div>' +
-        '<div class="modal-field"><label>Top</label><div id="mbCategoryRS"></div></div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbTogglePlayer"> Modifier le Joueur</label>' +
+          '<div id="mbPlayerRS" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbToggleCategory"> Modifier le Top</label>' +
+          '<div id="mbCategoryRS" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
       '</div>' +
       '<div class="modal-grid single">' +
-        '<div class="modal-field"><label>Description (optionnelle)</label>' +
-          '<div id="mbDescEditor"></div></div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbToggleDesc"> Modifier la Description</label>' +
+          '<div id="mbDescEditor" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
       '</div>' +
       '<div class="modal-grid single">' +
-        '<div class="modal-field"><label>Saiseur</label><div id="mbSaiseurRS"></div></div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mbToggleSaiseur"> Modifier le Saiseur</label>' +
+          '<div id="mbSaiseurRS" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
       '</div>' +
       '<div class="modal-actions">' +
-        '<button id="mbSave" class="primary">Enregistrer</button>' +
+        '<button id="mbSave" class="primary">Enregistrer (' + n + ')</button>' +
         '<button id="mbCancel" class="secondary">Annuler</button>' +
       '</div>';
 
-    // CSS pour inputs mixtes (injecté une fois)
-    if (!document.getElementById('_mbMixedStyle')) {
-      var s = document.createElement('style');
-      s.id = '_mbMixedStyle';
-      s.textContent =
-        'input.rs-mixed-input, .md-textarea.rs-mixed-input { border-style: dashed; background: rgba(var(--accent-rgb, 99,102,241), 0.08); color: var(--text-muted); }' +
-        'input.rs-mixed-input:focus, .md-textarea.rs-mixed-input:focus { background: var(--bg); color: var(--text); border-style: solid; }';
-      document.head.appendChild(s);
-    }
-
-    const playerRS   = buildRichSelect({ type: 'player',   value: aPlay.value, onChange: function() {}, mixedState: aPlay.mixed });
-    const categoryRS = buildRichSelect({ type: 'category', value: aCat.value,  onChange: function() {}, mixedState: aCat.mixed });
-    const saiseurRS  = buildRichSelect({ type: 'saiseur', value: aSais.value, onChange: function() {}, nullable: true, mixedState: aSais.mixed });
-    const descEditor = buildTextEditor({
-      value: aDesc.mixed ? '' : (aDesc.value || ''),
-      rows: 3,
-      placeholder: aDesc.mixed ? '— Valeurs mixtes —' : 'Description…'
-    });
-    if (aDesc.mixed) descEditor._textarea.classList.add('rs-mixed-input');
+    const playerRS   = buildRichSelect({ type: 'player',   value: aPlay.value, onChange: function() {} });
+    const categoryRS = buildRichSelect({ type: 'category', value: aCat.value,  onChange: function() {} });
+    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: aSais.value, onChange: function() {}, nullable: true });
+    const descEditor = buildTextEditor({ value: aDesc.value || '', rows: 3, placeholder: 'Nouvelle description…' });
 
     document.getElementById('mbPlayerRS').appendChild(playerRS);
     document.getElementById('mbCategoryRS').appendChild(categoryRS);
     document.getElementById('mbSaiseurRS').appendChild(saiseurRS);
     document.getElementById('mbDescEditor').appendChild(descEditor);
 
+    function wireBulkToggle(toggleId, containerId, inputId) {
+      const tg = document.getElementById(toggleId);
+      tg.addEventListener('change', function() {
+        if (inputId) {
+          const inp = document.getElementById(inputId);
+          inp.disabled = !tg.checked;
+          inp.style.opacity = tg.checked ? '1' : '0.5';
+          if (tg.checked) inp.focus();
+        }
+        if (containerId) {
+          const c = document.getElementById(containerId);
+          c.style.opacity = tg.checked ? '1' : '0.5';
+          c.style.pointerEvents = tg.checked ? 'auto' : 'none';
+        }
+      });
+    }
+
+    wireBulkToggle('mbToggleDate',     null,            'mbDate');
+    wireBulkToggle('mbTogglePts',      null,            'mbPts');
+    wireBulkToggle('mbTogglePlayer',   'mbPlayerRS',    null);
+    wireBulkToggle('mbToggleCategory', 'mbCategoryRS',  null);
+    wireBulkToggle('mbToggleDesc',     'mbDescEditor',  null);
+    wireBulkToggle('mbToggleSaiseur',  'mbSaiseurRS',   null);
+
     document.getElementById('mbSave').onclick = function() {
       if (!requireIdentity()) return;
       const rowIndexes = Array.from(histSelected);
       const fields = {};
 
-      // Date
-      const dateEl = document.getElementById('mbDate');
-      const dateVal = dateEl.value;
-      if (dateVal && !dateEl.classList.contains('rs-mixed-input')) {
+      if (document.getElementById('mbToggleDate').checked) {
+        const dateVal = document.getElementById('mbDate').value;
+        if (!dateVal) { showToast('Date requise.', 'error'); return; }
         fields.date = dateVal;
-      } else if (dateVal && dateEl.classList.contains('rs-mixed-input') && dateEl !== document.activeElement) {
-        // L'utilisateur a saisi une valeur dans un champ mixte
-        if (dateVal) fields.date = dateVal;
       }
-
-      // Points
-      const ptsEl = document.getElementById('mbPts');
-      const ptsVal = ptsEl.value;
-      const ptsNum = parseInt(ptsVal, 10);
-      if (ptsVal && !isNaN(ptsNum) && ptsNum >= 1) {
-        if (!ptsEl.classList.contains('rs-mixed-input') || ptsVal !== '') {
-          fields.points = ptsNum;
-        }
+      if (document.getElementById('mbTogglePts').checked) {
+        const ptsVal = parseInt(document.getElementById('mbPts').value, 10);
+        if (isNaN(ptsVal) || ptsVal < 1) { showToast('Points invalides (min 1).', 'error'); return; }
+        fields.points = ptsVal;
       }
-
-      // Joueur
-      if (!playerRS._isMixed()) {
-        const pv = playerRS._getValue();
-        if (pv) fields.player = pv;
+      if (document.getElementById('mbTogglePlayer').checked) {
+        const pVal = playerRS._getValue();
+        if (!pVal) { showToast('Joueur requis.', 'error'); return; }
+        fields.player = pVal;
       }
-
-      // Catégorie
-      if (!categoryRS._isMixed()) {
-        const cv = categoryRS._getValue();
-        if (cv) fields.category = cv;
+      if (document.getElementById('mbToggleCategory').checked) {
+        const cVal = categoryRS._getValue();
+        if (!cVal) { showToast('Top requis.', 'error'); return; }
+        fields.category = cVal;
       }
-
-      // Description (toujours envoyée si pas mixte ou modifiée)
-      const descVal = descEditor._getValue();
-      if (!aDesc.mixed || descVal.trim() !== '') {
-        fields.description = descVal.trim();
+      if (document.getElementById('mbToggleDesc').checked) {
+        fields.description = descEditor._getValue().trim();
       }
-
-      // Saiseur
-      if (!saiseurRS._isMixed()) {
+      if (document.getElementById('mbToggleSaiseur').checked) {
         fields.saiseur = saiseurRS._getValue() || '';
       }
 
       if (!Object.keys(fields).length) {
-        showToast('Aucun champ modifié.', 'error');
+        showToast('Cochez au moins un champ à modifier.', 'error');
         return;
       }
 
@@ -15960,16 +16003,150 @@
     openModal();
   }
 
+  function openGroupEditModal(groupId, members) {
+    if (!requireIdentity()) return;
+    if (!members || !members.length) return;
+
+    const box = document.getElementById('modalBox');
+    box.classList.add('wide');
+
+    const first = members[0];
+    const totalPts = members.reduce(function(s, m) { return s + m.points; }, 0);
+    const distinctPlayers = [...new Set(members.map(function(m) { return m.player; }))];
+    const distinctCategories = [...new Set(members.map(function(m) { return m.category; }))];
+    const sameCat = distinctCategories.length === 1 ? distinctCategories[0] : null;
+
+    const d = first.timestamp ? new Date(first.timestamp) : new Date();
+    const dateVal = isNaN(d) ? toDateStr(new Date()) : toDateStr(d);
+
+    box.innerHTML =
+      '<h3>✏️ Modifier le groupe (' + members.length + ' entrées)</h3>' +
+      '<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; border:1px solid var(--border);">' +
+        '<span>👥 Joueurs : <strong>' + escapeHtml(distinctPlayers.join(', ')) + '</strong></span> · ' +
+        '<span>⭐ Total : <strong>' + totalPts + ' pts</strong></span>' +
+      '</div>' +
+      '<div class="modal-grid">' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleDate"> Modifier la Date</label>' +
+          '<input type="date" id="mgDate" value="' + escapeHtml(dateVal) + '" disabled>' +
+        '</div>' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleCategory"> Modifier le Top</label>' +
+          '<div id="mgCategoryRS" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleDesc"> Modifier la Description</label>' +
+          '<div id="mgDescEditor" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
+        '<div class="modal-field">' +
+          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleSaiseur"> Modifier le Saiseur</label>' +
+          '<div id="mgSaiseurRS" style="opacity:0.5; pointer-events:none;"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button id="mgSave" class="primary">Enregistrer le groupe</button>' +
+        '<button id="mgCancel" class="secondary">Annuler</button>' +
+      '</div>';
+
+    const categoryRS = buildRichSelect({ type: 'category', value: sameCat || '', onChange: function() {} });
+    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: first.saiseur || null, onChange: function() {}, nullable: true });
+    const descEditor = buildTextEditor({ value: first.description || '', rows: 3, placeholder: 'Description du groupe…' });
+
+    document.getElementById('mgCategoryRS').appendChild(categoryRS);
+    document.getElementById('mgSaiseurRS').appendChild(saiseurRS);
+    document.getElementById('mgDescEditor').appendChild(descEditor);
+
+    function wireGroupToggle(toggleId, containerId, inputId) {
+      const tg = document.getElementById(toggleId);
+      tg.addEventListener('change', function() {
+        if (inputId) {
+          const inp = document.getElementById(inputId);
+          inp.disabled = !tg.checked;
+          inp.style.opacity = tg.checked ? '1' : '0.5';
+          if (tg.checked) inp.focus();
+        }
+        if (containerId) {
+          const c = document.getElementById(containerId);
+          c.style.opacity = tg.checked ? '1' : '0.5';
+          c.style.pointerEvents = tg.checked ? 'auto' : 'none';
+        }
+      });
+    }
+
+    wireGroupToggle('mgToggleDate',     null,           'mgDate');
+    wireGroupToggle('mgToggleCategory', 'mgCategoryRS', null);
+    wireGroupToggle('mgToggleDesc',     'mgDescEditor', null);
+    wireGroupToggle('mgToggleSaiseur',  'mgSaiseurRS',  null);
+
+    document.getElementById('mgSave').onclick = function() {
+      if (!requireIdentity()) return;
+      const fields = {};
+      if (document.getElementById('mgToggleDate').checked) {
+        const dVal = document.getElementById('mgDate').value;
+        if (!dVal) { showToast('Date requise.', 'error'); return; }
+        fields.date = dVal;
+      }
+      if (document.getElementById('mgToggleCategory').checked) {
+        const catVal = categoryRS._getValue();
+        if (!catVal) { showToast('Top requis.', 'error'); return; }
+        fields.category = catVal;
+      }
+      if (document.getElementById('mgToggleDesc').checked) {
+        fields.description = descEditor._getValue().trim();
+      }
+      if (document.getElementById('mgToggleSaiseur').checked) {
+        fields.saiseur = saiseurRS._getValue() || '';
+      }
+
+      if (!Object.keys(fields).length) {
+        showToast('Cochez au moins un champ à modifier.', 'error');
+        return;
+      }
+
+      const rowIndexes = members.map(function(m) { return m.rowIndex; });
+      closeModal();
+      callServer('apiUpdateBulkEntries', [rowIndexes, fields, _whoAmI || ''], function(res) {
+        if (res && res.success === false) {
+          showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+        } else {
+          showToast('Groupe de ' + rowIndexes.length + ' entrées modifié.', 'success');
+          loadHistoryPage(currentHistoryPage);
+          applyFilters();
+        }
+      }, 'Modification groupe');
+    };
+
+    document.getElementById('mgCancel').onclick = closeModal;
+    openModal();
+  }
+
   function openFullEditHistoryModal(log) {
     if (!requireIdentity()) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
 
+    const currIdx = histPageLogs ? histPageLogs.findIndex(function(l) { return l.rowIndex === log.rowIndex; }) : -1;
+    const hasPrev = currIdx > 0;
+    const hasNext = currIdx >= 0 && currIdx < histPageLogs.length - 1;
+
     const d       = log.timestamp ? new Date(log.timestamp) : new Date();
     const dateVal = isNaN(d) ? toDateStr(new Date()) : toDateStr(d);
 
     box.innerHTML =
-      '<h3>✏️ Modifier l\'entrée</h3>' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">' +
+        '<h3 style="margin:0;">✏️ Modifier l\'entrée</h3>' +
+        (currIdx >= 0 ? (
+          '<div style="display:flex; gap:6px; align-items:center;">' +
+            '<button id="mEditPrev" class="secondary small"' + (hasPrev ? '' : ' disabled') + ' title="Entrée précédente">◀</button>' +
+            '<span style="font-size:0.75rem; color:var(--text-muted);">' + (currIdx + 1) + ' / ' + histPageLogs.length + '</span>' +
+            '<button id="mEditNext" class="secondary small"' + (hasNext ? '' : ' disabled') + ' title="Entrée suivante">▶</button>' +
+          '</div>'
+        ) : '') +
+      '</div>' +
       '<div class="modal-grid">' +
         '<div class="modal-field"><label>Date</label>' +
           '<input type="date" id="mEditDate" value="' + escapeHtml(dateVal) + '"></div>' +
@@ -15992,6 +16169,7 @@
       '</div>' +
       '<div class="modal-actions">' +
         '<button id="mSave" class="primary">Enregistrer</button>' +
+        (hasNext ? '<button id="mSaveNext" class="secondary">💾 Enregistrer & suivante</button>' : '') +
         '<button id="mCancel" class="secondary">Annuler</button>' +
       '</div>';
 
@@ -16005,7 +16183,18 @@
     document.getElementById('mEditSaiseurRS').appendChild(saiseurRS);
     document.getElementById('mEditDescEditor').appendChild(descEditor);
 
-    document.getElementById('mSave').onclick = function() {
+    if (hasPrev) {
+      document.getElementById('mEditPrev').onclick = function() {
+        openFullEditHistoryModal(histPageLogs[currIdx - 1]);
+      };
+    }
+    if (hasNext) {
+      document.getElementById('mEditNext').onclick = function() {
+        openFullEditHistoryModal(histPageLogs[currIdx + 1]);
+      };
+    }
+
+    function doSave(nextAfterSave) {
       if (!requireIdentity()) return;
       const date     = document.getElementById('mEditDate').value;
       const pts      = parseInt(document.getElementById('mEditPts').value, 10);
@@ -16019,22 +16208,125 @@
       if (!player)               { showToast('Joueur requis.', 'error'); return; }
       if (!category)             { showToast('Top requis.', 'error'); return; }
 
-      closeModal();
+      if (!nextAfterSave) closeModal();
       callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }, _whoAmI || ''],
         function(res) {
           if (res && res.success === false) {
             showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
           } else {
             showToast('Entrée modifiée.', 'success');
+            log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur;
             loadHistoryPage(currentHistoryPage);
             applyFilters();
+            if (nextAfterSave && hasNext) {
+              openFullEditHistoryModal(histPageLogs[currIdx + 1]);
+            }
           }
         }, 'Modification entrée'
       );
-    };
+    }
+
+    document.getElementById('mSave').onclick = function() { doSave(false); };
+    const saveNextBtn = document.getElementById('mSaveNext');
+    if (saveNextBtn) saveNextBtn.onclick = function() { doSave(true); };
     document.getElementById('mCancel').onclick = closeModal;
+
+    box.onkeydown = function(ev) {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+        ev.preventDefault();
+        doSave(false);
+      }
+    };
+
     openModal();
     setTimeout(function() { const el = document.getElementById('mEditPts'); if (el) el.focus(); }, 50);
+  }
+
+  function duplicateHistoryEntry(log) {
+    if (!requireIdentity()) return;
+    const today = toDateStr(new Date());
+    openConfirmModal(
+      'Dupliquer cette entrée pour ' + escapeHtml(log.player) + ' (' + escapeHtml(log.category) + ', ' + log.points + ' pts) à la date d\'aujourd\'hui (' + today + ') ?',
+      function() {
+        const payload = [{
+          date: today,
+          entries: [{
+            player:      log.player,
+            category:    log.category,
+            points:      log.points,
+            times:       1,
+            description: log.description || '',
+            saiseur:     _whoAmI || ''
+          }]
+        }];
+        callServer('apiAddBulkPlan', [payload, _whoAmI || ''], function() {
+          showToast('Entrée dupliquée pour aujourd\'hui !', 'success');
+          loadHistoryPage(currentHistoryPage);
+          applyFilters();
+        }, 'Duplication entrée');
+      }
+    );
+  }
+
+  function openQuickDescEditor(log, catCell, descEl, fullEl) {
+    if (!requireIdentity()) return;
+    fullEl.replaceChildren();
+    const ta = document.createElement('textarea');
+    ta.className = 'md-textarea';
+    ta.style.cssText = 'width:100%; min-height:60px; font-size:0.8rem; margin-top:4px; box-sizing:border-box;';
+    ta.value = log.description || '';
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; gap:6px; margin-top:4px;';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'primary small';
+    saveBtn.textContent = '✓ Valider';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'secondary small';
+    cancelBtn.textContent = '✕ Annuler';
+
+    saveBtn.onclick = function(e) {
+      e.stopPropagation();
+      const newDesc = ta.value.trim();
+      const d = log.timestamp ? new Date(log.timestamp) : new Date();
+      callServer('apiUpdateHistoryEntry', [log.rowIndex, {
+        date: toDateStr(d),
+        player: log.player,
+        category: log.category,
+        points: log.points,
+        description: newDesc,
+        saiseur: log.saiseur || ''
+      }, _whoAmI || ''], function(res) {
+        if (res && res.success === false) {
+          showToast('Erreur : ' + (res.error || 'Impossible de mettre à jour.'), 'error');
+        } else {
+          showToast('Description mise à jour.', 'success');
+          log.description = newDesc;
+          loadHistoryPage(currentHistoryPage);
+        }
+      }, 'Modification description');
+    };
+
+    cancelBtn.onclick = function(e) {
+      e.stopPropagation();
+      fullEl.replaceChildren(document.createRange().createContextualFragment(renderMarkdown(log.description || '')));
+      attachDescEditBtn(log, catCell, descEl, fullEl);
+    };
+
+    btnRow.append(saveBtn, cancelBtn);
+    fullEl.append(ta, btnRow);
+    ta.focus();
+  }
+
+  function attachDescEditBtn(log, catCell, descEl, fullEl) {
+    const editDescBtn = document.createElement('button');
+    editDescBtn.className = 'small secondary';
+    editDescBtn.style.cssText = 'margin-top:4px; font-size:0.72rem; padding:1px 6px; display:inline-flex; align-items:center; gap:3px;';
+    editDescBtn.textContent = '✏️ Modifier la note';
+    editDescBtn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      openQuickDescEditor(log, catCell, descEl, fullEl);
+    });
+    fullEl.appendChild(editDescBtn);
   }
 
   // ── OUTILS ───────────────────────────────────────────────────────────

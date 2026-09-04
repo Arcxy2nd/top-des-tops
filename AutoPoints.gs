@@ -345,8 +345,10 @@ function apiDeleteAutoRule(id, author, password) {
   try {
     requireAuthor(author, password);
     return withLock(() => {
+      const rule = (AutoPointsService.getRules() || []).find(r => r.id === id);
+      const ruleSummary = rule ? (rule.player + ' +' + rule.points + ' (' + rule.category + ', ' + rule.frequency + ')') : ('règle #' + id);
       AutoPointsService.deleteRule(id);
-      AuditService.log(author, 'Suppression règle auto', 'AutoRules', id, '', '');
+      AuditService.log(author, 'Suppression règle auto', 'AutoRules', id, '', 'Supprimé : ' + ruleSummary);
       return { success: true };
     });
   } catch (e) { return fail(e); }
@@ -358,7 +360,8 @@ function apiSetAutoTrigger(enabled, author, password) {
     return withLock(() => {
       if (enabled) AutoPointsService.installTrigger();
       else AutoPointsService.uninstallTrigger();
-      AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules', '', '', '');
+      AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules', '', '',
+        enabled ? 'Déclencheur automatique quotidien activé' : 'Déclencheur automatique désactivé');
       return { success: true, installed: AutoPointsService.isTriggerInstalled() };
     });
   } catch (e) { return fail(e); }
