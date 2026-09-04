@@ -649,3 +649,32 @@ test('apiDeleteHistoryEntries writes rich detail with deleted points and player 
   assert.ok(auditRow[6].includes('2 entrées supprimées (−25 pts)'), 'detail mentions count and points');
   assert.ok(auditRow[6].includes('Bob') && auditRow[6].includes('Alice'), 'detail mentions players');
 });
+
+test('apiUpdateBulkEntries returns auditRowId and can be undone via apiUndoAuditEntry', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheetV9();
+  const history = makeSheet([
+    ['Date','Player','Category','Points','Description','GroupId','Saiseur'],
+    [new Date('2026-01-01'), 'Bob', 'Sport', 10, 'old note', '', '']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history, players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+  const res = gas.apiUpdateBulkEntries([2], { category: 'Jeux', points: 25 }, 'Admin');
+  assert.strictEqual(res.success, true);
+  assert.ok(res.auditRowId >= 2, 'auditRowId returned');
+
+  // Verify updated
+  assert.strictEqual(history._grid[1][2], 'Jeux');
+  assert.strictEqual(history._grid[1][3], 25);
+
+  // Undo via apiUndoAuditEntry
+  const undoRes = gas.apiUndoAuditEntry(res.auditRowId, 'Admin');
+  assert.strictEqual(undoRes.success, true);
+
+  // Verify restored
+  assert.strictEqual(history._grid[1][2], 'Sport');
+  assert.strictEqual(history._grid[1][3], 10);
+});

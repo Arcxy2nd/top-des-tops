@@ -535,7 +535,11 @@ const AuditService = (() => {
         snapshot ? JSON.stringify(snapshot) : '',
         ''
       ]);
-    } catch (e) { Logger.log('audit log write failed for ' + action + ' on ' + entity + ': ' + (e && e.message)); }
+      return sheet.getLastRow();
+    } catch (e) {
+      Logger.log('audit log write failed for ' + action + ' on ' + entity + ': ' + (e && e.message));
+      return null;
+    }
   }
 
   // Snapshots go through JSON.stringify/parse (stored as text in the sheet), which
@@ -3596,11 +3600,11 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
       const changedSummary = fieldSummaries.join(', ');
       const detail = affectedCount + ' entrée' + (affectedCount > 1 ? 's' : '') + ' modifiée' + (affectedCount > 1 ? 's' : '')
         + (changedSummary ? ' : ' + changedSummary : '');
-      AuditService.log(author, 'Modification bulk', 'History', '', changedSummary,
+      const auditRowId = AuditService.log(author, 'Modification bulk', 'History', '', changedSummary,
         detail,
         undoRows.length ? { sheet: 'history', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
-      return { success: true, skipped: skipped };
+      return { success: true, skipped: skipped, auditRowId: auditRowId };
     });
   } catch(e) { return fail(e); }
 }

@@ -2231,14 +2231,68 @@
     .hist-sel-th { width: 36px; text-align: center; }
     input.hist-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
     tr.hist-selected td { background: rgba(255, 71, 87, 0.07); }
+    .hist-group-row.hist-selected td { background: rgba(255, 71, 87, 0.12); }
 
     .hist-bulk-bar {
+      position: sticky;
+      bottom: 20px;
+      z-index: 8500;
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       padding: 10px 14px; margin-top: 10px;
       background: var(--card); border: 1px solid var(--accent);
       border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
     }
     .hist-bulk-bar #histBulkCount { font-weight: 600; font-size: 0.88rem; flex: 1; }
+
+    @media (max-width: 768px) {
+      .hist-bulk-bar {
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        padding: 8px 10px;
+        gap: 6px;
+      }
+    }
+
+    .hist-add-note-hint {
+      display: inline-block;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      opacity: 0.45;
+      margin-left: 6px;
+      cursor: pointer;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px dashed var(--border);
+      transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .hist-add-note-hint:hover {
+      opacity: 1;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .toast.has-action {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+    }
+    .toast-action-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .toast-action-btn:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
 
     /* ── TOP STATS STRIP ── */
     #topStatsStrip {
@@ -4947,6 +5001,7 @@
           <button id="historyDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>
           <button id="histSortBtn" class="hist-range-btn" title="Ordre par date">↓ Récents</button>
           <button id="refreshHistoryBtn" class="secondary small">🔄</button>
+          <button id="histToggleGroupsBtn" class="secondary small" title="Déplier / replier tous les lots de la page" style="display:none;">⊞ Déplier lots</button>
           <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
         </div>
         <div class="hist-filter-section">
@@ -8398,6 +8453,32 @@
     }, ms);
   }
   window.showToast = showToast;
+
+  function showActionToast(msg, actionLabel, onAction, duration) {
+    const t = document.createElement('div');
+    t.className = 'toast success has-action';
+    const txt = document.createElement('span');
+    txt.textContent = '✓ ' + msg;
+    t.appendChild(txt);
+    if (actionLabel && typeof onAction === 'function') {
+      const actBtn = document.createElement('button');
+      actBtn.className = 'toast-action-btn';
+      actBtn.textContent = actionLabel;
+      actBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        t.remove();
+        onAction();
+      });
+      t.appendChild(actBtn);
+    }
+    document.getElementById('toastContainer').appendChild(t);
+    const ms = duration || 6500;
+    setTimeout(() => {
+      t.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => t.remove(), 300);
+    }, ms);
+  }
+  window.showActionToast = showActionToast;
 
   // Retour haptique léger (mobile) sur les actions destructives.
   function buzz() {
@@ -14378,10 +14459,17 @@
   }
 
   // ── HISTORY BULK SELECTION ───────────────────────────────────────────
+  let _lastHistPageRes = null;
+  let _lastHistPageNum = 1;
+  let _lastCheckedRowIndex = null;
+  let _allGroupsExpanded = false;
+
   function toggleHistSelectMode(force) {
     histSelectMode = force !== undefined ? force : !histSelectMode;
-    histSelected.clear();
-    histVisibleRows = [];
+    if (!histSelectMode) {
+      histSelected.clear();
+      _lastCheckedRowIndex = null;
+    }
     const selTh   = document.getElementById('histSelAllTh');
     const bulkBar = document.getElementById('histBulkBar');
     const btn     = document.getElementById('histSelectBtn');
@@ -14391,12 +14479,26 @@
       btn.classList.toggle('active', histSelectMode);
       btn.textContent = histSelectMode ? '✕ Annuler sélection' : '☑ Sélectionner';
     }
-    loadHistoryPage(currentHistoryPage);
+    updateHistBulkBar();
+    if (_lastHistPageRes) {
+      _renderHistoryPage(_lastHistPageNum, _lastHistPageRes);
+    } else {
+      loadHistoryPage(currentHistoryPage);
+    }
   }
 
   function updateHistBulkBar() {
     const count = document.getElementById('histBulkCount');
-    if (count) count.textContent = histSelected.size + ' sélectionné' + (histSelected.size > 1 ? 's' : '') + ' sur cette page';
+    if (!count) return;
+    const totalSelected = histSelected.size;
+    const pageSelected = (histVisibleRows || []).filter(ri => histSelected.has(ri)).length;
+    if (totalSelected === 0) {
+      count.textContent = '0 sélectionné';
+    } else if (totalSelected === pageSelected) {
+      count.textContent = totalSelected + ' sélectionné' + (totalSelected > 1 ? 's' : '');
+    } else {
+      count.textContent = totalSelected + ' sélectionné' + (totalSelected > 1 ? 's' : '') + ' (' + pageSelected + ' sur cette page)';
+    }
   }
 
   function confirmBulkDelete() {
@@ -14835,6 +14937,8 @@
   }
 
   function _renderHistoryPage(page, res) {
+      _lastHistPageRes = res;
+      _lastHistPageNum = page;
       const logs  = res.logs  || [];
       const total = res.total || 0;
       const totalEntries = res.totalEntries || total;
@@ -14876,6 +14980,13 @@
         }
       });
 
+      const hasGroups = renderItems.some(item => item.type === 'group');
+      const toggleGroupsBtn = document.getElementById('histToggleGroupsBtn');
+      if (toggleGroupsBtn) {
+        toggleGroupsBtn.style.display = hasGroups ? '' : 'none';
+        toggleGroupsBtn.textContent = _allGroupsExpanded ? '⊟ Replier lots' : '⊞ Déplier lots';
+      }
+
       // 2) Render group header (collapsed by default, child rows toggled on click)
       const renderGroupHeader = (members, groupId) => {
         const first = members[0];
@@ -14883,7 +14994,8 @@
         const pColor = playerColor(first.player);
         const headerTr = tbody.insertRow();
         headerTr.className = 'hist-group-row';
-        let childrenVisible = false;
+        if (groupId) headerTr.dataset.groupId = groupId;
+        let childrenVisible = _allGroupsExpanded;
         const childRows = [];
 
         const totalPts = members.reduce((s, m) => s + m.points, 0);
@@ -14892,12 +15004,47 @@
         const isMultiPlayer   = distinctPlayers.length > 1;
         const isMultiCategory = distinctCategories.length > 1;
 
+        const memberRowIndexes = members.map(m => m.rowIndex);
+        if (histSelectMode) {
+          const selCell = headerTr.insertCell();
+          selCell.className = 'hist-sel-th';
+          const groupChk = document.createElement('input');
+          groupChk.type = 'checkbox';
+          groupChk.className = 'hist-chk hist-group-master-chk';
+          const updateGroupMasterState = () => {
+            const checkedCount = memberRowIndexes.filter(ri => histSelected.has(ri)).length;
+            groupChk.checked = checkedCount === memberRowIndexes.length && checkedCount > 0;
+            groupChk.indeterminate = checkedCount > 0 && checkedCount < memberRowIndexes.length;
+            headerTr.classList.toggle('hist-selected', checkedCount > 0);
+          };
+          headerTr._updateGroupMasterState = updateGroupMasterState;
+          updateGroupMasterState();
+          groupChk.addEventListener('click', (e) => e.stopPropagation());
+          groupChk.addEventListener('change', () => {
+            if (groupChk.checked) {
+              memberRowIndexes.forEach(ri => histSelected.add(ri));
+            } else {
+              memberRowIndexes.forEach(ri => histSelected.delete(ri));
+            }
+            childRows.forEach(cr => {
+              const ri = parseInt(cr.dataset.rowIndex, 10);
+              const cChk = cr.querySelector('.hist-chk');
+              if (cChk) cChk.checked = histSelected.has(ri);
+              cr.classList.toggle('hist-selected', histSelected.has(ri));
+            });
+            updateGroupMasterState();
+            updateHistBulkBar();
+          });
+          selCell.appendChild(groupChk);
+        }
+
         const dateCell = headerTr.insertCell();
         dateCell.className = 'hist-accent';
         dateCell.setAttribute('data-label', 'Date');
         dateCell.style.setProperty('--player-color', pColor);
         const chevron = document.createElement('span');
-        chevron.className = 'hist-group-chevron'; chevron.textContent = '▸';
+        chevron.className = 'hist-group-chevron' + (childrenVisible ? ' open' : '');
+        chevron.textContent = '▸';
         const d1 = new Date(last.timestamp); const d2 = new Date(first.timestamp);
         const dateRange = (isNaN(d1) ? '—' : d1.toLocaleDateString('fr-FR')) + ' → ' + (isNaN(d2) ? '—' : d2.toLocaleDateString('fr-FR'));
         dateCell.appendChild(chevron);
@@ -14995,6 +15142,32 @@
         ptsCell.appendChild(document.createTextNode(' '));
         ptsCell.appendChild(groupBadge);
 
+        const saiseurCell = headerTr.insertCell();
+        saiseurCell.className = 'hist-player-cell';
+        saiseurCell.setAttribute('data-label', 'Saiseur');
+        const distinctSaiseurs = [...new Set(members.map(m => m.saiseur).filter(Boolean))];
+        if (distinctSaiseurs.length === 1) {
+          const sp = cachedPlayers.find(p => p.name === distinctSaiseurs[0]);
+          const sImg = document.createElement('img');
+          sImg.className = 'history-avatar';
+          sImg.style.width = '20px'; sImg.style.height = '20px';
+          sImg.src = getAvatarUrl(distinctSaiseurs[0], sp ? sp.meta : '');
+          sImg.onerror = () => { sImg.src = getAvatarUrl(distinctSaiseurs[0], ''); };
+          const sName = document.createElement('span');
+          sName.className = 'hist-player-name'; sName.textContent = distinctSaiseurs[0];
+          saiseurCell.appendChild(sImg); saiseurCell.appendChild(sName);
+        } else if (distinctSaiseurs.length > 1) {
+          const sText = document.createElement('span');
+          sText.style.cssText = 'color:var(--text-muted);font-size:0.8rem;';
+          sText.textContent = 'Mixte (' + distinctSaiseurs.length + ')';
+          saiseurCell.appendChild(sText);
+        } else {
+          const dash = document.createElement('span');
+          dash.style.cssText = 'color:var(--muted);font-size:0.85em;';
+          dash.textContent = '—';
+          saiseurCell.appendChild(dash);
+        }
+
         const actCell = headerTr.insertCell();
         actCell.style.whiteSpace = 'nowrap';
         if (groupId) {
@@ -15055,20 +15228,16 @@
         members.forEach(log => {
           const cr = buildHistRow(log, tbody);
           cr.className += ' hist-group-child';
-          cr.style.display = 'none';
+          cr.style.display = childrenVisible ? '' : 'none';
           childRows.push(cr);
         });
       };
 
-      // In select mode: flat list for individual checkbox control
-      if (histSelectMode) {
-        logs.forEach(log => buildHistRow(log, tbody));
-      } else {
-        renderItems.forEach(item => {
-          if (item.type === 'group') renderGroupHeader(item.members, item.groupId);
-          else buildHistRow(item.log, tbody);
-        });
-      }
+      // Always render groups with group headers (in normal and select mode)
+      renderItems.forEach(item => {
+        if (item.type === 'group') renderGroupHeader(item.members, item.groupId);
+        else buildHistRow(item.log, tbody);
+      });
 
       renderPagination(total);
   }
@@ -15076,10 +15245,7 @@
   function _doLoadHistoryPage(page) {
     currentHistoryPage = page;
     _histLoadedOnce = true;
-    if (histSelectMode && histSelected.size) {
-      histSelected.clear();
-      updateHistBulkBar();
-    }
+    updateHistBulkBar();
     const textFilter    = (document.getElementById('historyTextFilter') || {}).value || '';
     const filterPlayers = selectedHistPlayers.size    ? [...selectedHistPlayers]    : [];
     const filterCats    = selectedHistCategories.size ? [...selectedHistCategories] : [];
@@ -15142,9 +15308,37 @@
       chk.type = 'checkbox'; chk.className = 'hist-chk';
       chk.checked = histSelected.has(log.rowIndex);
       if (chk.checked) tr.classList.add('hist-selected');
+      chk.addEventListener('click', (e) => {
+        if (e.shiftKey && _lastCheckedRowIndex !== null && _lastCheckedRowIndex !== log.rowIndex) {
+          const fromIdx = histVisibleRows.indexOf(_lastCheckedRowIndex);
+          const toIdx   = histVisibleRows.indexOf(log.rowIndex);
+          if (fromIdx !== -1 && toIdx !== -1) {
+            const [start, end] = [Math.min(fromIdx, toIdx), Math.max(fromIdx, toIdx)];
+            const shouldCheck = chk.checked;
+            for (let i = start; i <= end; i++) {
+              const ri = histVisibleRows[i];
+              if (shouldCheck) histSelected.add(ri);
+              else histSelected.delete(ri);
+              const rTr = tbody.querySelector(`tr[data-row-index="${ri}"]`);
+              if (rTr) {
+                const rChk = rTr.querySelector('.hist-chk');
+                if (rChk) rChk.checked = shouldCheck;
+                rTr.classList.toggle('hist-selected', shouldCheck);
+              }
+            }
+          }
+        }
+        _lastCheckedRowIndex = log.rowIndex;
+      });
       chk.addEventListener('change', () => {
         if (chk.checked) { histSelected.add(log.rowIndex); tr.classList.add('hist-selected'); }
         else { histSelected.delete(log.rowIndex); tr.classList.remove('hist-selected'); }
+        if (log.groupId) {
+          const groupHeader = tbody.querySelector(`tr.hist-group-row[data-group-id="${log.groupId}"]`);
+          if (groupHeader && typeof groupHeader._updateGroupMasterState === 'function') {
+            groupHeader._updateGroupMasterState();
+          }
+        }
         updateHistBulkBar();
       });
       selCell.appendChild(chk);
@@ -15228,6 +15422,17 @@
         attachDescEditBtn(log, catCell, descEl, full);
       });
       catCell.appendChild(descEl);
+    } else {
+      const addNoteBtn = document.createElement('span');
+      addNoteBtn.className = 'hist-add-note-hint';
+      addNoteBtn.textContent = '+ note';
+      addNoteBtn.title = 'Ajouter une note à cette entrée';
+      addNoteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addNoteBtn.style.display = 'none';
+        openQuickDescEditor(log, catCell, null, null, () => { addNoteBtn.style.display = ''; });
+      });
+      catCell.appendChild(addNoteBtn);
     }
 
     const ptsCell = tr.insertCell();
@@ -15990,7 +16195,23 @@
           } else {
             const skipped = (res && res.skipped && res.skipped.length) ? res.skipped.length : 0;
             const done = rowIndexes.length - skipped;
-            showToast(done + ' entrée' + (done > 1 ? 's' : '') + ' modifiée' + (done > 1 ? 's' : '') + (skipped ? ' (' + skipped + ' ignorée' + (skipped > 1 ? 's' : '') + ')' : '') + '.', 'success');
+            const msg = done + ' entrée' + (done > 1 ? 's' : '') + ' modifiée' + (done > 1 ? 's' : '') + (skipped ? ' (' + skipped + ' ignorée' + (skipped > 1 ? 's' : '') + ')' : '') + '.';
+            if (res && res.auditRowId) {
+              showActionToast(msg, 'Annuler', function() {
+                if (!requireIdentity()) return;
+                callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
+                  if (undoRes && undoRes.success) {
+                    showToast('Modification annulée.', 'success');
+                    loadHistoryPage(currentHistoryPage);
+                    applyFilters();
+                  } else {
+                    showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
+                  }
+                }, 'Annulation bulk');
+              });
+            } else {
+              showToast(msg, 'success');
+            }
             histSelected.clear();
             loadHistoryPage(currentHistoryPage);
             applyFilters();
@@ -16113,7 +16334,23 @@
         if (res && res.success === false) {
           showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
         } else {
-          showToast('Groupe de ' + rowIndexes.length + ' entrées modifié.', 'success');
+          const msg = 'Groupe de ' + rowIndexes.length + ' entrées modifié.';
+          if (res && res.auditRowId) {
+            showActionToast(msg, 'Annuler', function() {
+              if (!requireIdentity()) return;
+              callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
+                if (undoRes && undoRes.success) {
+                  showToast('Modification du groupe annulée.', 'success');
+                  loadHistoryPage(currentHistoryPage);
+                  applyFilters();
+                } else {
+                  showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
+                }
+              }, 'Annulation groupe');
+            });
+          } else {
+            showToast(msg, 'success');
+          }
           loadHistoryPage(currentHistoryPage);
           applyFilters();
         }
@@ -16268,9 +16505,16 @@
     );
   }
 
-  function openQuickDescEditor(log, catCell, descEl, fullEl) {
+  function openQuickDescEditor(log, catCell, descEl, fullEl, onCancelCallback) {
     if (!requireIdentity()) return;
-    fullEl.replaceChildren();
+    const isNew = !fullEl;
+    if (isNew) {
+      fullEl = document.createElement('div');
+      fullEl.className = 'hist-desc-full';
+      catCell.appendChild(fullEl);
+    } else {
+      fullEl.replaceChildren();
+    }
     const ta = document.createElement('textarea');
     ta.className = 'md-textarea';
     ta.style.cssText = 'width:100%; min-height:60px; font-size:0.8rem; margin-top:4px; box-sizing:border-box;';
@@ -16308,8 +16552,13 @@
 
     cancelBtn.onclick = function(e) {
       e.stopPropagation();
-      fullEl.replaceChildren(document.createRange().createContextualFragment(renderMarkdown(log.description || '')));
-      attachDescEditBtn(log, catCell, descEl, fullEl);
+      if (isNew) {
+        fullEl.remove();
+        if (typeof onCancelCallback === 'function') onCancelCallback();
+      } else {
+        fullEl.replaceChildren(document.createRange().createContextualFragment(renderMarkdown(log.description || '')));
+        attachDescEditBtn(log, catCell, descEl, fullEl);
+      }
     };
 
     btnRow.append(saveBtn, cancelBtn);
@@ -17529,7 +17778,21 @@
     // ── Notes ──
     document.getElementById('refreshNotesBtn').addEventListener('click', loadNotes);
 
-    // ── History bulk selection ──
+    // ── History bulk selection & group toggle ──
+    const histToggleGroupsBtn = document.getElementById('histToggleGroupsBtn');
+    if (histToggleGroupsBtn) {
+      histToggleGroupsBtn.addEventListener('click', () => {
+        _allGroupsExpanded = !_allGroupsExpanded;
+        histToggleGroupsBtn.textContent = _allGroupsExpanded ? '⊟ Replier lots' : '⊞ Déplier lots';
+        document.querySelectorAll('#historyTableBody .hist-group-row').forEach(headerTr => {
+          const chevron = headerTr.querySelector('.hist-group-chevron');
+          if (chevron) chevron.classList.toggle('open', _allGroupsExpanded);
+        });
+        document.querySelectorAll('#historyTableBody .hist-group-child').forEach(cr => {
+          cr.style.display = _allGroupsExpanded ? '' : 'none';
+        });
+      });
+    }
     document.getElementById('histSelectBtn').addEventListener('click', () => toggleHistSelectMode());
     document.getElementById('histBulkAltLink').addEventListener('click', () => {
       openUniversalAltPointPicker({ preselectedRowIndices: Array.from(histSelected) });
