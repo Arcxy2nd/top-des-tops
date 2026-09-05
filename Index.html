@@ -4157,21 +4157,32 @@
     gap: 4px;
     padding: 0;
     margin-left: auto;
+    display: flex;
+    align-items: center;
   }
 
-  /* Tous les boutons icônes : carré tactile respecté (44x44px) */
+  /* Sur mobile, masquer le libellé textuel de fraîcheur pour libérer l'espace navbar */
+  body:not(.desktop-layout) .refresh-badge {
+    display: none !important;
+  }
+
+  /* Boutons icônes compacts et circulaires : touch target optimisé et espacement net */
   body:not(.desktop-layout) .nav-refresh-btn,
   body:not(.desktop-layout) .nav-bareme-btn,
   body:not(.desktop-layout) .theme-toggle,
   body:not(.desktop-layout) .layout-mode-toggle {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 8px;
+    min-width: 38px;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
     font-size: 1.05rem;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
+    margin: 0 !important;
   }
 
   /* Barème : icône seule sur mobile */
@@ -4180,28 +4191,54 @@
   /* Layout toggle : icône seule sur mobile */
   body:not(.desktop-layout) .lmt-label { display: none; }
 
-  /* Qui-suis-je : avatar + nom court, carré tactile respecté */
+  /* Qui-suis-je : avatar + nom court, sans aucun débordement sur les boutons voisins */
   body:not(.desktop-layout) .who-am-i-wrap {
-    flex-shrink: 1;
-    min-width: 0;
-    margin: 0 2px;
+    flex: 0 1 auto;
+    min-width: 38px;
+    max-width: 140px;
+    margin: 0;
   }
   body:not(.desktop-layout) .who-am-i-btn {
-    padding: 6px 10px;
-    font-size: 0.82rem;
-    min-height: 44px;
-    gap: 5px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px 4px 5px;
+    font-size: 0.78rem;
+    min-height: 38px;
+    height: 38px;
+    gap: 4px;
+    overflow: hidden;
   }
   body:not(.desktop-layout) .who-am-i-avatar {
     width: 24px;
     height: 24px;
+    border-radius: 50%;
     flex-shrink: 0;
   }
   body:not(.desktop-layout) .who-am-i-name {
-    max-width: 60px;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 70px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  body:not(.desktop-layout) .who-am-i-arrow {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+  }
+
+  /* Sur écrans très étroits (< 360px), replier le texte pour ne garder que l'avatar et la flèche */
+  @media (max-width: 359px) {
+    body:not(.desktop-layout) .who-am-i-name {
+      display: none !important;
+    }
+    body:not(.desktop-layout) .who-am-i-wrap {
+      max-width: 50px;
+    }
+    body:not(.desktop-layout) .who-am-i-btn {
+      padding: 4px 6px;
+    }
   }
 
   /* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */

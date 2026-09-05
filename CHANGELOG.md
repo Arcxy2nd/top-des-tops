@@ -13,6 +13,12 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 - `Index.html` : pré-remplissage des entités (`cachedPlayers`, `cachedCategories`) depuis `SETTINGS_CACHE_KEY` avant la restauration du dashboard pour que les avatars et cartes se résolvent immédiatement sans attendre le roundtrip réseau.
 - `tests/bootstrap.test.js` : test unitaire automatisé garantissant la présence et l'intégration sûre de `renderQuickStatsBar`.
 
+**Humanisé** : Correction du chevauchement dans la barre supérieure sur mobile : le bouton de sélection d'identité (« Qui suis-je ? ») ne déborde plus et ne chevauche plus le bouton de thème sombre/clair (🌙). Tous les boutons s'alignent avec clarté sans aucune collision sur tous les écrans mobiles.
+**Technique** :
+- `Index.html` : masquage sur mobile du badge textuel `.refresh-badge` (« Il y a X min ») pour libérer 70px d'espace précieux dans le header.
+- `Index.html` : normalisation des boutons d'action en cercles compacts de 38px (`margin: 0 !important`), contrainte stricte `max-width: 100%` sur `.who-am-i-btn` avec troncature textuelle `.who-am-i-name`, et repli automatique sur l'avatar pour les écrans inférieurs à 360px.
+- `tests/mobile-audit.test.js` : test unitaire de non-régression verrouillant ces règles CSS.
+
 ## [v3.28.0] - 2026-09-05
 
 ### Ajouté

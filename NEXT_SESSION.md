@@ -2,8 +2,8 @@
 
 ## État courant
 - Version livrée : **v3.28.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction du bug bootstrap `renderQuickStatsBar is not defined` + Plan d'optimisation v3.28.0.
-- Suite de tests : **347 cas verts** (`npm run verify`).
+- Tâche achevée : Correction du bug bootstrap `renderQuickStatsBar` + Correction du chevauchement navbar mobile (`whoAmIBtn` / `themeToggle`) + Plan d'optimisation.
+- Suite de tests : **348 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session

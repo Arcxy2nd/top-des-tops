@@ -62,3 +62,11 @@ test('Tchat : actions visibles au toucher via @media (hover: none)', () => {
 test('Bannière CTA mobile : persistance de fermeture dans localStorage', () => {
   assert.match(html, /tdt_mobile_banner_dismissed/);
 });
+
+test('Navbar mobile : refresh-badge masqué et who-am-i-btn contraint sans chevauchement avec theme-toggle', () => {
+  const topBarBlock = block('/* ══ TOP BAR MOBILE — source unique, sans duplication ══', '/* ── Auto-detect mobile via media query');
+  assert.match(topBarBlock, /\.refresh-badge\s*\{[^}]*display:\s*none\s*!important/s);
+  assert.match(topBarBlock, /\.who-am-i-btn\s*\{[^}]*max-width:\s*100%/s);
+  assert.match(topBarBlock, /\.theme-toggle[^}]*margin:\s*0\s*!important/s);
+});
+
