@@ -1,25 +1,34 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.27.0** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Refonte ergonomique du hub Statistiques du Dashboard + Traçabilité totale des logs d'audit et règles automatiques.
-- Suite de tests : **343 cas verts** (`npm run verify`).
+- Version livrée : **v3.28.0** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Plan complet d'optimisation (Phases 1, 2, 3) + Corrections UI Mobile (labels navigation et bordures graphiques).
+- Suite de tests : **346 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Refonte Hub Statistiques & Traçabilité Complète d'Audit (`v3.27.0`)** :
-  - *Hub Statistiques du Dashboard* :
-    - `Index.html` : refonte de `#statsHubCard` avec composant repliable mémorisé (`tdt_collapsed_stats_hub`), bouton de rafraîchissement dédié (`#refreshStatsHubBtn`), rappel visuel de l'univers actif (`#statsHubSubtitle`).
-    - `Index.html` : navigation défilable horizontalement sur mobile sans rupture de pilule (`.stats-hub-nav`).
-    - `Index.html` : chargement paresseux par volet (`loadStatsHubPane`, `_statsHubLoadedPanes`) évitant le tir groupé de 5 requêtes GAS lourdes au chargement initial.
-  - *Traçabilité Complète Journal d'Audit & Règles Automatiques* :
-    - `Code.gs` : traçabilité des tentatives infructueuses de mot de passe dans `apiVerifyIdentity` (`Sécurité`), correction du bug bloquant `finalSheet` dans `apiSavePhrasesBatch`, enrichissement de l'ensemble des diffs et descriptions (barème, phrases, notes, chat).
-    - `AutoPoints.gs` : journalisation complète des exécutions manuelles et planifiées, capture des erreurs d'exécution système dans le journal d'audit, traçabilité détaillée des créations/modifications/suppressions de règles et de triggers.
-    - `Index.html` : support de `apiRunAutoRulesNow` dans `_MUTATING_APIS` et retour d'information précis dans le toast (`granted` / `skipped`).
-    - `tests/audit.test.js`, `tests/autopoints.test.js` : 7 nouveaux tests unitaires pour valider l'audit de sécurité, la sauvegarde de phrases et le retour des règles automatiques (343 tests au total).
+- **Plan Complet d'Optimisation & Corrections UI Mobile (`v3.28.0`)** :
+  - *Corrections Mobile UI* :
+    - `Code.gs` & `Index.html` : ajout de `shortLabel` sur `NAV_PAGES`, double conteneur `.nav-label-full` / `.nav-label-short` sur mobile (`0.62rem`, `-0.25px`, `ellipsis`) éliminant toute troncature sur petit écran.
+    - `Index.html` : suppression définitive de `buildLegendBorderPlugin()` et de ses appels, éliminant les rectangles arrondis vides parasites qui flottaient au-dessus du graphique sur mobile.
+  - *Phase 1 — Démarrage & Déblocage* :
+    - `Index.html` : `defer` sur Chart.js, suppression du script CDN GSAP.
+    - `Code.gs` & `Index.html` : endpoint composite `apiGetBootstrapData` regroupant 10 requêtes de démarrage en 1 seul appel avec fallback.
+    - `Index.html` : affichage instantané du Dashboard sans squelette (`stale-while-revalidate` via `tdt_dashboard_cache` dans `localStorage`).
+    - `Index.html` : suppression du layout thrashing sur `mousemove` via `requestAnimationFrame` (`initSpotlightCards` et tooltip graphique).
+  - *Phase 2 — Quotas GAS & Cache* :
+    - `Code.gs` & `Index.html` : sondage différentiel par version dans `apiGetChatMessages(sinceVersion)` avec `{ notModified: true }` et backoff adaptatif (4-12s ouvert, 20-60s fermé, pause arrière-plan).
+    - `Code.gs` : mémoisation des versions de script (`_scriptPropertiesCache`) et hit/miss en mémoire dans `_recordCacheStat` avec respect strict de l'invariant `_cachePutChunked`.
+  - *Phase 3 — Moteur Graphique, DOM & Nettoyage* :
+    - `Index.html` : filtrage in-memory du Dashboard (`filterChartDataInMemory`) lors des clics sur joueurs/catégories quand les dates ne changent pas.
+    - `Index.html` : assemblage DOM par `DocumentFragment` dans `_renderHistoryPage` et `renderNotesBlocks`.
+    - `Index.html` : allègement GPU (`backdrop-filter: blur(10px)`), suppression de 16 classes CSS orphelines mortes.
+    - `Index.html` : remplacement de GSAP par les animations natives Web Animations API (`animateFadeSlideIn`, `animateFadeSlideOut`, `animateStagger`).
+  - *Tests* :
+    - `tests/bootstrap.test.js`, `tests/chat.test.js` : tests complets du composite de boot et du sondage différentiel (346 tests verts au total).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (343/343).
+- Aucun écart. Tous les tests sont au vert (346/346).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

@@ -9,8 +9,7 @@
   <meta name="theme-color" content="#0b0c10" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f0f2f5" media="(prefers-color-scheme: light)">
   <title>Tops des Tops</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
   <!-- jsPDF et SheetJS (xlsx) sont chargés à la demande, au premier export (cf. loadScriptOnce). -->
 
   <style>
@@ -119,8 +118,8 @@
     /* ── NAVBAR (Glassmorphic) ── */
     .navbar {
       background: var(--card);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
       display: flex; justify-content: center;
       position: sticky; top: 0; z-index: 100;
@@ -138,8 +137,8 @@
       scrollbar-width: none; padding: 12px max(16px, env(safe-area-inset-left));
       max-width: 1200px; margin: 0 auto;
       background: var(--card);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
     .quick-stats-bar::-webkit-scrollbar { display: none; }
@@ -219,6 +218,8 @@
       transition: max-width 0.3s ease, opacity 0.2s ease, margin-left 0.3s ease;
     }
     .nav-btn.active .nav-btn-label { max-width: 120px; opacity: 1; margin-left: 3px; }
+    .nav-label-short { display: none; }
+    .nav-label-full { display: inline; }
     .nav-hover-tip {
       position: fixed; z-index: 9999;
       background: var(--card-solid); color: var(--text);
@@ -558,8 +559,8 @@
       border: 1px solid var(--border);
       box-shadow: var(--glass-shadow);
       margin-bottom: 24px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
                   border-color 0.25s ease, 
                   box-shadow 0.25s ease;
@@ -1374,11 +1375,6 @@
     }
 
     /* ── NOTES ── */
-    .notes-form-grid {
-      display: grid; grid-template-columns: 220px 1fr; gap: 12px;
-      align-items: start; margin-bottom: 8px;
-    }
-    .notes-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
     .note-card {
       background: rgba(0,0,0,0.15); border: 1px solid var(--border);
       border-radius: 10px; padding: 12px 14px;
@@ -1399,7 +1395,6 @@
     .note-card-head .note-date {
       font-size: 0.75rem; color: var(--text-muted); margin-left: auto;
     }
-    .note-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); }
     .note-text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     /* Pastilles auteur + boutons Éditer/Supprimer sur une seule ligne, pour ne pas
        gonfler la hauteur de la carte. */
@@ -1615,7 +1610,6 @@
     .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
     .d-cal-hint { font-size: 0.65rem; color: var(--text-muted); text-align: center; margin-top: 2px; }
-    .d-cal-manual { display: none; }
 
     /* Colonne 3 : Mode de calcul du score + Aperçu live */
     .d-period-right-col {
@@ -1888,7 +1882,6 @@
       transition: opacity 0.15s ease; flex-shrink: 0;
     }
     .bd-entry:hover .bd-copy-hint { opacity: 1; }
-    .bd-none { padding: 9px 14px; font-style: italic; font-size: 0.79rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
     .bareme-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 32px 16px; font-size: 0.88rem; }
 
@@ -2722,14 +2715,6 @@
     .c-sel-wrap:focus-within { border-color: var(--accent); }
     .c-sel-wrap select { border: none; background: transparent; padding: 10px 0; flex: 1; outline: none; }
 
-    /* Pastille de couleur du Top — se met à jour en temps réel */
-    .cat-color-dot {
-      width: 9px; height: 9px; border-radius: 50%;
-      background: var(--border); flex-shrink: 0;
-      transition: background 0.25s ease;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
-    }
-
     /* Pop sur les boutons de points */
     .pts-btn.pts-pop { animation: ptsPop 0.2s ease; }
 
@@ -2781,13 +2766,6 @@
 
     /* ── CARD PHRASES D'ACCROCHE ── */
 
-    /* ── Collapse du card Commentaires ── */
-    .phrases-collapse-btn {
-      background: var(--btn-alt); border: none; border-radius: 20px;
-      padding: 5px 10px; cursor: pointer; color: var(--text-muted);
-      font-size: 0.75rem; transition: color 0.2s, transform 0.25s;
-      line-height: 1;
-    }
     /* ── Collapsible générique ── */
     .card-collapse-header {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;
@@ -3212,23 +3190,6 @@
       display: inline-flex; align-items: center; justify-content: center;
       width: 20px; height: 20px; border-radius: 50%; font-size: 0.85rem;
       background: var(--phrase-color, var(--accent)); opacity: 0.9; flex-shrink: 0;
-    }
-    .phrase-cat-badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      font-size: 0.64rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;
-      width: fit-content; position: relative; z-index: 1;
-    }
-    .phrase-cat-badge.tight {
-      background: rgba(255, 71, 87, 0.15); color: var(--error); border: 1px solid rgba(255, 71, 87, 0.3);
-    }
-    .phrase-cat-badge.dominance {
-      background: rgba(255, 215, 0, 0.15); color: var(--medal-gold); border: 1px solid rgba(255, 215, 0, 0.3);
-    }
-    .phrase-cat-badge.active-top {
-      background: rgba(46, 213, 115, 0.15); color: var(--success); border: 1px solid rgba(46, 213, 115, 0.3);
-    }
-    .phrase-cat-filter-indicator {
-      margin-left: auto; font-size: 0.65rem; font-weight: 800; color: var(--phrase-color, var(--accent));
     }
     .phrase-cat-text { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; font-style: italic; position: relative; z-index: 1; }
 
@@ -3690,7 +3651,6 @@
   }
   .preset-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .preset-chip:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
-  .preset-chip-lock { font-size: 0.65rem; opacity: 0.6; }
   .preset-chip-add {
     background: transparent; border-style: dashed; color: var(--text-muted);
   }
@@ -3747,11 +3707,6 @@
     padding: 1px 5px; font-size: 0.8em; font-family: monospace;
   }
   body.light .phrase-vars-hint code { background: rgba(0,0,0,0.07); }
-
-  .phrases-default-note {
-    font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;
-    padding: 8px 0 4px;
-  }
 
   @media (max-width: 768px) {
     body:not(.desktop-layout) .phrases-editor-header { flex-direction: column; align-items: flex-start; }
@@ -4062,9 +4017,6 @@
     font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
   }
-  .cat-phrases-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; font-style: italic; }
-  .phrase-item-cat { opacity: 0.92; }
-  .phrase-item-cat .phrase-rank-label { font-style: italic; font-size: 0.78rem; }
   .phrases-cat-empty {
     font-size: 0.82rem; color: var(--text-muted); font-style: italic;
     padding: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -4115,8 +4067,8 @@
     bottom: 0; left: 0; right: 0;
     width: 100%; height: 62px;
     background: var(--card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
     z-index: 9000;
@@ -4127,7 +4079,7 @@
     box-sizing: border-box;
   }
   .mobile-bottom-nav .nav-btn {
-    flex-direction: column; padding: 6px 2px; min-height: auto;
+    flex-direction: column; padding: 5px 1px; min-height: auto;
     border: none; background: transparent;
     border-top: 3px solid transparent;
     flex: 1 1 0; min-width: 0; gap: 2px;
@@ -4140,12 +4092,16 @@
     background: rgba(255, 71, 87, 0.08);
     color: var(--accent); font-weight: 700;
   }
-  .mobile-bottom-nav .nav-btn .nav-btn-icon { font-size: 1.2rem; line-height: 1; }
+  .mobile-bottom-nav .nav-btn .nav-btn-icon { font-size: 1.15rem; line-height: 1; }
   .mobile-bottom-nav .nav-btn-label {
     display: block !important; max-width: 100% !important;
-    opacity: 0.85; font-size: 0.72rem; font-weight: 700;
-    margin-left: 0 !important; text-align: center; line-height: 1;
+    opacity: 0.85; font-size: 0.62rem; font-weight: 700;
+    letter-spacing: -0.25px;
+    margin-left: 0 !important; text-align: center; line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .mobile-bottom-nav .nav-label-full { display: none; }
+  .mobile-bottom-nav .nav-label-short { display: inline; }
   .mobile-bottom-nav .nav-btn.active .nav-btn-label { opacity: 1; color: var(--accent); }
 
   /* ── Disposition générale mode mobile ── */
@@ -7852,6 +7808,21 @@
   // inchangée mais doit quand même compter comme un message jamais vu.
   let _chatSeenIds = new Set();
   const CHAT_PANEL_OPEN_KEY = 'tdt_chat_panel_open';
+  let _chatVersion = 0;
+  let _chatIdleCount = 0;
+  const CHAT_OPEN_BACKOFF = [4000, 6000, 8000, 10000, 12000];
+  const CHAT_CLOSED_BACKOFF = [20000, 30000, 45000, 60000];
+
+  function getChatPollDelay() {
+    const steps = _chatPanelOpen ? CHAT_OPEN_BACKOFF : CHAT_CLOSED_BACKOFF;
+    const idx = Math.min(_chatIdleCount, steps.length - 1);
+    return steps[idx];
+  }
+
+  function resetChatBackoff() {
+    _chatIdleCount = 0;
+    scheduleChatPoll();
+  }
 
   function formatChatTime(iso) {
     if (!iso) return { short: '', title: '' };
@@ -8027,8 +7998,8 @@
     if (btn) btn.classList.add('active');
     _chatUnreadCount = 0;
     updateChatBadge();
+    resetChatBackoff();
     if (!_chatLoadedOnce) loadChat(); else { renderChatMessages(true); pollChat(); }
-    scheduleChatPoll();
   }
 
   function closeChatPanel() {
@@ -8038,7 +8009,7 @@
     if (panel) panel.style.display = 'none';
     const btn = document.getElementById('chatToggleBtn');
     if (btn) btn.classList.remove('active');
-    scheduleChatPoll();
+    resetChatBackoff();
   }
 
   function toggleChatPanel() {
@@ -8076,52 +8047,72 @@
     scheduleChatPoll();
   }
 
-  function loadChat() {
-    callServer('apiGetChatMessages', [], res => {
+  function loadChat(onDone) {
+    callServer('apiGetChatMessages', [_chatVersion], res => {
+      if (res.version !== undefined) _chatVersion = res.version;
       _chatMessages = res.messages || [];
-      res.messages.forEach(m => _chatSeenIds.add(m.id));
+      _chatMessages.forEach(m => _chatSeenIds.add(m.id));
       _chatLoadedOnce = true;
       renderChatMessages(true);
+      if (typeof onDone === 'function') onDone();
     }, 'Chargement du tchat', () => {
       const container = document.getElementById('chatMessages');
       if (container && !_chatLoadedOnce) {
         container.innerHTML = '<div class="chat-empty chat-error">Impossible de charger le tchat. <button id="chatRetryBtn" class="small">Réessayer</button></div>';
         const retryBtn = document.getElementById('chatRetryBtn');
-        if (retryBtn) retryBtn.addEventListener('click', loadChat);
+        if (retryBtn) retryBtn.addEventListener('click', () => loadChat(onDone));
       }
+      if (typeof onDone === 'function') onDone();
     });
   }
 
-  // Sondage adaptatif & pause quand l'onglet est inactif :
-  // - Panneau ouvert : 4s
-  // - Panneau fermé : 20s
+  // Sondage adaptatif différentiel & pause quand l'onglet est inactif :
+  // - Panneau ouvert : 4s -> 6s -> 8s -> 10s -> 12s
+  // - Panneau fermé : 20s -> 30s -> 45s -> 60s
   // - Onglet masqué/arrière-plan : Pause complète (sauvegarde quota GAS)
   function scheduleChatPoll() {
-    if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
+    if (_chatPollTimer) { clearTimeout(_chatPollTimer); _chatPollTimer = null; }
     if (document.hidden) return;
-    _chatPollTimer = setInterval(pollChat, _chatPanelOpen ? 4000 : 20000);
+    _chatPollTimer = setTimeout(() => {
+      pollChat(() => scheduleChatPoll());
+    }, getChatPollDelay());
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      pollChat();
-      scheduleChatPoll();
+      resetChatBackoff();
+      pollChat(() => scheduleChatPoll());
     } else {
-      if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
+      if (_chatPollTimer) { clearTimeout(_chatPollTimer); _chatPollTimer = null; }
     }
   });
 
   let _chatPollInFlight = false;
-  function pollChat() {
-    if (_chatPollInFlight) return;
+  function pollChat(onComplete) {
+    if (_chatPollInFlight) {
+      if (typeof onComplete === 'function') onComplete();
+      return;
+    }
     _chatPollInFlight = true;
-    callServer('apiGetChatMessages', [], res => {
+    callServer('apiGetChatMessages', [_chatVersion], res => {
       _chatPollInFlight = false;
+      if (res.version !== undefined) {
+        _chatVersion = res.version;
+      }
+      if (res.notModified) {
+        _chatIdleCount++;
+        if (typeof onComplete === 'function') onComplete();
+        return;
+      }
+      _chatIdleCount = 0;
       const fresh = res.messages || [];
       const prevLastId = _chatMessages.length ? _chatMessages[_chatMessages.length - 1].id : null;
       const changed = fresh.length !== _chatMessages.length ||
         (fresh.length && prevLastId !== fresh[fresh.length - 1].id);
-      if (!changed) return;
+      if (!changed) {
+        if (typeof onComplete === 'function') onComplete();
+        return;
+      }
       // Compte les non-lus par id jamais vu plutôt que par écart de longueur totale :
       // un message ajouté puis retiré (le sien ou un autre) entre deux sondages peut
       // laisser la longueur inchangée alors qu'un message réel n'a jamais été vu.
@@ -8134,7 +8125,11 @@
         _chatUnreadCount += newCount;
       }
       updateChatBadge();
-    }, 'Actualisation du tchat', () => { _chatPollInFlight = false; }, true);
+      if (typeof onComplete === 'function') onComplete();
+    }, 'Actualisation du tchat', () => {
+      _chatPollInFlight = false;
+      if (typeof onComplete === 'function') onComplete();
+    }, true);
   }
 
   // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
@@ -8160,6 +8155,7 @@
     renderChatMessages(true);
     callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
       _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
+      resetChatBackoff();
       loadChat();
     }, 'Envoi du message', () => {
       _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
@@ -9267,6 +9263,7 @@
 
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
   function globalRefresh() {
+    _baseChartData = null;
     const btn = document.getElementById('globalRefreshBtn');
     const stopLoading = startBtnLoading(btn);
     let pending = 2; // loadEntities + loadAppBranding
@@ -10528,6 +10525,80 @@
     };
   }
 
+  // Cache dashboard pour affichage instantané (stale-while-revalidate)
+  const DASHBOARD_CACHE_KEY = 'tdt_dashboard_cache';
+  let _baseChartData = null;
+  let _lastFilterStartDate = null;
+  let _lastFilterEndDate = null;
+
+  function restoreDashboardFromCache() {
+    try {
+      const raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
+      if (!raw) return false;
+      const cached = JSON.parse(raw);
+      if (cached && cached.chartData && cached.chartData.labels && cached.chartData.labels.length) {
+        currentChartData = cached.chartData;
+        _baseChartData = cached.baseChartData || cached.chartData;
+        _lastFilterStartDate = cached.startDate !== undefined ? cached.startDate : '';
+        _lastFilterEndDate = cached.endDate !== undefined ? cached.endDate : '';
+        const skel = document.getElementById('chartSkeleton');
+        const wrap = document.getElementById('chartWrapper');
+        if (skel) skel.style.display = 'none';
+        if (wrap) wrap.style.display = 'block';
+        if (typeof Chart !== 'undefined') {
+          renderChart(cached.chartData, currentChartType || 'ranking');
+          renderChartControls(currentChartType || 'ranking');
+        }
+        if (cached.quickStats) {
+          renderQuickStatsBar(cached.quickStats);
+        }
+        if (cached.ranked) {
+          renderPhrasesCard(cached.ranked);
+        }
+        return true;
+      }
+    } catch (e) { /* ignore cache read error */ }
+    return false;
+  }
+
+  function saveDashboardToCache(chartData, quickStats, ranked) {
+    try {
+      localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+        chartData,
+        baseChartData: _baseChartData,
+        startDate: _lastFilterStartDate,
+        endDate: _lastFilterEndDate,
+        quickStats: quickStats || null,
+        ranked: ranked || (chartData ? computeRankedTotals(chartData) : null),
+        savedAt: Date.now()
+      }));
+    } catch (e) { /* best-effort */ }
+  }
+
+  function filterChartDataInMemory(base, selPlayers, selCategories) {
+    if (!base || !base.labels || !base.datasets) return null;
+    const allLabels = base.labels;
+    const keepPlayers = (selPlayers && selPlayers.length) ? selPlayers : allLabels;
+    const playerIndices = keepPlayers.map(p => allLabels.indexOf(p)).filter(idx => idx !== -1);
+    const filteredLabels = playerIndices.map(idx => allLabels[idx]);
+
+    let datasets = base.datasets;
+    if (selCategories && selCategories.length) {
+      const catSet = new Set(selCategories);
+      datasets = datasets.filter(ds => catSet.has(ds.label));
+    }
+
+    const filteredDatasets = datasets.map(ds => ({
+      ...ds,
+      data: playerIndices.map(idx => (ds.data && ds.data[idx] !== undefined) ? ds.data[idx] : 0)
+    }));
+
+    return {
+      labels: filteredLabels,
+      datasets: filteredDatasets
+    };
+  }
+
   // Regroupe les clics rapides sur les chips de filtre en un seul appel serveur.
   // Le skeleton s'affiche tout de suite : feedback instantané malgré le délai.
   let _applyFiltersTimer = null;
@@ -10555,6 +10626,46 @@
       showChartState('error', "Le graphique n'a pas pu être chargé : " + (err && err.message ? err.message : err));
       if (typeof onDone === 'function') onDone();
     };
+
+    // Filtrage in-memory si les dates n'ont pas changé et que la base est disponible
+    if (activeDashboardUniverse !== 'alt' && currentChartType !== 'trend' &&
+        _baseChartData && startDate === _lastFilterStartDate && endDate === _lastFilterEndDate) {
+      if (currentChartType === 'ranking' && !chartOptions.detailed) {
+        const filtered = filterChartDataInMemory(_baseChartData, selPlayers, selCategories);
+        const totals = filtered.labels.map((p, i) =>
+          filtered.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+        );
+        const chartData = {
+          labels: filtered.labels,
+          datasets: [{ label: 'Total global', data: totals }]
+        };
+        currentChartData = chartData;
+        showChartWrapper();
+        renderChart(chartData, 'ranking');
+        renderChartControls('ranking');
+        const ranked = computeRankedTotals(chartData);
+        renderPhrasesCard(ranked);
+        saveDashboardToCache(chartData);
+        if (typeof onDone === 'function') onDone();
+        return;
+      }
+
+      const chartData = filterChartDataInMemory(_baseChartData, selPlayers, selCategories);
+      currentChartData = chartData;
+      showChartWrapper();
+      renderChart(chartData, currentChartType);
+      renderChartControls(currentChartType);
+      if (currentChartType === 'stacked' || currentChartType === 'grouped') {
+        renderTopStatsStrip(chartData);
+      } else if (currentChartType !== 'ranking') {
+        clearTopStatsStrip();
+      }
+      const ranked = computeRankedTotals(chartData);
+      renderPhrasesCard(ranked);
+      saveDashboardToCache(chartData);
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
 
     document.getElementById('chartSkeleton').style.display = 'block';
     document.getElementById('chartWrapper').style.display  = 'none';
@@ -10593,6 +10704,7 @@
         renderChartControls('ranking');
         const ranked = computeRankedTotals(res.chartData);
         renderPhrasesCard(ranked);
+        saveDashboardToCache(res.chartData);
         if (typeof onDone === 'function') onDone();
       }, 'Chargement total global', onChartError);
       return;
@@ -10600,6 +10712,11 @@
 
     callServer('apiGetFilteredData', [selPlayers, selCategories, startDate, endDate], res => {
       currentChartData = res.chartData;
+      if (!selPlayers.length && !selCategories.length) {
+        _baseChartData = res.chartData;
+        _lastFilterStartDate = startDate;
+        _lastFilterEndDate = endDate;
+      }
       showChartWrapper();
       renderChart(res.chartData, currentChartType);
       renderChartControls(currentChartType);
@@ -10611,6 +10728,7 @@
       // Phrases card always populated from global totals
       const ranked = computeRankedTotals(res.chartData);
       renderPhrasesCard(ranked);
+      saveDashboardToCache(res.chartData);
       if (typeof onDone === 'function') onDone();
     }, 'Chargement graphique', onChartError);
   }
@@ -11432,7 +11550,7 @@
           });
         }
       },
-      plugins: [totalsPlugin, buildLegendBorderPlugin(), buildCustomTooltipPlugin({
+      plugins: [totalsPlugin, buildCustomTooltipPlugin({
         titleIsPlayer: true,
         rankedTotals: sorted.labels
           .map((p, i) => ({ player: p, total: sorted.datasets.reduce((s, ds) => s + (ds.data[i] || 0), 0) }))
@@ -11499,46 +11617,6 @@
     };
   }
 
-  function buildLegendBorderPlugin() {
-    return {
-      id: 'legendBorderOverlay',
-      afterDraw(chart) {
-        if (!chart.legend || !chart.legend.legendItems || !chart.legend.legendHitBoxes) return;
-        const hitBoxes = chart.legend.legendHitBoxes;
-        const items = chart.legend.legendItems;
-        if (!hitBoxes || !hitBoxes.length || hitBoxes.length !== items.length) return;
-
-        const { ctx } = chart;
-        ctx.save();
-        items.forEach((item, i) => {
-          const hb = hitBoxes[i];
-          if (!hb) return;
-          const padX = 6;
-          const padY = 3;
-          const x = Math.round(hb.left - padX);
-          const y = Math.round(hb.top - padY);
-          const w = Math.round(hb.width + padX * 2);
-          const h = Math.round(hb.height + padY * 2);
-          const r = Math.round(h / 2);
-
-          const isHidden = item.hidden;
-          const rawColor = item.fillStyle || item.strokeStyle || '#ff4757';
-          const color = (typeof rawColor === 'string' && rawColor.length === 9 && rawColor.endsWith('22')) ? rawColor.slice(0, 7) : rawColor;
-
-          roundRect(ctx, x, y, w, h, r);
-          ctx.fillStyle = isHidden ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)';
-          ctx.fill();
-
-          ctx.strokeStyle = typeof color === 'string' ? color : '#ff4757';
-          ctx.lineWidth = 1.2;
-          ctx.globalAlpha = isHidden ? 0.3 : 0.65;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        });
-        ctx.restore();
-      }
-    };
-  }
 
   function renderTrendChart(trendData) {
     if (typeof Chart === 'undefined') {
@@ -11621,7 +11699,7 @@
           });
         }
       },
-      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true }), buildLegendBorderPlugin()]
+      plugins: [buildCustomTooltipPlugin({ rowsArePlayers: true })]
     });
   }
 
@@ -15011,6 +15089,8 @@
         return;
       }
 
+      const renderTbody = document.createElement('tbody');
+
       // Track visible row indexes for select-all
       histVisibleRows = logs.map(l => l.rowIndex);
       histPageLogs    = logs;
@@ -15045,7 +15125,7 @@
         const first = members[0];
         const last  = members[members.length - 1];
         const pColor = playerColor(first.player);
-        const headerTr = tbody.insertRow();
+        const headerTr = renderTbody.insertRow();
         headerTr.className = 'hist-group-row';
         if (groupId) headerTr.dataset.groupId = groupId;
         let childrenVisible = _allGroupsExpanded;
@@ -15281,7 +15361,7 @@
         });
 
         members.forEach(log => {
-          const cr = buildHistRow(log, tbody);
+          const cr = buildHistRow(log, renderTbody);
           cr.className += ' hist-group-child';
           cr.style.display = childrenVisible ? '' : 'none';
           childRows.push(cr);
@@ -15291,8 +15371,15 @@
       // Always render groups with group headers (in normal and select mode)
       renderItems.forEach(item => {
         if (item.type === 'group') renderGroupHeader(item.members, item.groupId);
-        else buildHistRow(item.log, tbody);
+        else buildHistRow(item.log, renderTbody);
       });
+
+      const frag = document.createDocumentFragment();
+      while (renderTbody.firstChild) {
+        frag.appendChild(renderTbody.firstChild);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
 
       renderPagination(total);
   }
@@ -15758,8 +15845,9 @@
       byPlayer[name].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
     });
 
+    const frag = document.createDocumentFragment();
     cachedPlayers.forEach(p => {
-      blocksContainer.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
+      frag.appendChild(buildPlayerNoteBlock(p, byPlayer[p.name] || []));
     });
 
     // Notes whose player name matches no current entity (renamed/deleted since
@@ -15772,8 +15860,9 @@
       block.classList.add('note-player-block-orphan');
       const nameEl = block.querySelector('.npb-name');
       if (nameEl) nameEl.textContent += ' (introuvable dans Paramètres)';
-      blocksContainer.appendChild(block);
+      frag.appendChild(block);
     });
+    blocksContainer.appendChild(frag);
   }
 
   function buildPlayerNoteBlock(player, notes) {
@@ -17104,9 +17193,13 @@
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';
+    const shortLabel = page.shortLabel || page.label;
     return '<button class="nav-btn' + (extraClass ? ' ' + extraClass : '') + '" data-tab="' + page.id + '" title="' + page.label + '">' +
       '<span class="nav-btn-icon">' + page.icon + '</span>' +
-      '<span class="nav-btn-label">' + page.label + '</span>' +
+      '<span class="nav-btn-label">' +
+        '<span class="nav-label-full">' + page.label + '</span>' +
+        '<span class="nav-label-short">' + shortLabel + '</span>' +
+      '</span>' +
       countSpan + '</button>';
   }
 
@@ -17150,28 +17243,83 @@
     group.addEventListener('click', () => tip.classList.remove('visible'));
   }
 
-  // ── GSAP & SPOTLIGHT INITIALIZATION (Taste, Hyperframes, React-Bits) ──
+  // ── NATIVE WAAPI ANIMATIONS & SPOTLIGHT ──────────────────────────────
+  function animateFadeSlideIn(el, { y = 15, duration = 300, scale = 1, delay = 0, onComplete } = {}) {
+    if (!el || typeof el.animate !== 'function') {
+      if (onComplete) onComplete();
+      return null;
+    }
+    const fromTransform = scale !== 1 ? `translateY(${y}px) scale(${scale})` : `translateY(${y}px)`;
+    const anim = el.animate([
+      { opacity: 0, transform: fromTransform },
+      { opacity: 1, transform: 'translateY(0) scale(1)' }
+    ], {
+      duration,
+      delay,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'both'
+    });
+    anim.onfinish = () => {
+      anim.cancel();
+      if (onComplete) onComplete();
+    };
+    return anim;
+  }
+
+  function animateFadeSlideOut(el, { y = -10, duration = 140, onComplete } = {}) {
+    if (!el || typeof el.animate !== 'function') {
+      if (onComplete) onComplete();
+      return null;
+    }
+    const anim = el.animate([
+      { opacity: 1, transform: 'translateY(0)' },
+      { opacity: 0, transform: `translateY(${y}px)` }
+    ], {
+      duration,
+      easing: 'cubic-bezier(0.4, 0, 1, 1)',
+      fill: 'both'
+    });
+    anim.onfinish = () => {
+      anim.cancel();
+      if (onComplete) onComplete();
+    };
+    return anim;
+  }
+
+  function animateStagger(elements, { y = 15, duration = 300, stagger = 50 } = {}) {
+    if (!elements || !elements.length) return;
+    Array.from(elements).forEach((el, i) => {
+      animateFadeSlideIn(el, { y, duration, delay: i * stagger });
+    });
+  }
+
   function initSpotlightCards() {
     const selector = 'button.secondary:not(.alt-picker-btn):not(.bq-btn):not(.nav-bareme-btn):not(.bareme-quick-header), .qs-pill, .nav-btn, .nav-item, .subtab-btn, select, .custom-select-trigger';
-    const handleMouseMove = (e) => {
-      const target = e.target.closest(selector);
+    let rafId = null;
+    let lastEvt = null;
+    const update = () => {
+      rafId = null;
+      if (!lastEvt) return;
+      const target = lastEvt.target.closest(selector);
       if (target) {
         const rect = target.getBoundingClientRect();
-        target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-        target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+        target.style.setProperty('--mouse-x', `${lastEvt.clientX - rect.left}px`);
+        target.style.setProperty('--mouse-y', `${lastEvt.clientY - rect.top}px`);
+      }
+    };
+    const handleMouseMove = (e) => {
+      lastEvt = e;
+      if (!rafId) {
+        rafId = requestAnimationFrame(update);
       }
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
   }
 
   function initGsapEffects() {
-    if (typeof gsap === 'undefined') return;
     const cards = document.querySelectorAll('.tab-content.active .card, .quick-stats-bar');
     if (cards.length > 0) {
-      gsap.fromTo(cards,
-        { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.45, stagger: 0.06, ease: 'power2.out', clearProps: 'all' }
-      );
+      animateStagger(cards, { y: 18, duration: 400, stagger: 60 });
     }
   }
 
@@ -17325,25 +17473,17 @@
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
 
-    if (window.gsap && currentActive && currentActive !== targetTab) {
-      gsap.to(currentActive, {
-        opacity: 0,
+    if (currentActive && currentActive !== targetTab && typeof currentActive.animate === 'function') {
+      animateFadeSlideOut(currentActive, {
         y: -10,
-        duration: 0.15,
-        ease: 'power2.in',
+        duration: 140,
         onComplete: () => {
           currentActive.classList.remove('active');
           targetTab.classList.add('active');
-          gsap.fromTo(targetTab, 
-            { opacity: 0, y: 15, scale: 0.99 }, 
-            { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
-          );
+          animateFadeSlideIn(targetTab, { y: 15, scale: 0.99, duration: 320 });
           const cards = targetTab.querySelectorAll('.card, .quick-stats-bar, .filter-panel');
           if (cards.length > 0) {
-            gsap.fromTo(cards, 
-              { opacity: 0, y: 15 },
-              { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, ease: 'power2.out', clearProps: 'all' }
-            );
+            animateStagger(cards, { y: 15, duration: 280, stagger: 50 });
           }
         }
       });
@@ -17497,29 +17637,34 @@
     // "dans" le canvas en survolant la légende, le tooltip peut y rester
     // affiché même après être sorti visuellement du graphique). On vérifie
     // en continu que le curseur est bien dans le canvas ou la bulle elle-même.
+    let _chartTooltipRafId = null;
+    let _chartTooltipLastCoords = null;
+    const _checkChartTooltipBounds = () => {
+      _chartTooltipRafId = null;
+      if (!_chartTooltipLastCoords) return;
+      const el = document.getElementById('chartCustomTooltip');
+      if (!el || !el.classList.contains('visible')) return;
+      const canvas = document.getElementById('mainChart');
+      if (!canvas) return;
+      const cRect = canvas.getBoundingClientRect();
+      const tRect = el.getBoundingClientRect();
+      const { x, y } = _chartTooltipLastCoords;
+      const inCanvas  = x >= cRect.left && x <= cRect.right && y >= cRect.top && y <= cRect.bottom;
+      const inTooltip = x >= tRect.left && x <= tRect.right && y >= tRect.top && y <= tRect.bottom;
+      if (!inCanvas && !inTooltip) hideChartHover();
+    };
+    const _queueChartTooltipCheck = (x, y) => {
+      _chartTooltipLastCoords = { x, y };
+      if (!_chartTooltipRafId) {
+        _chartTooltipRafId = requestAnimationFrame(_checkChartTooltipBounds);
+      }
+    };
     document.addEventListener('mousemove', e => {
-      const el = document.getElementById('chartCustomTooltip');
-      if (!el || !el.classList.contains('visible')) return;
-      const canvas = document.getElementById('mainChart');
-      if (!canvas) return;
-      const cRect = canvas.getBoundingClientRect();
-      const tRect = el.getBoundingClientRect();
-      const inCanvas  = e.clientX >= cRect.left && e.clientX <= cRect.right && e.clientY >= cRect.top && e.clientY <= cRect.bottom;
-      const inTooltip = e.clientX >= tRect.left && e.clientX <= tRect.right && e.clientY >= tRect.top && e.clientY <= tRect.bottom;
-      if (!inCanvas && !inTooltip) hideChartHover();
-    });
+      _queueChartTooltipCheck(e.clientX, e.clientY);
+    }, { passive: true });
     document.addEventListener('touchstart', e => {
-      const el = document.getElementById('chartCustomTooltip');
-      if (!el || !el.classList.contains('visible')) return;
-      const canvas = document.getElementById('mainChart');
-      if (!canvas) return;
       const touch = e.touches[0] || (e.changedTouches && e.changedTouches[0]);
-      if (!touch) return;
-      const cRect = canvas.getBoundingClientRect();
-      const tRect = el.getBoundingClientRect();
-      const inCanvas  = touch.clientX >= cRect.left && touch.clientX <= cRect.right && touch.clientY >= cRect.top && touch.clientY <= cRect.bottom;
-      const inTooltip = touch.clientX >= tRect.left && touch.clientX <= tRect.right && touch.clientY >= tRect.top && touch.clientY <= tRect.bottom;
-      if (!inCanvas && !inTooltip) hideChartHover();
+      if (touch) _queueChartTooltipCheck(touch.clientX, touch.clientY);
     }, { passive: true });
     document.addEventListener('mouseleave', hideChartHover);
 
@@ -19195,23 +19340,17 @@
       const targetPane = document.querySelector('#statsHubCard .stats-hub-pane[data-pane="' + pane + '"]');
       const currentActive = document.querySelector('#statsHubCard .stats-hub-pane.active');
 
-      if (window.gsap && currentActive && currentActive !== targetPane) {
-        gsap.to(currentActive, {
-          opacity: 0, y: -6, duration: 0.12, ease: 'power2.in',
+      if (currentActive && currentActive !== targetPane && typeof currentActive.animate === 'function') {
+        animateFadeSlideOut(currentActive, {
+          y: -6, duration: 120,
           onComplete: () => {
             currentActive.classList.remove('active');
             if (targetPane) {
               targetPane.classList.add('active');
-              gsap.fromTo(targetPane,
-                { opacity: 0, y: 10 },
-                { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }
-              );
+              animateFadeSlideIn(targetPane, { y: 10, duration: 250 });
               const rows = targetPane.querySelectorAll('.sr-row, .sr-hero');
               if (rows.length) {
-                gsap.fromTo(rows,
-                  { opacity: 0, y: 10 },
-                  { opacity: 1, y: 0, duration: 0.22, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
-                );
+                animateStagger(rows, { y: 10, duration: 220, stagger: 40 });
               }
             }
             loadStatsHubPane(pane, false);
@@ -19286,24 +19425,125 @@
     bootDataLoad();
   };
 
-  // Data loading used to be the last instruction of a ~1,800-line init
-  // function: any exception in an earlier event-listener wire-up left the
-  // Dashboard in an endless skeleton. Each step is isolated so that one
-  // breaking doesn't take the others down with it.
+  // Data loading : tentative de bootstrap composite (1 requête RPC groupée),
+  // avec restauration instantanée via cache local (stale-while-revalidate)
+  // et repli gracieux par requêtes individuelles si nécessaire.
   function bootDataLoad() {
+    try { renderWhoAmI(); } catch (e) { console.error('bootDataLoad/identité', e); }
+
+    // Restauration immédiate du dashboard sans skeleton
+    restoreDashboardFromCache();
+
+    callServer('apiGetBootstrapData', [], res => {
+      if (!res || !res.success) {
+        fallbackBootLoad();
+        return;
+      }
+
+      // 1. Navigation
+      if (res.navPages && res.navPages.pages) {
+        NAV_PAGES = res.navPages.pages;
+        renderNav();
+        initNavHoverTip();
+      }
+
+      // 2. Branding & App Settings
+      if (res.appSettings && res.appSettings.success) {
+        _appSettings = { appTitle: res.appSettings.appTitle, logoUrl: res.appSettings.logoUrl };
+        try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(_appSettings)); } catch (e) {}
+        applyAppBranding();
+        populateAppSettingsForm();
+        if (res.appSettings.tooltipStyle) {
+          saveTooltipStylePrefs(res.appSettings.tooltipStyle, true);
+          renderTooltipStyleSettings();
+        }
+      }
+
+      // 3. Entités
+      if (res.settings && res.settings.success) {
+        cachedPlayers    = res.settings.players    || [];
+        cachedCategories = res.settings.categories || [];
+        try {
+          localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+        } catch (e) {}
+        _paintEntitiesUI({ withDataLoad: false });
+      }
+
+      // 4. Catégories alternatives
+      if (res.altCategories && res.altCategories.success) {
+        cachedAltCategories = res.altCategories.altCategories || [];
+        renderAltCategoriesList();
+        renderHistoryFilterChips();
+        if (activeDashboardUniverse === 'alt') renderCategoryChips();
+      }
+
+      // 5. Alt History Map
+      if (res.altHistoryMap && res.altHistoryMap.success) {
+        _cachedAltHistoryMap = res.altHistoryMap.map || {};
+        renderHistoryFilterChips();
+      }
+
+      // 6. Phrases & Presets
+      if (res.phrases && res.phrases.success) {
+        _customPhrases = res.phrases.phrases || [];
+      }
+      if (res.activePreset && res.activePreset.success) {
+        _activePreset = res.activePreset.preset || PHRASES_DEFAULT_ID;
+        renderPresetChips();
+        renderPhrasesEditorSection();
+      }
+
+      // 7. Quick Stats
+      if (res.quickStats && res.quickStats.success) {
+        renderQuickStatsBar(res.quickStats);
+      }
+
+      // 8. Chart Data
+      if (res.filteredData && res.filteredData.success && res.filteredData.chartData) {
+        const cd = res.filteredData.chartData;
+        _baseChartData = cd;
+        _lastFilterStartDate = '';
+        _lastFilterEndDate = '';
+        currentChartData = cd;
+        const skel = document.getElementById('chartSkeleton');
+        const wrap = document.getElementById('chartWrapper');
+        if (skel) skel.style.display = 'none';
+        if (wrap) wrap.style.display = 'block';
+        renderChart(cd, currentChartType);
+        renderChartControls(currentChartType);
+        const ranked = computeRankedTotals(cd);
+        renderPhrasesCard(ranked);
+        saveDashboardToCache(cd, res.quickStats, ranked);
+      }
+
+      // 9. Chat Messages
+      if (res.chatMessages && res.chatMessages.success) {
+        if (res.chatMessages.version !== undefined) _chatVersion = res.chatMessages.version;
+        _chatMessages = res.chatMessages.messages || [];
+        _chatMessages.forEach(m => _chatSeenIds.add(m.id));
+        _chatLoadedOnce = true;
+        renderChatMessages(true);
+      }
+
+      // 10. Secondary stats (Stats Hub)
+      setTimeout(refreshDashboardStats, 150);
+
+    }, 'Composite bootstrap', () => {
+      fallbackBootLoad();
+    });
+  }
+
+  function fallbackBootLoad() {
     const steps = [
-      ['identité',    renderWhoAmI],
       ['entités',     loadEntities],
       ['branding',    loadAppBranding],
-      // Delay the Dashboard's secondary stats by 150ms to avoid flooding
-      // Google Apps Script with parallel requests at startup.
       ['statistiques', () => setTimeout(refreshDashboardStats, 150)]
     ];
     steps.forEach(([label, step]) => {
       try {
         step();
       } catch (err) {
-        console.error('bootDataLoad/' + label, err);
+        console.error('fallbackBootLoad/' + label, err);
         showGlobalError('Échec du démarrage (' + label + ') : ' + ((err && err.message) || err));
       }
     });

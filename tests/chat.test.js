@@ -100,9 +100,35 @@ test('ChatService.getAllMessages marks replyToDeleted when the original message 
   assert.strictEqual(result.messages[0].replyToDeleted, true);
 });
 
+test('apiGetChatMessages supports differential polling with sinceVersion', () => {
+  const { gas, chat } = makeContext([
+    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
+    ['m1', new Date('2026-01-01'), 'Alice', 'Message initial', '']
+  ]);
+  const first = gas.apiGetChatMessages();
+  assert.strictEqual(first.success, true);
+  assert.strictEqual(first.messages.length, 1);
+  assert.ok(first.version !== undefined, 'version doit être fournie');
+
+  // Same version -> notModified: true
+  const second = gas.apiGetChatMessages(first.version);
+  assert.strictEqual(second.success, true);
+  assert.strictEqual(second.notModified, true);
+  assert.strictEqual(second.messages, undefined);
+
+  // After a new message is posted -> version changes -> notModified is false, messages returned
+  gas.apiPostChatMessage('Nouveau message', '', 'Bob');
+  const third = gas.apiGetChatMessages(first.version);
+  assert.strictEqual(third.success, true);
+  assert.strictEqual(third.notModified, undefined);
+  assert.strictEqual(third.messages.length, 2);
+  assert.notStrictEqual(third.version, first.version);
+});
+
 function ChatServiceMaxMessages() {
   // Garde le test synchronisé avec la constante réelle sans la dupliquer en dur :
   // relit MAX_MESSAGES depuis un contexte fraîchement chargé.
   const { loadGas: load } = require('./harness.js');
   return load().ChatService.MAX_MESSAGES;
 }
+

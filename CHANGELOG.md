@@ -4,6 +4,35 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.28.0] - 2026-09-05
+
+### Ajouté
+**Humanisé** : Accélération majeure du démarrage et de l'interactivité de l'application : le Dashboard s'affiche désormais instantanément dès l'ouverture grâce au cache local sans aucun temps de chargement visible. Le premier démarrage ne nécessite plus qu'une seule requête groupée au serveur au lieu de dix, et filtrer les joueurs ou catégories réagit instantanément (0 ms) sans recharger la page.
+**Technique** :
+- `Code.gs` & `Index.html` : endpoint composite `apiGetBootstrapData` agrégeant en 1 seul roundtrip RPC les 10 requêtes initiales (`navPages`, `appSettings`, `settings`, `altCategories`, `altHistoryMap`, `filteredData`, `quickStats`, `phrases`, `activePreset`, `chatMessages`), avec mécanisme de secours (`fallbackBootLoad`) et persistance `stale-while-revalidate` (`tdt_dashboard_cache` dans `localStorage`).
+- `Index.html` : filtrage in-memory côté client (`filterChartDataInMemory`) lors des clics sur les chips joueurs/catégories quand les dates restent inchangées, éliminant tout délai réseau.
+- `Index.html` : assemblage groupé du DOM par `DocumentFragment` dans `_renderHistoryPage` et `renderNotesBlocks`, supprimant les reflows multiples à chaque ligne.
+
+**Humanisé** : Préservation maximale des quotas Google Apps Script pour le tchat : le système vérifie désormais si de nouveaux messages existent avant de télécharger l'historique complet, et espace intelligemment ses vérifications lorsque le tchat est calme.
+**Technique** :
+- `Code.gs` & `Index.html` : implémentation du sondage différentiel par version dans `apiGetChatMessages(sinceVersion)` retournant `{ notModified: true }` quand aucun changement n'a eu lieu, et mémoisation des versions de script (`_getScriptProperty` / `_setScriptProperty`).
+- `Index.html` : algorithme de backoff adaptatif (4s à 12s volet ouvert, 20s à 60s volet fermé, pause complète en arrière-plan) réinitialisé à chaque message ou interaction.
+- `Code.gs` : allègement de `_recordCacheStat` avec compteurs de hit/miss en mémoire et respect strict de l'invariant `_cachePutChunked`.
+
+**Humanisé** : Allègement du moteur d'animation et du rendu : remplacement des dépendances externes lourdes par les animations natives des navigateurs, et fluidification du défilement.
+**Technique** :
+- `Index.html` : suppression de la dépendance externe CDN GSAP et remplacement intégral par l'API Web Animations native (`animateFadeSlideIn`, `animateFadeSlideOut`, `animateStagger`) pour les changements d'onglets et les volets statistiques.
+- `Index.html` : bridage par `requestAnimationFrame` de tous les écouteurs d'événements `mousemove` (`initSpotlightCards`, infobulles du graphique), éliminant tout layout thrashing.
+- `Index.html` : réduction de l'empreinte GPU des filtres graphiques (`backdrop-filter: blur(10px)` au lieu de 20px) et nettoyage de 16 classes CSS orphelines.
+
+### Corrigé
+**Humanisé** : Correction ergonomique complète de l'interface mobile :
+1. Les libellés de la barre de navigation inférieure ne sont plus tronqués (« Saisie », « Notes », « Historique », « Paramètres » s'affichent lisiblement et sans débordement).
+2. Disparition définitive des rectangles arrondis vides parasites qui flottaient au-dessus des courbes et barres du graphique.
+**Technique** :
+- `Code.gs` & `Index.html` : ajout de `shortLabel` dans `NAV_PAGES`, affichage réactif via double conteneur `.nav-label-full` / `.nav-label-short`, ajustement du padding à `5px 1px` et de la police à `0.62rem` avec espacement fin `-0.25px`.
+- `Index.html` : suppression définitive de `buildLegendBorderPlugin()` dont les calculs `legendHitBoxes` de Chart.js produisaient des bordures décalées sur les graphiques étroits ou mobiles.
+
 ## [v3.27.0] - 2026-09-05
 
 ### Ajouté

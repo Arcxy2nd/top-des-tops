@@ -43,12 +43,12 @@ function _generateGroupId() { return 'G' + Date.now() + '_' + Math.random().toSt
 // Outils (stab-tools). Le dupliquer en onglet principal n'ajoutait qu'un
 // raccourci redondant qui gonflait la barre de navigation.
 const NAV_PAGES = [
-  { id: 'tab-dashboard', icon: '📊', label: 'Dashboard' },
-  { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot' },
-  { id: 'tab-notes',     icon: '📝', label: 'Notes', countId: 'notesCount' },
-  { id: 'tab-history',   icon: '📜', label: 'Historique', countId: 'historyCount' },
-  { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres' },
-  { id: 'tab-guide',     icon: '❓', label: 'Guide' },
+  { id: 'tab-dashboard', icon: '📊', label: 'Dashboard', shortLabel: 'Dashboard' },
+  { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot', shortLabel: 'Saisie' },
+  { id: 'tab-notes',     icon: '📝', label: 'Notes', shortLabel: 'Notes', countId: 'notesCount' },
+  { id: 'tab-history',   icon: '📜', label: 'Historique', shortLabel: 'Historique', countId: 'historyCount' },
+  { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres', shortLabel: 'Paramètres' },
+  { id: 'tab-guide',     icon: '❓', label: 'Guide', shortLabel: 'Guide' },
 ];
 
 function apiGetNavPages() {
@@ -155,14 +155,29 @@ function _cacheGetChunked(cache, key) {
   return result;
 }
 
+let _memCacheHits = null;
+let _memCacheMisses = null;
+
 function _recordCacheStat(cache, hit) {
   try {
     const key = hit ? 'stat_cache_hits' : 'stat_cache_misses';
-    const current = parseInt(cache.get(key) || '0', 10);
+    let current;
+    if (hit) {
+      if (_memCacheHits === null) {
+        _memCacheHits = parseInt(cache.get(key) || '0', 10);
+      }
+      _memCacheHits++;
+      current = _memCacheHits;
+    } else {
+      if (_memCacheMisses === null) {
+        _memCacheMisses = parseInt(cache.get(key) || '0', 10);
+      }
+      _memCacheMisses++;
+      current = _memCacheMisses;
+    }
     // Routed through _cachePutChunked (never a raw cache.put) to keep the
-    // codebase-wide invariant that every write goes through the byte-length
-    // guard, even though this particular payload is always a tiny integer.
-    _cachePutChunked(cache, key, String(current + 1), 21600); // 6h — Apps Script's own cache TTL ceiling
+    // codebase-wide invariant that every write goes through the byte-length guard
+    _cachePutChunked(cache, key, String(current), 21600);
   } catch (_) {}
 }
 
@@ -449,62 +464,83 @@ function fail(e) {
   return { success: false, error: message };
 }
 
+// ─── SCRIPT PROPERTIES MEMOIZATION ──────────────────────────────────────────────
+let _scriptPropertiesCache = null;
+
+function _getScriptProperty(key) {
+  if (!_scriptPropertiesCache) {
+    try {
+      _scriptPropertiesCache = PropertiesService.getScriptProperties().getProperties() || {};
+    } catch (e) {
+      _scriptPropertiesCache = {};
+    }
+  }
+  return _scriptPropertiesCache[key] || null;
+}
+
+function _setScriptProperty(key, val) {
+  if (!_scriptPropertiesCache) {
+    try {
+      _scriptPropertiesCache = PropertiesService.getScriptProperties().getProperties() || {};
+    } catch (e) {
+      _scriptPropertiesCache = {};
+    }
+  }
+  const strVal = String(val);
+  _scriptPropertiesCache[key] = strVal;
+  PropertiesService.getScriptProperties().setProperty(key, strVal);
+}
+
 // ─── LOGS CACHE VERSIONING ───────────────────────────────────────────────────────
 // getAllLogs is cached across requests via CacheService. Every successful mutation
 // bumps this version, which changes the cache key, so a reader can never be served
 // stale data after a write.
 function _logsVersion() {
-  return PropertiesService.getScriptProperties().getProperty('logs_version') || '0';
+  return _getScriptProperty('logs_version') || '0';
 }
 function _bumpLogsVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('logs_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('logs_version', String(next));
+  const next = (parseInt(_getScriptProperty('logs_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('logs_version', String(next));
 }
 
 function _settingsVersion() {
-  return PropertiesService.getScriptProperties().getProperty('settings_version') || '0';
+  return _getScriptProperty('settings_version') || '0';
 }
 function _bumpSettingsVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('settings_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('settings_version', String(next));
+  const next = (parseInt(_getScriptProperty('settings_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('settings_version', String(next));
 }
 
 function _chatVersion() {
-  return PropertiesService.getScriptProperties().getProperty('chat_version') || '0';
+  return _getScriptProperty('chat_version') || '0';
 }
 function _bumpChatVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('chat_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('chat_version', String(next));
+  const next = (parseInt(_getScriptProperty('chat_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('chat_version', String(next));
 }
 
 function _baremeVersion() {
-  return PropertiesService.getScriptProperties().getProperty('bareme_version') || '0';
+  return _getScriptProperty('bareme_version') || '0';
 }
 function _bumpBaremeVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('bareme_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('bareme_version', String(next));
+  const next = (parseInt(_getScriptProperty('bareme_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('bareme_version', String(next));
 }
 
 function _phrasesVersion() {
-  return PropertiesService.getScriptProperties().getProperty('phrases_version') || '0';
+  return _getScriptProperty('phrases_version') || '0';
 }
 function _bumpPhrasesVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('phrases_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('phrases_version', String(next));
+  const next = (parseInt(_getScriptProperty('phrases_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('phrases_version', String(next));
 }
 
 function _notesVersion() {
-  return PropertiesService.getScriptProperties().getProperty('notes_version') || '0';
+  return _getScriptProperty('notes_version') || '0';
 }
 function _bumpNotesVersion() {
-  const p = PropertiesService.getScriptProperties();
-  const next = (parseInt(p.getProperty('notes_version') || '0', 10) + 1) % 1000000000;
-  p.setProperty('notes_version', String(next));
+  const next = (parseInt(_getScriptProperty('notes_version') || '0', 10) + 1) % 1000000000;
+  _setScriptProperty('notes_version', String(next));
 }
 
 // ─── AUDIT SERVICE ─────────────────────────────────────────────────────────────
@@ -3585,10 +3621,36 @@ function apiEditNote(rowIndex, newText, author, password) {
 
 // ── Tchat ───────────────────────────────────────────────────────────────────────
 
-function apiGetChatMessages() {
+function apiGetChatMessages(sinceVersion) {
   try {
+    const currentVersion = _chatVersion();
+    if (sinceVersion !== undefined && sinceVersion !== null && String(sinceVersion) === String(currentVersion)) {
+      return { success: true, notModified: true, version: currentVersion };
+    }
     const result = ChatService.getAllMessages();
-    return { success: true, messages: result.messages };
+    return { success: true, messages: result.messages, version: currentVersion };
+  } catch(e) { return fail(e); }
+}
+
+// ── Composite de Démarrage ──────────────────────────────────────────────────────
+function apiGetBootstrapData() {
+  try {
+    const safe = (fn, fallback) => {
+      try { return fn(); } catch (err) { return fallback !== undefined ? fallback : { success: false, error: (err && err.message) || String(err) }; }
+    };
+    return {
+      success: true,
+      navPages:      safe(() => apiGetNavPages(), { success: true, pages: NAV_PAGES }),
+      appSettings:   safe(() => apiGetAppSettings(), { success: true }),
+      settings:      safe(() => apiGetSettings(), { success: true, players: [], categories: [] }),
+      altCategories: safe(() => apiGetAltCategories(), { success: true, altCategories: [] }),
+      altHistoryMap: safe(() => apiGetAltHistoryMap(), { success: true, map: {} }),
+      filteredData:  safe(() => apiGetFilteredData([], [], '', ''), { success: true, chartData: { labels: [], datasets: [] } }),
+      quickStats:    safe(() => apiGetQuickStats(), { success: true }),
+      phrases:       safe(() => apiGetPhrases(), { success: true, phrases: [] }),
+      activePreset:  safe(() => apiGetActivePhrasePreset(), { success: true, preset: 'default' }),
+      chatMessages:  safe(() => apiGetChatMessages(), { success: true, messages: [] })
+    };
   } catch(e) { return fail(e); }
 }
 
