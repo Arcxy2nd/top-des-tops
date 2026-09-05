@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.26.3] - 2026-09-05
+
+### Supprimé
+**Humanisé** : Le bouton « ＋ Saisir Alt » superflu a été retiré du bandeau de sélection d'univers du Dashboard.
+**Technique** : `Index.html` — suppression de l'élément `#dashAltAddBtn`, des écouteurs et bascules de visibilité associés dans `univMainBtn`/`univAltBtn`, ainsi que de la fonction `openAltNativeQuickAddModal` et des styles CSS `.qa-field`/`.qa-input` devenus obsolètes.
+
 ## [v3.26.2] - 2026-09-04
 
 ### Corrigé

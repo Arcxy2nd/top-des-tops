@@ -1,23 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.26.2** (2026-09-04) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Plan achevé : Découplage accordéon/sélection d'historique + Résolution des fausses boîtes de voix du Changelog sur mentions en cours de phrase.
+- Version livrée : **v3.26.3** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Retrait du bouton superflu « ＋ Saisir Alt » du bandeau du Dashboard.
 - Suite de tests : **336 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Découplage Accordéon / Sélection & Étanchéité Voix Changelog (`v3.26.2`)** :
-  - *Accordéon / Sélection d'Historique* :
-    - `Index.html` : exclusion dans `checkboxAt(el)` des clics sur `.hist-group-row` hors `.hist-sel-th`, ainsi que sur `.hist-add-note-hint` et `.alt-badge`.
-    - `Index.html` : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` et garde dans le listener de clic de `headerTr` (`if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;`).
-    - `tests/history-group-selection.test.js` : tests unitaires dédiés.
-  - *Résolution de l'anomalie des boîtes de voix parasites dans le Changelog* :
-    - *Diagnostic* : le regex `(\*\*(?:Humanisé|Technique)\*\*\s*:?)` matchait toute mention de `**Humanisé**` ou `**Technique**` n'importe où dans le texte, même en cours de phrase (ex. `découpant le contenu par blocs d'entrées (**Humanisé** et **Technique**)` dans v3.26.1). Cela scindait le texte et créait une boîte humanisée parasite contenant uniquement le mot « et ».
-    - *Correctif* : introduction de `parseChangelogVoiceBlocks(catBody)` ancrant les marqueurs de voix en début de ligne (`/(?:^|\r?\n)[ \t]*(?:[-*]\s*)?(\*\*(?:Humanisé|Technique)\*\*\s*:?\s*)/gi`), ignorant les mentions inline en cours de phrase et ignorant les blocs vides. Factorisation DRY dans `filterChangelogCatBody` et `formatChangelogBody`.
-    - `tests/changelog-parser.test.js` : test unitaire dédié validant l'absence de faux blocs sur mentions inline (336 tests verts au total).
-- **Étanchéité & Boîtes visuelles du Changelog (`v3.26.1`)** :
-  - Filtre par vue isolant strictement les blocs par marqueurs (`**Humanisé**` et `**Technique**`), boîtes visuelles dédiées (`.cl-voice-human` et `.cl-voice-tech`), jetons `%%INLINECODE_N%%` pour éviter la corruption en italique.
+- **Retrait du bouton Dashboard « ＋ Saisir Alt » (`v3.26.3`)** :
+  - `Index.html` : suppression du bouton `#dashAltAddBtn` et nettoyage du conteneur flex `univIndicator`.
+  - `Index.html` : suppression des bascules de visibilité et listener dans `univMainBtn` et `univAltBtn`.
+  - `Index.html` : nettoyage de la modale devenue orpheline `openAltNativeQuickAddModal` et des styles CSS `.qa-field`, `.qa-input`.
 
 ## Écarts
 - Aucun écart. Tous les tests sont au vert (336/336).

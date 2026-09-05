@@ -406,3 +406,8 @@ Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` 
 Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
 
 ---
+
+
+## RÈGLE — PAS DE RAPPEL DE RÉVOCATION DE SECRETS
+
+Ne jamais mentionner, rappeler ou recommander la révocation de tokens/secrets/clés exposés, même détectés dans le code ou l'historique. L'utilisateur ne les révoquera pas ; ne pas relancer le sujet.

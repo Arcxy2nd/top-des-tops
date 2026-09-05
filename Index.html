@@ -1120,10 +1120,6 @@
       margin: -4px 0 10px; padding: 0 16px;
     }
     .tool-action-result a { color: var(--info); font-weight: 600; }
-    .qa-field, .qa-input {
-      min-height: var(--tap-min);
-      box-sizing: border-box;
-    }
     .chart-state {
       display: none;
       min-height: 420px;
@@ -4452,11 +4448,8 @@
         <button type="button" class="d-mode-btn active" id="univMainBtn">🏆 Tops Principaux</button>
         <button type="button" class="d-mode-btn" id="univAltBtn">⭐ Tops Alternatifs</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div id="univIndicator" style="font-size:0.8rem; font-weight:700; color:var(--accent);">
-          Mode actif : Tops Principaux
-        </div>
-        <button type="button" id="dashAltAddBtn" class="primary small" style="display:none;" title="Saisir des points directement dans un Top Alternatif">＋ Saisir Alt</button>
+      <div id="univIndicator" style="font-size:0.8rem; font-weight:700; color:var(--accent);">
+        Mode actif : Tops Principaux
       </div>
     </div>
 
@@ -9709,90 +9702,6 @@
     renderList();
   }
 
-  /**
-   * Modale légère de saisie rapide d'un point natif dans un Top Alternatif,
-   * accessible depuis le bouton ＋ Saisir Alt du Dashboard en mode Alt.
-   */
-  function openAltNativeQuickAddModal(prefillAltCategory) {
-    if (!requireIdentity()) return;
-    if (!cachedAltCategories.length) {
-      showToast('Aucun Top Alternatif configuré. Ajoutez-en dans Paramètres → ⭐ Tops Alternatifs.', 'error');
-      return;
-    }
-    const box = document.getElementById('modalBox');
-    box.classList.remove('wide', 'xl');
-
-    const today = toDateStr(new Date());
-
-    box.innerHTML = `
-      <h3>⭐ Saisir des points Alt</h3>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:-6px;margin-bottom:16px;">
-        Ces points seront enregistrés <strong>uniquement</strong> dans le classement Alternatif.
-      </p>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div>
-          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Joueur</label>
-          <div id="qaPlayerHost" class="rs-host qa-field"></div>
-        </div>
-        <div>
-          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Top Alternatif</label>
-          <div id="qaAltCatHost" class="rs-host qa-field"></div>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <div style="flex:1;">
-            <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Points</label>
-            <input id="qaPtsInput" class="qa-input" type="number" min="1" value="1" inputmode="numeric"
-              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-weight:700;box-sizing:border-box;">
-          </div>
-          <div style="flex:1;">
-            <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Date</label>
-            <input id="qaDateInput" class="qa-input" type="date" value="${today}"
-              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
-          </div>
-        </div>
-        <div>
-          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Description <span style="opacity:0.6;">(optionnelle)</span></label>
-          <input id="qaDescInput" class="qa-input" type="text" placeholder="Contexte, détail…"
-            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);box-sizing:border-box;">
-        </div>
-      </div>
-      <div class="modal-actions" style="margin-top:18px;">
-        <button id="qaConfirmBtn" class="primary">⭐ Enregistrer</button>
-        <button id="qaCancelBtn" class="secondary">Annuler</button>
-      </div>
-    `;
-
-    openModal();
-
-    let qaPlayer = (cachedPlayers[0] && cachedPlayers[0].name) || '';
-    let qaAltCat = prefillAltCategory || (cachedAltCategories[0] && cachedAltCategories[0].name) || '';
-
-    document.getElementById('qaPlayerHost').appendChild(buildRichSelect({
-      type: 'player', value: qaPlayer, onChange: v => { qaPlayer = v || ''; }
-    }));
-    document.getElementById('qaAltCatHost').appendChild(buildRichSelect({
-      type: 'altCategory', value: qaAltCat, onChange: v => { qaAltCat = v || ''; }
-    }));
-
-    document.getElementById('qaCancelBtn').onclick = closeModal;
-
-    document.getElementById('qaConfirmBtn').onclick = () => {
-      const pts  = parseInt(document.getElementById('qaPtsInput').value, 10);
-      const date = document.getElementById('qaDateInput').value || today;
-      const desc = document.getElementById('qaDescInput').value.trim();
-
-      if (!qaPlayer)             { showToast('Joueur requis.', 'error'); return; }
-      if (!qaAltCat)             { showToast('Top Alternatif requis.', 'error'); return; }
-      if (isNaN(pts) || pts < 1) { showToast('Points invalides (≥ 1 requis).', 'error'); return; }
-
-      const btn = document.getElementById('qaConfirmBtn');
-      saveNativeAltEntries(
-        [{ player: qaPlayer, altCategory: qaAltCat, points: pts, date: date, description: desc, saiseur: _whoAmI || '' }],
-        btn,
-        () => closeModal()
-      );
-    };
-  }
 
   function openAltCategoryManagerModal(altCategoryName) {
 
@@ -17747,7 +17656,6 @@
 
     const univMainBtn = document.getElementById('univMainBtn');
     const univAltBtn  = document.getElementById('univAltBtn');
-    const dashAltAddBtn = document.getElementById('dashAltAddBtn');
     if (univMainBtn && univAltBtn) {
       univMainBtn.addEventListener('click', () => {
         if (activeDashboardUniverse === 'main') return;
@@ -17755,7 +17663,6 @@
         univMainBtn.classList.add('active');
         univAltBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : Tops Principaux';
-        if (dashAltAddBtn) dashAltAddBtn.style.display = 'none';
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
@@ -17767,15 +17674,11 @@
         univAltBtn.classList.add('active');
         univMainBtn.classList.remove('active');
         document.getElementById('univIndicator').textContent = 'Mode actif : ⭐ Tops Alternatifs';
-        if (dashAltAddBtn) dashAltAddBtn.style.display = '';
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
         refreshDashboardStats();
       });
-    }
-    if (dashAltAddBtn) {
-      dashAltAddBtn.addEventListener('click', () => openAltNativeQuickAddModal());
     }
 
 
