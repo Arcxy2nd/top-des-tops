@@ -503,8 +503,8 @@
       border-radius: var(--radius-lg); padding: 10px; min-width: 230px;
       box-shadow: var(--glass-shadow); z-index: 9999;
       flex-direction: column; gap: 4px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .who-am-i-wrap.open .who-am-i-dropdown { display: flex; animation: fadeIn 0.15s ease; }
     .who-am-i-header {
@@ -719,8 +719,8 @@
       border-radius: 18px; 
       padding: 22px; 
       margin-bottom: 22px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
     }
     body.light .filter-panel {
@@ -875,15 +875,6 @@
       border-radius: 8px; border: 1px solid var(--border);
       margin-bottom: 8px; transition: border-color 0.2s;
     }
-    .entry-row .d-in { width: 100%; min-width: 130px; }
-    /* Bouton-date d'une ligne (ouvre l'éditeur jour unique / plage). */
-    .entry-row .d-btn {
-      width: 100%; min-width: 150px; justify-content: flex-start;
-      font-weight: 600; white-space: normal; text-align: left;
-      background: var(--bg); border: 1px solid var(--border);
-    }
-    .entry-row .d-btn:hover { border-color: var(--accent); }
-    /* Cellule date d'une ligne : début + fin optionnelle (Du → Au) */
     /* Bascule Répartir / Répéter */
     .seg-toggle { display: inline-flex; gap: 6px; margin: 6px 0; }
     .seg-btn {
@@ -1008,9 +999,6 @@
     .d-period {
       display: none; flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;
     }
-    /* Compatibilité — .row-top est gardé pour les éventuels sélecteurs CSS existants */
-    .row-top { display: contents; }
-
     .player-sel-wrap {
       display: flex; align-items: center; gap: 7px;
       background: var(--bg); border: 1px solid var(--border);
@@ -1018,7 +1006,6 @@
     }
     .player-sel-wrap:focus-within { border-color: var(--accent); }
     .player-sel-wrap select { border: none; background: transparent; padding: 10px 0; flex: 1; outline: none; }
-    .row-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--btn-alt); }
     #entryContainer { min-height: 60px; }
     /* Clears the sticky #lotSummaryBar below so it never overlaps the last
        row's controls while scrolling through a long lot (2+ rows). */
@@ -1391,7 +1378,6 @@
       display: flex; align-items: center; gap: 8px;
       margin-bottom: 6px; flex-wrap: wrap;
     }
-    .note-card-head .note-player { font-weight: 700; }
     .note-card-head .note-date {
       font-size: 0.75rem; color: var(--text-muted); margin-left: auto;
     }
@@ -1707,8 +1693,8 @@
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: -12px 0 40px rgba(0,0,0,0.5);
       padding-top: env(safe-area-inset-top);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .bareme-drawer.open { transform: translateX(0); }
 
@@ -2689,11 +2675,6 @@
       cursor: pointer;
     }
 
-    /* Avatar avec anneau couleur joueur */
-    .row-avatar {
-      box-shadow: 0 0 0 2.5px var(--player-ring, var(--btn-alt));
-      transition: box-shadow 0.22s;
-    }
     /* Avatar fondu en arrière-plan de la ligne */
     .row-avatar-bg {
       position: absolute; right: 0; top: 0; bottom: 0; width: 160px;
@@ -4074,35 +4055,49 @@
     z-index: 9000;
     align-items: center;
     justify-content: space-around;
-    padding: 0 4px;
+    padding: 0 2px;
     padding-bottom: env(safe-area-inset-bottom);
     box-sizing: border-box;
   }
   .mobile-bottom-nav .nav-btn {
-    flex-direction: column; padding: 5px 1px; min-height: auto;
+    flex-direction: column; padding: 4px 1px; min-height: auto;
     border: none; background: transparent;
     border-top: 3px solid transparent;
     flex: 1 1 0; min-width: 0; gap: 2px;
     color: var(--text-muted); font-size: 0.88rem; font-weight: 600;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    position: relative;
   }
   .mobile-bottom-nav .nav-btn.active {
     border-top-color: var(--accent);
     background: rgba(255, 71, 87, 0.08);
-    color: var(--accent); font-weight: 700;
+    color: var(--accent);
   }
-  .mobile-bottom-nav .nav-btn .nav-btn-icon { font-size: 1.15rem; line-height: 1; }
+  .mobile-bottom-nav .nav-btn .nav-btn-icon { font-size: 1.1rem; line-height: 1; }
   .mobile-bottom-nav .nav-btn-label {
     display: block !important; max-width: 100% !important;
-    opacity: 0.85; font-size: 0.62rem; font-weight: 700;
-    letter-spacing: -0.25px;
+    opacity: 0.85; font-size: clamp(0.52rem, 2.2vw, 0.60rem); font-weight: 600;
+    letter-spacing: -0.3px;
     margin-left: 0 !important; text-align: center; line-height: 1.1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    width: 100%; box-sizing: border-box;
   }
   .mobile-bottom-nav .nav-label-full { display: none; }
   .mobile-bottom-nav .nav-label-short { display: inline; }
-  .mobile-bottom-nav .nav-btn.active .nav-btn-label { opacity: 1; color: var(--accent); }
+  .mobile-bottom-nav .nav-btn.active .nav-btn-label { opacity: 1; color: var(--accent); font-weight: 700; }
+  .mobile-bottom-nav .nav-count {
+    position: absolute;
+    top: 2px;
+    right: calc(50% - 18px);
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    min-width: 14px;
+    line-height: 1.1;
+    border-radius: 8px;
+    margin-left: 0;
+  }
 
   /* ── Disposition générale mode mobile ── */
   body.mobile-layout .container, body:not(.desktop-layout).on-mobile .container { max-width: 600px; margin: 12px auto; padding: 0 10px 85px; }
@@ -8016,13 +8011,15 @@
     if (_chatPanelOpen) closeChatPanel(); else openChatPanel();
   }
 
-  function initChatWidget() {
+  function initChatWidget(opts = {}) {
+    const skipInitialLoad = !!opts.skipInitialLoad;
     const btn = document.getElementById('chatToggleBtn');
     const closeBtn = document.getElementById('chatPanelClose');
     const sendBtn = document.getElementById('chatSendBtn');
     const input = document.getElementById('chatInput');
     const replyCancelBtn = document.getElementById('chatReplyBannerCancel');
     const messagesEl = document.getElementById('chatMessages');
+    const panel = document.getElementById('chatPanel');
     if (btn) btn.addEventListener('click', toggleChatPanel);
     if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
     if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
@@ -8040,8 +8037,14 @@
       });
     }
     if (localStorage.getItem(CHAT_PANEL_OPEN_KEY) === '1' && btn && getComputedStyle(btn).display !== 'none') {
-      openChatPanel();
-    } else {
+      if (!skipInitialLoad) {
+        openChatPanel();
+      } else {
+        _chatPanelOpen = true;
+        if (panel) panel.classList.add('open');
+        btn.classList.add('active');
+      }
+    } else if (!skipInitialLoad) {
       loadChat();
     }
     scheduleChatPoll();
@@ -10585,11 +10588,12 @@
     let datasets = base.datasets;
     if (selCategories && selCategories.length) {
       const catSet = new Set(selCategories);
-      datasets = datasets.filter(ds => catSet.has(ds.label));
+      datasets = datasets.filter(ds => catSet.has(ds._catName || ds.label));
     }
 
     const filteredDatasets = datasets.map(ds => ({
       ...ds,
+      _catName: ds._catName || ds.label,
       data: playerIndices.map(idx => (ds.data && ds.data[idx] !== undefined) ? ds.data[idx] : 0)
     }));
 
@@ -15802,7 +15806,14 @@
 
     flash.appendChild(chipRow);
     flash.appendChild(inputRow);
-    container.appendChild(flash);
+
+    const blocksContainer = document.createElement('div');
+    blocksContainer.id = 'notesBlocksContainer';
+
+    const frag = document.createDocumentFragment();
+    frag.appendChild(flash);
+    frag.appendChild(blocksContainer);
+    container.appendChild(frag);
 
     _allNotesRaw = notes;
 
@@ -15814,10 +15825,6 @@
         renderNotesBlocks();
       };
     }
-
-    const blocksContainer = document.createElement('div');
-    blocksContainer.id = 'notesBlocksContainer';
-    container.appendChild(blocksContainer);
 
     renderNotesBlocks();
   }
@@ -17186,10 +17193,16 @@
   }
 
   // ── NAVIGATION ───────────────────────────────────────────────────────
-  // NAV_PAGES n'est plus une constante locale : elle vient du serveur
-  // (apiGetNavPages, source commune avec Mobile.html) pour qu'ajouter/retirer un
-  // onglet ne nécessite qu'une seule modification, côté Code.gs.
-  let NAV_PAGES = [];
+  // NAV_PAGES est initialisé avec la structure par défaut afin d'assurer
+  // un rendu immédiat sans attendre le réseau (mis à jour par le bootstrap composite).
+  let NAV_PAGES = [
+    { id: 'tab-dashboard', icon: '📊', label: 'Dashboard', shortLabel: 'Dashboard' },
+    { id: 'tab-inject',    icon: '✍️', label: 'Saisir un Lot', shortLabel: 'Saisie' },
+    { id: 'tab-notes',     icon: '📝', label: 'Notes', shortLabel: 'Notes', countId: 'notesCount' },
+    { id: 'tab-history',   icon: '📜', label: 'Historique', shortLabel: 'Historique', countId: 'historyCount' },
+    { id: 'tab-settings',  icon: '⚙️', label: 'Paramètres', shortLabel: 'Paramètres' },
+    { id: 'tab-guide',     icon: '❓', label: 'Guide', shortLabel: 'Guide' },
+  ];
 
   function navButtonHtml(page, extraClass) {
     const countSpan = page.countId ? '<span class="nav-count" id="' + page.countId + '"></span>' : '';

@@ -162,6 +162,7 @@ function gasMocks() {
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: k => (k in propStore ? propStore[k] : null),
+        getProperties: () => Object.assign({}, propStore),
         setProperty: (k, v) => { propStore[k] = String(v); }
       })
     },

@@ -407,7 +407,7 @@ const ConfigService = (() => {
     }
   };
 
-  const clearCache = () => { _cache = null; _logsCache = null; _clearHeaderOffsetMemo(); };
+  const clearCache = () => { _cache = null; _logsCache = null; _clearHeaderOffsetMemo(); _scriptPropertiesCache = null; _memCacheHits = null; _memCacheMisses = null; };
   const getLogsCache = () => _logsCache;
   const setLogsCache = v => { _logsCache = v; };
 
@@ -470,25 +470,52 @@ let _scriptPropertiesCache = null;
 function _getScriptProperty(key) {
   if (!_scriptPropertiesCache) {
     try {
-      _scriptPropertiesCache = PropertiesService.getScriptProperties().getProperties() || {};
+      const sp = PropertiesService.getScriptProperties();
+      if (sp && typeof sp.getProperties === 'function') {
+        _scriptPropertiesCache = sp.getProperties() || {};
+      } else {
+        _scriptPropertiesCache = {};
+      }
     } catch (e) {
       _scriptPropertiesCache = {};
     }
   }
-  return _scriptPropertiesCache[key] || null;
+  if (_scriptPropertiesCache && Object.prototype.hasOwnProperty.call(_scriptPropertiesCache, key)) {
+    return _scriptPropertiesCache[key];
+  }
+  try {
+    const sp = PropertiesService.getScriptProperties();
+    const val = sp && typeof sp.getProperty === 'function' ? sp.getProperty(key) : null;
+    if (_scriptPropertiesCache && val !== null && val !== undefined) {
+      _scriptPropertiesCache[key] = String(val);
+    }
+    return val !== null && val !== undefined ? String(val) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 function _setScriptProperty(key, val) {
   if (!_scriptPropertiesCache) {
     try {
-      _scriptPropertiesCache = PropertiesService.getScriptProperties().getProperties() || {};
+      const sp = PropertiesService.getScriptProperties();
+      if (sp && typeof sp.getProperties === 'function') {
+        _scriptPropertiesCache = sp.getProperties() || {};
+      } else {
+        _scriptPropertiesCache = {};
+      }
     } catch (e) {
       _scriptPropertiesCache = {};
     }
   }
   const strVal = String(val);
   _scriptPropertiesCache[key] = strVal;
-  PropertiesService.getScriptProperties().setProperty(key, strVal);
+  try {
+    PropertiesService.getScriptProperties().setProperty(key, strVal);
+  } catch (e) {
+    delete _scriptPropertiesCache[key];
+    throw e;
+  }
 }
 
 // ─── LOGS CACHE VERSIONING ───────────────────────────────────────────────────────
