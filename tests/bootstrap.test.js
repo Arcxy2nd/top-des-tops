@@ -67,3 +67,14 @@ test('apiGetBootstrapData gracefully catches individual endpoint failures withou
   assert.ok(res.settings && res.settings.success);
 });
 
+test('Index.html defines renderQuickStatsBar and boot sequence uses it safely', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  assert.ok(html.includes('function renderQuickStatsBar('), 'renderQuickStatsBar doit être définie dans Index.html');
+  assert.ok(html.includes('renderQuickStatsBar(res.quickStats)'), 'le bootstrap composite doit appeler renderQuickStatsBar');
+  assert.ok(html.includes('renderQuickStatsBar(cached.quickStats)'), 'la restauration du cache doit appeler renderQuickStatsBar');
+});
+
+

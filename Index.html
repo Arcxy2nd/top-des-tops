@@ -6118,64 +6118,95 @@
     return 'il y a ' + days + 'j';
   }
 
-  function loadQuickStats() {
-    const leaderValue = document.getElementById('qsLeaderValue');
+  function renderQuickStatsBar(data) {
+    if (!data) return;
+    const s = (data && data.stats) ? data.stats : data;
+    if (!s || typeof s !== 'object') return;
+
+    const leaderValue  = document.getElementById('qsLeaderValue');
     const gapValue     = document.getElementById('qsGapValue');
     const monthValue   = document.getElementById('qsMonthValue');
     const lastValue    = document.getElementById('qsLastValue');
     const recordValue  = document.getElementById('qsRecordValue');
-    [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => skeletonizeText(el, 60));
+    const leaderAvatar = document.getElementById('qsLeaderAvatar');
+    const lastAvatar   = document.getElementById('qsLastAvatar');
+    const recordAvatar = document.getElementById('qsRecordAvatar');
 
-    callServer('apiGetQuickStats', ['main'], res => {
-      const s = res.stats;
-      const leaderAvatar = document.getElementById('qsLeaderAvatar');
-      const lastAvatar   = document.getElementById('qsLastAvatar');
-      const recordAvatar = document.getElementById('qsRecordAvatar');
-      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => unskeletonizeText(el));
+    [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && unskeletonizeText(el));
 
+    if (leaderValue) {
       if (s.leader) {
-        const p = cachedPlayers.find(pl => pl.name === s.leader.player);
-        leaderAvatar.src = getAvatarUrl(s.leader.player, p ? p.meta : '');
-        leaderAvatar.onerror = () => { leaderAvatar.src = getAvatarUrl(s.leader.player, ''); };
-        leaderAvatar.style.display = '';
+        if (leaderAvatar) {
+          const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.leader.player) : null;
+          leaderAvatar.src = getAvatarUrl(s.leader.player, p ? p.meta : '');
+          leaderAvatar.onerror = () => { leaderAvatar.src = getAvatarUrl(s.leader.player, ''); };
+          leaderAvatar.style.display = '';
+        }
         leaderValue.textContent = s.leader.player + ' · ' + s.leader.points + ' pts';
       } else {
-        leaderAvatar.style.display = 'none';
+        if (leaderAvatar) leaderAvatar.style.display = 'none';
         leaderValue.textContent = 'Pas encore de scores';
       }
+    }
 
-      if (s.gap === null) {
+    if (gapValue) {
+      if (s.gap === null || s.gap === undefined) {
         gapValue.textContent = '—';
       } else if (s.gap === 0) {
         gapValue.textContent = s.chaser ? 'Égalité avec ' + s.chaser.player : 'Égalité';
       } else {
         gapValue.textContent = s.gap + ' pts' + (s.chaser ? ' devant ' + s.chaser.player : '');
       }
-      monthValue.textContent = s.monthCount + ' entrée' + (s.monthCount > 1 ? 's' : '');
+    }
 
+    if (monthValue) {
+      const mc = s.monthCount || 0;
+      monthValue.textContent = mc + ' entrée' + (mc > 1 ? 's' : '');
+    }
+
+    if (lastValue) {
       if (s.lastEvent) {
-        const p = cachedPlayers.find(pl => pl.name === s.lastEvent.player);
-        lastAvatar.src = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
-        lastAvatar.onerror = () => { lastAvatar.src = getAvatarUrl(s.lastEvent.player, ''); };
-        lastAvatar.style.display = '';
-        lastValue.textContent = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + timeAgo(new Date(s.lastEvent.date));
+        if (lastAvatar) {
+          const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.lastEvent.player) : null;
+          lastAvatar.src = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
+          lastAvatar.onerror = () => { lastAvatar.src = getAvatarUrl(s.lastEvent.player, ''); };
+          lastAvatar.style.display = '';
+        }
+        lastValue.textContent = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + (s.lastEvent.date ? timeAgo(new Date(s.lastEvent.date)) : '');
       } else {
-        lastAvatar.style.display = 'none';
+        if (lastAvatar) lastAvatar.style.display = 'none';
         lastValue.textContent = 'Aucun événement';
       }
+    }
 
+    if (recordValue) {
       if (s.globalBest) {
-        const p = cachedPlayers.find(pl => pl.name === s.globalBest.player);
-        recordAvatar.src = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
-        recordAvatar.onerror = () => { recordAvatar.src = getAvatarUrl(s.globalBest.player, ''); };
-        recordAvatar.style.display = '';
+        if (recordAvatar) {
+          const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.globalBest.player) : null;
+          recordAvatar.src = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
+          recordAvatar.onerror = () => { recordAvatar.src = getAvatarUrl(s.globalBest.player, ''); };
+          recordAvatar.style.display = '';
+        }
         recordValue.textContent = s.globalBest.player + ' · ' + s.globalBest.points + ' pts';
       } else {
-        recordAvatar.style.display = 'none';
+        if (recordAvatar) recordAvatar.style.display = 'none';
         recordValue.textContent = 'Aucun record';
       }
+    }
+  }
+
+  function loadQuickStats() {
+    const leaderValue = document.getElementById('qsLeaderValue');
+    const gapValue     = document.getElementById('qsGapValue');
+    const monthValue   = document.getElementById('qsMonthValue');
+    const lastValue    = document.getElementById('qsLastValue');
+    const recordValue  = document.getElementById('qsRecordValue');
+    [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && skeletonizeText(el, 60));
+
+    callServer('apiGetQuickStats', ['main'], res => {
+      renderQuickStatsBar(res);
     }, 'Chargement résumé', err => {
-      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => unskeletonizeText(el));
+      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && unskeletonizeText(el));
     });
   }
 
@@ -19443,6 +19474,16 @@
   // et repli gracieux par requêtes individuelles si nécessaire.
   function bootDataLoad() {
     try { renderWhoAmI(); } catch (e) { console.error('bootDataLoad/identité', e); }
+
+    // Pré-remplissage des entités depuis le cache pour affichage instantané
+    try {
+      const cachedSettings = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
+      if (cachedSettings && cachedSettings.players && cachedSettings.categories) {
+        cachedPlayers    = cachedSettings.players;
+        cachedCategories = cachedSettings.categories;
+        _paintEntitiesUI({ withDataLoad: false });
+      }
+    } catch (e) {}
 
     // Restauration immédiate du dashboard sans skeleton
     restoreDashboardFromCache();

@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.28.1] - 2026-09-06
+
+### Corrigé
+**Humanisé** : Résolution de la notification d'erreur au chargement initial (« Composite bootstrap : renderQuickStatsBar is not defined ») : le bandeau des statistiques rapides (Leader, Écart, Ce mois-ci, Dernier événement, Record) s'affiche désormais de manière fluide et sans erreur dès le démarrage composite ou la reprise sur cache.
+**Technique** :
+- `Index.html` : définition formelle de la fonction `renderQuickStatsBar(data)` et délégation propre depuis `loadQuickStats()`.
+- `Index.html` : pré-remplissage des entités (`cachedPlayers`, `cachedCategories`) depuis `SETTINGS_CACHE_KEY` avant la restauration du dashboard pour que les avatars et cartes se résolvent immédiatement sans attendre le roundtrip réseau.
+- `tests/bootstrap.test.js` : test unitaire automatisé garantissant la présence et l'intégration sûre de `renderQuickStatsBar`.
+
 ## [v3.28.0] - 2026-09-05
 
 ### Ajouté
@@ -26,12 +35,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 - `Index.html` : réduction de l'empreinte GPU des filtres graphiques (`backdrop-filter: blur(10px)` au lieu de 20px) et nettoyage de 16 classes CSS orphelines.
 
 ### Corrigé
-**Humanisé** : Correction ergonomique complète de l'interface mobile :
+**Humanisé** : Correction ergonomique et de démarrage :
 1. Les libellés de la barre de navigation inférieure ne sont plus tronqués (« Saisie », « Notes », « Historique », « Paramètres » s'affichent lisiblement et sans débordement).
 2. Disparition définitive des rectangles arrondis vides parasites qui flottaient au-dessus des courbes et barres du graphique.
+3. Résolution de l'erreur « renderQuickStatsBar is not defined » au démarrage de l'application : le bandeau des statistiques rapides (Leader, Écart, Ce mois-ci, Dernier événement, Record) s'affiche désormais sans aucune erreur lors du bootstrap composite ou de la reprise sur cache.
 **Technique** :
 - `Code.gs` & `Index.html` : ajout de `shortLabel` dans `NAV_PAGES`, affichage réactif via double conteneur `.nav-label-full` / `.nav-label-short`, ajustement du padding à `5px 1px` et de la police à `0.62rem` avec espacement fin `-0.25px`.
 - `Index.html` : suppression définitive de `buildLegendBorderPlugin()` dont les calculs `legendHitBoxes` de Chart.js produisaient des bordures décalées sur les graphiques étroits ou mobiles.
+- `Index.html` : définition formelle de `renderQuickStatsBar(data)` (avec fallback sécurisé sur `cachedPlayers` et désactivation des skeletons), et pré-remplissage des entités depuis `SETTINGS_CACHE_KEY` avant l'appel à `restoreDashboardFromCache`.
 
 ## [v3.27.0] - 2026-09-05
 

@@ -1,9 +1,9 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.28.0** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Plan complet d'optimisation (Phases 1, 2, 3) + Corrections UI Mobile (labels navigation et bordures graphiques).
-- Suite de tests : **346 cas verts** (`npm run verify`).
+- Version livrée : **v3.28.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction du bug bootstrap `renderQuickStatsBar is not defined` + Plan d'optimisation v3.28.0.
+- Suite de tests : **347 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
