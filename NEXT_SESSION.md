@@ -1,30 +1,29 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.0** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Optimisation massive des requêtes serveur (/boost) — implémentation de la Materialized View (`AggregatesService`) pour le précalcul et le maintien incrémental des totaux et métriques, migration des lectures vers Google Sheets API v4 (`Sheets.Spreadsheets.Values.get`) avec repli transparent `SpreadsheetApp`, normalisation des dates sans décalage de fuseau, et bouton d'administration pour recalcul immédiat.
-- Suite de tests : **372 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Revue critique et durcissement de l'optimisation /boost (Materialized View & Google Sheets API v4) — résolution du blocage d'authentification UI sur `apiRebuildAggregates`, fiabilisation du cache ScriptCache, sécurisation du parsing des dates séries, recalcul sur événements récents/records, et cascade sur suppressions/annulations.
+- Suite de tests : **378 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Materialized View & Migration Google Sheets API v4 (`v3.30.0`)** :
-  - *Google Sheets API v4 Advanced Service* :
-    - `appsscript.json` : activation du service avancé Sheets v4 (`dependencies.enabledAdvancedServices`).
-    - `Code.gs` : implémentation de `_fetchSheetValues(sheetKey, sheet, optNumCols)` pour extraire directement les matrices brutes JSON en lecture non formatée (`UNFORMATTED_VALUE`, `SERIAL_NUMBER`), avec complétion des cellules vides et repli transparent vers `SpreadsheetApp` en environnement de test ou en cas d'erreur.
-    - `Code.gs` : implémentation de `_parseDateCell(val)` gérant de manière étanche les dates séries Sheets (alignement UTC), instances `Date`, chaînes ISO et formats européens sans dérive de fuseau horaire.
-  - *Materialized View (AggregatesService)* :
-    - `Code.gs` : création de `AggregatesService` maintenant l'état précalculé (`byPlayer`, `byCategory`, `byPlayerCategory`, `byMonth`, `lastEvent`, `globalBest`, `totalEntries`, `totalPoints`) avec snapshot et lignes individuelles dans l'onglet `Aggregates`, et cache ScriptCache/mémoire.
-    - `Code.gs` : incrémentation en place lors de `StorageService.appendBulkPlan` (`AggregatesService.increment`), ajustement ciblé lors de `StorageService.updateHistoryEntry` (`AggregatesService.adjustEntry`), et décrémentation sur suppression de lignes ou de groupes (`AggregatesService.removeRows`).
-    - `Code.gs` : recalcul complet automatique lors du renommage d'entités, de nettoyage de zéros ou d'orphelins, et d'annulation de snapshot dans l'AuditLog.
-    - `Code.gs` : exposition de l'endpoint sécurisé `apiRebuildAggregates(author, password)` avec ScriptLock et journalisation d'audit.
-    - `Code.gs` : accélération des endpoints de consultation `AnalyticsService.getFilteredChartData`, `apiGetPlayerTotals` et `apiGetQuickStats` pour servir les données précalculées en 0ms sans rescanner les milliers de lignes de l'historique.
-  - *Frontend & Outils* :
-    - `Index.html` : ajout du bouton « Recalculer les agrégats & totaux » dans l'outil Santé (`#toolHealthCard`), avec contrôle d'identité `requireIdentity()`, retour haptique et notification toast.
+- **Audit critique et durcissement de la Materialized View (`v3.30.1`)** :
+  - *Authentification UI & Mot de passe* :
+    - `Index.html` : ajout de `apiRebuildAggregates` dans l'ensemble `_MUTATING_APIS` de `callServer` afin que `_identityPassword` soit bien transmis lors du clic sur le bouton de recalcul.
+  - *Fiabilité du Cache ScriptCache* :
+    - `Code.gs` : séparation de la clé de cache de `AggregatesService` (`aggregates_mat_view_v1`) du compteur `_logsVersion()` afin d'éviter l'invalidation destructrice immédiate lors des mutations.
+  - *Parsing de dates & Cellules clairsemées* :
+    - `Code.gs` : correction de `_parseDateCell` pour rejeter les nombres < 1000 et non finis (éliminant l'interprétation de 0 comme 30/12/1899).
+    - `Code.gs` : normalisation de `_fetchSheetValues` pour compléter les lignes incomplètes avec des chaînes vides et aligner sur la longueur de `CANONICAL_SHEET_HEADERS`.
+  - *Recalculs réactifs et cascades* :
+    - `Code.gs` : détection dans `adjustEntry` des nouveaux records ou nouveaux derniers événements (`isNewLast`, `isNewBest`) forçant un rebuild complet si nécessaire.
+    - `Code.gs` : branchement de `AggregatesService.rebuild()` sur `AuditService.undo`, `deleteEntity`, `renameEntity` et `deleteOrphans`.
+    - `Code.gs` : blindage de `_backupHistory` contre les environnements mockés ou incomplets.
   - *Tests* :
-    - `tests/sheets-api-and-aggregates.test.js` : 9 nouveaux tests automatisés vérifiant le parsing des dates séries, le fonctionnement de Sheets API v4 et son fallback, la persistance des snapshots, l'incrémentation en place, les ajustements, les suppressions et la lecture sans scan (372 tests passants).
+    - `tests/sheets-api-and-aggregates.test.js` : 6 nouveaux tests couvrant ces cas limites (378 tests passants au total).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (372/372).
+- Aucun écart. Tous les tests sont au vert (378/378).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

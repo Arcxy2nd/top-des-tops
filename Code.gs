@@ -264,9 +264,10 @@ function _colIndexToA1(colIndex) {
 
 /** Parses a cell value into a valid Date object, handling Date instances, Sheets serial numbers, ISO & European strings. */
 function _parseDateCell(val) {
-  if (!val && val !== 0) return new Date(NaN);
+  if (!val) return new Date(NaN);
   if (val && typeof val.getTime === 'function') return val;
   if (typeof val === 'number') {
+    if (!Number.isFinite(val) || val < 1000) return new Date(NaN);
     const ms = Math.round((val - 25569) * 86400 * 1000);
     const u = new Date(ms);
     return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds());
@@ -306,9 +307,10 @@ function _fetchSheetValues(sheetKey, sheet, optNumCols) {
         });
         if (res && res.values) {
           const rawValues = res.values;
-          const width = optNumCols || (rawValues.reduce((max, r) => Math.max(max, r ? r.length : 0), 0));
+          const minCols = (sheetKey && CANONICAL_SHEET_HEADERS[sheetKey]) ? CANONICAL_SHEET_HEADERS[sheetKey].length : 0;
+          const width = optNumCols || Math.max(minCols, rawValues.reduce((max, r) => Math.max(max, r ? r.length : 0), 0));
           return rawValues.map(row => {
-            const padded = (row || []).slice(0, width);
+            const padded = (row || []).slice(0, width).map(cell => (cell === null || cell === undefined) ? '' : cell);
             while (padded.length < width) padded.push('');
             return padded;
           });
@@ -828,7 +830,7 @@ const AuditService = (() => {
 
     _applySnapshot(snapshot);
     try {
-      if (snapshot && snapshot.sheet === 'history' && typeof AggregatesService !== 'undefined') {
+      if (snapshot && (snapshot.sheet === 'history' || snapshot.sheet === 'players' || snapshot.sheet === 'categories') && typeof AggregatesService !== 'undefined') {
         AggregatesService.rebuild();
       }
     } catch (_) {}
@@ -1014,6 +1016,11 @@ const SettingsService = {
     }
     sheet.deleteRow(rowIndex);
     _bumpSettingsVersion();
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        AggregatesService.rebuild();
+      }
+    } catch (_) {}
   },
 
   renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon) {
@@ -1062,13 +1069,13 @@ const SettingsService = {
       }
       if (modified) {
         range.setValues(vals);
-        try {
-          if (typeof AggregatesService !== 'undefined') {
-            AggregatesService.rebuild();
-          }
-        } catch (_) {}
       }
     }
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        AggregatesService.rebuild();
+      }
+    } catch (_) {}
 
     this._renameInColumn('autoRules', ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
     if (type === 'Players') {
@@ -1597,9 +1604,10 @@ const StorageService = {
    */
   _backupHistory() {
     const { spreadsheet, history } = ConfigService.getSheets();
+    if (!spreadsheet || !history || typeof history.copyTo !== 'function') return;
     const BACKUP_NAME = 'History_backup';
-    const existing = spreadsheet.getSheetByName(BACKUP_NAME);
-    if (existing) spreadsheet.deleteSheet(existing);
+    const existing = typeof spreadsheet.getSheetByName === 'function' ? spreadsheet.getSheetByName(BACKUP_NAME) : null;
+    if (existing && typeof spreadsheet.deleteSheet === 'function') spreadsheet.deleteSheet(existing);
     history.copyTo(spreadsheet).setName(BACKUP_NAME);
   },
 
@@ -2276,13 +2284,21 @@ const ChatService = {
 // ─── AGGREGATES SERVICE (MATERIALIZED VIEW) ──────────────────────────────────
 const AggregatesService = (() => {
   let _memAggregates = null;
+  const _AGGREGATES_CACHE_KEY = 'aggregates_mat_view_v1';
 
   function clearCache() {
     _memAggregates = null;
+    try {
+      const cache = CacheService.getScriptCache();
+      if (typeof cache.remove === 'function') {
+        cache.remove(_AGGREGATES_CACHE_KEY);
+        cache.remove(_AGGREGATES_CACHE_KEY + '_chunks');
+      }
+    } catch (_) {}
   }
 
   function _getCacheKey() {
-    return 'aggregates_v' + (typeof _logsVersion === 'function' ? _logsVersion() : '0');
+    return _AGGREGATES_CACHE_KEY;
   }
 
   function _emptyAggregates() {
@@ -2443,7 +2459,7 @@ const AggregatesService = (() => {
       agg.byMonth[mKey].points += pts;
       agg.byMonth[mKey].count += 1;
 
-      if (!agg.lastEvent || d.getTime() > (new Date(agg.lastEvent.date)).getTime()) {
+      if (!agg.lastEvent || d.getTime() >= (new Date(agg.lastEvent.date)).getTime()) {
         agg.lastEvent = {
           player: player,
           category: category,
@@ -2539,7 +2555,7 @@ const AggregatesService = (() => {
       agg.byMonth[mKey].points += pts;
       agg.byMonth[mKey].count += 1;
 
-      if (!agg.lastEvent || d.getTime() > (new Date(agg.lastEvent.date)).getTime()) {
+      if (!agg.lastEvent || d.getTime() >= (new Date(agg.lastEvent.date)).getTime()) {
         agg.lastEvent = {
           player: player,
           category: category,
@@ -2607,7 +2623,9 @@ const AggregatesService = (() => {
 
     const wasBest = agg.globalBest && (agg.globalBest.points === ptsOld || ptsNew > agg.globalBest.points);
     const wasLast = agg.lastEvent && (!isNaN(dOld.getTime()) && Math.abs(dOld.getTime() - (new Date(agg.lastEvent.date)).getTime()) < 1000);
-    if (wasBest || wasLast) {
+    const isNewLast = !agg.lastEvent || (!isNaN(dNew.getTime()) && dNew.getTime() >= (new Date(agg.lastEvent.date)).getTime());
+    const isNewBest = !agg.globalBest || ptsNew >= agg.globalBest.points;
+    if (wasBest || wasLast || isNewLast || isNewBest) {
       return rebuild();
     }
 
@@ -4374,7 +4392,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
           targetDate = _parseLocalDateWithNow(partialFields.date + '');
           if (isNaN(targetDate.getTime())) { skipped.push(idx); return; }
         } else {
-          targetDate = (row[0] instanceof Date) ? row[0] : new Date(row[0]);
+          targetDate = (row[0] instanceof Date) ? row[0] : _parseDateCell(row[0]);
         }
 
         row[0] = targetDate; row[1] = player; row[2] = category; row[3] = pts; row[4] = desc;

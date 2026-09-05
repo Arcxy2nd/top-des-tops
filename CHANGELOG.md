@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.1] - 2026-09-06
+
+### Corrigé
+**Humanisé** : Le recalcul manuel des totaux fonctionne correctement sous mot de passe et le cache d'agrégats reste actif entre les requêtes.
+**Technique** :
+- `Index.html` : ajout de `apiRebuildAggregates` à `_MUTATING_APIS` pour transmettre le mot de passe de session lors du recalcul manuel.
+- `Code.gs` : découplage de la clé de cache `AggregatesService` (`aggregates_mat_view_v1`) de `_logsVersion()` pour éviter l'invalidation immédiate à chaque mutation.
+- `Code.gs` : durcissement de `_parseDateCell` rejetant les nombres inférieurs à 1000 ou non finis comme dates invalides au lieu de convertir 0 en 30/12/1899.
+- `Code.gs` : déclenchement du recalcul complet dans `adjustEntry` lorsqu'une édition de ligne devient le nouvel événement le plus récent (`isNewLast`) ou le nouveau record (`isNewBest`).
+- `Code.gs` : sécurisation de `_fetchSheetValues` garantissant le padding des lignes clairsemées à la longueur canonique et la conversion des valeurs nulles en chaîne vide.
+- `Code.gs` : sécurisation de `_backupHistory` avec gardes sur `spreadsheet` et `copyTo` dans les environnements de test / dégradés.
+- `Code.gs` : déclenchement du recalcul des agrégats lors des annulations d'audit (`AuditService.undo`) et suppressions/renommages d'entités (`deleteEntity`, `renameEntity`, `deleteOrphans`).
+- `tests/` : 378 tests passants (`npm run verify` à 100%), incluant 6 tests de robustesse et non-régression couvrant les cas limites d'agrégats, dates séries et authentification UI.
+
 ## [v3.30.0] - 2026-09-06
 
 ### Ajouté

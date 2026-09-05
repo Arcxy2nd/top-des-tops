@@ -173,7 +173,9 @@ function gasMocks() {
     CacheService: {
       getScriptCache: () => ({
         get: k => (k in cacheStore ? cacheStore[k] : null),
-        put: (k, v) => { cacheStore[k] = v; }
+        put: (k, v) => { cacheStore[k] = v; },
+        remove: k => { delete cacheStore[k]; },
+        removeAll: keys => { (keys || []).forEach(k => delete cacheStore[k]); }
       })
     },
     LockService: {

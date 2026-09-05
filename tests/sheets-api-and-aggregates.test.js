@@ -411,3 +411,161 @@ test('apiRebuildAggregates requires identity, logs to AuditLog, and recalculates
   const logs = auditLog._grid;
   assert.ok(logs.some(r => r[2] === 'Recalcul agrégats' && r[1] === 'Alice'));
 });
+
+// ─── 6. Reviewer Edge Cases & Bug Fixes ──────────────────────────────────────
+
+test('_parseDateCell rejects zero, negative, and sub-1000 serial numbers as Invalid Date', () => {
+  const gas = loadGas();
+  const parse = gas._parseDateCell;
+
+  assert.ok(isNaN(parse(0).getTime()), '0 must be an Invalid Date, not Dec 30 1899');
+  assert.ok(isNaN(parse(-10).getTime()), 'negative numbers must be Invalid Date');
+  assert.ok(isNaN(parse(500).getTime()), 'numbers below 1000 must be Invalid Date');
+  assert.ok(isNaN(parse(Infinity).getTime()), 'Infinity must be Invalid Date');
+  assert.ok(isNaN(parse(NaN).getTime()), 'NaN must be Invalid Date');
+});
+
+test('_fetchSheetValues pads rows to CANONICAL_SHEET_HEADERS length and converts null/undefined to empty string', () => {
+  const mockV4 = {
+    Spreadsheets: {
+      Values: {
+        get: () => ({
+          values: [
+            ['Alice', null], // row with only 2 columns and a null cell
+            [undefined, 'avatar.png']
+          ]
+        })
+      }
+    }
+  };
+
+  const gas = loadGas({
+    Sheets: mockV4,
+    PropertiesService: {
+      getScriptProperties: () => ({ getProperty: () => 'ss_id' })
+    }
+  });
+
+  const sheet = makeSheet([], 'Players');
+  // For 'players', CANONICAL_SHEET_HEADERS has 5 columns: Name, Avatar, Color, Password, Ordre
+  const values = gas._fetchSheetValues('players', sheet);
+
+  assert.strictEqual(values.length, 2);
+  assert.strictEqual(values[0].length, 5, 'Must be padded to 5 columns matching canonical headers');
+  assert.strictEqual(values[0][0], 'Alice');
+  assert.strictEqual(values[0][1], '', 'null must be converted to empty string');
+  assert.strictEqual(values[0][2], '', 'missing col 3 must be empty string');
+  assert.strictEqual(values[0][3], '', 'missing col 4 must be empty string');
+  assert.strictEqual(values[0][4], '', 'missing col 5 must be empty string');
+  assert.strictEqual(values[1][0], '', 'undefined must be converted to empty string');
+});
+
+test('AggregatesService cache is retained across requests and not evicted by _bumpLogsVersion', () => {
+  const gas = loadGas();
+  const history = makeSheet([
+    HISTORY_HEADER,
+    [new Date(2026, 4, 1), 'Alice', 'Jeux', 10, '', '', '']
+  ], 'History');
+  const aggregates = makeSheet([AGGREGATES_HEADER], 'Aggregates');
+  const players = makeSheet([PLAYERS_HEADER, ['Alice', '', '#f00', 'pwd1', 1]], 'Players');
+  const categories = makeSheet([CATEGORIES_HEADER, ['Jeux', '', '🎮', '#111', 1]], 'Categories');
+  const auditLog = makeSheet([], 'AuditLog');
+
+  gas.ConfigService.getSheets = () => ({ history, aggregates, players, categories, auditLog });
+  gas.AggregatesService.rebuild();
+
+  // Perform a mutation which internally increments aggregates AND bumps logs version
+  gas.apiAddBulkPlan([{
+    date: '2026-04-10',
+    entries: [{ player: 'Alice', category: 'Jeux', points: 20, times: 1, description: 'New' }]
+  }], 'Alice', 'pwd1');
+
+  // Clear in-memory singleton to simulate a fresh GAS execution context
+  gas.AggregatesService.clearCache = () => {}; // keep cache store intact
+  gas.AggregatesService.clearMemoryOnly = () => {};
+
+  // Track if sheet is accessed
+  let sheetRead = false;
+  const origFetch = gas._fetchSheetValues;
+  gas._fetchSheetValues = function(key) {
+    if (key === 'aggregates') sheetRead = true;
+    return origFetch.apply(this, arguments);
+  };
+
+  // getAggregates should HIT CacheService directly without reading the Aggregates sheet
+  const agg = gas.AggregatesService.getAggregates();
+  assert.strictEqual(sheetRead, false, 'Aggregates should be read directly from CacheService without sheet RPC');
+  assert.strictEqual(agg.totalPoints, 30);
+});
+
+test('apiUpdateHistoryEntry triggers rebuild when new entry has date newer than lastEvent', () => {
+  const gas = loadGas();
+  const dOld = new Date(2026, 0, 10);
+  const history = makeSheet([
+    HISTORY_HEADER,
+    [dOld, 'Alice', 'Jeux', 10, 'Old', '', ''],
+    [new Date(2026, 1, 1), 'Bob', 'Jeux', 15, 'CurrentLast', '', '']
+  ], 'History');
+  const aggregates = makeSheet([AGGREGATES_HEADER], 'Aggregates');
+  const players = makeSheet([PLAYERS_HEADER, ['Alice', '', '#f00', 'pwd', 1], ['Bob', '', '#0f0', 'pwd', 2]], 'Players');
+  const categories = makeSheet([CATEGORIES_HEADER, ['Jeux', '', '🎮', '#111', 1]], 'Categories');
+  const auditLog = makeSheet([], 'AuditLog');
+
+  gas.ConfigService.getSheets = () => ({ history, aggregates, players, categories, auditLog });
+  gas.AggregatesService.rebuild();
+
+  assert.strictEqual(gas.AggregatesService.getAggregates().lastEvent.player, 'Bob');
+
+  // Edit Alice's row (row 2) to June 2026 (newer than Bob's date) via apiUpdateHistoryEntry
+  gas.apiUpdateHistoryEntry(2, {
+    date: '2026-06-20',
+    player: 'Alice',
+    category: 'Jeux',
+    points: 10,
+    description: 'Updated to future'
+  }, 'Alice', 'pwd');
+
+  const agg = gas.AggregatesService.getAggregates();
+  assert.strictEqual(agg.lastEvent.player, 'Alice', 'lastEvent should now be Alice after updating entry date');
+});
+
+test('deleteOrphans cleans deleted entity rows and rebuilds aggregates', () => {
+  const gas = loadGas();
+  const history = makeSheet([
+    HISTORY_HEADER,
+    [new Date(2026, 0, 1), 'Alice', 'Jeux', 20, '', '', ''],
+    [new Date(2026, 0, 2), 'Bob', 'Jeux', 10, '', '', '']
+  ], 'History');
+  const aggregates = makeSheet([AGGREGATES_HEADER], 'Aggregates');
+  const players = makeSheet([PLAYERS_HEADER, ['Alice', '', '#f00', 'pwd', 1], ['Bob', '', '#0f0', 'pwd', 2]], 'Players');
+  const categories = makeSheet([CATEGORIES_HEADER, ['Jeux', '', '🎮', '#111', 1]], 'Categories');
+  const auditLog = makeSheet([], 'AuditLog');
+  const spreadsheet = { getSheetByName: () => null, deleteSheet: () => {} };
+  history.copyTo = () => ({ setName() {} });
+  gas.ConfigService.getSheets = () => ({ spreadsheet, history, aggregates, players, categories, auditLog });
+  gas.AggregatesService.rebuild();
+
+  assert.strictEqual(gas.AggregatesService.getAggregates().byPlayer['Bob'], 10);
+
+  // Delete Bob from players sheet
+  gas.SettingsService.deleteEntity('Players', 3, 'Bob');
+
+  // Run deleteOrphans to clean orphaned Bob rows from History
+  gas.apiDeleteOrphans('Alice', 'pwd');
+
+  const agg = gas.AggregatesService.getAggregates();
+  assert.strictEqual(agg.byPlayer['Bob'], undefined, 'Deleted and orphaned player Bob should no longer be present in byPlayer');
+  assert.strictEqual(agg.totalPoints, 20);
+});
+
+test('Index.html declares apiRebuildAggregates in _MUTATING_APIS', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  // Find _MUTATING_APIS definition
+  const match = html.match(/const _MUTATING_APIS = new Set\(\[([\s\S]*?)\]\);/);
+  assert.ok(match, '_MUTATING_APIS must exist in Index.html');
+  assert.ok(match[1].includes("'apiRebuildAggregates'"), 'apiRebuildAggregates must be in _MUTATING_APIS');
+});
+
