@@ -231,7 +231,12 @@ const AutoPointsService = (() => {
     const rules = getRules();
     const now = new Date();
     const due = rules.filter(r => r.active && r.nextRun && new Date(r.nextRun) <= now);
-    if (!due.length) return { granted: 0, skipped: 0, rules: [] };
+    if (!due.length) {
+      if (author && author !== 'Auto') {
+        AuditService.log(author, 'Exécution manuelle auto', 'AutoRules', '0 règle due', 'Aucune exécution', 'Aucune règle due à exécuter');
+      }
+      return { granted: 0, skipped: 0, rules: [] };
+    }
 
     const knownPlayers    = SettingsService.getEntities('Players').map(p => p.name);
     const knownCategories = SettingsService.getEntities('Categories').map(c => c.name);
@@ -239,7 +244,10 @@ const AutoPointsService = (() => {
     const invalid = due.filter(r => valid.indexOf(r) === -1);
 
     if (valid.length) {
-      const today = Utilities.formatDate(now, Session.getScriptTimeZone() || 'Etc/UTC', 'yyyy-MM-dd');
+      const tz = (typeof Session !== 'undefined' && Session.getScriptTimeZone) ? Session.getScriptTimeZone() : 'Etc/UTC';
+      const today = (typeof Utilities !== 'undefined' && Utilities.formatDate)
+        ? Utilities.formatDate(now, tz, 'yyyy-MM-dd')
+        : now.toISOString().slice(0, 10);
       const entries = valid.map(r => ({
         player: r.player, category: r.category, points: r.points, times: 1,
         description: r.description || 'Points automatiques', groupTag: '',
@@ -256,11 +264,19 @@ const AutoPointsService = (() => {
     ConfigService.clearCache();
 
     if (valid.length) {
-      AuditService.log(author || 'Auto', 'Points automatiques', 'AutoRules', '', '',
-        valid.length + ' règle(s) exécutée(s), ' + valid.map(r => r.player + ' +' + r.points).join(', '));
+      const totalPts = valid.reduce((s, r) => s + (parseInt(r.points, 10) || 0), 0);
+      const isManual = author && author !== 'Auto';
+      const actionName = isManual ? 'Exécution manuelle auto' : 'Points automatiques';
+      const afterSummary = valid.map(r => r.player + ' +' + r.points + ' (' + r.category + ')').join(', ');
+      const detailStr = valid.length + ' règle(s) exécutée(s) (+' + totalPts + ' pts)' +
+        (isManual ? ' déclenchée(s) manuellement par ' + author : '');
+      const beforeStr = valid.length + ' règle(s) en attente';
+      AuditService.log(author || 'Auto', actionName, 'AutoRules', beforeStr, afterSummary, detailStr);
     }
     if (invalid.length) {
-      AuditService.log(author || 'Auto', 'Règle auto ignorée', 'AutoRules', '', '',
+      AuditService.log(author || 'Auto', 'Règle auto ignorée', 'AutoRules',
+        invalid.map(r => r.player + ' / ' + r.category).join(', '),
+        'Ignorée (introuvable)',
         invalid.length + ' règle(s) avec joueur/Top introuvable : ' +
         invalid.map(r => r.player + ' / ' + r.category).join(', '));
     }
@@ -299,6 +315,10 @@ function runAutoPoints() {
     withLock(() => AutoPointsService.runDue('Auto'));
   } catch (e) {
     Logger.log('runAutoPoints error: ' + (e && e.message ? e.message : String(e)));
+    try {
+      AuditService.log('Système', 'Erreur exécution auto', 'AutoRules', 'Exécution planifiée', 'Échec (erreur)',
+        'Échec de l\'exécution automatique : ' + (e && e.message ? e.message : String(e)));
+    } catch (_) {}
   }
 }
 
@@ -323,8 +343,14 @@ function apiAddAutoRule(rule, author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       const created = AutoPointsService.addRule(rule, author);
-      AuditService.log(author, 'Création règle auto', 'AutoRules', '', '',
-        created.player + ' +' + created.points + ' (' + created.frequency + ')');
+      const afterStr = created.player + ' +' + created.points + ' pts (' + created.category + ' · ' + created.frequency + ')';
+      const detailStr = 'Règle #' + created.id + ' (' + created.frequency +
+        (created.interval > 1 ? ' tous les ' + created.interval : '') +
+        (created.daysOfWeek && created.daysOfWeek.length ? ' jours: ' + created.daysOfWeek.join(',') : '') +
+        (created.dayOfMonth ? ' le ' + created.dayOfMonth : '') +
+        (created.description ? ' — ' + created.description : '') + ')';
+      AuditService.log(author, 'Création règle auto', 'Règle auto: ' + created.player + ' / ' + created.category,
+        '', afterStr, detailStr);
       return { success: true, rule: created };
     });
   } catch (e) { return fail(e); }
@@ -334,8 +360,19 @@ function apiUpdateAutoRule(id, patch, author, password) {
   try {
     requireAuthor(author, password);
     return withLock(() => {
+      const existing = (AutoPointsService.getRules() || []).find(r => r.id === id);
+      const beforeStr = existing
+        ? (existing.player + ' +' + existing.points + ' pts (' + existing.category + ', ' + existing.frequency + ')' + (existing.active ? '' : ' [inactif]'))
+        : ('règle #' + id);
       const updated = AutoPointsService.updateRule(id, patch);
-      AuditService.log(author, 'Modification règle auto', 'AutoRules', id, '', JSON.stringify(patch));
+      const afterStr = updated.player + ' +' + updated.points + ' pts (' + updated.category + ', ' + updated.frequency + ')' + (updated.active ? '' : ' [inactif]');
+      const changedKeys = Object.keys(patch).filter(k => patch[k] !== undefined);
+      const patchDesc = changedKeys.map(k => {
+        if (k === 'active') return patch[k] ? 'Règle activée' : 'Règle désactivée';
+        return k + ' → ' + patch[k];
+      }).join(', ');
+      AuditService.log(author, 'Modification règle auto', 'Règle auto: ' + updated.player + ' / ' + updated.category,
+        beforeStr, afterStr, patchDesc || ('Règle #' + id + ' modifiée'));
       return { success: true, rule: updated };
     });
   } catch (e) { return fail(e); }
@@ -346,9 +383,11 @@ function apiDeleteAutoRule(id, author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       const rule = (AutoPointsService.getRules() || []).find(r => r.id === id);
-      const ruleSummary = rule ? (rule.player + ' +' + rule.points + ' (' + rule.category + ', ' + rule.frequency + ')') : ('règle #' + id);
+      const ruleSummary = rule ? (rule.player + ' +' + rule.points + ' pts (' + rule.category + ', ' + rule.frequency + ')') : ('règle #' + id);
       AutoPointsService.deleteRule(id);
-      AuditService.log(author, 'Suppression règle auto', 'AutoRules', id, '', 'Supprimé : ' + ruleSummary);
+      AuditService.log(author, 'Suppression règle auto',
+        'Règle auto: ' + (rule ? (rule.player + ' / ' + rule.category) : id),
+        ruleSummary, 'Supprimé', 'Règle #' + id + ' définitivement supprimée');
       return { success: true };
     });
   } catch (e) { return fail(e); }
@@ -360,9 +399,22 @@ function apiSetAutoTrigger(enabled, author, password) {
     return withLock(() => {
       if (enabled) AutoPointsService.installTrigger();
       else AutoPointsService.uninstallTrigger();
-      AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules', '', '',
-        enabled ? 'Déclencheur automatique quotidien activé' : 'Déclencheur automatique désactivé');
+      AuditService.log(author, enabled ? 'Activation auto-trigger' : 'Désactivation auto-trigger', 'AutoRules',
+        enabled ? 'Désactivé' : 'Activé',
+        enabled ? 'Activé' : 'Désactivé',
+        enabled ? ('Déclencheur automatique quotidien activé (vérification toutes les ' + CONFIG.AUTO_TRIGGER_INTERVAL_HOURS + 'h)')
+                : 'Déclencheur automatique désactivé');
       return { success: true, installed: AutoPointsService.isTriggerInstalled() };
+    });
+  } catch (e) { return fail(e); }
+}
+
+function apiRunAutoRulesNow(author, password) {
+  try {
+    requireAuthor(author, password);
+    return withLock(() => {
+      const result = AutoPointsService.runDue(author);
+      return { success: true, granted: result.granted, skipped: result.skipped, rules: result.rules, result };
     });
   } catch (e) { return fail(e); }
 }

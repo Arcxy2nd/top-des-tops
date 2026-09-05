@@ -1,19 +1,25 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.26.3** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Retrait du bouton superflu « ＋ Saisir Alt » du bandeau du Dashboard.
-- Suite de tests : **336 cas verts** (`npm run verify`).
+- Version livrée : **v3.27.0** (2026-09-05) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Refonte ergonomique du hub Statistiques du Dashboard + Traçabilité totale des logs d'audit et règles automatiques.
+- Suite de tests : **343 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Retrait du bouton Dashboard « ＋ Saisir Alt » (`v3.26.3`)** :
-  - `Index.html` : suppression du bouton `#dashAltAddBtn` et nettoyage du conteneur flex `univIndicator`.
-  - `Index.html` : suppression des bascules de visibilité et listener dans `univMainBtn` et `univAltBtn`.
-  - `Index.html` : nettoyage de la modale devenue orpheline `openAltNativeQuickAddModal` et des styles CSS `.qa-field`, `.qa-input`.
+- **Refonte Hub Statistiques & Traçabilité Complète d'Audit (`v3.27.0`)** :
+  - *Hub Statistiques du Dashboard* :
+    - `Index.html` : refonte de `#statsHubCard` avec composant repliable mémorisé (`tdt_collapsed_stats_hub`), bouton de rafraîchissement dédié (`#refreshStatsHubBtn`), rappel visuel de l'univers actif (`#statsHubSubtitle`).
+    - `Index.html` : navigation défilable horizontalement sur mobile sans rupture de pilule (`.stats-hub-nav`).
+    - `Index.html` : chargement paresseux par volet (`loadStatsHubPane`, `_statsHubLoadedPanes`) évitant le tir groupé de 5 requêtes GAS lourdes au chargement initial.
+  - *Traçabilité Complète Journal d'Audit & Règles Automatiques* :
+    - `Code.gs` : traçabilité des tentatives infructueuses de mot de passe dans `apiVerifyIdentity` (`Sécurité`), correction du bug bloquant `finalSheet` dans `apiSavePhrasesBatch`, enrichissement de l'ensemble des diffs et descriptions (barème, phrases, notes, chat).
+    - `AutoPoints.gs` : journalisation complète des exécutions manuelles et planifiées, capture des erreurs d'exécution système dans le journal d'audit, traçabilité détaillée des créations/modifications/suppressions de règles et de triggers.
+    - `Index.html` : support de `apiRunAutoRulesNow` dans `_MUTATING_APIS` et retour d'information précis dans le toast (`granted` / `skipped`).
+    - `tests/audit.test.js`, `tests/autopoints.test.js` : 7 nouveaux tests unitaires pour valider l'audit de sécurité, la sauvegarde de phrases et le retour des règles automatiques (343 tests au total).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (336/336).
+- Aucun écart. Tous les tests sont au vert (343/343).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

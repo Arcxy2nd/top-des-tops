@@ -2490,14 +2490,22 @@
       cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .tools-quick-nav button:hover { color: var(--text); border-color: var(--accent); }
-    .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .stats-hub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     .stats-hub-head h2 { margin: 0; }
-    .stats-hub-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stats-hub-actions { display: flex; align-items: center; gap: 8px; }
+    .stats-hub-nav {
+      display: flex; align-items: center;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      margin-bottom: 16px; padding-bottom: 2px;
+    }
+    .stats-hub-nav::-webkit-scrollbar { display: none; }
+    .stats-hub-tabs { display: flex; gap: 8px; flex-wrap: nowrap; min-width: min-content; }
     .stats-hub-tab {
       padding: 6px 16px; border-radius: 9999px; border: 1px solid var(--border);
       background: rgba(255, 255, 255, 0.04); color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
       cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      white-space: nowrap; flex-shrink: 0; user-select: none;
     }
     body.light .stats-hub-tab { background: rgba(0, 0, 0, 0.04); }
     .stats-hub-tab:hover { color: var(--text); border-color: var(--border-hover); transform: translateY(-1px); }
@@ -4545,9 +4553,17 @@
     </div>
 
     <!-- ══ STATISTIQUES (Records / Tendances / Jour actif / Duo / Mentions) ══ -->
-    <div class="card" id="statsHubCard">
-      <div class="stats-hub-head">
-        <h2>📊 Statistiques</h2>
+    <div class="card card-collapsible" id="statsHubCard">
+      <div class="stats-hub-head card-collapse-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <h2>📊 Statistiques</h2>
+          <span id="statsHubSubtitle" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;"></span>
+        </div>
+        <div class="stats-hub-actions">
+          <button type="button" class="secondary small" id="refreshStatsHubBtn" title="Actualiser les statistiques" style="padding:4px 10px;font-size:0.75rem;">🔄 Actualiser</button>
+        </div>
+      </div>
+      <div class="stats-hub-nav">
         <div class="stats-hub-tabs" id="statsHubTabs">
           <button class="stats-hub-tab active" data-pane="records">🏅 Records</button>
           <button class="stats-hub-tab" data-pane="trends">📈 Tendances</button>
@@ -4865,7 +4881,10 @@
             <strong>Exécution automatique</strong>
             <span id="autoTriggerStatus">—</span>
           </div>
-          <button id="autoTriggerToggleBtn" class="secondary small">…</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="runAutoRulesNowBtn" class="secondary small" title="Vérifier et appliquer les règles automatiques dues immédiatement">⚡ Exécuter maintenant</button>
+            <button id="autoTriggerToggleBtn" class="secondary small">…</button>
+          </div>
         </div>
 
         <h3 style="margin:0 0 10px;">＋ Nouvelle règle</h3>
@@ -9164,7 +9183,8 @@
     'apiDeleteGroup', 'apiApplyMentionFixes', 'apiReorderPhrases', 'apiRepairOrder',
     'apiAddPhrase', 'apiSavePhrasesBatch', 'apiUpdatePhrase', 'apiDeletePhrase',
     'apiDeletePreset', 'apiRenamePreset', 'apiSetActivePhrasePreset',
-    'apiAddAutoRule', 'apiUpdateAutoRule', 'apiDeleteAutoRule', 'apiSetAutoTrigger'
+    'apiAddAutoRule', 'apiUpdateAutoRule', 'apiDeleteAutoRule', 'apiSetAutoTrigger',
+    'apiRunAutoRulesNow'
   ]);
 
   function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
@@ -14275,7 +14295,7 @@
       const total = entries.reduce((sum, e) => sum + e.points, 0);
       showToast(`⭐ ${total} pt(s) enregistré(s) dans les Tops Alternatifs !`, 'success');
       applyFilters();
-      if (activeDashboardUniverse === 'alt') refreshDashboardStats();
+      if (activeDashboardUniverse === 'alt') refreshDashboardStats(true);
       if (onSuccess) onSuccess(res);
     }, 'Saisie native Alt', () => { restore(); });
   }
@@ -14592,6 +14612,8 @@
 
   // Catégorise une action du journal pour l'affichage (icône + couleur).
   const AUDIT_CATEGORIES = [
+    { test: /erreur|échec/i,                                     icon: '❌', cls: 'delete' },
+    { test: /sécurité|authentification|mot de passe/i,           icon: '🔒', cls: 'delete' },
     { test: /ignorée|ignoré/i,                                   icon: '⚠️', cls: 'update' },
     { test: /auto/i,                                            icon: '🤖', cls: 'auto'   },
     { test: /suppr/i,                                            icon: '🗑️', cls: 'delete' },
@@ -14628,14 +14650,8 @@
     return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
-  // Actions où "avant/après" ne reflète pas un vrai changement de valeur — le
-  // contenu utile est déjà dans Détail, donc on n'affiche rien ici plutôt qu'un
-  // fragment sans signification ("" → "3 entrée(s)").
-  const AUDIT_NO_DIFF_ACTIONS = new Set([
-    'Suppression bulk', 'Nettoyage zéros', 'Nettoyage orphelins',
-    'Phrases batch', 'Lots auto-groupés', 'Groupement lot',
-    'Dégroupement lot', 'Retrait du groupe', 'Suppression groupe', 'Action annulée'
-  ]);
+  // Actions où "avant/après" ne doit pas s'afficher (réservé aux actions sans diff pertinent)
+  const AUDIT_NO_DIFF_ACTIONS = new Set([]);
 
   function renderAuditTable(res) {
     const tbody = document.getElementById('auditTableBody');
@@ -16685,6 +16701,38 @@
       }, 'Configuration auto-trigger');
     });
 
+    const runNowBtn = document.getElementById('runAutoRulesNowBtn');
+    if (runNowBtn) {
+      runNowBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
+        runNowBtn.disabled = true;
+        const origText = runNowBtn.textContent;
+        runNowBtn.textContent = '⏳ En cours…';
+        callServer('apiRunAutoRulesNow', [_whoAmI || ''], res => {
+          runNowBtn.disabled = false;
+          runNowBtn.textContent = origText;
+          const count = (res && typeof res.granted === 'number')
+            ? res.granted
+            : ((res && res.result && typeof res.result.granted === 'number') ? res.result.granted : 0);
+          const skipped = (res && typeof res.skipped === 'number')
+            ? res.skipped
+            : ((res && res.result && typeof res.result.skipped === 'number') ? res.result.skipped : 0);
+          if (count > 0) {
+            showToast(count + ' règle(s) automatique(s) exécutée(s).', 'success');
+            loadAutoRules();
+          } else if (skipped > 0) {
+            showToast(skipped + ' règle(s) ignorée(s) (joueur/Top introuvable).', 'warning');
+            loadAutoRules();
+          } else {
+            showToast('Aucune règle automatique n\'est due actuellement.', 'info');
+          }
+        }, 'Exécution des règles', () => {
+          runNowBtn.disabled = false;
+          runNowBtn.textContent = origText;
+        });
+      });
+    }
+
     document.getElementById('addAutoRuleBtn').addEventListener('click', handleAddAutoRule);
   }
 
@@ -17666,7 +17714,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
-        refreshDashboardStats();
+        refreshDashboardStats(true);
       });
       univAltBtn.addEventListener('click', () => {
         if (activeDashboardUniverse === 'alt') return;
@@ -17677,7 +17725,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
-        refreshDashboardStats();
+        refreshDashboardStats(true);
       });
     }
 
@@ -18605,12 +18653,51 @@
     return row;
   }
 
-  function refreshDashboardStats() {
-    scanRecords();
-    loadTrends();
-    loadActiveWeekday();
-    scanTopPairs();
-    loadMentionStats();
+  const _statsHubLoadedPanes = new Set();
+
+  function updateStatsHubSubtitle() {
+    const sub = document.getElementById('statsHubSubtitle');
+    if (!sub) return;
+    sub.textContent = activeDashboardUniverse === 'alt' ? '⭐ Tops Alternatifs' : 'Tops Principaux';
+  }
+
+  function loadStatsHubPane(pane, force) {
+    if (!pane) pane = 'records';
+    updateStatsHubSubtitle();
+    if (!force && _statsHubLoadedPanes.has(pane)) {
+      if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
+      if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
+      return;
+    }
+    _statsHubLoadedPanes.add(pane);
+    switch (pane) {
+      case 'records':
+        scanRecords();
+        break;
+      case 'trends':
+        loadTrends();
+        break;
+      case 'weekday':
+        loadActiveWeekday();
+        break;
+      case 'pairs':
+        scanTopPairs();
+        break;
+      case 'mentions':
+        loadMentionStats();
+        break;
+    }
+  }
+
+  function refreshDashboardStats(force) {
+    updateStatsHubSubtitle();
+    if (force) {
+      _statsHubLoadedPanes.clear();
+      _trendsData = null;
+    }
+    const activeTab = document.querySelector('#statsHubTabs .stats-hub-tab.active');
+    const pane = activeTab && activeTab.dataset.pane ? activeTab.dataset.pane : 'records';
+    loadStatsHubPane(pane, force);
   }
 
   // Contrairement au graphique principal (bindChartRetry), ces panneaux du hub
@@ -19077,6 +19164,7 @@
     makeCollapsible(document.getElementById('phrasesCard'),  'tdt_collapsed_podium');
     makeCollapsible(document.getElementById('filtersCard'),  'tdt_collapsed_filters');
     makeCollapsible(document.getElementById('chartCard'),    'tdt_collapsed_chart');
+    makeCollapsible(document.getElementById('statsHubCard'),  'tdt_collapsed_stats_hub');
     makeCollapsible(document.getElementById('toolHealthCard'), 'tdt_collapsed_tool_health');
     makeCollapsible(document.getElementById('toolLotsCard'),   'tdt_collapsed_tool_lots');
     makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
@@ -19126,6 +19214,7 @@
                 );
               }
             }
+            loadStatsHubPane(pane, false);
             if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
             if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
           }
@@ -19133,6 +19222,7 @@
       } else {
         document.querySelectorAll('#statsHubCard .stats-hub-pane').forEach(p =>
           p.classList.toggle('active', p.dataset.pane === pane));
+        loadStatsHubPane(pane, false);
         if (pane === 'trends'  && trendsChartInstance)  trendsChartInstance.resize();
         if (pane === 'weekday' && weekdayChartInstance) weekdayChartInstance.resize();
       }
@@ -19144,6 +19234,14 @@
       const savedPane = localStorage.getItem(STATS_HUB_TAB_KEY);
       if (savedPane && document.querySelector('#statsHubTabs [data-pane="' + savedPane + '"]')) switchStatsHubPane(savedPane);
     } catch {}
+
+    const refreshStatsBtn = document.getElementById('refreshStatsHubBtn');
+    if (refreshStatsBtn) {
+      refreshStatsBtn.addEventListener('click', () => {
+        refreshDashboardStats(true);
+        flashSaved(refreshStatsBtn);
+      });
+    }
     document.getElementById('trendsScopeToggle').addEventListener('click', e => {
       const btn = e.target.closest('.chart-type-btn');
       if (!btn || !btn.dataset.scope) return;

@@ -646,11 +646,13 @@ test('apiDeleteHistoryEntries writes rich detail with deleted points and player 
   assert.strictEqual(audit._grid.length, 2);
   const auditRow = audit._grid[1];
   assert.strictEqual(auditRow[2], 'Suppression bulk');
+  assert.strictEqual(auditRow[4], '2 entrées (−25 pts)');
+  assert.strictEqual(auditRow[5], 'Supprimé');
   assert.ok(auditRow[6].includes('2 entrées supprimées (−25 pts)'), 'detail mentions count and points');
   assert.ok(auditRow[6].includes('Bob') && auditRow[6].includes('Alice'), 'detail mentions players');
 });
 
-test('apiUpdateBulkEntries returns auditRowId and can be undone via apiUndoAuditEntry', () => {
+test('apiUpdateBulkEntries returns auditRowId and can be undone via apiUndoAuditEntry with rich audit log', () => {
   const gas = loadGas();
   const audit = makeAuditSheetV9();
   const history = makeSheet([
@@ -677,4 +679,117 @@ test('apiUpdateBulkEntries returns auditRowId and can be undone via apiUndoAudit
   // Verify restored
   assert.strictEqual(history._grid[1][2], 'Sport');
   assert.strictEqual(history._grid[1][3], 10);
+
+  // Verify undo audit row
+  assert.strictEqual(audit._grid.length, 3);
+  const undoRow = audit._grid[2];
+  assert.strictEqual(undoRow[1], 'Admin');
+  assert.strictEqual(undoRow[2], 'Action annulée');
+  assert.strictEqual(undoRow[3], 'History');
+  assert.strictEqual(undoRow[4], 'Top → Jeux, Points → 25 pts');
+  assert.strictEqual(undoRow[5], 'Restauré');
+  assert.match(undoRow[6], /Annulation de l'action « Modification bulk »/);
 });
+
+test('requireAuthor records security audit log on authentication failure', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheet();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '', 'secret123']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players, categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+
+  assert.throws(() => {
+    gas.requireAuthor('Alice', 'badpass');
+  }, /Mot de passe invalide/);
+
+  assert.strictEqual(audit._grid.length, 2);
+  const authLog = audit._grid[1];
+  assert.strictEqual(authLog[1], 'Alice');
+  assert.strictEqual(authLog[2], 'Échec authentification');
+  assert.strictEqual(authLog[3], 'Sécurité');
+  assert.match(authLog[6], /Mot de passe invalide/);
+});
+
+test('apiSaveAppSettings records previous and new values in audit log', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheet();
+  const settings = makeSheet([['Key', 'Value']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => settings, getSheetByName: (n) => n === 'Settings' ? settings : null },
+    history: makeSheet([]), players: defaultPlayers(), categories: makeSheet([]),
+    settings, notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+
+  gas.apiSaveAppSettings('Premier Titre', 'https://logo1.png', 'Admin');
+  const firstLog = audit._grid[1];
+  assert.strictEqual(firstLog[2], 'Identité app modifiée');
+  assert.strictEqual(firstLog[4], '');
+  assert.strictEqual(firstLog[5], 'Premier Titre (logo: https://logo1.png)');
+
+  gas.apiSaveAppSettings('Second Titre', 'https://logo2.png', 'Admin');
+  const secondLog = audit._grid[2];
+  assert.strictEqual(secondLog[2], 'Identité app modifiée');
+  assert.strictEqual(secondLog[4], 'Premier Titre (logo: https://logo1.png)');
+  assert.strictEqual(secondLog[5], 'Second Titre (logo: https://logo2.png)');
+});
+
+test('apiVerifyIdentity records security audit log on invalid password', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheet();
+  const players = makeSheet([
+    ['Name', 'Avatar URL', 'Hex color', 'Password'],
+    ['Alice', '', '', 'mypassword']
+  ]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players, categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit
+  });
+
+  const res = gas.apiVerifyIdentity('Alice', 'wrongpass');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(res.granted, false);
+
+  assert.strictEqual(audit._grid.length, 2);
+  const logRow = audit._grid[1];
+  assert.strictEqual(logRow[1], 'Alice');
+  assert.strictEqual(logRow[2], 'Échec authentification');
+  assert.strictEqual(logRow[3], 'Sécurité');
+  assert.match(logRow[6], /Mot de passe invalide/);
+});
+
+test('apiSavePhrasesBatch inserts phrases and records complete audit trail without finalSheet reference error', () => {
+  const gas = loadGas();
+  const audit = makeAuditSheet();
+  const phrasesSheet = makeSheet([['Preset', 'Pool', 'Text', 'Ordre']]);
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([]), players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: phrasesSheet, auditLog: audit
+  });
+
+  const batch = [
+    { preset: 'Standard', pool: 'first', text: 'Bravo !' },
+    { preset: 'Standard', pool: 'first', text: 'Bien joué !' },
+    { preset: 'Standard', pool: 'second', text: 'Presque !' }
+  ];
+
+  const res = gas.apiSavePhrasesBatch(batch, 'Alice', '');
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(phrasesSheet._grid.length, 4);
+
+  assert.strictEqual(audit._grid.length, 2);
+  const log = audit._grid[1];
+  assert.strictEqual(log[1], 'Alice');
+  assert.strictEqual(log[2], 'Phrases batch');
+  assert.strictEqual(log[3], 'Phrases: Standard');
+  assert.strictEqual(log[5], '3 phrase(s) ajoutée(s)');
+  assert.match(log[6], /3 phrase\(s\) ajoutée\(s\) dans first, second/);
+});
+

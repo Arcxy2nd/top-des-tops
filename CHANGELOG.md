@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.27.0] - 2026-09-05
+
+### Ajouté
+**Humanisé** : La section « Statistiques » du Dashboard fait peau neuve : carte repliable avec sauvegarde d'état, navigation fluide par onglets défilables au doigt sur mobile, chargement à la demande pour ne plus ralentir l'affichage du tableau de bord, rappel de l'univers actif et bouton d'actualisation instantané.
+**Technique** : `Index.html` — refonte de `#statsHubCard` avec composant accordéon persistant (`tdt_collapsed_stats_hub`), en-tête enrichi (`#statsHubSubtitle`, `#refreshStatsHubBtn`), barre de navigation défilable horizontalement (`.stats-hub-nav`), et chargement paresseux par volet (`loadStatsHubPane`, `_statsHubLoadedPanes`) au lieu de requêtes parallèles systématiques.
+
+**Humanisé** : Traçabilité totale dans le journal d'audit : toutes les actions joueurs (modifications de barème, phrases, paramètres, suppressions, tentatives d'authentification échouées) ainsi que le cycle de vie complet des règles automatiques (exécutions manuelles ou planifiées, règles dues ou ignorées, erreurs de script) sont désormais consignées sans aucune omission.
+**Technique** : `Code.gs`, `AutoPoints.gs`, `Index.html` — traçabilité des échecs d'authentification dans `apiVerifyIdentity` sous la catégorie `Sécurité`, audit complet et enrichi pour `apiAddAutoRule`, `apiUpdateAutoRule`, `apiDeleteAutoRule`, `apiSetAutoTrigger`, `apiRunAutoRulesNow`, `runAutoPoints` (avec capture des erreurs), et complétion des colonnes Avant/Après et Détail sur l'ensemble des mutations de barème, notes, chat et phrases.
+
+### Corrigé
+**Humanisé** : Correction du déclenchement manuel des règles automatiques : le message de confirmation indique désormais exactement le nombre de règles exécutées ou ignorées au lieu d'afficher par erreur qu'aucune règle n'était due.
+**Technique** : `Index.html` et `AutoPoints.gs` — alignement de la réponse de `apiRunAutoRulesNow` renvoyant les propriétés de premier niveau `granted` et `skipped`, et mise à jour de l'écouteur de clic de `#runAutoRulesNowBtn`.
+
+**Humanisé** : Correction d'une erreur bloquante empêchant l'enregistrement par lot de phrases personnalisées.
+**Technique** : `Code.gs` — correction de la variable non déclarée `finalSheet` en `existingSheet` dans `apiSavePhrasesBatch`. Couverture par nouveaux tests unitaires dans `tests/audit.test.js` et `tests/autopoints.test.js` (343 tests au total).
+
 ## [v3.26.3] - 2026-09-05
 
 ### Supprimé

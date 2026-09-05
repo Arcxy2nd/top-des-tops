@@ -433,7 +433,13 @@ function requireAuthor(author, password) {
   let ok;
   try { ok = SettingsService.verifyIdentity(name, password); }
   catch (e) { ok = false; } // unknown/renamed-away player → never authorized
-  if (!ok) throw new Error("Mot de passe invalide ou requis pour agir en tant que " + name + " — resélectionne ton identité.");
+  if (!ok) {
+    try {
+      AuditService.log(name, 'Échec authentification', 'Sécurité', '', '',
+        'Mot de passe invalide ou requis pour agir en tant que ' + name);
+    } catch (_) {}
+    throw new Error("Mot de passe invalide ou requis pour agir en tant que " + name + " — resélectionne ton identité.");
+  }
   return name;
 }
 
@@ -669,7 +675,13 @@ const AuditService = (() => {
 
     _applySnapshot(snapshot);
     sheet.getRange(rowIndex, 9).setValue(new Date());
-    log(author, 'Action annulée', entity, '', '', 'Annulation de : ' + action);
+    const origBefore = row[4] ? String(row[4]) : '';
+    const origAfter  = row[5] ? String(row[5]) : '';
+    const origDetail = row[6] ? String(row[6]) : '';
+    const undoBefore = origAfter || action;
+    const undoAfter  = origBefore || 'Restauré';
+    const undoDetail = 'Annulation de l\'action « ' + action + ' » (ligne #' + rowIndex + ')' + (origDetail ? ' : ' + origDetail : '');
+    log(author, 'Action annulée', entity, undoBefore, undoAfter, undoDetail);
     ConfigService.clearCache();
     return { success: true, summary: action };
   }
@@ -2284,9 +2296,17 @@ function apiSaveAppSettings(title, logoUrl, author, password) {
   try {
     requireAuthor(author, password);
     return withLock(() => {
-      SettingsSheetService.setValue('app_title', (title || '').trim());
-      SettingsSheetService.setValue('logo_url', (logoUrl || '').trim());
-      AuditService.log(author, 'Identité app modifiée', 'Settings', '', (title || '').trim(), '');
+      const prev = SettingsSheetService.getAll();
+      const prevTitle = prev.app_title || '';
+      const prevLogo  = prev.logo_url || '';
+      const newTitle  = (title || '').trim();
+      const newLogo   = (logoUrl || '').trim();
+      SettingsSheetService.setValue('app_title', newTitle);
+      SettingsSheetService.setValue('logo_url', newLogo);
+      const beforeStr = prevTitle + (prevLogo ? ' (logo: ' + prevLogo + ')' : '');
+      const afterStr  = newTitle + (newLogo ? ' (logo: ' + newLogo + ')' : '');
+      AuditService.log(author, 'Identité app modifiée', 'Settings', beforeStr, afterStr,
+        'Titre : ' + (newTitle || 'par défaut') + (newLogo ? ' · Logo personnalisé' : ''));
       ConfigService.clearCache();
       return { success: true };
     });
@@ -2297,8 +2317,13 @@ function apiSaveTooltipStyle(prefsJson, author, password) {
   try {
     requireAuthor(author, password);
     return withLock(() => {
-      SettingsSheetService.setValue('tooltip_style', (prefsJson || '').trim());
-      AuditService.log(author, 'Style infobulle modifié', 'Settings', '', 'Mise à jour infobulles', '');
+      const prev = SettingsSheetService.getAll().tooltip_style || '';
+      const newPrefs = (prefsJson || '').trim();
+      SettingsSheetService.setValue('tooltip_style', newPrefs);
+      AuditService.log(author, 'Style infobulle modifié', 'Settings',
+        prev ? 'Style précédent' : 'Défaut',
+        newPrefs ? 'Style personnalisé' : 'Défaut',
+        'Préférences infobulles enregistrées');
       ConfigService.clearCache();
       return { success: true };
     });
@@ -2593,7 +2618,8 @@ function apiAddBaremeEntry(top, action, pts, author, password) {
       BaremeService.addEntry(top, action, pts);
       const after = [top || '', action || '', String(Number(pts) || 0) + ' pts'].join(' | ');
       const sheet = ConfigService.getSheets().bareme;
-      AuditService.log(author, 'Règle ajoutée', 'Barème', '', after, '',
+      AuditService.log(author, 'Règle ajoutée', 'Barème', '', after,
+        'Règle ajoutée : ' + top + ' · ' + action + ' (+' + pts + ' pts)',
         { sheet: 'bareme', op: 'insert', rowIndex: sheet.getLastRow(),
           after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
       ConfigService.clearCache();
@@ -2601,8 +2627,6 @@ function apiAddBaremeEntry(top, action, pts, author, password) {
     });
   } catch(e) { return fail(e); }
 }
-
-
 
 function apiUpdateBaremeEntry(rowIndex, action, pts, author, password) {
   try {
@@ -2614,7 +2638,8 @@ function apiUpdateBaremeEntry(rowIndex, action, pts, author, password) {
       BaremeService.updateEntry(rowIndex, action, pts);
       const after = (action || '') + ' | ' + String(Number(pts) || 0) + ' pts';
       const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
-      AuditService.log(author, 'Règle modifiée', 'Barème', before, after, 'ligne #' + rowIndex,
+      AuditService.log(author, 'Règle modifiée', 'Barème', before, after,
+        'Ligne #' + rowIndex + ' : ' + before + ' → ' + after,
         { sheet: 'bareme', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
@@ -2630,7 +2655,8 @@ function apiDeleteBaremeEntry(rowIndex, author, password) {
       const before = _baremeRowSummary(rowIndex);
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       BaremeService.deleteEntry(rowIndex);
-      AuditService.log(author, 'Règle supprimée', 'Barème', before, '', 'ligne #' + rowIndex,
+      AuditService.log(author, 'Règle supprimée', 'Barème', before, 'Supprimé',
+        'Règle supprimée (ligne #' + rowIndex + ') : ' + before,
         { sheet: 'bareme', op: 'delete', before: beforeRow });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
@@ -2658,7 +2684,8 @@ function apiSetColor(type, rowIndex, expectedName, color, author, password) {
       const label = type === 'Players' ? 'Joueur' : 'Top';
       const afterRow = beforeRow ? sheet.getRange(rowIndex, 1, 1, numCols).getValues()[0] : null;
       AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + expectedName,
-        before, color || '', '',
+        before || 'défaut', color || 'défaut',
+        'Couleur de ' + expectedName + ' : ' + (before || 'défaut') + ' → ' + (color || 'défaut'),
         beforeRow ? { sheet: sheetKey, op: 'update', rowIndex: rowIndex, before: beforeRow, after: afterRow } : null);
       ConfigService.clearCache();
       return { success: true };
@@ -2683,7 +2710,8 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
           ? (newName || '') + ' (avatar: ' + (newMeta || '') + ')'
           : (newName || '') + ' (' + (newMeta || '') + ', ' + (newIcon || '') + ')';
         const afterRow = sheet.getRange(sheet.getLastRow(), 1, 1, numCols).getValues()[0];
-        AuditService.log(author, label + ' ajouté', label + ': ' + (newName || ''), '', after, '',
+        AuditService.log(author, label + ' ajouté', label + ': ' + (newName || ''), '', after,
+          label + ' « ' + (newName || '') + ' » créé' + (newMeta ? ' (' + newMeta + ')' : ''),
           { sheet: sheetKey, op: 'insert', rowIndex: sheet.getLastRow(), after: afterRow });
       }
       if (action === 'DELETE') {
@@ -2694,7 +2722,8 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
         const data = sheet.getDataRange().getValues();
         const beforeRow = data[rowIndex - 1];
         SettingsService.deleteEntity(type, rowIndex, oldName);
-        AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, '', '',
+        AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, 'Supprimé',
+          label + ' « ' + (oldName || '') + ' » supprimé',
           beforeRow ? { sheet: sheetKey, op: 'delete', before: beforeRow.slice(0, numCols) } : null);
       }
       if (action === 'RENAME') {
@@ -2705,7 +2734,8 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
         const afterData = sheet.getDataRange().getValues();
         const afterRow  = afterData[rowIndex - 1];
         AuditService.log(author, label + ' renommé', label + ': ' + (oldName || ''),
-          oldName || '', newName || '', '',
+          oldName || '', newName || '',
+          label + ' renommé : « ' + (oldName || '') + ' » → « ' + (newName || '') + ' »',
           (beforeRow && afterRow) ? { sheet: sheetKey, op: 'update',
             rowIndex: rowIndex,
             before: beforeRow.slice(0, numCols), after: afterRow.slice(0, numCols) } : null);
@@ -2724,9 +2754,14 @@ function apiReorderEntities(type, orderedRowIndexes, expectedNames, author, pass
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     if (!Array.isArray(expectedNames) || expectedNames.length !== orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
-      SettingsService.reorderEntities(type, orderedRowIndexes, expectedNames);
       const label = type === 'Players' ? 'Joueurs' : 'Tops';
-      AuditService.log(author, 'Ordre modifié', label, '', expectedNames.join(' → '), '', null);
+      const prevNames = SettingsService.getEntities(type).map(e => e.name);
+      SettingsService.reorderEntities(type, orderedRowIndexes, expectedNames);
+      AuditService.log(author, 'Ordre modifié', label,
+        prevNames.join(' → '),
+        expectedNames.join(' → '),
+        orderedRowIndexes.length + ' ' + label.toLowerCase() + ' réordonné(s)',
+        null);
       ConfigService.clearCache();
       // Renvoyer les deux listes fraîches (comme apiGetSettings) évite au client de
       // rappeler loadEntities() après coup — celle-ci repeint d'abord depuis son
@@ -2889,8 +2924,19 @@ function _entityColorSummary(type, name) {
 /** Verifies an identity password server-side. Never returns the password itself. */
 function apiVerifyIdentity(name, password) {
   try {
-    return { success: true, granted: SettingsService.verifyIdentity(name, password) };
+    const granted = SettingsService.verifyIdentity(name, password);
+    if (!granted) {
+      try {
+        AuditService.log(name || 'Inconnu', 'Échec authentification', 'Sécurité', '', '',
+          'Mot de passe invalide pour ' + (name || 'inconnu'));
+      } catch (_) {}
+    }
+    return { success: true, granted: granted };
   } catch (e) {
+    try {
+      AuditService.log(name || 'Inconnu', 'Échec authentification', 'Sécurité', '', '',
+        'Erreur vérification identité pour ' + (name || 'inconnu') + ' : ' + e.message);
+    } catch (_) {}
     return { success: false, error: e.message };
   }
 }
@@ -2911,7 +2957,8 @@ function apiDeleteHistoryEntries(rowIndexes, author, password) {
         + ' (−' + delPts + ' pts) : '
         + (delPlayers.length <= 3 ? delPlayers.join(', ') : (delPlayers.slice(0, 3).join(', ') + ' +' + (delPlayers.length - 3)))
         + ' · ' + (delCats.length <= 2 ? delCats.join(', ') : (delCats.slice(0, 2).join(', ') + ' +' + (delCats.length - 2)));
-      AuditService.log(author, 'Suppression bulk', 'History', '', '', detail,
+      const beforeStr = rowIndexes.length + ' entrée' + (rowIndexes.length > 1 ? 's' : '') + ' (−' + delPts + ' pts)';
+      AuditService.log(author, 'Suppression bulk', 'History', beforeStr, 'Supprimé', detail,
         { sheet: 'history', op: 'deleteMany', rows: removedRows });
       ConfigService.clearCache();
       return { success: true };
@@ -3022,8 +3069,15 @@ function apiAppendAltNativeBatch(author, entries, password) {
     if (!entries || !entries.length) return fail(new Error('Aucune entrée à enregistrer.'));
     return withLock(function() {
       const count = AltStorageService.addNativeAltEntries(entries);
-      AuditService.log(author, 'Saisie native Alt', entries.map(e => e.altCategory).join(', '), '', '',
-        count + ' entrée(s) saisie(s) directement dans Tops Alternatifs');
+      const totalPts = entries.reduce(function(s, e) { return s + (parseInt(e.points, 10) || 0); }, 0);
+      const afterStr = entries.map(function(e) {
+        return (e.player || '?') + ' : ' + (e.altCategory || '?') + ' (+' + (e.points || 0) + ' pts)';
+      }).join(', ');
+      const altCats = [...new Set(entries.map(function(e) { return e.altCategory; }))].join(', ');
+      AuditService.log(author, 'Saisie native Alt', 'Tops Alternatifs (' + altCats + ')',
+        '', afterStr,
+        count + ' entrée(s) saisie(s) directement dans Tops Alternatifs (total: +' + totalPts + ' pts)');
+      ConfigService.clearCache();
       return { success: true, count: count };
     });
   } catch(e) { return fail(e); }
@@ -3036,7 +3090,7 @@ function apiDeleteNativeAltEntry(author, altCategory, rowIndex, guard, password)
       const removed = AltStorageService.deleteNativeAltEntry(rowIndex, altCategory, guard);
       const summary = (removed[1] || '?') + ' — ' + (removed[3] || 0) + ' pt(s)';
       AuditService.log(author, 'Suppression entrée Alt native', altCategory || '—',
-        summary, '', 'Entrée native supprimée définitivement',
+        summary, 'Supprimé', 'Entrée native supprimée définitivement',
         { sheet: 'altHistory', op: 'delete', before: removed });
       return { success: true, count: 1 };
     });
@@ -3053,8 +3107,14 @@ function apiSaveAltCategories(author, list, password) {
   try {
     requireAuthor(author, password);
     return withLock(function() {
+      const prevList = AltSettingsService.getAltCategories();
+      const beforeStr = prevList.map(c => c.name).join(', ') || 'Aucune catégorie';
       AltSettingsService.saveAltCategories(list);
-      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories', '', '', 'Mise à jour des catégories alternes');
+      const afterStr = list.map(c => c.name).join(', ') || 'Aucune catégorie';
+      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories',
+        beforeStr, afterStr,
+        list.length + ' catégorie(s) alternative(s) configurée(s)');
+      ConfigService.clearCache();
       return { success: true, altCategories: AltSettingsService.getAltCategories() };
     });
   } catch(e) { return fail(e); }
@@ -3065,7 +3125,11 @@ function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory, passwo
     requireAuthor(author, password);
     return withLock(function() {
       const count = AltStorageService.linkHistoryRowsToAltCategory(rowIndices, altCategory, author);
-      AuditService.log(author, 'Affectation Top Alternatif', altCategory, '', '', count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
+      AuditService.log(author, 'Affectation Top Alternatif', 'Top Alternatif: ' + altCategory,
+        rowIndices.length + ' entrée(s) non liée(s)',
+        altCategory + ' (' + count + ' liée(s))',
+        count + ' entrée(s) liée(s) au Top Alternatif ' + altCategory);
+      ConfigService.clearCache();
       return { success: true, linkedCount: count };
     });
   } catch(e) { return fail(e); }
@@ -3076,7 +3140,11 @@ function apiUnlinkHistoryRowsFromAltCategory(author, rowIndices, altCategory, pa
     requireAuthor(author, password);
     return withLock(function() {
       const count = AltStorageService.unlinkHistoryRowsFromAltCategory(rowIndices, altCategory, author);
-      AuditService.log(author, 'Désaffectation Top Alternatif', altCategory || 'Tous', '', '', count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
+      AuditService.log(author, 'Désaffectation Top Alternatif', 'Top Alternatif: ' + (altCategory || 'Tous'),
+        altCategory || 'Tous',
+        'Délié (' + count + ' entrée(s))',
+        count + ' entrée(s) retirée(s) du Top Alternatif ' + (altCategory || 'tous'));
+      ConfigService.clearCache();
       return { success: true, unlinkedCount: count };
     });
   } catch(e) { return fail(e); }
@@ -3100,9 +3168,13 @@ function apiGroupSimilarEntries(author, password) {
     requireAuthor(author, password);
     return withLock(function() {
       const result = StorageService.apiGroupSimilarEntries();
-      if (result.groupedCount > 0) {
-        AuditService.log(author, 'Regroupement automatique', 'History', '', '', result.groupedCount + ' entrées regroupées dans ' + result.groupsCreated + ' groupe(s)');
-      }
+      const beforeStr = result.groupedCount ? (result.groupedCount + ' entrées séparées') : '0 entrée';
+      const afterStr = result.groupsCreated ? (result.groupsCreated + ' groupe(s) créés') : 'Inchangé';
+      const detailStr = result.groupedCount
+        ? (result.groupedCount + ' entrées regroupées dans ' + result.groupsCreated + ' groupe(s)')
+        : 'Aucune entrée similaire à regrouper trouvée';
+      AuditService.log(author, 'Regroupement automatique', 'History', beforeStr, afterStr, detailStr);
+      ConfigService.clearCache();
       return { success: true, groupedCount: result.groupedCount, groupsCreated: result.groupsCreated };
     });
   } catch(e) { return fail(e); }
@@ -3240,7 +3312,9 @@ function apiFixZeroPoints(author, password) {
       const zeroDetail = result.deleted
         ? (result.deleted + ' entrée(s) avec score ≤ 0 supprimée(s)')
         : 'Aucune entrée avec score ≤ 0 trouvée';
-      AuditService.log(author, 'Nettoyage zéros', 'History', '', '',
+      const beforeStr = result.deleted ? (result.deleted + ' entrée(s) ≤ 0 pts') : '0 entrée';
+      const afterStr  = result.deleted ? 'Nettoyé (supprimé)' : 'Inchangé';
+      AuditService.log(author, 'Nettoyage zéros', 'History', beforeStr, afterStr,
         zeroDetail,
         result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
@@ -3257,7 +3331,9 @@ function apiDeleteOrphans(author, password) {
       const orphanDetail = result.deleted
         ? (result.deleted + ' entrée(s) orpheline(s) supprimée(s)')
         : 'Aucune entrée orpheline trouvée';
-      AuditService.log(author, 'Nettoyage orphelins', 'History', '', '',
+      const beforeStr = result.deleted ? (result.deleted + ' entrée(s) orpheline(s)') : '0 orphelin';
+      const afterStr  = result.deleted ? 'Nettoyé (supprimé)' : 'Inchangé';
+      AuditService.log(author, 'Nettoyage orphelins', 'History', beforeStr, afterStr,
         orphanDetail,
         result.rows.length ? { sheet: 'history', op: 'deleteMany', rows: result.rows } : null);
       ConfigService.clearCache();
@@ -3366,10 +3442,12 @@ function apiBackfillNoteAuthors(author, password) {
         matched++;
       });
 
-      if (matched) {
-        AuditService.log(author, 'Notes rattachées', 'Notes', '', '',
-          matched + ' note(s) rattachée(s), ' + skipped + ' laissée(s) sans correspondance certaine');
-      }
+      const beforeStr = (matched + skipped) + ' note(s) sans auteur';
+      const afterStr  = matched ? (matched + ' note(s) rattachée(s)') : 'Inchangé';
+      const detailStr = matched
+        ? (matched + ' note(s) rattachée(s), ' + skipped + ' laissée(s) sans correspondance certaine')
+        : 'Aucune note à rattacher trouvée';
+      AuditService.log(author, 'Notes rattachées', 'Notes', beforeStr, afterStr, detailStr);
       ConfigService.clearCache();
       return { success: true, matched, skipped };
     });
@@ -3381,11 +3459,15 @@ function apiUpdateHistoryDescription(rowIndex, description, author, password) {
     requireAuthor(author, password);
     return withLock(() => {
       const { history } = ConfigService.getSheets();
-      const before = _historyDescSummary(rowIndex);
       const beforeRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      const prevDesc = beforeRow[4] ? beforeRow[4].toString() : '';
+      const newDesc = (description || '').trim();
+      const meta = _historyRowSummary(rowIndex);
       StorageService.updateHistoryDescription(rowIndex, description);
       const afterRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
-      AuditService.log(author, 'Description modifiée', 'History', before, description || '', 'ligne #' + rowIndex,
+      AuditService.log(author, 'Description modifiée', 'History',
+        prevDesc || '(vide)', newDesc || '(vide)',
+        'Ligne #' + rowIndex + ' (' + meta + ')',
         { sheet: 'history', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true };
@@ -3410,7 +3492,8 @@ function apiUpdateHistoryEntry(rowIndex, fields, author, password) {
       const after = [fields.player || '?', fields.category || '?',
         (parseInt(fields.points, 10) || '?') + ' pts', afterDate,
         fields.description || ''].join(' | ');
-      AuditService.log(author, 'Modification entrée', 'History', before, after, 'ligne #' + rowIndex,
+      AuditService.log(author, 'Modification entrée', 'History', before, after,
+        'Ligne #' + rowIndex + ' : ' + before + ' → ' + after,
         { sheet: 'history', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true };
@@ -3451,7 +3534,7 @@ function apiDeleteNote(rowIndex, author, password) {
       const noteId = NotesService.noteIdAt(rowIndex);
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
       NotesService.deleteNote(rowIndex);
-      AuditService.log(author, 'Note supprimée', 'Note', before, '', 'note:' + noteId,
+      AuditService.log(author, 'Note supprimée', 'Note', before, 'Supprimée', 'note:' + noteId,
         { sheet: 'notes', op: 'delete', before: beforeRow });
       return { success: true };
     });
@@ -3516,7 +3599,7 @@ function apiPostChatMessage(text, replyToId, author, password) {
       const msg = ChatService.postMessage(author, text, replyToId);
       const sheet = ConfigService.getSheets().chat;
       AuditService.log(author, 'Message tchat envoyé', 'Chat',
-        '', msg.text.slice(0, 200), replyToId ? 'en réponse à un message' : '',
+        '', msg.text.slice(0, 200), replyToId ? ('En réponse au message #' + replyToId) : 'Nouveau fil',
         { sheet: 'chat', op: 'insert', rowIndex: msg.rowIndex,
           after: sheet.getRange(msg.rowIndex, 1, 1, 5).getValues()[0] });
       return { success: true, message: msg };
@@ -3530,7 +3613,7 @@ function apiDeleteChatMessage(id, author, password) {
     return withLock(() => {
       const result = ChatService.deleteMessage(id, author);
       AuditService.log(author, 'Message tchat supprimé', 'Chat',
-        (result.deletedRow[3] || '').toString().slice(0, 200), '', 'id ' + id,
+        (result.deletedRow[3] || '').toString().slice(0, 200), 'Supprimé', 'Message #' + id + ' supprimé',
         { sheet: 'chat', op: 'delete', before: result.deletedRow });
       return { success: true };
     });
@@ -3764,7 +3847,9 @@ function apiGroupDistributedLots(lotsToGroup, author, password) {
       });
       colRange.setValues(values);
       const totalGrouped = lotsToGroup.reduce(function(s, l) { return s + (l.rowIndexes ? l.rowIndexes.length : 0); }, 0);
-      AuditService.log(author, 'Lots auto-groupés', 'History', '', '',
+      AuditService.log(author, 'Lots auto-groupés', 'History',
+        totalGrouped + ' entrées séparées',
+        lotsToGroup.length + ' lot(s) groupé(s)',
         lotsToGroup.length + ' lot(s) auto-groupé(s) (' + totalGrouped + ' entrées au total)');
       ConfigService.clearCache();
       return { success: true };
@@ -3789,7 +3874,9 @@ function apiGroupRows(rowIndexes, author, password) {
         if (indexSet.has(i + startRow)) values[i][0] = gid;
       }
       colRange.setValues(values);
-      AuditService.log(author, 'Groupement lot', 'History', '', '',
+      AuditService.log(author, 'Groupement lot', 'History',
+        rowIndexes.length + ' entrées séparées',
+        'Lot ' + gid,
         rowIndexes.length + ' entrées regroupées dans le lot ' + gid);
       ConfigService.clearCache();
       return { success: true };
@@ -3818,7 +3905,9 @@ function apiUngroupLot(groupId, author, password) {
         }
       }
       if (modified) colRange.setValues(data);
-      AuditService.log(author, 'Dégroupement lot', 'History', '', '',
+      AuditService.log(author, 'Dégroupement lot', 'History',
+        'Lot ' + groupId,
+        'Dissocié (' + ungroupCount + ' entrées)',
         ungroupCount + ' entrée' + (ungroupCount > 1 ? 's' : '') + ' dissociée' + (ungroupCount > 1 ? 's' : '') + ' (groupe ' + groupId + ')');
       ConfigService.clearCache();
       return { success: true };
@@ -4009,7 +4098,9 @@ function apiRemoveFromGroup(rowIndex, author, password) {
       const rowVals = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
       const pName = rowVals[1] || '?', catName = rowVals[2] || '?', pPts = rowVals[3] || '?';
       sheet.getRange(rowIndex, 6).setValue('');
-      AuditService.log(author, 'Retrait du groupe', 'History', '', '',
+      AuditService.log(author, 'Retrait du groupe', 'History',
+        pName + ' (' + catName + ', ' + pPts + ' pts) [groupé]',
+        'Retiré du groupe',
         'Entrée de ' + pName + ' (' + catName + ', ' + pPts + ' pts) retirée du groupe (ligne #' + rowIndex + ')');
       ConfigService.clearCache();
       return { success: true };
@@ -4043,7 +4134,9 @@ function apiDeleteGroup(groupId, author, password) {
         + ' (−' + delPts + ' pts) : '
         + (delPlayers.length <= 3 ? delPlayers.join(', ') : (delPlayers.slice(0, 3).join(', ') + ' +' + (delPlayers.length - 3)))
         + ' · ' + (delCats.length <= 2 ? delCats.join(', ') : (delCats.slice(0, 2).join(', ') + ' +' + (delCats.length - 2)));
-      AuditService.log(author, 'Suppression groupe', 'History', groupId, '',
+      AuditService.log(author, 'Suppression groupe', 'History',
+        'Groupe ' + groupId + ' (' + snapshotRows.length + ' entrées, −' + delPts + ' pts)',
+        'Supprimé',
         detail, { sheet: 'history', op: 'deleteMany', rows: snapshotRows });
       ConfigService.clearCache();
       return { success: true };
@@ -4159,8 +4252,10 @@ function apiApplyMentionFixes(fixes, author, password) {
           undoRows.push({ rowIndex: idx, before: beforeRow, after: afterRow });
           applied++;
         });
-        AuditService.log(author, 'Mentions corrigées', 'History', '', '',
-          undoRows.length + ' description(s) d\'entrée',
+        AuditService.log(author, 'Mentions corrigées', 'History',
+          undoRows.length + ' entrée(s) sans mention',
+          undoRows.length + ' mention(s) @ insérée(s)',
+          undoRows.length + ' description(s) d\'entrée corrigée(s)',
           undoRows.length ? { sheet: 'history', op: 'updateMany', rows: undoRows } : null);
       }
 
@@ -4177,8 +4272,10 @@ function apiApplyMentionFixes(fixes, author, password) {
           undoRows.push({ rowIndex: idx, before: beforeRow, after: afterRow });
           applied++;
         });
-        AuditService.log(author, 'Mentions corrigées', 'Notes', '', '',
-          undoRows.length + ' note(s)',
+        AuditService.log(author, 'Mentions corrigées', 'Notes',
+          undoRows.length + ' note(s) sans mention',
+          undoRows.length + ' mention(s) @ insérée(s)',
+          undoRows.length + ' note(s) corrigée(s)',
           undoRows.length ? { sheet: 'notes', op: 'updateMany', rows: undoRows } : null);
       }
 
@@ -4275,7 +4372,11 @@ function apiReorderPhrases(preset, pool, orderedRowIndexes, author, password) {
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
       PhrasesService.reorderPhrases(preset, pool, orderedRowIndexes);
-      AuditService.log(author, 'Ordre modifié', 'Phrases: ' + preset + '/' + pool, '', orderedRowIndexes.join(' → '), '', null);
+      AuditService.log(author, 'Ordre modifié', 'Phrases: ' + preset + '/' + pool,
+        orderedRowIndexes.length + ' phrase(s)',
+        orderedRowIndexes.join(' → '),
+        orderedRowIndexes.length + ' phrase(s) réordonnée(s) dans ' + preset + '/' + pool,
+        null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
     });
@@ -4334,9 +4435,11 @@ function apiRepairOrder(author, password) {
         }
       }
 
-      AuditService.log(author, 'Ordre réparé', 'Ordre', '',
+      AuditService.log(author, 'Ordre réparé', 'Ordre',
+        'Ordres non normalisés',
+        result.players + ' joueur(s), ' + result.categories + ' top(s), ' + result.phrases + ' phrase(s) réordonnés',
         result.players + ' joueur(s), ' + result.categories + ' top(s), ' + result.phrases + ' phrase(s)',
-        '', null);
+        null);
       _bumpSettingsVersion();
       _bumpPhrasesVersion();
       ConfigService.clearCache();
@@ -4352,7 +4455,8 @@ function apiAddPhrase(preset, pool, text, author, password) {
       PhrasesService.addPhrase(preset, pool, text);
       const sheet = ConfigService.getSheets().phrases;
       const after = '[' + (pool || '') + '] ' + (text || '').trim() + ' (preset: ' + (preset || '') + ')';
-      AuditService.log(author, 'Phrase ajoutée', 'Phrases: ' + (preset || ''), '', after, '',
+      AuditService.log(author, 'Phrase ajoutée', 'Phrases: ' + (preset || ''), '', after,
+        'Phrase ajoutée dans ' + (preset || '') + ' (' + (pool || '') + ')',
         { sheet: 'phrases', op: 'insert', rowIndex: sheet.getLastRow(),
           after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
       ConfigService.clearCache();
@@ -4369,10 +4473,12 @@ function apiSavePhrasesBatch(entries, author, password) {
       const startRow = existingSheet ? existingSheet.getLastRow() + 1 : null;
       PhrasesService.saveBatch(entries);
       const preset = entries && entries.length ? entries[0].preset : '';
-      const addedRows = (startRow && entries && entries.length)
-        ? finalSheet.getRange(startRow, 1, entries.length, 3).getValues() : [];
+      const addedRows = (startRow && entries && entries.length && existingSheet)
+        ? existingSheet.getRange(startRow, 1, entries.length, 3).getValues() : [];
       const pools = [...new Set((entries || []).map(function(e) { return e.pool; }).filter(Boolean))];
-      AuditService.log(author, 'Phrases batch', 'Phrases: ' + (preset || ''), '', '',
+      AuditService.log(author, 'Phrases batch', 'Phrases: ' + (preset || ''),
+        '',
+        (entries || []).length + ' phrase(s) ajoutée(s)',
         (entries || []).length + ' phrase(s) ajoutée(s)' + (pools.length ? ' dans ' + pools.join(', ') : ''),
         addedRows.length ? { sheet: 'phrases', op: 'insertMany', rows: addedRows } : null);
       ConfigService.clearCache();
@@ -4390,8 +4496,9 @@ function apiUpdatePhrase(rowIndex, text, author, password) {
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       PhrasesService.updatePhrase(rowIndex, text);
       const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
-      AuditService.log(author, 'Phrase modifiée', 'Phrases', before, (text || '').trim(),
-        'ligne #' + rowIndex,
+      const after = '[' + (beforeRow[1] || '') + '] ' + (text || '').trim() + ' (preset: ' + (beforeRow[0] || '') + ')';
+      AuditService.log(author, 'Phrase modifiée', 'Phrases', before, after,
+        'Ligne #' + rowIndex + ' modifiée',
         { sheet: 'phrases', op: 'update', rowIndex, before: beforeRow, after: afterRow });
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
@@ -4407,7 +4514,8 @@ function apiDeletePhrase(rowIndex, author, password) {
       const before = _phraseRowSummary(rowIndex);
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
       PhrasesService.deletePhrase(rowIndex);
-      AuditService.log(author, 'Phrase supprimée', 'Phrases', before, '', 'ligne #' + rowIndex,
+      AuditService.log(author, 'Phrase supprimée', 'Phrases', before, 'Supprimé',
+        'Phrase supprimée (ligne #' + rowIndex + ')',
         { sheet: 'phrases', op: 'delete', before: beforeRow });
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
@@ -4430,7 +4538,9 @@ function apiDeletePreset(presetName, author, password) {
         }
       }
       PhrasesService.deletePreset(presetName);
-      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''), '', '',
+      AuditService.log(author, 'Preset supprimé', 'Phrases: ' + (presetName || ''),
+        presetName + ' (' + removedRows.length + ' phrases)',
+        'Supprimé',
         removedRows.length + ' phrase(s) supprimée(s) avec le preset « ' + presetName + ' »',
         removedRows.length ? { sheet: 'phrases', op: 'deleteMany', rows: removedRows } : null);
       ConfigService.clearCache();
@@ -4461,7 +4571,8 @@ function apiRenamePreset(oldName, newName, author, password) {
         }
       }
       if (modified) sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).setValues(data);
-      AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(), '',
+      AuditService.log(author, 'Preset renommé', 'Phrases', oldName || '', newName.trim(),
+        'Preset « ' + (oldName || '') + ' » renommé en « ' + newName.trim() + ' » (' + undoRows.length + ' phrase(s))',
         undoRows.length ? { sheet: 'phrases', op: 'updateMany', rows: undoRows } : null);
       ConfigService.clearCache();
       return { success: true, phrases: PhrasesService.getAll() };
@@ -4484,7 +4595,8 @@ function apiSetActivePhrasePreset(name, author, password) {
       const before = PropertiesService.getScriptProperties().getProperty('active_phrase_preset') || '__default__';
       const after  = name.trim();
       PropertiesService.getScriptProperties().setProperty('active_phrase_preset', after);
-      AuditService.log(author, 'Preset actif changé', 'Phrases', before, after, '');
+      AuditService.log(author, 'Preset actif changé', 'Phrases', before, after,
+        'Preset actif changé : « ' + before + ' » → « ' + after + ' »');
       return { success: true };
     });
   } catch(e) { return fail(e); }
