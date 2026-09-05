@@ -7,13 +7,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.28.1] - 2026-09-06
 
 ### Corrigé
-**Humanisé** : Résolution de la notification d'erreur au chargement initial (« Composite bootstrap : renderQuickStatsBar is not defined ») : le bandeau des statistiques rapides (Leader, Écart, Ce mois-ci, Dernier événement, Record) s'affiche désormais de manière fluide et sans erreur dès le démarrage composite ou la reprise sur cache.
+**Humanisé** : Le bandeau des statistiques rapides (Leader, Écart, Record...) s'affiche sans erreur dès l'ouverture et la reprise sur cache.
 **Technique** :
 - `Index.html` : définition formelle de la fonction `renderQuickStatsBar(data)` et délégation propre depuis `loadQuickStats()`.
 - `Index.html` : pré-remplissage des entités (`cachedPlayers`, `cachedCategories`) depuis `SETTINGS_CACHE_KEY` avant la restauration du dashboard pour que les avatars et cartes se résolvent immédiatement sans attendre le roundtrip réseau.
 - `tests/bootstrap.test.js` : test unitaire automatisé garantissant la présence et l'intégration sûre de `renderQuickStatsBar`.
 
-**Humanisé** : Correction du chevauchement dans la barre supérieure sur mobile : le bouton de sélection d'identité (« Qui suis-je ? ») ne déborde plus et ne chevauche plus le bouton de thème sombre/clair (🌙). Tous les boutons s'alignent avec clarté sans aucune collision sur tous les écrans mobiles.
+**Humanisé** : Les boutons de la barre supérieure sur mobile s'alignent proprement sans aucun chevauchement.
 **Technique** :
 - `Index.html` : masquage sur mobile du badge textuel `.refresh-badge` (« Il y a X min ») pour libérer 70px d'espace précieux dans le header.
 - `Index.html` : normalisation des boutons d'action en cercles compacts de 38px (`margin: 0 !important`), contrainte stricte `max-width: 100%` sur `.who-am-i-btn` avec troncature textuelle `.who-am-i-name`, et repli automatique sur l'avatar pour les écrans inférieurs à 360px.
@@ -22,29 +22,26 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.28.0] - 2026-09-05
 
 ### Ajouté
-**Humanisé** : Accélération majeure du démarrage et de l'interactivité de l'application : le Dashboard s'affiche désormais instantanément dès l'ouverture grâce au cache local sans aucun temps de chargement visible. Le premier démarrage ne nécessite plus qu'une seule requête groupée au serveur au lieu de dix, et filtrer les joueurs ou catégories réagit instantanément (0 ms) sans recharger la page.
+**Humanisé** : Démarrage instantané du Dashboard via le cache local et filtrage immédiat des joueurs et catégories sans rechargement.
 **Technique** :
 - `Code.gs` & `Index.html` : endpoint composite `apiGetBootstrapData` agrégeant en 1 seul roundtrip RPC les 10 requêtes initiales (`navPages`, `appSettings`, `settings`, `altCategories`, `altHistoryMap`, `filteredData`, `quickStats`, `phrases`, `activePreset`, `chatMessages`), avec mécanisme de secours (`fallbackBootLoad`) et persistance `stale-while-revalidate` (`tdt_dashboard_cache` dans `localStorage`).
 - `Index.html` : filtrage in-memory côté client (`filterChartDataInMemory`) lors des clics sur les chips joueurs/catégories quand les dates restent inchangées, éliminant tout délai réseau.
 - `Index.html` : assemblage groupé du DOM par `DocumentFragment` dans `_renderHistoryPage` et `renderNotesBlocks`, supprimant les reflows multiples à chaque ligne.
 
-**Humanisé** : Préservation maximale des quotas Google Apps Script pour le tchat : le système vérifie désormais si de nouveaux messages existent avant de télécharger l'historique complet, et espace intelligemment ses vérifications lorsque le tchat est calme.
+**Humanisé** : Économie des quotas du tchat en vérifiant les nouveaux messages uniquement lorsque nécessaire.
 **Technique** :
 - `Code.gs` & `Index.html` : implémentation du sondage différentiel par version dans `apiGetChatMessages(sinceVersion)` retournant `{ notModified: true }` quand aucun changement n'a eu lieu, et mémoisation des versions de script (`_getScriptProperty` / `_setScriptProperty`).
 - `Index.html` : algorithme de backoff adaptatif (4s à 12s volet ouvert, 20s à 60s volet fermé, pause complète en arrière-plan) réinitialisé à chaque message ou interaction.
 - `Code.gs` : allègement de `_recordCacheStat` avec compteurs de hit/miss en mémoire et respect strict de l'invariant `_cachePutChunked`.
 
-**Humanisé** : Allègement du moteur d'animation et du rendu : remplacement des dépendances externes lourdes par les animations natives des navigateurs, et fluidification du défilement.
+**Humanisé** : Fluidification des transitions et du défilement grâce au passage aux animations natives du navigateur.
 **Technique** :
 - `Index.html` : suppression de la dépendance externe CDN GSAP et remplacement intégral par l'API Web Animations native (`animateFadeSlideIn`, `animateFadeSlideOut`, `animateStagger`) pour les changements d'onglets et les volets statistiques.
 - `Index.html` : bridage par `requestAnimationFrame` de tous les écouteurs d'événements `mousemove` (`initSpotlightCards`, infobulles du graphique), éliminant tout layout thrashing.
 - `Index.html` : réduction de l'empreinte GPU des filtres graphiques (`backdrop-filter: blur(10px)` au lieu de 20px) et nettoyage de 16 classes CSS orphelines.
 
 ### Corrigé
-**Humanisé** : Correction ergonomique et de démarrage :
-1. Les libellés de la barre de navigation inférieure ne sont plus tronqués (« Saisie », « Notes », « Historique », « Paramètres » s'affichent lisiblement et sans débordement).
-2. Disparition définitive des rectangles arrondis vides parasites qui flottaient au-dessus des courbes et barres du graphique.
-3. Résolution de l'erreur « renderQuickStatsBar is not defined » au démarrage de l'application : le bandeau des statistiques rapides (Leader, Écart, Ce mois-ci, Dernier événement, Record) s'affiche désormais sans aucune erreur lors du bootstrap composite ou de la reprise sur cache.
+**Humanisé** : Libellés complets sur la barre de navigation basse, suppression des bordures parasites sur les graphiques et affichage sans erreur des statistiques rapides.
 **Technique** :
 - `Code.gs` & `Index.html` : ajout de `shortLabel` dans `NAV_PAGES`, affichage réactif via double conteneur `.nav-label-full` / `.nav-label-short`, ajustement du padding à `5px 1px` et de la police à `0.62rem` avec espacement fin `-0.25px`.
 - `Index.html` : suppression définitive de `buildLegendBorderPlugin()` dont les calculs `legendHitBoxes` de Chart.js produisaient des bordures décalées sur les graphiques étroits ou mobiles.
@@ -53,35 +50,35 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.27.0] - 2026-09-05
 
 ### Ajouté
-**Humanisé** : La section « Statistiques » du Dashboard fait peau neuve : carte repliable avec sauvegarde d'état, navigation fluide par onglets défilables au doigt sur mobile, chargement à la demande pour ne plus ralentir l'affichage du tableau de bord, rappel de l'univers actif et bouton d'actualisation instantané.
+**Humanisé** : Section Statistiques du Dashboard modernisée : carte repliable, onglets tactiles défilables et chargement à la demande.
 **Technique** : `Index.html` — refonte de `#statsHubCard` avec composant accordéon persistant (`tdt_collapsed_stats_hub`), en-tête enrichi (`#statsHubSubtitle`, `#refreshStatsHubBtn`), barre de navigation défilable horizontalement (`.stats-hub-nav`), et chargement paresseux par volet (`loadStatsHubPane`, `_statsHubLoadedPanes`) au lieu de requêtes parallèles systématiques.
 
-**Humanisé** : Traçabilité totale dans le journal d'audit : toutes les actions joueurs (modifications de barème, phrases, paramètres, suppressions, tentatives d'authentification échouées) ainsi que le cycle de vie complet des règles automatiques (exécutions manuelles ou planifiées, règles dues ou ignorées, erreurs de script) sont désormais consignées sans aucune omission.
+**Humanisé** : Traçabilité exhaustive dans le journal d'audit de toutes les actions joueurs et du cycle de vie des règles automatiques.
 **Technique** : `Code.gs`, `AutoPoints.gs`, `Index.html` — traçabilité des échecs d'authentification dans `apiVerifyIdentity` sous la catégorie `Sécurité`, audit complet et enrichi pour `apiAddAutoRule`, `apiUpdateAutoRule`, `apiDeleteAutoRule`, `apiSetAutoTrigger`, `apiRunAutoRulesNow`, `runAutoPoints` (avec capture des erreurs), et complétion des colonnes Avant/Après et Détail sur l'ensemble des mutations de barème, notes, chat et phrases.
 
 ### Corrigé
-**Humanisé** : Correction du déclenchement manuel des règles automatiques : le message de confirmation indique désormais exactement le nombre de règles exécutées ou ignorées au lieu d'afficher par erreur qu'aucune règle n'était due.
+**Humanisé** : Le message de confirmation des règles automatiques indique désormais le compte exact des règles exécutées et ignorées.
 **Technique** : `Index.html` et `AutoPoints.gs` — alignement de la réponse de `apiRunAutoRulesNow` renvoyant les propriétés de premier niveau `granted` et `skipped`, et mise à jour de l'écouteur de clic de `#runAutoRulesNowBtn`.
 
-**Humanisé** : Correction d'une erreur bloquante empêchant l'enregistrement par lot de phrases personnalisées.
+**Humanisé** : Correction d'une erreur bloquant l'enregistrement par lot des phrases personnalisées.
 **Technique** : `Code.gs` — correction de la variable non déclarée `finalSheet` en `existingSheet` dans `apiSavePhrasesBatch`. Couverture par nouveaux tests unitaires dans `tests/audit.test.js` et `tests/autopoints.test.js` (343 tests au total).
 
 ## [v3.26.3] - 2026-09-05
 
 ### Supprimé
-**Humanisé** : Le bouton « ＋ Saisir Alt » superflu a été retiré du bandeau de sélection d'univers du Dashboard.
+**Humanisé** : Retrait du bouton superflu « ＋ Saisir Alt » sur le bandeau d'univers du Dashboard.
 **Technique** : `Index.html` — suppression de l'élément `#dashAltAddBtn`, des écouteurs et bascules de visibilité associés dans `univMainBtn`/`univAltBtn`, ainsi que de la fonction `openAltNativeQuickAddModal` et des styles CSS `.qa-field`/`.qa-input` devenus obsolètes.
 
 ## [v3.26.2] - 2026-09-04
 
 ### Corrigé
-**Humanisé** : En mode sélection d'historique, cliquer sur un lot pour le déplier ou le replier ne sélectionne plus par erreur tout le groupe ; la sélection d'un lot se fait désormais uniquement via sa case à cocher dédiée.
+**Humanisé** : Déplier ou replier un lot en mode sélection ne coche plus tout le groupe par erreur.
 **Technique** : `Index.html` —
 - *Séparation accordéon / sélection des lots* : dans `enableDragMultiSelect` -> `checkboxAt(el)`, exclusion des clics sur `.hist-group-row` situés hors de la cellule de sélection (`.hist-sel-th`), ainsi que des clics sur `.hist-add-note-hint` et `.alt-badge`, empêchant le gestionnaire de glisser/déposer de basculer la sélection maîtresse du lot lors d'un clic de dépliage/repliage.
 - *Isolation des clics d'en-tête de lot* : ajout de `selCell.addEventListener('click', (e) => e.stopPropagation())` dans `renderGroupHeader` et d'une garde dans le gestionnaire de clic de `headerTr` (`if (e.target.closest('.hist-sel-th, button, a, input, select, textarea')) return;`), garantissant une étanchéité complète entre le contrôle de sélection et l'accordéon.
 - *Couverture de tests* : nouvelle suite unitaire dans `tests/history-group-selection.test.js`.
 
-**Humanisé** : Correction d'une anomalie dans le Changelog où des mentions en cours de phrase créaient des boîtes parasites avec un mot isolé (comme « et »).
+**Humanisé** : Correction de l'affichage du Changelog pour éliminer les boîtes parasites avec des mots isolés.
 **Technique** : `Index.html` —
 - *Ancrage en début de ligne des marqueurs de voix* : création de `parseChangelogVoiceBlocks(catBody)` avec l'expression `/(?:^|\r?\n)[ \t]*(?:[-*]\s*)?(\*\*(?:Humanisé|Technique)\*\*\s*:?\s*)/gi` pour garantir que seules les véritables en-têtes de voix en début de ligne sont segmentées, et factorisation DRY dans `filterChangelogCatBody` et `formatChangelogBody`.
 - *Couverture de tests* : nouveaux cas de test dans `tests/changelog-parser.test.js` (336 tests au total).
@@ -89,7 +86,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.26.1] - 2026-09-04
 
 ### Corrigé
-**Humanisé** : Séparation nette et hermétique entre les explications humanisées et les détails techniques dans le Changelog : fini les puces techniques ou les codes bruts qui fuitaient dans la vue humanisée, et chaque voix dispose désormais de sa propre boîte visuelle claire et aérée.
+**Humanisé** : Séparation visuelle nette et étanche entre explications humanisées et détails techniques dans le Changelog.
 **Technique** : `Index.html` —
 - *Étanchéité des vues Changelog* : remplacement du filtrage par ligne incomplet (`filter(line => !line.includes('...'))`) par `filterChangelogCatBody(catBody, viewMode)` découpant le contenu par blocs d'entrées et isolant strictement chaque voix selon `_clViewMode` (`'human'`, `'tech'`, `'all'`).
 - *Boîtes visuelles dédiées* : refonte de `formatChangelogBody` générant des conteneurs distincts `.cl-voice-human` (bordure verte accentuée, fond doux teinté, badge `👤 Humanisé`) et `.cl-voice-tech` (bordure bleue accentuée, fond teinté, badge `💻 Technique`), éliminant la confusion visuelle.
@@ -98,7 +95,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.26.0] - 2026-09-04
 
 ### Ajouté
-**Humanisé** : Le mode de sélection d'historique passe à la vitesse supérieure : activation instantanée (zéro temps d'attente ni rechargement), conservation complète de la structure des lots avec case à cocher maîtresse pour sélectionner tout un lot en un clic, sélection rapide par plage (Shift + Clic), persistance des sélections d'une page à l'autre, et bouton global pour déplier ou replier tous les lots en un clin d'œil.
+**Humanisé** : Sélection d'historique instantanée : maintien des lots avec case maîtresse, sélection par plage (Maj+Clic), persistance inter-pages et dépliage global.
 **Technique** : `Index.html` —
 - *Mode sélection in-memory (0 ms)* : mise en cache du résultat de page (`_lastHistPageRes`) permettant à `toggleHistSelectMode()` de re-rendre immédiatement via `_renderHistoryPage()` sans roundtrip réseau vers Google Apps Script ni clignotement de squelette.
 - *Préservation des lots en sélection* : maintien de la structure visuelle groupée en mode sélection (`renderItems.forEach`), ajout d'une case à cocher maîtresse (`.hist-group-master-chk`) dans l'en-tête de lot gérant l'état indéterminé (`indeterminate`) et permettant de cocher/décocher l'ensemble des membres du groupe. Ajout de la cellule manquante « Saiseur » dans l'en-tête pour aligner parfaitement les colonnes.
@@ -109,13 +106,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 - *Annulation en 1 clic (Undo) des modifications groupées* : `AuditService.log` (`Code.gs`) renvoie désormais le numéro de ligne d'audit créé (`sheet.getLastRow()`). `apiUpdateBulkEntries` retourne `auditRowId` et l'interface propose un toast interactif avec bouton `Annuler` déclenchant `apiUndoAuditEntry`. Tests unitaires validés dans `tests/audit.test.js`.
 
 ### Modifié
-**Humanisé** : La barre d'actions groupées devient flottante et immédiatement accessible en bas d'écran sans avoir à scroller jusqu'au bas de la page, tout en s'adaptant élégamment sur mobile.
+**Humanisé** : La barre d'actions groupées devient flottante et accessible en bas d'écran sans défilement.
 **Technique** : `Index.html` — passage de `.hist-bulk-bar` en `position: sticky; bottom: 20px; z-index: 8500` avec flou d'arrière-plan (`backdrop-filter: blur(12px)`), ombre portée marquée et marge dynamique au-dessus de la barre de navigation mobile (`bottom: calc(72px + env(safe-area-inset-bottom, 0px))`).
 
 ## [v3.25.0] - 2026-09-04
 
 ### Ajouté
-**Humanisé** : L'édition de l'historique devient bien plus fluide et puissante : modification directe de lots entiers depuis l'en-tête de groupe, modification multiple sécurisée avec cases d'activation par champ, navigation fluide (entrées précédente/suivante et raccourcis clavier) dans l'éditeur complet, duplication de score en un clic, et édition instantanée des descriptions sans quitter la liste.
+**Humanisé** : Édition d'historique enrichie : modification directe des lots, navigation rapide entre entrées, duplication en un clic et édition en ligne des notes.
 **Technique** : `Index.html` —
 - *Édition directe de lot* : bouton `✏️` sur les en-têtes de groupe (`renderGroupHeader`) ouvrant le modal dédié `openGroupEditModal` pour synchroniser d'un coup la Date, le Top, la Description ou le Saiseur de toutes les entrées du lot (`apiUpdateBulkEntries`).
 - *Modification multiple sécurisée* : ajout de commutateurs d'activation explicites (`.mb-field-toggle` avec cases à cocher) dans `openBulkEditModal` empêchant tout écrasement accidentel des champs non modifiés.
@@ -124,13 +121,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 - *Édition en ligne de note* : bouton `✏️ Modifier la note` accessible lors du dépliage d'une note longue (`openQuickDescEditor`), permettant une sauvegarde immédiate sans ouvrir le modal complet.
 
 ### Corrigé
-**Humanisé** : Le journal d'audit affiche désormais le contenu détaillé des opérations pour toutes les actions (saisie de points, modifications groupées, suppressions par lot, règles automatiques, instantanés, etc.), éliminant les tirets vides dans les colonnes Avant/Après et Détail.
+**Humanisé** : Le journal d'audit affiche désormais le détail complet des opérations (scores, lots, règles automatiques, instantanés) sans champ vide.
 **Technique** : `Code.gs`, `AutoPoints.gs` et `Index.html` — enrichissement systématique des paramètres `after` et `detail` passés à `AuditService.log` pour `apiAddBulkPlan` (nombre d'entrées, points totaux, joueurs, catégories, dates), `apiUpdateBulkEntries` (détail des champs modifiés et nouvelles valeurs), `apiDeleteHistoryEntries`, `apiDeleteGroup`, `apiUngroupLot`, `apiRemoveFromGroup`, `apiFixZeroPoints`, `apiDeleteOrphans`, `apiCreateSnapshot`, `apiSavePhrasesBatch`, `apiDeletePreset`, `apiGroupDistributedLots`, `apiGroupRows`, `apiDeleteAutoRule`, `apiSetAutoTrigger`. Retrait de `'Saisie de points'` et `'Modification bulk'` de `AUDIT_NO_DIFF_ACTIONS` dans `Index.html` pour un affichage net de la pastille de création/modification dans la colonne Avant → Après. Tests unitaires ajoutés dans `tests/audit.test.js`.
 
 ## [v3.24.2] - 2026-09-02
 
 ### Modifié
-**Humanisé** : Le sélecteur de période en saisie de lot a été réorganisé en 3 colonnes équilibrées sur toute la largeur (Dates + raccourcis à gauche, mini-calendrier au centre, mode de score à droite), réduisant son encombrement vertical de moitié sans aucun espace vide.
+**Humanisé** : Le sélecteur de période en saisie de lot est réorganisé en 3 colonnes compactes, réduisant son encombrement de moitié.
 **Technique** : `Index.html` — restructuration de `.d-period` en 3 colonnes horizontales de même hauteur (~130px contre 255px auparavant) : `.d-period-left-col` (interrupteur de mode horizontal `.d-mode-seg` + dates `Du`/`Au` côte-à-côte + 4 raccourcis de durée en ligne), `.d-cal` compacté à 200px avec cases de 18px au centre, et `.d-period-right-col` (choix Répéter/Répartir + aperçu chiffré live). Alignement horizontal du bloc par défaut `#defaultDateWrap`. Tests enrichis dans `tests/lot-period.test.js`.
 
 ## [v3.24.1] - 2026-09-02
