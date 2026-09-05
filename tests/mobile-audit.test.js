@@ -70,3 +70,56 @@ test('Navbar mobile : refresh-badge masqué et who-am-i-btn contraint sans cheva
   assert.match(topBarBlock, /\.theme-toggle[^}]*margin:\s*0\s*!important/s);
 });
 
+test('Modales et exports : z-index à 10500 pour recouvrir la bottom nav (9000) et le chat (10000)', () => {
+  const modalBackdropBlock = block('.modal-backdrop {', '.modal-box {');
+  assert.match(modalBackdropBlock, /z-index:\s*10500;/);
+
+  const exportOverlayBlock = block('.export-modal-overlay {', '.export-modal-box {');
+  assert.match(exportOverlayBlock, /z-index:\s*10500;/);
+});
+
+test('Mention popup : z-index à 10001 au-dessus du tchat et écouteur tactile pointerdown', () => {
+  const mentionPopupBlock = block('.md-mention-popup {', '.md-mention-item {');
+  assert.match(mentionPopupBlock, /z-index:\s*10001;/);
+
+  const mentionItemBlock = block('.md-mention-item {', '.md-mention-item img');
+  assert.match(mentionItemBlock, /min-height:\s*40px;/);
+
+  assert.match(html, /item\.addEventListener\(['"]pointerdown['"],\s*e\s*=>\s*\{\s*e\.preventDefault\(\);/);
+});
+
+test('Bottom nav mobile : calcul safe-area sur la hauteur et état tactile :active', () => {
+  const bottomNavBlock = block('.mobile-bottom-nav {', '.mobile-bottom-nav .nav-btn {');
+  assert.match(bottomNavBlock, /height:\s*calc\(62px\s*\+\s*env\(safe-area-inset-bottom/);
+
+  const navBtnBlock = block('.mobile-bottom-nav .nav-btn:active {', '.mobile-bottom-nav .nav-btn.active');
+  assert.match(navBtnBlock, /transform:\s*scale\(0\.92\)/);
+});
+
+test('Prévention du zoom iOS sur password et search inputs', () => {
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+input\[type="password"\]/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+input\[type="search"\]/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+input#identityPwdInput/);
+});
+
+test('Podium des phrases : unifié à 768px avec règle micro-écrans <= 380px', () => {
+  assert.match(html, /@media\s*\(max-width:\s*768px\)\s*\{\s*\.phrases-podium/);
+  assert.match(html, /@media\s*\(max-width:\s*380px\)\s*\{\s*\.phrases-podium/);
+});
+
+test('Saisie ergonomique Notes et Lot : wrap 2 lignes et pleines largeurs sur mobile', () => {
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.row-main-top-col\s*\{[^}]*width:\s*100%/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.pts-box-group\s*\{[^}]*width:\s*100%/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.notes-flash-input-row\s*\{[^}]*display:\s*flex;\s*flex-wrap:\s*wrap;/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.npb-add\s*\{[^}]*display:\s*flex;\s*flex-wrap:\s*wrap;/);
+});
+
+test('Actions tactiles inconditionnellement visibles sur mobile sans dépendre de hover:none', () => {
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.hist-actions-cell\s*\{[^}]*opacity:\s*1\s*!important/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.chat-msg-actions\s*\{[^}]*opacity:\s*1\s*!important/);
+});
+
+

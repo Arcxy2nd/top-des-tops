@@ -4,6 +4,29 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.29.0] - 2026-09-06
+
+### Ajouté
+**Humanisé** : Les suggestions de mentions s'ouvrent au-dessus de toutes les fenêtres et se sélectionnent immédiatement au toucher.
+**Technique** :
+- `Index.html` : élévation de `.md-mention-popup` à `z-index: 10001` (au-dessus du tchat à 10000), ajout d'une cible tactile de 40px sur `.md-mention-item` et écoute de l'événement tactile natif `pointerdown` avec `preventDefault()` pour empêcher la perte de focus et la fermeture intempestive du clavier virtuel.
+
+### Modifié
+**Humanisé** : La saisie de notes rapides et de lots s'organise sur toute la largeur de l'écran avec des boutons tactiles confortables pour le pouce.
+**Technique** :
+- `Index.html` : refonte responsive de `.notes-flash-input-row` et `.npb-add` en disposition fluide sur 2 lignes (champ texte 100% en haut, bascule date 44×44px et bouton d'action étirable en bas), et mise en pleine largeur des colonnes `.row-main-top-col` et `.pts-box-group` sur petit écran pour étendre les raccourcis de points.
+- `Index.html` : normalisation des boutons de navigation d'univers (`.d-mode-seg`), puces de filtres (`.fchip`, `.hist-fchip`), types de graphiques (`.chart-type-btn`), onglets du hub statistiques (`.stats-hub-tab`), boutons d'export et pagination historique au standard tactile WCAG de 44px (`var(--tap-min)`).
+- `Index.html` : retour tactile instantané (`:active` avec micro-échelle 0.92) sur la barre de navigation inférieure `.mobile-bottom-nav .nav-btn`.
+
+### Corrigé
+**Humanisé** : Les fenêtres modales et la barre de navigation basse s'affichent sans aucun écrasement ni conflit visuel sur tous les smartphones.
+**Technique** :
+- `Index.html` : ajustement de la hauteur de `.mobile-bottom-nav` avec `calc(62px + env(safe-area-inset-bottom, 0px))` et du padding bas du conteneur principal pour éliminer l'écrasement des boutons par la barre d'accueil iOS.
+- `Index.html` : réalignement de `.modal-backdrop` et `.export-modal-overlay` à `z-index: 10500` pour passer devant la navigation basse (9000) et le tchat (10000).
+- `Index.html` : neutralisation de l'auto-zoom d'iOS Safari sur les champs de mot de passe (`input[type="password"]`) et de recherche (`input[type="search"]`) en appliquant `font-size: 16px !important`.
+- `Index.html` : unification du breakpoint du podium des phrases d'accroche à 768px (au lieu de 640px) avec règles adaptatives pour écrans très étroits (<= 380px), visibilité inconditionnelle des actions d'historique et de tchat sur mobile, et bascule verticale dynamique du popover d'historique des notes (`openNoteHistoryPopover`).
+- `tests/mobile-audit.test.js` : 7 nouveaux tests automatisés verrouillant l'ensemble de ces invariants UX mobile (355 tests passants).
+
 ## [v3.28.1] - 2026-09-06
 
 ### Corrigé
