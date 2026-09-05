@@ -344,7 +344,8 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 
 Maintenir un `CHANGELOG.md` au format [Keep a Changelog](https://keepachangelog.com) avec **deux voix par entrée** :
 
-- **Humanisé** — ce que ça change concrètement pour l'utilisateur, zéro jargon, une phrase par item.
+- **Numérotation SemVer stricte** : Incrémenter la version mineure (`x.Y.0`) pour tout jalon fonctionnel, nouvelle fonctionnalité ou refonte significative. Réserver les patchs (`x.y.Z`) aux correctifs de bugs ou ajustements mineurs. Ne jamais créer des dizaines de micro-patchs artificiels pour des features majeures.
+- **Humanisé** — **Ultra-concis, direct et percutant**. Strictement **1 seule phrase courte** (2 maximum absolu si multi-sujet), zéro jargon, zéro bavardage, zéro narration/storytelling de contexte ("auparavant...", "un joueur pouvait..."). Décrire uniquement le gain/changement concret immédiat pour l'utilisateur.
 - **Technique** — ce qui a changé dans le code (fichier, fonction, comportement).
 
 ```markdown
@@ -355,11 +356,11 @@ Maintenir un `CHANGELOG.md` au format [Keep a Changelog](https://keepachangelog.
 **Technique** : `StorageService.appendBatch()` accepte un tableau d'entrées avec date individuelle.
 
 ### Corrigé
-**Humanisé** : Le graphique Radar ne plantait plus quand un joueur n'avait aucun score.
+**Humanisé** : Le graphique Radar ne plante plus quand un joueur n'a aucun score.
 **Technique** : `AnalyticsService.getRadarData()` retourne 0 au lieu de `undefined` pour les catégories vides.
 ```
 
-Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé`. Les deux voix sont obligatoires pour chaque item — une entrée sans version humanisée est incomplète.
+Sections valides : `Ajouté` · `Modifié` · `Corrigé` · `Supprimé` · `Sécurité`. Les deux voix sont obligatoires pour chaque item — une entrée sans version humanisée est incomplète.
 
 ### Tester
 
