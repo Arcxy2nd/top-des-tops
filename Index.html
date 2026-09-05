@@ -4939,6 +4939,13 @@
         </div>
         <div class="tool-action">
           <div class="tool-action-info">
+            <strong>Recalculer les agrégats & totaux</strong>
+            <span>Régénère la table d'agrégats et les caches instantanés (Dashboard, totaux, records) depuis l'Historique complet en cas de désynchronisation.</span>
+          </div>
+          <button class="secondary small" id="rebuildAggregatesBtn">⚡ Recalculer</button>
+        </div>
+        <div class="tool-action">
+          <div class="tool-action-info">
             <strong>Créer un snapshot</strong>
             <span>Copie l'intégralité du Sheet dans un fichier Google Sheets séparé (dossier Drive "Snapshots top-des-tops") — filet de sécurité avant une opération risquée.</span>
           </div>
@@ -18227,6 +18234,23 @@
         loadCustomPhrases(() => renderPhrasesEditorSection());
       }, 'Réparation ordre');
     });
+
+    const rebuildAggregatesBtn = document.getElementById('rebuildAggregatesBtn');
+    if (rebuildAggregatesBtn) {
+      rebuildAggregatesBtn.addEventListener('click', () => {
+        if (!requireIdentity()) return;
+        buzz();
+        const restore = startBtnLoading(rebuildAggregatesBtn, 'Calcul…');
+        callServer('apiRebuildAggregates', [_whoAmI || ''], res => {
+          restore();
+          const totalPts = (res.aggregates && res.aggregates.totalPoints) || 0;
+          const totalEntries = (res.aggregates && res.aggregates.totalEntries) || 0;
+          showToast(`Agrégats recalculés (${totalEntries} entrées, ${totalPts} pts).`, 'success');
+          loadQuickStats();
+          applyFilters();
+        }, 'Recalcul des agrégats', () => restore());
+      });
+    }
 
     document.getElementById('createSnapshotBtn').addEventListener('click', () => {
       if (!requireIdentity()) return;

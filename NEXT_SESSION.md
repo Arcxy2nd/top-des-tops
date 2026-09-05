@@ -1,31 +1,30 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.29.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Audit UX approfondi, correction et robustesse mobile (`/boost` round 2) — support visualViewport pour clavier virtuel avec bascule et `maxHeight` dynamique sans occlusion, écouteurs `addEventListener`/`removeEventListener` sur `anchorFloating` éliminant tout conflit concurrentiel, élimination du FOUC desktop, safe-area insets sur modales et exports, ordonnancement flex notes, harmonisation tactile complète WCAG (44px/38px) sur tous les modes.
-- Suite de tests : **363 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.0** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Optimisation massive des requêtes serveur (/boost) — implémentation de la Materialized View (`AggregatesService`) pour le précalcul et le maintien incrémental des totaux et métriques, migration des lectures vers Google Sheets API v4 (`Sheets.Spreadsheets.Values.get`) avec repli transparent `SpreadsheetApp`, normalisation des dates sans décalage de fuseau, et bouton d'administration pour recalcul immédiat.
+- Suite de tests : **372 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Audit et Refonte UX Mobile Globale (`v3.29.1`)** :
-  - *Clavier virtuel & Visual Viewport* :
-    - `Index.html` : adaptation de `attachMentionAutocomplete` et `anchorFloating` au `window.visualViewport` dynamique via `addEventListener`/`removeEventListener` (pas d'écrasement de listeners lors d'ancrages concurrents). Dans `place(r)`, calcul dynamique de `maxHeight` et bascule verticale au-dessus du champ dès que l'espace sous le champ est restreint : les mentions restent intégralement accessibles au-dessus du clavier virtuel sans déborder dessous.
-    - `Index.html` : positionnement de la popover d'historique de note prenant en compte la hauteur de la barre de navigation basse (`navOffset`), bascule vers le haut si l'espace au-dessus est plus grand, et limitation `maxHeight` pour éliminer tout chevauchement ou débordement d'écran.
-  - *Hiérarchie, FOUC & Z-Index* :
-    - `Index.html` : suppression de `body:not(.desktop-layout)` du bloc CSS top-level (qui déclenchait un FOUC desktop à chaque chargement initial avant exécution JS), relocalisation des règles d'auto-détection du FAB tchat (`z-index: 9001`) et du panneau plein écran à l'intérieur de `@media (max-width: 768px)`.
-    - `Index.html` : intégration de `padding: max(16px, env(safe-area-inset-...))` et de hauteurs maximales en `dvh` sur `.modal-backdrop`, `.modal-box` et `.export-modal-overlay`.
-    - `Index.html` : masquage de `.bareme-resizer` sur mobile.
-  - *Ergonomie & Cibles Tactiles WCAG (44px/38px)* :
-    - `Index.html` : ordonnancement flex (`order: 1..4`) sur `.notes-flash-input-row` et `.npb-add` garantissant l'alignement naturel du bouton date 44px et de l'action sur la même ligne même lorsque le champ date est déployé, harmonisé à la fois sur auto-detect et sur `body.mobile-layout`.
-    - `Index.html` : conformité WCAG étendue à `.hist-fchip` (44px), `.seg-btn` (44px), `.export-pill` (38px), `.date-shortcut` (38px), `.row-shortcuts .row-shortcut` (36px), `.fill-opt` (38px), `.lot-sort-btn` (38px) et `button.note-meta-edited` (36px).
-    - `Index.html` : dégagement du conteneur de lot `#entryContainer` avec padding bas `calc(140px + env(safe-area-inset-bottom, 0px))` pour ne jamais masquer les dernières lignes sous `#lotSummaryBar`.
+- **Materialized View & Migration Google Sheets API v4 (`v3.30.0`)** :
+  - *Google Sheets API v4 Advanced Service* :
+    - `appsscript.json` : activation du service avancé Sheets v4 (`dependencies.enabledAdvancedServices`).
+    - `Code.gs` : implémentation de `_fetchSheetValues(sheetKey, sheet, optNumCols)` pour extraire directement les matrices brutes JSON en lecture non formatée (`UNFORMATTED_VALUE`, `SERIAL_NUMBER`), avec complétion des cellules vides et repli transparent vers `SpreadsheetApp` en environnement de test ou en cas d'erreur.
+    - `Code.gs` : implémentation de `_parseDateCell(val)` gérant de manière étanche les dates séries Sheets (alignement UTC), instances `Date`, chaînes ISO et formats européens sans dérive de fuseau horaire.
+  - *Materialized View (AggregatesService)* :
+    - `Code.gs` : création de `AggregatesService` maintenant l'état précalculé (`byPlayer`, `byCategory`, `byPlayerCategory`, `byMonth`, `lastEvent`, `globalBest`, `totalEntries`, `totalPoints`) avec snapshot et lignes individuelles dans l'onglet `Aggregates`, et cache ScriptCache/mémoire.
+    - `Code.gs` : incrémentation en place lors de `StorageService.appendBulkPlan` (`AggregatesService.increment`), ajustement ciblé lors de `StorageService.updateHistoryEntry` (`AggregatesService.adjustEntry`), et décrémentation sur suppression de lignes ou de groupes (`AggregatesService.removeRows`).
+    - `Code.gs` : recalcul complet automatique lors du renommage d'entités, de nettoyage de zéros ou d'orphelins, et d'annulation de snapshot dans l'AuditLog.
+    - `Code.gs` : exposition de l'endpoint sécurisé `apiRebuildAggregates(author, password)` avec ScriptLock et journalisation d'audit.
+    - `Code.gs` : accélération des endpoints de consultation `AnalyticsService.getFilteredChartData`, `apiGetPlayerTotals` et `apiGetQuickStats` pour servir les données précalculées en 0ms sans rescanner les milliers de lignes de l'historique.
+  - *Frontend & Outils* :
+    - `Index.html` : ajout du bouton « Recalculer les agrégats & totaux » dans l'outil Santé (`#toolHealthCard`), avec contrôle d'identité `requireIdentity()`, retour haptique et notification toast.
   - *Tests* :
-    - `tests/mobile-audit.test.js` : 7 nouveaux tests de non-régression verrouillant le visualViewport, les tests fonctionnels approfondis (concurrence de floaters et clavier virtuel), le z-index FAB 9001, l'offset de popover, les modales et les cibles tactiles (363 tests passants).
-    - `tests/papercuts.test.js` : contrat d'ancrage validant la présence et le nettoyage parfait des écouteurs `visualViewport`.
-    - `tests/dom-stub.js` : support complet de `visualViewport` et synchronisation `className` / `classList`.
+    - `tests/sheets-api-and-aggregates.test.js` : 9 nouveaux tests automatisés vérifiant le parsing des dates séries, le fonctionnement de Sheets API v4 et son fallback, la persistance des snapshots, l'incrémentation en place, les ajustements, les suppressions et la lecture sans scan (372 tests passants).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (363/363).
+- Aucun écart. Tous les tests sont au vert (372/372).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

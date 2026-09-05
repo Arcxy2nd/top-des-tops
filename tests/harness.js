@@ -17,10 +17,13 @@ const path = require('path');
 const crypto = require('crypto');
 
 /** A minimal in-memory stand-in for a Google Sheet. grid[0] is the header row. */
-function makeSheet(grid) {
+function makeSheet(grid, name) {
   grid = (grid || []).map(r => r.slice());
+  let sheetName = name || 'Sheet';
   const api = {
     _grid: grid,
+    getName() { return sheetName; },
+    setName(n) { sheetName = n; return this; },
     getLastRow() { return grid.length; },
     getLastColumn() { return grid.reduce((m, r) => Math.max(m, r.length), 0); },
     getRange(r, c, numRows, numCols) {
@@ -66,6 +69,7 @@ function makeSheet(grid) {
     insertRowBefore(idx) { grid.splice(idx - 1, 0, []); },
     deleteRow(idx) { grid.splice(idx - 1, 1); },
     clearContents() { grid.length = 0; },
+    clear() { grid.length = 0; },
     copyTo() { return { setName() {} }; },
     setName() {}
   };
@@ -237,10 +241,10 @@ function gasMocks() {
 const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
   'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
-  'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService',
+  'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService', 'AggregatesService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor', 'runAutoPoints',
   '_byteLength', '_cachePutChunked', '_cacheGetChunked',
-  '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS'
+  '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS', '_fetchSheetValues', '_parseDateCell'
 ];
 
 /**

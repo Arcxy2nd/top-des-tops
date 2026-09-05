@@ -224,7 +224,8 @@ const SHEET_HEADERS = {
   altCategories: ['name', 'description', 'emoji', 'hex color'],
   altHistory:    ['date', 'player', 'category', 'points', 'description', 'refhistoryrowid', 'groupid', 'saiseur'],
   autoRules:     ['id', 'player', 'category', 'points', 'description', 'frequency', 'interval',
-                  'daysofweek', 'dayofmonth', 'startdate', 'nextrun', 'lastrun', 'active', 'createdby']
+                  'daysofweek', 'dayofmonth', 'startdate', 'nextrun', 'lastrun', 'active', 'createdby'],
+  aggregates:    ['type', 'key1', 'key2', 'key3', 'points', 'count', 'meta']
 };
 
 const CANONICAL_SHEET_HEADERS = {
@@ -240,7 +241,8 @@ const CANONICAL_SHEET_HEADERS = {
   altCategories: ['Name', 'Description', 'Emoji', 'Hex color'],
   altHistory:    ['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur'],
   autoRules:     ['ID', 'Joueur', 'Catégorie', 'Points', 'Description', 'Fréquence', 'Intervalle',
-                  'JoursSemaine', 'JourMois', 'DateDébut', 'ProchaineExécution', 'DernièreExécution', 'Actif', 'CrééPar']
+                  'JoursSemaine', 'JourMois', 'DateDébut', 'ProchaineExécution', 'DernièreExécution', 'Actif', 'CrééPar'],
+  aggregates:    ['Type', 'Key1', 'Key2', 'Key3', 'Points', 'Count', 'Meta']
 };
 
 // Sheets whose first column always holds a real date. On those, a row 1 whose first
@@ -248,12 +250,90 @@ const CANONICAL_SHEET_HEADERS = {
 // differs from ours (hand-made sheets carry French or renamed labels).
 const DATE_FIRST_SHEETS = { history: true, notes: true, altHistory: true, auditLog: true };
 
+/** Converts a 1-based column index to A1 notation column letters (e.g. 1 -> A, 7 -> G, 27 -> AA). */
+function _colIndexToA1(colIndex) {
+  let s = '';
+  let n = colIndex;
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - m) / 26);
+  }
+  return s || 'A';
+}
+
+/** Parses a cell value into a valid Date object, handling Date instances, Sheets serial numbers, ISO & European strings. */
+function _parseDateCell(val) {
+  if (!val && val !== 0) return new Date(NaN);
+  if (val && typeof val.getTime === 'function') return val;
+  if (typeof val === 'number') {
+    const ms = Math.round((val - 25569) * 86400 * 1000);
+    const u = new Date(ms);
+    return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds());
+  }
+  const s = String(val).trim();
+  if (!s) return new Date(NaN);
+  const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(.*)$/);
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10);
+    const m = parseInt(dmyMatch[2], 10) - 1;
+    const y = parseInt(dmyMatch[3], 10);
+    const rest = dmyMatch[4].trim();
+    if (rest) {
+      const timeParts = rest.split(/[:\s]+/).filter(Boolean).map(Number);
+      return new Date(y, m, d, timeParts[0] || 0, timeParts[1] || 0, timeParts[2] || 0);
+    }
+    return new Date(y, m, d);
+  }
+  return new Date(s);
+}
+
+/**
+ * Reads sheet values using Google Sheets API v4 (Sheets.Spreadsheets.Values.get)
+ * for optimal speed and low memory, with a transparent fallback to SpreadsheetApp.
+ */
+function _fetchSheetValues(sheetKey, sheet, optNumCols) {
+  if (typeof Sheets !== 'undefined' && Sheets && Sheets.Spreadsheets && Sheets.Spreadsheets.Values) {
+    try {
+      const ssId = ConfigService.getSpreadsheetId();
+      const sheetName = sheet && typeof sheet.getName === 'function' ? sheet.getName() : (sheetKey ? (sheetKey.charAt(0).toUpperCase() + sheetKey.slice(1)) : '');
+      if (sheetName) {
+        const safeName = "'" + sheetName.replace(/'/g, "''") + "'";
+        const range = optNumCols ? (safeName + '!A1:' + _colIndexToA1(optNumCols)) : safeName;
+        const res = Sheets.Spreadsheets.Values.get(ssId, range, {
+          valueRenderOption: 'UNFORMATTED_VALUE',
+          dateTimeRenderOption: 'SERIAL_NUMBER'
+        });
+        if (res && res.values) {
+          const rawValues = res.values;
+          const width = optNumCols || (rawValues.reduce((max, r) => Math.max(max, r ? r.length : 0), 0));
+          return rawValues.map(row => {
+            const padded = (row || []).slice(0, width);
+            while (padded.length < width) padded.push('');
+            return padded;
+          });
+        }
+        return [];
+      }
+    } catch (e) {
+      // Fallback transparent to SpreadsheetApp
+    }
+  }
+  if (!sheet) return [];
+  if (optNumCols) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 1) return [];
+    return sheet.getRange(1, 1, lastRow, optNumCols).getValues();
+  }
+  return sheet.getDataRange().getValues();
+}
+
 function _isDateCell(v) {
   if (v && typeof v.getTime === 'function') return !isNaN(v.getTime());
-  if (typeof v === 'number') return false;
+  if (typeof v === 'number') return v > 30000 && v < 80000;
   const s = (v === null || v === undefined) ? '' : String(v).trim();
   if (!s) return false;
-  return !isNaN(new Date(s).getTime());
+  return !isNaN(_parseDateCell(s).getTime());
 }
 
 /** True when `row` is a label row rather than a record. */
@@ -337,7 +417,7 @@ function _ensureSheetHeaders(sheetKey, sheet, values) {
 
 function _ensureAllSheetHeaders() {
   const sheets = ConfigService.getSheets();
-  const keys = ['players', 'categories', 'history', 'notes', 'bareme', 'phrases', 'chat', 'auditLog', 'settings', 'altCategories', 'altHistory', 'autoRules'];
+  const keys = ['players', 'categories', 'history', 'notes', 'bareme', 'phrases', 'chat', 'auditLog', 'settings', 'altCategories', 'altHistory', 'autoRules', 'aggregates'];
   keys.forEach(k => {
     if (sheets[k]) _ensureSheetHeaders(k, sheets[k]);
   });
@@ -355,13 +435,12 @@ function _firstDataRow(sheetKey, sheet) {
  * Returns { values, startRow }, startRow being the 1-based sheet row of values[0].
  */
 function _readDataRows(sheetKey, sheet, numCols) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 1) {
+  const all = _fetchSheetValues(sheetKey, sheet, numCols);
+  if (!all.length) {
     _ensureSheetHeaders(sheetKey, sheet);
     _headerOffsetMemo[sheetKey] = 1;
     return { values: [], startRow: 2 };
   }
-  const all = sheet.getRange(1, 1, lastRow, numCols).getValues();
   if (!_isHeaderRow(sheetKey, all[0])) {
     _ensureSheetHeaders(sheetKey, sheet, all);
     return { values: all, startRow: 2 };
@@ -400,18 +479,29 @@ const ConfigService = (() => {
       const chat      = ss.getSheetByName('Chat')      || null;
       const altCategories = ss.getSheetByName('AltCategories') || null;
       const altHistory    = ss.getSheetByName('AltHistory')    || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat, altCategories, altHistory };
+      const aggregates    = ss.getSheetByName('Aggregates')    || null;
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat, altCategories, altHistory, aggregates };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
     }
   };
 
-  const clearCache = () => { _cache = null; _logsCache = null; _clearHeaderOffsetMemo(); _scriptPropertiesCache = null; _memCacheHits = null; _memCacheMisses = null; };
+  const clearCache = () => {
+    _cache = null;
+    _logsCache = null;
+    _clearHeaderOffsetMemo();
+    _scriptPropertiesCache = null;
+    _memCacheHits = null;
+    _memCacheMisses = null;
+    if (typeof AggregatesService !== 'undefined' && AggregatesService.clearCache) {
+      AggregatesService.clearCache();
+    }
+  };
   const getLogsCache = () => _logsCache;
   const setLogsCache = v => { _logsCache = v; };
 
-  return { getSheets, clearCache, getLogsCache, setLogsCache };
+  return { getSpreadsheetId, getSheets, clearCache, getLogsCache, setLogsCache };
 })();
 
 // ─── CONCURRENCY GUARD ───────────────────────────────────────────────────────────
@@ -737,6 +827,11 @@ const AuditService = (() => {
     catch (e) { throw new Error("Instantané d'annulation corrompu."); }
 
     _applySnapshot(snapshot);
+    try {
+      if (snapshot && snapshot.sheet === 'history' && typeof AggregatesService !== 'undefined') {
+        AggregatesService.rebuild();
+      }
+    } catch (_) {}
     sheet.getRange(rowIndex, 9).setValue(new Date());
     const origBefore = row[4] ? String(row[4]) : '';
     const origAfter  = row[5] ? String(row[5]) : '';
@@ -824,7 +919,7 @@ const SettingsService = {
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     if (!data.length) return [];
     let rowsData = data;
     if (!_isHeaderRow(type.toLowerCase(), data[0])) {
@@ -868,7 +963,7 @@ const SettingsService = {
     if (!name) throw new Error("Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     // A duplicate name isn't just cosmetic here: deleteEntity() removes every
     // row matching a name, so two entities sharing one would both vanish on
@@ -892,7 +987,7 @@ const SettingsService = {
   setEntityColor(type, rowIndex, expectedName, color) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const idx = rowIndex - 1;
     if (!data[idx] || data[idx][0] !== expectedName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
@@ -912,7 +1007,7 @@ const SettingsService = {
   deleteEntity(type, rowIndex, expectedName) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const row = data[rowIndex - 1];
     if (!row || row[0] !== expectedName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
@@ -925,7 +1020,7 @@ const SettingsService = {
     if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const idx = rowIndex - 1;
     if (!data[idx] || data[idx][0] !== oldName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
@@ -965,7 +1060,14 @@ const SettingsService = {
       for (let i = 0; i < vals.length; i++) {
         if (vals[i][0] === oldName) { vals[i][0] = newName; modified = true; }
       }
-      if (modified) range.setValues(vals);
+      if (modified) {
+        range.setValues(vals);
+        try {
+          if (typeof AggregatesService !== 'undefined') {
+            AggregatesService.rebuild();
+          }
+        } catch (_) {}
+      }
     }
 
     this._renameInColumn('autoRules', ConfigService.getSheets().autoRules, type === 'Players' ? 2 : 3, oldName, newName);
@@ -1031,7 +1133,7 @@ const SettingsService = {
   /** Returns true if the given password matches the player's password (column D of Players). */
   verifyIdentity(name, password) {
     const sheet = ConfigService.getSheets().players;
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues('players', sheet);
     const off   = _headerOffsetFromValues('players', data);
     for (let i = off; i < data.length; i++) {
       if (data[i][0] === name) {
@@ -1052,7 +1154,7 @@ const SettingsService = {
   reorderEntities(type, orderedRowIndexes, expectedNames) {
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     const validRowIndexes = [];
     for (let i = off; i < data.length; i++) if (data[i][0]) validRowIndexes.push(i + 1);
@@ -1090,7 +1192,7 @@ const StorageService = {
    * that index 0 corresponds to (2 with a header row, 1 without — see SHEET_HEADERS).
    */
   _parseHistoryRow(row, i, startRow) {
-    const d        = new Date(row[0]);
+    const d        = _parseDateCell(row[0]);
     const player   = row[1] ? row[1].toString() : '';
     const category = row[2] ? row[2].toString() : '';
     const points   = parseInt(row[3], 10);
@@ -1122,6 +1224,7 @@ const StorageService = {
     const tagToRealId = {};
     const { history } = ConfigService.getSheets();
     const initialLastRow = history.getLastRow();
+    const addedEntriesForAggregates = [];
 
     plan.forEach(day => {
       if (!day.date || !day.date.trim()) throw new Error("Date manquante dans le plan.");
@@ -1146,6 +1249,7 @@ const StorageService = {
 
         const totalPts = pts * tms;
         rows.push([targetDate, e.player, e.category, totalPts, e.description || '', realGroupId, e.saiseur || '']);
+        addedEntriesForAggregates.push({ date: targetDate, player: e.player, category: e.category, points: totalPts });
         const mainRowIndex = initialLastRow + rows.length;
 
         // SubTops (Multiple tops on same row)
@@ -1155,6 +1259,7 @@ const StorageService = {
             const stPts = parseInt(st.points, 10);
             const validStPts = (isNaN(stPts) || stPts < 1) ? totalPts : stPts;
             rows.push([targetDate, e.player, st.category, validStPts, e.description || '', realGroupId, e.saiseur || '']);
+            addedEntriesForAggregates.push({ date: targetDate, player: e.player, category: st.category, points: validStPts });
           });
         }
 
@@ -1180,6 +1285,12 @@ const StorageService = {
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
 
     history.getRange(initialLastRow + 1, 1, rows.length, 7).setValues(rows);
+
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        AggregatesService.increment(addedEntriesForAggregates);
+      }
+    } catch (_) {}
 
     if (altEntries.length && typeof AltStorageService !== 'undefined') {
       AltStorageService.addAltEntries(altEntries);
@@ -1388,7 +1499,8 @@ const StorageService = {
    */
   updateHistoryEntry(rowIndex, fields) {
     const idx = parseInt(rowIndex, 10);
-    if (isNaN(idx) || idx < _firstDataRow('history', ConfigService.getSheets().history)) throw new Error("Ligne invalide.");
+    const sheet = ConfigService.getSheets().history;
+    if (isNaN(idx) || idx < _firstDataRow('history', sheet)) throw new Error("Ligne invalide.");
     if (!fields)          throw new Error("Données manquantes.");
     if (!fields.player)   throw new Error("Joueur requis.");
     if (!fields.category) throw new Error("Top requis.");
@@ -1396,10 +1508,29 @@ const StorageService = {
     if (isNaN(pts) || pts < 1) throw new Error("Les points doivent être ≥ 1.");
     const targetDate = _parseLocalDateWithNow(fields.date || '');
     if (isNaN(targetDate.getTime())) throw new Error("Date fournie incorrecte.");
-    const sheet = ConfigService.getSheets().history;
+
+    const oldRow = sheet.getRange(idx, 1, 1, 5).getValues()[0];
+    const oldDate = _parseDateCell(oldRow[0]);
+    const oldPlayer = oldRow[1] ? oldRow[1].toString() : '';
+    const oldCat = oldRow[2] ? oldRow[2].toString() : '';
+    const oldPts = parseInt(oldRow[3], 10);
+
     sheet.getRange(idx, 1, 1, 5)
       .setValues([[targetDate, fields.player, fields.category, pts, fields.description || '']]);
     sheet.getRange(idx, 7).setValue(fields.saiseur || '');
+
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        if (!isNaN(oldDate.getTime()) && oldPlayer && oldCat && !isNaN(oldPts) && oldPts > 0) {
+          AggregatesService.adjustEntry(
+            { date: oldDate, player: oldPlayer, category: oldCat, points: oldPts },
+            { date: targetDate, player: fields.player, category: fields.category, points: pts }
+          );
+        } else {
+          AggregatesService.increment([{ date: targetDate, player: fields.player, category: fields.category, points: pts }]);
+        }
+      }
+    } catch (_) {}
   },
 
   // ── OUTILS NETTOYAGE ────────────────────────────────────────────────
@@ -1492,6 +1623,11 @@ const StorageService = {
       }
     }
     AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        AggregatesService.rebuild();
+      }
+    } catch (_) {}
     return { deleted: rows.length, rows };
   },
 
@@ -1518,6 +1654,11 @@ const StorageService = {
       }
     }
     AltStorageService.adjustRefsAfterHistoryDelete(deletedRowIndexes);
+    try {
+      if (typeof AggregatesService !== 'undefined') {
+        AggregatesService.rebuild();
+      }
+    } catch (_) {}
     return { deleted: rows.length, rows };
   },
 
@@ -1595,7 +1736,7 @@ const AltSettingsService = {
   getAltCategories() {
     const sheet = this._sheet();
     if (!sheet) return [];
-    const data = sheet.getDataRange().getValues();
+    const data = _fetchSheetValues('altCategories', sheet);
     if (!data || !data.length) return [];
     if (!_isHeaderRow('altCategories', data[0])) {
       _ensureSheetHeaders('altCategories', sheet, data);
@@ -2132,6 +2273,406 @@ const ChatService = {
   }
 };
 
+// ─── AGGREGATES SERVICE (MATERIALIZED VIEW) ──────────────────────────────────
+const AggregatesService = (() => {
+  let _memAggregates = null;
+
+  function clearCache() {
+    _memAggregates = null;
+  }
+
+  function _getCacheKey() {
+    return 'aggregates_v' + (typeof _logsVersion === 'function' ? _logsVersion() : '0');
+  }
+
+  function _emptyAggregates() {
+    return {
+      byPlayer: {},
+      byCategory: {},
+      byPlayerCategory: {},
+      byMonth: {},
+      lastEvent: null,
+      globalBest: null,
+      totalEntries: 0,
+      totalPoints: 0
+    };
+  }
+
+  function _getOrCreateSheet() {
+    let sheets;
+    try {
+      sheets = ConfigService.getSheets();
+    } catch (_) {
+      return null;
+    }
+    if (sheets.aggregates) return sheets.aggregates;
+    try {
+      const ssId = ConfigService.getSpreadsheetId();
+      const ss = SpreadsheetApp.openById(ssId);
+      let sheet = ss.getSheetByName('Aggregates');
+      if (!sheet) {
+        sheet = ss.insertSheet('Aggregates');
+      }
+      _ensureSheetHeaders('aggregates', sheet);
+      sheets.aggregates = sheet;
+      return sheet;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function _persist(agg) {
+    _memAggregates = agg;
+    try {
+      const cache = CacheService.getScriptCache();
+      _cachePutChunked(cache, _getCacheKey(), JSON.stringify(agg), CONFIG.CACHE_TTL_SECONDS);
+    } catch (_) {}
+
+    const sheet = _getOrCreateSheet();
+    if (!sheet) return;
+
+    try {
+      const rows = [];
+      const headers = CANONICAL_SHEET_HEADERS.aggregates;
+      rows.push(headers);
+      rows.push(['SNAPSHOT', '', '', '', agg.totalPoints || 0, agg.totalEntries || 0, JSON.stringify(agg)]);
+
+      Object.keys(agg.byPlayer || {}).sort().forEach(p => {
+        rows.push(['PLAYER', p, '', '', agg.byPlayer[p] || 0, 0, '']);
+      });
+
+      Object.keys(agg.byCategory || {}).sort().forEach(c => {
+        rows.push(['CATEGORY', c, '', '', agg.byCategory[c] || 0, 0, '']);
+      });
+
+      Object.keys(agg.byPlayerCategory || {}).sort().forEach(p => {
+        const catMap = agg.byPlayerCategory[p] || {};
+        Object.keys(catMap).sort().forEach(c => {
+          rows.push(['PLAYER_CATEGORY', p, c, '', catMap[c] || 0, 0, '']);
+        });
+      });
+
+      Object.keys(agg.byMonth || {}).sort().forEach(m => {
+        rows.push(['MONTH', m, '', '', (agg.byMonth[m] && agg.byMonth[m].points) || 0, (agg.byMonth[m] && agg.byMonth[m].count) || 0, '']);
+      });
+
+      if (agg.lastEvent) {
+        rows.push(['META', 'lastEvent', agg.lastEvent.player || '', agg.lastEvent.category || '', agg.lastEvent.points || 0, 0, agg.lastEvent.date || '']);
+      }
+      if (agg.globalBest) {
+        rows.push(['META', 'globalBest', agg.globalBest.player || '', '', agg.globalBest.points || 0, 0, agg.globalBest.dateStr || '']);
+      }
+
+      if (typeof sheet.clearContents === 'function') {
+        sheet.clearContents();
+      } else if (typeof sheet.clear === 'function') {
+        sheet.clear();
+      }
+      sheet.getRange(1, 1, rows.length, 7).setValues(rows);
+      _headerOffsetMemo['aggregates'] = 1;
+    } catch (_) {}
+  }
+
+  function _parseRowsToAggregates(rows) {
+    const agg = _emptyAggregates();
+    rows.forEach(r => {
+      const type = r[0];
+      if (type === 'PLAYER') {
+        agg.byPlayer[r[1]] = parseInt(r[4], 10) || 0;
+      } else if (type === 'CATEGORY') {
+        agg.byCategory[r[1]] = parseInt(r[4], 10) || 0;
+      } else if (type === 'PLAYER_CATEGORY') {
+        if (!agg.byPlayerCategory[r[1]]) agg.byPlayerCategory[r[1]] = {};
+        agg.byPlayerCategory[r[1]][r[2]] = parseInt(r[4], 10) || 0;
+      } else if (type === 'MONTH') {
+        agg.byMonth[r[1]] = { points: parseInt(r[4], 10) || 0, count: parseInt(r[5], 10) || 0 };
+      } else if (type === 'META') {
+        if (r[1] === 'lastEvent') {
+          agg.lastEvent = { player: r[2], category: r[3], points: parseInt(r[4], 10) || 0, date: r[6] };
+        } else if (r[1] === 'globalBest') {
+          agg.globalBest = { player: r[2], points: parseInt(r[4], 10) || 0, dateStr: r[6] };
+        }
+      } else if (type === 'SNAPSHOT') {
+        agg.totalPoints = parseInt(r[4], 10) || 0;
+        agg.totalEntries = parseInt(r[5], 10) || 0;
+      }
+    });
+    return agg;
+  }
+
+  function rebuild() {
+    let historySheet;
+    try {
+      historySheet = ConfigService.getSheets().history;
+    } catch (_) {
+      return _emptyAggregates();
+    }
+    if (!historySheet) return _emptyAggregates();
+
+    const { values } = _readDataRows('history', historySheet, 5);
+    const agg = _emptyAggregates();
+
+    try {
+      const allP = SettingsService.getEntities('Players');
+      if (allP && allP.length) allP.forEach(p => { if (p.name) agg.byPlayer[p.name] = 0; });
+    } catch (_) {}
+    try {
+      const allC = SettingsService.getEntities('Categories');
+      if (allC && allC.length) allC.forEach(c => { if (c.name) agg.byCategory[c.name] = 0; });
+    } catch (_) {}
+
+    for (let i = 0; i < values.length; i++) {
+      const row = values[i];
+      const d = _parseDateCell(row[0]);
+      const player = row[1] ? String(row[1]).trim() : '';
+      const category = row[2] ? String(row[2]).trim() : '';
+      const pts = parseInt(row[3], 10);
+      if (isNaN(pts) || pts <= 0 || !player || !category || isNaN(d.getTime())) continue;
+
+      agg.totalEntries++;
+      agg.totalPoints += pts;
+
+      agg.byPlayer[player] = (agg.byPlayer[player] || 0) + pts;
+      agg.byCategory[category] = (agg.byCategory[category] || 0) + pts;
+
+      if (!agg.byPlayerCategory[player]) agg.byPlayerCategory[player] = {};
+      agg.byPlayerCategory[player][category] = (agg.byPlayerCategory[player][category] || 0) + pts;
+
+      const mKey = d.getFullYear() + '-' + _pad2(d.getMonth() + 1);
+      if (!agg.byMonth[mKey]) agg.byMonth[mKey] = { points: 0, count: 0 };
+      agg.byMonth[mKey].points += pts;
+      agg.byMonth[mKey].count += 1;
+
+      if (!agg.lastEvent || d.getTime() > (new Date(agg.lastEvent.date)).getTime()) {
+        agg.lastEvent = {
+          player: player,
+          category: category,
+          points: pts,
+          date: d.toISOString()
+        };
+      }
+
+      if (!agg.globalBest || pts > agg.globalBest.points) {
+        agg.globalBest = {
+          player: player,
+          points: pts,
+          dateStr: _dayKey(d)
+        };
+      }
+    }
+
+    _persist(agg);
+    return agg;
+  }
+
+  function getAggregates() {
+    if (_memAggregates) return _memAggregates;
+
+    try {
+      const cache = CacheService.getScriptCache();
+      const raw = _cacheGetChunked(cache, _getCacheKey());
+      if (raw) {
+        try {
+          _memAggregates = JSON.parse(raw);
+          return _memAggregates;
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    let sheet = null;
+    try {
+      sheet = ConfigService.getSheets().aggregates;
+    } catch (_) {}
+
+    if (sheet) {
+      const data = _fetchSheetValues('aggregates', sheet);
+      const off = _headerOffsetFromValues('aggregates', data);
+      if (data.length > off) {
+        for (let i = off; i < data.length; i++) {
+          const r = data[i];
+          if (r[0] === 'SNAPSHOT' && r[6]) {
+            try {
+              const parsed = JSON.parse(r[6]);
+              if (parsed && parsed.byPlayer && parsed.byPlayerCategory) {
+                _memAggregates = parsed;
+                try {
+                  const cache = CacheService.getScriptCache();
+                  _cachePutChunked(cache, _getCacheKey(), JSON.stringify(parsed), CONFIG.CACHE_TTL_SECONDS);
+                } catch (_) {}
+                return _memAggregates;
+              }
+            } catch (_) {}
+          }
+        }
+        const agg = _parseRowsToAggregates(data.slice(off));
+        if (agg.totalEntries > 0 || Object.keys(agg.byPlayer).length > 0) {
+          _persist(agg);
+          return agg;
+        }
+      }
+    }
+
+    return rebuild();
+  }
+
+  function increment(entries) {
+    if (!entries || !entries.length) return;
+    const agg = getAggregates();
+    entries.forEach(e => {
+      const d = _parseDateCell(e.date);
+      const player = e.player ? String(e.player).trim() : '';
+      const category = e.category ? String(e.category).trim() : '';
+      const pts = parseInt(e.points, 10);
+      if (isNaN(pts) || pts <= 0 || !player || !category || isNaN(d.getTime())) return;
+
+      agg.totalEntries++;
+      agg.totalPoints += pts;
+
+      agg.byPlayer[player] = (agg.byPlayer[player] || 0) + pts;
+      agg.byCategory[category] = (agg.byCategory[category] || 0) + pts;
+
+      if (!agg.byPlayerCategory[player]) agg.byPlayerCategory[player] = {};
+      agg.byPlayerCategory[player][category] = (agg.byPlayerCategory[player][category] || 0) + pts;
+
+      const mKey = d.getFullYear() + '-' + _pad2(d.getMonth() + 1);
+      if (!agg.byMonth[mKey]) agg.byMonth[mKey] = { points: 0, count: 0 };
+      agg.byMonth[mKey].points += pts;
+      agg.byMonth[mKey].count += 1;
+
+      if (!agg.lastEvent || d.getTime() > (new Date(agg.lastEvent.date)).getTime()) {
+        agg.lastEvent = {
+          player: player,
+          category: category,
+          points: pts,
+          date: d.toISOString()
+        };
+      }
+
+      if (!agg.globalBest || pts > agg.globalBest.points) {
+        agg.globalBest = {
+          player: player,
+          points: pts,
+          dateStr: _dayKey(d)
+        };
+      }
+    });
+
+    _persist(agg);
+  }
+
+  function adjustEntry(oldEntry, newEntry) {
+    if (!oldEntry || !newEntry) return rebuild();
+    const agg = getAggregates();
+
+    const dOld = _parseDateCell(oldEntry.date);
+    const pOld = oldEntry.player ? String(oldEntry.player).trim() : '';
+    const cOld = oldEntry.category ? String(oldEntry.category).trim() : '';
+    const ptsOld = parseInt(oldEntry.points, 10);
+
+    const dNew = _parseDateCell(newEntry.date);
+    const pNew = newEntry.player ? String(newEntry.player).trim() : '';
+    const cNew = newEntry.category ? String(newEntry.category).trim() : '';
+    const ptsNew = parseInt(newEntry.points, 10);
+
+    if (!isNaN(ptsOld) && ptsOld > 0 && pOld && cOld && !isNaN(dOld.getTime())) {
+      agg.totalPoints = Math.max(0, agg.totalPoints - ptsOld);
+      if (agg.byPlayer[pOld] !== undefined) {
+        agg.byPlayer[pOld] = Math.max(0, agg.byPlayer[pOld] - ptsOld);
+      }
+      if (agg.byCategory[cOld] !== undefined) {
+        agg.byCategory[cOld] = Math.max(0, agg.byCategory[cOld] - ptsOld);
+      }
+      if (agg.byPlayerCategory[pOld] && agg.byPlayerCategory[pOld][cOld] !== undefined) {
+        agg.byPlayerCategory[pOld][cOld] = Math.max(0, agg.byPlayerCategory[pOld][cOld] - ptsOld);
+      }
+      const mOld = dOld.getFullYear() + '-' + _pad2(dOld.getMonth() + 1);
+      if (agg.byMonth[mOld]) {
+        agg.byMonth[mOld].points = Math.max(0, agg.byMonth[mOld].points - ptsOld);
+        agg.byMonth[mOld].count = Math.max(0, agg.byMonth[mOld].count - 1);
+      }
+    }
+
+    if (!isNaN(ptsNew) && ptsNew > 0 && pNew && cNew && !isNaN(dNew.getTime())) {
+      agg.totalPoints += ptsNew;
+      agg.byPlayer[pNew] = (agg.byPlayer[pNew] || 0) + ptsNew;
+      agg.byCategory[cNew] = (agg.byCategory[cNew] || 0) + ptsNew;
+      if (!agg.byPlayerCategory[pNew]) agg.byPlayerCategory[pNew] = {};
+      agg.byPlayerCategory[pNew][cNew] = (agg.byPlayerCategory[pNew][cNew] || 0) + ptsNew;
+
+      const mNew = dNew.getFullYear() + '-' + _pad2(dNew.getMonth() + 1);
+      if (!agg.byMonth[mNew]) agg.byMonth[mNew] = { points: 0, count: 0 };
+      agg.byMonth[mNew].points += ptsNew;
+      agg.byMonth[mNew].count += 1;
+    }
+
+    const wasBest = agg.globalBest && (agg.globalBest.points === ptsOld || ptsNew > agg.globalBest.points);
+    const wasLast = agg.lastEvent && (!isNaN(dOld.getTime()) && Math.abs(dOld.getTime() - (new Date(agg.lastEvent.date)).getTime()) < 1000);
+    if (wasBest || wasLast) {
+      return rebuild();
+    }
+
+    _persist(agg);
+    return agg;
+  }
+
+  function removeRows(removedRows) {
+    if (!removedRows || !removedRows.length) return;
+    const agg = getAggregates();
+    let needsRebuild = false;
+
+    removedRows.forEach(row => {
+      if (!row) return;
+      const d = _parseDateCell(row[0]);
+      const p = row[1] ? String(row[1]).trim() : '';
+      const c = row[2] ? String(row[2]).trim() : '';
+      const pts = parseInt(row[3], 10);
+      if (isNaN(pts) || pts <= 0 || !p || !c || isNaN(d.getTime())) return;
+
+      agg.totalEntries = Math.max(0, agg.totalEntries - 1);
+      agg.totalPoints = Math.max(0, agg.totalPoints - pts);
+
+      if (agg.byPlayer[p] !== undefined) {
+        agg.byPlayer[p] = Math.max(0, agg.byPlayer[p] - pts);
+      }
+      if (agg.byCategory[c] !== undefined) {
+        agg.byCategory[c] = Math.max(0, agg.byCategory[c] - pts);
+      }
+      if (agg.byPlayerCategory[p] && agg.byPlayerCategory[p][c] !== undefined) {
+        agg.byPlayerCategory[p][c] = Math.max(0, agg.byPlayerCategory[p][c] - pts);
+      }
+
+      const mKey = d.getFullYear() + '-' + _pad2(d.getMonth() + 1);
+      if (agg.byMonth[mKey]) {
+        agg.byMonth[mKey].points = Math.max(0, agg.byMonth[mKey].points - pts);
+        agg.byMonth[mKey].count = Math.max(0, agg.byMonth[mKey].count - 1);
+      }
+
+      if (agg.globalBest && agg.globalBest.points === pts) {
+        needsRebuild = true;
+      }
+      if (agg.lastEvent && !isNaN(d.getTime()) && Math.abs(d.getTime() - (new Date(agg.lastEvent.date)).getTime()) < 1000) {
+        needsRebuild = true;
+      }
+    });
+
+    if (needsRebuild) {
+      return rebuild();
+    }
+
+    _persist(agg);
+    return agg;
+  }
+
+  return {
+    clearCache,
+    getAggregates,
+    rebuild,
+    increment,
+    adjustEntry,
+    removeRows
+  };
+})();
+
 // ─── ANALYTICS SERVICE ─────────────────────────────────────────────────────────
 const AnalyticsService = {
 
@@ -2195,13 +2736,6 @@ const AnalyticsService = {
   },
 
   getFilteredChartData(players, categories, startDate, endDate) {
-    const logs = StorageService.getFilteredLogs(
-      players    && players.length    ? players    : null,
-      categories && categories.length ? categories : null,
-      startDate || null,
-      endDate   || null
-    );
-
     const allPlayers    = SettingsService.getEntities('Players');
     const allCategories = SettingsService.getEntities('Categories');
     const allPlayerNames    = allPlayers.map(p => p.name);
@@ -2210,11 +2744,31 @@ const AnalyticsService = {
     const displayPlayers    = (players    && players.length)    ? players    : allPlayerNames;
     const displayCategories = (categories && categories.length) ? categories : allCategoryNames;
 
-    const { scores } = this._aggregate(logs, displayPlayers, displayCategories);
-
     const defaultColors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
     const catColorMap = {};
     allCategories.forEach(c => { if (c.color) catColorMap[c.name] = c.color; });
+
+    if (!startDate && !endDate) {
+      const agg = AggregatesService.getAggregates();
+      const byPC = agg.byPlayerCategory || {};
+      const datasets = displayCategories.map((cat, i) => ({
+        label:           cat,
+        data:            displayPlayers.map(p => (byPC[p] && byPC[p][cat]) || 0),
+        backgroundColor: catColorMap[cat] || defaultColors[i % defaultColors.length],
+        borderRadius:    4
+      }));
+      return { labels: displayPlayers, datasets };
+    }
+
+    const logs = StorageService.getFilteredLogs(
+      players    && players.length    ? players    : null,
+      categories && categories.length ? categories : null,
+      startDate || null,
+      endDate   || null
+    );
+
+    const { scores } = this._aggregate(logs, displayPlayers, displayCategories);
+
     const datasets = displayCategories.map((cat, i) => ({
       label:           cat,
       data:            displayPlayers.map(p => (scores[p] && scores[p][cat]) || 0),
@@ -2411,7 +2965,7 @@ const SettingsSheetService = {
   getAll() {
     const sheet = ConfigService.getSheets().settings;
     if (!sheet) return {};
-    const data = sheet.getDataRange().getValues();
+    const data = _fetchSheetValues('settings', sheet);
     if (data.length && !_isHeaderRow('settings', data[0])) {
       _ensureSheetHeaders('settings', sheet, data);
     }
@@ -2424,7 +2978,7 @@ const SettingsSheetService = {
 
   setValue(key, value) {
     const sheet = this._getOrCreateSheet();
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues('settings', sheet);
     for (let i = _headerOffsetFromValues('settings', data); i < data.length; i++) {
       if (data[i][0] === key) {
         sheet.getRange(i + 1, 2).setValue(value);
@@ -2459,7 +3013,7 @@ const BaremeService = {
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const data = sheet.getDataRange().getValues();
+    const data = _fetchSheetValues('bareme', sheet);
     if (!data.length) return [];
     let rowsData = data;
     if (!_isHeaderRow('bareme', data[0])) {
@@ -2546,7 +3100,7 @@ const PhrasesService = {
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const data = sheet.getDataRange().getValues();
+    const data = _fetchSheetValues('phrases', sheet);
     if (!data.length) return [];
     let rowsData = data;
     if (!_isHeaderRow('phrases', data[0])) {
@@ -2583,7 +3137,7 @@ const PhrasesService = {
     if (!preset || !pool || !text || !text.trim()) throw new Error("Champs manquants.");
     if (!this._isValidPool(pool)) throw new Error("Pool invalide : " + pool);
     const sheet = this._getOrCreateSheet();
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues('phrases', sheet);
     const nextOrdre = data.slice(_headerOffsetFromValues('phrases', data)).filter(r => r[0] === preset.trim() && r[1] === pool).length + 1;
     sheet.appendRow([preset.trim(), pool, text.trim(), nextOrdre]);
     _bumpPhrasesVersion();
@@ -2592,7 +3146,7 @@ const PhrasesService = {
   saveBatch(entries) {
     if (!entries || !entries.length) return;
     const sheet = this._getOrCreateSheet();
-    const data  = sheet.getDataRange().getValues();
+    const data  = _fetchSheetValues('phrases', sheet);
     const groupCounts = {};
     data.slice(_headerOffsetFromValues('phrases', data)).forEach(r => {
       if (r[0] === '' || r[0] === undefined) return;
@@ -2645,7 +3199,7 @@ const PhrasesService = {
   reorderPhrases(preset, pool, orderedRowIndexes) {
     const sheet = ConfigService.getSheets().phrases;
     if (!sheet) throw new Error("Feuille Phrases introuvable.");
-    const data = sheet.getDataRange().getValues();
+    const data = _fetchSheetValues('phrases', sheet);
     const off = _headerOffsetFromValues('phrases', data);
     const groupRows = [];
     for (let i = off; i < data.length; i++) {
@@ -2737,7 +3291,7 @@ function apiSetColor(type, rowIndex, expectedName, color, author, password) {
       const numCols  = type === 'Players' ? 3 : 4;
       const colorCol = type === 'Players' ? 3 : 4;
       const sheet    = ConfigService.getSheets()[sheetKey];
-      const data     = sheet.getDataRange().getValues();
+      const data     = _fetchSheetValues(sheetKey, sheet);
       const beforeRow = data[rowIndex - 1] ? data[rowIndex - 1].slice(0, numCols) : null;
       // "before" vient de la ligne déjà lue plutôt que d'une relecture par nom
       // (_entityColorSummary) : avec deux homonymes, ce second lookup risquerait
@@ -2782,7 +3336,7 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
         // sans lui, deux homonymes disparaîtraient ensemble (voir SettingsService.deleteEntity).
         if (!rowIndex) throw new Error("Ligne à supprimer non précisée — recharge la page et réessaie.");
         const before = _entitySummary(type, oldName);
-        const data = sheet.getDataRange().getValues();
+        const data = _fetchSheetValues(sheetKey, sheet);
         const beforeRow = data[rowIndex - 1];
         SettingsService.deleteEntity(type, rowIndex, oldName);
         AuditService.log(author, label + ' supprimé', label + ': ' + (oldName || ''), before, 'Supprimé',
@@ -2791,10 +3345,10 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
       }
       if (action === 'RENAME') {
         if (!rowIndex) throw new Error("Ligne à renommer non précisée — recharge la page et réessaie.");
-        const data = sheet.getDataRange().getValues();
+        const data = _fetchSheetValues(sheetKey, sheet);
         const beforeRow = data[rowIndex - 1];
         SettingsService.renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon);
-        const afterData = sheet.getDataRange().getValues();
+        const afterData = _fetchSheetValues(sheetKey, sheet);
         const afterRow  = afterData[rowIndex - 1];
         AuditService.log(author, label + ' renommé', label + ': ' + (oldName || ''),
           oldName || '', newName || '',
@@ -3013,6 +3567,11 @@ function apiDeleteHistoryEntries(rowIndexes, author, password) {
       const removedRows = sorted.map(ri => history.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => history.deleteRow(ri));
       AltStorageService.adjustRefsAfterHistoryDelete(sorted);
+      try {
+        if (typeof AggregatesService !== 'undefined') {
+          AggregatesService.removeRows(removedRows);
+        }
+      } catch (_) {}
       const delPts = removedRows.reduce(function(s, r) { return s + (parseInt(r[3], 10) || 0); }, 0);
       const delPlayers = [...new Set(removedRows.map(function(r) { return r[1]; }).filter(Boolean))];
       const delCats = [...new Set(removedRows.map(function(r) { return r[2]; }).filter(Boolean))];
@@ -3043,6 +3602,18 @@ function apiGetPlayerTotals(players, startDate, endDate) {
     const allPlayers     = SettingsService.getEntities('Players').map(p => p.name);
     const displayPlayers = (players && players.length) ? players : allPlayers;
 
+    if (!startDate && !endDate) {
+      const agg = AggregatesService.getAggregates();
+      const totals = agg.byPlayer || {};
+      return {
+        success:   true,
+        chartData: {
+          labels:   displayPlayers,
+          datasets: [{ label: 'Total global', data: displayPlayers.map(p => totals[p] || 0) }]
+        }
+      };
+    }
+
     const logs = StorageService.getFilteredLogs(
       displayPlayers,
       null,              // aucun filtre catégorie → tous les tops comptés
@@ -3072,17 +3643,59 @@ function apiGetQuickStats(universe) {
   try {
     const isAlt = (universe === 'alt');
     const allPlayers = SettingsService.getEntities('Players').map(p => p.name);
-    const logs = isAlt
-      ? AltStorageService.getAltLogs().map(l => ({ timestamp: l.date, player: l.player, category: l.category, points: l.points }))
-      : StorageService.getFilteredLogs(allPlayers, null, null, null);
 
-    const totals = {};
-    allPlayers.forEach(p => { totals[p] = 0; });
-    logs.forEach(log => {
-      if (Object.prototype.hasOwnProperty.call(totals, log.player)) {
-        totals[log.player] += log.points;
-      }
-    });
+    if (isAlt) {
+      const logs = AltStorageService.getAltLogs().map(l => ({ timestamp: l.date, player: l.player, category: l.category, points: l.points }));
+      const totals = {};
+      allPlayers.forEach(p => { totals[p] = 0; });
+      logs.forEach(log => {
+        if (Object.prototype.hasOwnProperty.call(totals, log.player)) {
+          totals[log.player] += log.points;
+        }
+      });
+
+      const ranked = allPlayers
+        .map(p => ({ player: p, points: totals[p] || 0 }))
+        .sort((a, b) => b.points - a.points);
+
+      const leader = ranked.length ? ranked[0] : null;
+      const second = ranked.length > 1 ? ranked[1] : null;
+      const gap = (leader && second) ? (leader.points - second.points) : null;
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthCount = logs.filter(l => l.timestamp >= monthStart).length;
+
+      const sortedByDate = logs.slice().sort((a, b) => b.timestamp - a.timestamp);
+      const last = sortedByDate.length ? sortedByDate[0] : null;
+
+      const globalBest = logs.reduce((best, log) => (!best || log.points > best.points) ? log : best, null);
+
+      return {
+        success: true,
+        stats: {
+          leader: leader ? { player: leader.player, points: leader.points } : null,
+          gap: gap,
+          chaser: second ? { player: second.player, points: second.points } : null,
+          monthCount: monthCount,
+          lastEvent: last ? {
+            player:   last.player,
+            category: last.category,
+            points:   last.points,
+            date:     last.timestamp.toISOString()
+          } : null,
+          globalBest: globalBest ? {
+            player: globalBest.player,
+            points: globalBest.points,
+            dateStr: _dayKey(globalBest.timestamp)
+          } : null
+        }
+      };
+    }
+
+    // Main universe: read directly from AggregatesService
+    const agg = AggregatesService.getAggregates();
+    const totals = agg.byPlayer || {};
 
     const ranked = allPlayers
       .map(p => ({ player: p, points: totals[p] || 0 }))
@@ -3093,13 +3706,11 @@ function apiGetQuickStats(universe) {
     const gap = (leader && second) ? (leader.points - second.points) : null;
 
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthCount = logs.filter(l => l.timestamp >= monthStart).length;
+    const mKey = now.getFullYear() + '-' + _pad2(now.getMonth() + 1);
+    const monthCount = (agg.byMonth && agg.byMonth[mKey] && agg.byMonth[mKey].count) || 0;
 
-    const sortedByDate = logs.slice().sort((a, b) => b.timestamp - a.timestamp);
-    const last = sortedByDate.length ? sortedByDate[0] : null;
-
-    const globalBest = logs.reduce((best, log) => (!best || log.points > best.points) ? log : best, null);
+    const last = agg.lastEvent || null;
+    const globalBest = agg.globalBest || null;
 
     return {
       success: true,
@@ -3108,16 +3719,16 @@ function apiGetQuickStats(universe) {
         gap: gap,
         chaser: second ? { player: second.player, points: second.points } : null,
         monthCount: monthCount,
-        lastEvent: last ? {
+        lastEvent: (last && last.player) ? {
           player:   last.player,
           category: last.category,
           points:   last.points,
-          date:     last.timestamp.toISOString()
+          date:     last.date
         } : null,
-        globalBest: globalBest ? {
-          player: globalBest.player,
-          points: globalBest.points,
-          dateStr: _dayKey(globalBest.timestamp)
+        globalBest: (globalBest && globalBest.player) ? {
+          player:  globalBest.player,
+          points:  globalBest.points,
+          dateStr: globalBest.dateStr
         } : null
       }
     };
@@ -3403,6 +4014,19 @@ function apiDeleteOrphans(author, password) {
       return { success: true, deleted: result.deleted };
     });
   } catch(e) { return fail(e); }
+}
+
+function apiRebuildAggregates(author, password) {
+  try {
+    requireAuthor(author, password);
+    return withLock(() => {
+      const agg = AggregatesService.rebuild();
+      AuditService.log(author, 'Recalcul agrégats', 'Aggregates', '', 'Recalculé',
+        'Recalcul complet des agrégats & totaux (' + (agg.totalEntries || 0) + ' entrées, ' + (agg.totalPoints || 0) + ' pts)');
+      ConfigService.clearCache();
+      return { success: true, aggregates: agg };
+    });
+  } catch (e) { return fail(e); }
 }
 
 function apiCreateSnapshot(author, password) {
@@ -3758,7 +4382,14 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
         undoRows.push({ rowIndex: idx, before: beforeRow, after: row.slice() });
       });
 
-      if (undoRows.length) history.getRange(startRow, 1, lastRow - startRow + 1, 7).setValues(allData);
+      if (undoRows.length) {
+        history.getRange(startRow, 1, lastRow - startRow + 1, 7).setValues(allData);
+        try {
+          if (typeof AggregatesService !== 'undefined') {
+            AggregatesService.rebuild();
+          }
+        } catch (_) {}
+      }
 
       const fieldSummaries = [];
       if (hasDate)   fieldSummaries.push('Date → ' + partialFields.date);
@@ -4216,6 +4847,11 @@ function apiDeleteGroup(groupId, author, password) {
       const snapshotRows = sorted.map(ri => sheet.getRange(ri, 1, 1, 7).getValues()[0]);
       sorted.forEach(ri => sheet.deleteRow(ri));
       AltStorageService.adjustRefsAfterHistoryDelete(sorted);
+      try {
+        if (typeof AggregatesService !== 'undefined') {
+          AggregatesService.removeRows(snapshotRows);
+        }
+      } catch (_) {}
       const delPts = snapshotRows.reduce(function(s, r) { return s + (parseInt(r[3], 10) || 0); }, 0);
       const delPlayers = [...new Set(snapshotRows.map(function(r) { return r[1]; }).filter(Boolean))];
       const delCats = [...new Set(snapshotRows.map(function(r) { return r[2]; }).filter(Boolean))];
@@ -4481,7 +5117,7 @@ function apiRepairOrder(author, password) {
 
       ['Players', 'Categories'].forEach(type => {
         const sheet = ConfigService.getSheets()[type.toLowerCase()];
-        const data  = sheet.getDataRange().getValues();
+        const data  = _fetchSheetValues(type.toLowerCase(), sheet);
         const off   = _headerOffsetFromValues(type.toLowerCase(), data);
         let rows = data.slice(off)
           .map((r, i) => ({ r, sheetRow: i + 1 + off }))
@@ -4503,7 +5139,7 @@ function apiRepairOrder(author, password) {
 
       const phrasesSheet = ConfigService.getSheets().phrases;
       if (phrasesSheet) {
-        const data = phrasesSheet.getDataRange().getValues();
+        const data = _fetchSheetValues('phrases', phrasesSheet);
         const off  = _headerOffsetFromValues('phrases', data);
         const rows = data.slice(off)
           .map((r, i) => ({ r, sheetRow: i + 1 + off }))

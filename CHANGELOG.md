@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.0] - 2026-09-06
+
+### Ajouté
+**Humanisé** : Accélération majeure du Dashboard et des classements grâce au précalcul automatique des totaux et à l'accès direct aux données Google Sheets.
+**Technique** :
+- `appsscript.json` : activation du service avancé Google Sheets API v4 (`Sheets`).
+- `Code.gs` : implémentation de `_fetchSheetValues(sheetKey, sheet, optNumCols)` exploitant `Sheets.Spreadsheets.Values.get` avec format `UNFORMATTED_VALUE` et `SERIAL_NUMBER`, et repli transparent automatique vers `SpreadsheetApp`.
+- `Code.gs` : implémentation de `_parseDateCell(val)` normalisant dates locales, dates séries Sheets, ISO et formats européens sans décalage de fuseau horaire.
+- `Code.gs` : création de `AggregatesService` (Materialized View) maintenant les totaux et métriques clés (`byPlayer`, `byCategory`, `byPlayerCategory`, `byMonth`, `lastEvent`, `globalBest`, `totalEntries`, `totalPoints`) avec persistance multi-niveaux (mémoire, CacheService chunké et onglet `Aggregates`).
+- `Code.gs` : incrémentation en temps réel (`AggregatesService.increment`) lors des saisies par lot (`apiAddBulkPlan`), ajustement ciblé (`AggregatesService.adjustEntry`) lors des modifications d'historique, et suppression décrémentale (`AggregatesService.removeRows`) lors des suppressions uniques ou de groupes.
+- `Code.gs` : exposition de l'endpoint d'administration sécurisé `apiRebuildAggregates(author, password)` avec verrou ScriptLock, journalisation d'audit et recalcul complet.
+- `Code.gs` : optimisation des endpoints de consultation `AnalyticsService.getFilteredChartData`, `apiGetPlayerTotals` et `apiGetQuickStats` pour consommer les agrégats précalculés sans rescanner l'onglet History.
+- `Index.html` : ajout du bouton d'administration « Recalculer les agrégats & totaux » dans l'outil Santé (`#toolHealthCard`), câblé avec contrôle d'identité `requireIdentity()` et notifications toast.
+- `tests/` : 372 tests automatisés passants (`npm run verify` à 100%), incluant `tests/sheets-api-and-aggregates.test.js` couvrant l'API v4, les fallbacks, le calcul incrémental et les lectures sans scan.
+
 ## [v3.29.1] - 2026-09-06
 
 ### Corrigé
