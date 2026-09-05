@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.29.1] - 2026-09-06
+
+### Corrigé
+**Humanisé** : Le tchat et les mentions s'adaptent dynamiquement au clavier virtuel sans masquer les champs ni chevaucher l'écran.
+**Technique** :
+- `Index.html` : adaptation de `attachMentionAutocomplete` et `anchorFloating` au `window.visualViewport` via `addEventListener`/`removeEventListener` sans conflit concurrentiel ; calcul dynamique de `maxHeight` et de la bascule verticale dans `place(r)` garantissant que les suggestions restent intégralement visibles au-dessus du clavier virtuel.
+- `Index.html` : élimination du FOUC desktop en isolant les règles d'auto-détection du FAB tchat (`z-index: 9001`) et du panneau plein écran dans `@media (max-width: 768px)`.
+- `Index.html` : intégration des safe-area insets et unités dynamiques `dvh` sur `.modal-backdrop`, `.modal-box` et `.export-modal-overlay` pour éliminer tout écrasement par les encoches et barres d'outils mobiles.
+- `Index.html` : recalage de la popover d'historique de note (`placePopover`) tenant compte de la barre de navigation basse (`navOffset`) et ordonnancement flex (`order: 1..4`) sur les formulaires de notes.
+- `Index.html` : conformité tactile WCAG étendue et harmonisée entre auto-detect et `body.mobile-layout` (`.hist-fchip` à 44px, `.seg-btn` à 44px, `.export-pill` à 38px, `.date-shortcut` à 38px, `.row-shortcut` à 36px, `button.note-meta-edited` à 36px).
+- `tests/` : 363 tests passants, incluant des tests fonctionnels approfondis de non-régression validant la concurrence d'ancrage et la contrainte de hauteur sous clavier virtuel.
+
 ## [v3.29.0] - 2026-09-06
 
 ### Ajouté

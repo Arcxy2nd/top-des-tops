@@ -22,11 +22,22 @@ function makeEl(tag, id) {
     _classes: new Set(),
     _focusCount: 0
   };
+  let _className = '';
+  Object.defineProperty(el, 'className', {
+    get: () => _className,
+    set: val => {
+      _className = val || '';
+      el._classes = new Set(_className.split(/\s+/).filter(Boolean));
+    }
+  });
   el.classList = {
-    add: c => el._classes.add(c),
-    remove: c => el._classes.delete(c),
+    add: c => { el._classes.add(c); _className = Array.from(el._classes).join(' '); },
+    remove: c => { el._classes.delete(c); _className = Array.from(el._classes).join(' '); },
     contains: c => el._classes.has(c),
-    toggle: (c, on) => (on ? el._classes.add(c) : el._classes.delete(c))
+    toggle: (c, on) => {
+      if (on) el._classes.add(c); else el._classes.delete(c);
+      _className = Array.from(el._classes).join(' ');
+    }
   };
   el.getBoundingClientRect = () => el._rect;
   el.addEventListener = (type, fn, capture) => {
@@ -71,6 +82,7 @@ function makeEnv(opts) {
     _listeners: {},
     body: makeEl('body'),
     createElement: tag => { const e = makeEl(tag); e.ownerDoc = document; return e; },
+    createTextNode: text => ({ textContent: text, nodeType: 3 }),
     getElementById: id => byId[id] || null,
     addEventListener: (type, fn, capture) => {
       const key = type + (capture ? ':capture' : '');
@@ -85,9 +97,24 @@ function makeEnv(opts) {
   };
   document.body.ownerDoc = document;
 
+  const visualViewport = {
+    height: (opts.visualViewport && opts.visualViewport.height) || (opts.innerHeight || 800),
+    width: (opts.visualViewport && opts.visualViewport.width) || (opts.innerWidth || 1280),
+    _listeners: {},
+    addEventListener: (type, fn) => {
+      (visualViewport._listeners[type] = visualViewport._listeners[type] || []).push(fn);
+    },
+    removeEventListener: (type, fn) => {
+      const arr = visualViewport._listeners[type] || [];
+      const i = arr.indexOf(fn);
+      if (i !== -1) arr.splice(i, 1);
+    }
+  };
+
   const window = {
     innerHeight: opts.innerHeight || 800,
     innerWidth: opts.innerWidth || 1280,
+    visualViewport,
     _listeners: {},
     addEventListener: (type, fn) => {
       (window._listeners[type] = window._listeners[type] || []).push(fn);

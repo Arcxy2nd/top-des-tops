@@ -1,33 +1,31 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.29.0** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Audit UX approfondi et mise à niveau mobile (`/boost`) — conformité WCAG des cibles tactiles (44px), réalignement z-index (modales 10500, mentions 10001), safe-area insets, prévention zoom iOS sur tous les champs, disposition fluide 2 lignes pour Notes et Lot.
-- Suite de tests : **355 cas verts** (`npm run verify`).
+- Version livrée : **v3.29.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Audit UX approfondi, correction et robustesse mobile (`/boost` round 2) — support visualViewport pour clavier virtuel avec bascule et `maxHeight` dynamique sans occlusion, écouteurs `addEventListener`/`removeEventListener` sur `anchorFloating` éliminant tout conflit concurrentiel, élimination du FOUC desktop, safe-area insets sur modales et exports, ordonnancement flex notes, harmonisation tactile complète WCAG (44px/38px) sur tous les modes.
+- Suite de tests : **363 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Audit et Refonte UX Mobile Globale (`v3.29.0`)** :
-  - *Hiérarchie & Z-Index* :
-    - `Index.html` : `.modal-backdrop` et `.export-modal-overlay` élevés à `z-index: 10500` (recouvrant désormais la bottom nav fixe à 9000 et le tchat à 10000).
-    - `Index.html` : `.md-mention-popup` élevé à `z-index: 10001` (visible au-dessus du panneau tchat à 10000), ajout de `min-height: 40px` sur `.md-mention-item` et écoute de `pointerdown` avec `preventDefault()` pour un tap tactile instantané sans défocus ni fermeture du clavier virtuel.
-  - *Ergonomie & Cibles Tactiles WCAG (44px)* :
-    - `Index.html` : normalisation des boutons de mode d'univers (`.d-mode-seg .d-mode-btn`), puces filtres (`.fchip`, `.hist-fchip`), boutons graphiques (`.chart-type-btn`), onglets du hub statistiques (`.stats-hub-tab`), boutons d'export et pagination au standard tactile de 44px (`var(--tap-min)`).
-    - `Index.html` : retour tactile `:active` avec micro-échelle 0.92 sur la barre de navigation basse `.mobile-bottom-nav .nav-btn`.
-    - `Index.html` : safe-area insets intégrés sur `.mobile-bottom-nav` (`calc(62px + env(safe-area-inset-bottom, 0px))`), le conteneur principal et `.chat-composer` pour éliminer tout écrasement par la barre d'accueil iOS.
-  - *Formulaires Notes & Saisie de Lot* :
-    - `Index.html` : refonte responsive de `.notes-flash-input-row` et `.npb-add` en disposition 2 lignes fluide (champ texte 100% en haut, bascule date 44×44px et bouton d'action étirable en bas).
-    - `Index.html` : `.row-main-top-col` et `.pts-box-group` configurés en pleine largeur (100%) sur mobile, étirant la grille de raccourcis de points sur toute la largeur d'écran.
-    - `Index.html` : bascule verticale dynamique de `.note-history-popover` (`openNoteHistoryPopover`) pour éviter toute troncature basse au-dessus de la barre de navigation.
-  - *Accessibilité & Cohérence* :
-    - `Index.html` : protection anti-zoom iOS Safari étendue aux champs `input[type="password"]` et `input[type="search"]` (16px strict).
-    - `Index.html` : unification du breakpoint du podium des phrases à 768px (au lieu de 640px) avec règles adaptatives pour écrans très étroits (<= 380px).
-    - `Index.html` : visibilité garantie sans condition des cellules d'action d'historique et des messages du tchat sur mobile.
+- **Audit et Refonte UX Mobile Globale (`v3.29.1`)** :
+  - *Clavier virtuel & Visual Viewport* :
+    - `Index.html` : adaptation de `attachMentionAutocomplete` et `anchorFloating` au `window.visualViewport` dynamique via `addEventListener`/`removeEventListener` (pas d'écrasement de listeners lors d'ancrages concurrents). Dans `place(r)`, calcul dynamique de `maxHeight` et bascule verticale au-dessus du champ dès que l'espace sous le champ est restreint : les mentions restent intégralement accessibles au-dessus du clavier virtuel sans déborder dessous.
+    - `Index.html` : positionnement de la popover d'historique de note prenant en compte la hauteur de la barre de navigation basse (`navOffset`), bascule vers le haut si l'espace au-dessus est plus grand, et limitation `maxHeight` pour éliminer tout chevauchement ou débordement d'écran.
+  - *Hiérarchie, FOUC & Z-Index* :
+    - `Index.html` : suppression de `body:not(.desktop-layout)` du bloc CSS top-level (qui déclenchait un FOUC desktop à chaque chargement initial avant exécution JS), relocalisation des règles d'auto-détection du FAB tchat (`z-index: 9001`) et du panneau plein écran à l'intérieur de `@media (max-width: 768px)`.
+    - `Index.html` : intégration de `padding: max(16px, env(safe-area-inset-...))` et de hauteurs maximales en `dvh` sur `.modal-backdrop`, `.modal-box` et `.export-modal-overlay`.
+    - `Index.html` : masquage de `.bareme-resizer` sur mobile.
+  - *Ergonomie & Cibles Tactiles WCAG (44px/38px)* :
+    - `Index.html` : ordonnancement flex (`order: 1..4`) sur `.notes-flash-input-row` et `.npb-add` garantissant l'alignement naturel du bouton date 44px et de l'action sur la même ligne même lorsque le champ date est déployé, harmonisé à la fois sur auto-detect et sur `body.mobile-layout`.
+    - `Index.html` : conformité WCAG étendue à `.hist-fchip` (44px), `.seg-btn` (44px), `.export-pill` (38px), `.date-shortcut` (38px), `.row-shortcuts .row-shortcut` (36px), `.fill-opt` (38px), `.lot-sort-btn` (38px) et `button.note-meta-edited` (36px).
+    - `Index.html` : dégagement du conteneur de lot `#entryContainer` avec padding bas `calc(140px + env(safe-area-inset-bottom, 0px))` pour ne jamais masquer les dernières lignes sous `#lotSummaryBar`.
   - *Tests* :
-    - `tests/mobile-audit.test.js` : 7 nouveaux tests de non-régression verrouillant l'ensemble des règles (355 tests passants).
+    - `tests/mobile-audit.test.js` : 7 nouveaux tests de non-régression verrouillant le visualViewport, les tests fonctionnels approfondis (concurrence de floaters et clavier virtuel), le z-index FAB 9001, l'offset de popover, les modales et les cibles tactiles (363 tests passants).
+    - `tests/papercuts.test.js` : contrat d'ancrage validant la présence et le nettoyage parfait des écouteurs `visualViewport`.
+    - `tests/dom-stub.js` : support complet de `visualViewport` et synchronisation `className` / `classList`.
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (355/355).
+- Aucun écart. Tous les tests sont au vert (363/363).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :

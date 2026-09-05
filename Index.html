@@ -315,7 +315,7 @@
       position: fixed;
       right: 16px;
       bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-      z-index: 500;
+      z-index: 9001;
       width: 52px;
       height: 52px;
       padding: 0;
@@ -331,8 +331,7 @@
       position: absolute; top: -4px; right: -4px; margin-left: 0;
       border: 2px solid var(--bg);
     }
-    body.mobile-layout .chat-side-panel,
-    body:not(.desktop-layout).on-mobile .chat-side-panel {
+    body.mobile-layout .chat-side-panel {
       position: fixed;
       inset: 0;
       width: 100%;
@@ -340,6 +339,7 @@
       height: 100%;
       border-radius: 0;
       z-index: 10000;
+      padding-top: env(safe-area-inset-top, 0px);
     }
 
     /* Boutons contrôles droite */
@@ -1177,12 +1177,13 @@
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.65);
       display: flex; align-items: center; justify-content: center;
-      z-index: 10500; padding: 16px;
+      z-index: 10500;
+      padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) max(16px, env(safe-area-inset-bottom, 16px)) max(16px, env(safe-area-inset-left, 16px));
     }
     .modal-box {
       background: var(--card); padding: 24px;
       border-radius: 16px; width: 100%; max-width: 440px;
-      max-height: min(92vh, 900px); overflow-y: auto;
+      max-height: min(92dvh, min(92vh, 900px)); overflow-y: auto;
       border: 1px solid var(--border);
       box-shadow: 0 24px 70px rgba(0,0,0,0.55);
     }
@@ -2181,13 +2182,13 @@
     .export-modal-overlay {
       position: fixed; inset: 0; z-index: 10500;
       background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-      padding: 16px;
+      padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) max(16px, env(safe-area-inset-bottom, 16px)) max(16px, env(safe-area-inset-left, 16px));
     }
     .export-modal-box {
       background: var(--card); border: 1px solid var(--border); border-radius: 16px;
       width: 100%; max-width: 520px; padding: 24px;
       display: flex; flex-direction: column; gap: 16px;
-      max-height: 90vh; overflow-y: auto;
+      max-height: min(90dvh, 90vh); overflow-y: auto;
     }
     .export-modal-box h3 { margin: 0; font-size: 1.05rem; }
     .export-opt-group { display: flex; flex-direction: column; gap: 6px; }
@@ -2741,9 +2742,17 @@
         gap: 10px; padding: 10px 14px;
       }
       body:not(.desktop-layout) .pts-toggle-wrap .pts-btn { font-size: 0.88rem; min-height: 44px; }
+      body:not(.desktop-layout) #entryContainer:has(~ #lotSummaryBar:not(.hidden)) {
+        padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+      }
     }
     body.mobile-layout #lotSummaryBar {
       bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+      gap: 10px; padding: 10px 14px;
+    }
+    body.mobile-layout .pts-toggle-wrap .pts-btn { font-size: 0.88rem; min-height: 44px; }
+    body.mobile-layout #entryContainer:has(~ #lotSummaryBar:not(.hidden)) {
+      padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
     }
 
     /* ── CARD PHRASES D'ACCROCHE ── */
@@ -4133,7 +4142,7 @@
   }
 
   /* ── Disposition générale mode mobile ── */
-  body.mobile-layout .container, body:not(.desktop-layout).on-mobile .container { max-width: 600px; margin: 12px auto; padding: 0 10px calc(85px + env(safe-area-inset-bottom, 0px)); }
+  body.mobile-layout .container { max-width: 600px; margin: 12px auto; padding: 0 10px calc(85px + env(safe-area-inset-bottom, 0px)); }
   body.mobile-layout .card { padding: 14px; }
   body.mobile-layout h2 { font-size: 1.1rem; }
   body.mobile-layout .chart-wrapper { height: 280px; }
@@ -4149,16 +4158,27 @@
   body.mobile-layout .history-filters { flex-direction: column; align-items: stretch; }
   body.mobile-layout .health-grid { grid-template-columns: 1fr 1fr; }
   body.mobile-layout .npb-add { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
-  body.mobile-layout .npb-add input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-  body.mobile-layout .npb-add .npb-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-  body.mobile-layout .npb-add .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); }
-  body.mobile-layout .npb-add button.primary { flex: 1 1 auto; min-height: var(--tap-min); }
+  body.mobile-layout .npb-add input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 1; }
+  body.mobile-layout .npb-add .npb-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 2; }
+  body.mobile-layout .npb-add .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); order: 3; }
+  body.mobile-layout .npb-add button.primary { flex: 1 1 auto; min-height: var(--tap-min); order: 4; }
   body.mobile-layout .notes-flash-input-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
-  body.mobile-layout .notes-flash-input-row input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-  body.mobile-layout .notes-flash-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-  body.mobile-layout .notes-flash-input-row .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); }
-  body.mobile-layout .notes-flash-input-row button.primary { flex: 1 1 auto; min-height: var(--tap-min); }
+  body.mobile-layout .notes-flash-input-row input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 1; }
+  body.mobile-layout .notes-flash-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 2; }
+  body.mobile-layout .notes-flash-input-row .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); order: 3; }
+  body.mobile-layout .notes-flash-input-row button.primary { flex: 1 1 auto; min-height: var(--tap-min); order: 4; }
   body.mobile-layout .notes-player-chip { min-height: var(--tap-min); padding: 6px 14px; }
+  body.mobile-layout .hist-fchip { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.82rem; display: inline-flex; align-items: center; }
+  body.mobile-layout .hist-fchip img { width: 20px; height: 20px; }
+  body.mobile-layout .date-shortcut { min-height: 38px; padding: 6px 14px; font-size: 0.8rem; display: inline-flex; align-items: center; }
+  body.mobile-layout .row-shortcuts .row-shortcut { min-height: 36px; padding: 6px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center; }
+  body.mobile-layout .seg-btn { min-height: var(--tap-min); padding: 6px 14px; font-size: 0.82rem; }
+  body.mobile-layout .fill-opt { min-height: 38px; padding: 8px 12px; font-size: 0.82rem; }
+  body.mobile-layout .lot-sort-btn { min-height: 38px; padding: 6px 12px; font-size: 0.82rem; }
+  body.mobile-layout button.note-meta-edited { min-height: 36px; padding: 6px 10px; font-size: 0.75rem; }
+  body.mobile-layout .chat-msg-actions button { min-height: 40px; min-width: 40px; }
+  body.mobile-layout .chat-composer { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  body.mobile-layout .export-pill { min-height: 38px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; }
   body.mobile-layout .chart-controls { gap: 10px 14px; }
   body.mobile-layout .chart-control select { flex: 1; }
 
@@ -4228,8 +4248,10 @@
     margin: 0 !important;
   }
 
-  /* Barème : icône seule sur mobile */
+  /* Barème : icône seule sur mobile et masquer le resizer */
   body:not(.desktop-layout) .bareme-btn-label { display: none; }
+  body:not(.desktop-layout) .bareme-resizer,
+  body.mobile-layout .bareme-resizer { display: none !important; }
 
   /* Layout toggle : icône seule sur mobile */
   body:not(.desktop-layout) .lmt-label { display: none; }
@@ -4288,7 +4310,38 @@
   @media (max-width: 768px) {
     body:not(.desktop-layout) #desktopNavGroup { display: none !important; }
     body:not(.desktop-layout) #mobileBottomNav { display: flex !important; }
-    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px)); }
+    body:not(.desktop-layout) .nav-chat-btn {
+      display: flex;
+      position: fixed;
+      right: 16px;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+      z-index: 9001;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 50%;
+      justify-content: center;
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    }
+    body:not(.desktop-layout) .nav-chat-btn .chat-btn-label { display: none; }
+    body:not(.desktop-layout) .nav-chat-btn .chat-badge {
+      position: absolute; top: -4px; right: -4px; margin-left: 0;
+      border: 2px solid var(--bg);
+    }
+    body:not(.desktop-layout) .chat-side-panel {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      border-radius: 0;
+      z-index: 10000;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding: 0 10px calc(85px + env(safe-area-inset-bottom, 0px)); }
     body:not(.desktop-layout) .card { padding: 14px; }
     body:not(.desktop-layout) h2 { font-size: 1.1rem; }
     body:not(.desktop-layout) .chart-wrapper { height: 280px; }
@@ -4299,34 +4352,41 @@
     body:not(.desktop-layout) .pts-box-group .custom-pts-in { min-height: var(--tap-min); }
     body:not(.desktop-layout) .export-buttons { gap: 6px; justify-content: center; width: 100%; }
     body:not(.desktop-layout) .export-btn { padding: 8px 12px; font-size: 0.8rem; min-height: var(--tap-min); flex: 1; text-align: center; }
+    body:not(.desktop-layout) .export-pill { min-height: 38px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; }
     body:not(.desktop-layout) .history-filters { flex-direction: column; align-items: stretch; }
     body:not(.desktop-layout) .health-grid { grid-template-columns: 1fr 1fr; }
     body:not(.desktop-layout) .fchip { font-size: 0.82rem; padding: 6px 12px; min-height: var(--tap-min); }
     body:not(.desktop-layout) .chart-type-btn { min-height: var(--tap-min); font-size: 0.84rem; padding: 8px 12px; }
     body:not(.desktop-layout) .stats-hub-tab { min-height: var(--tap-min); font-size: 0.82rem; padding: 8px 16px; }
-    body:not(.desktop-layout) .hist-fchip { min-height: 38px; padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; }
+    body:not(.desktop-layout) .hist-fchip { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.82rem; display: inline-flex; align-items: center; }
     body:not(.desktop-layout) .hist-fchip img { width: 20px; height: 20px; }
+    body:not(.desktop-layout) .date-shortcut { min-height: 38px; padding: 6px 14px; font-size: 0.8rem; display: inline-flex; align-items: center; }
+    body:not(.desktop-layout) .row-shortcuts .row-shortcut { min-height: 36px; padding: 6px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center; }
+    body:not(.desktop-layout) .seg-btn { min-height: var(--tap-min); padding: 6px 14px; font-size: 0.82rem; }
+    body:not(.desktop-layout) .fill-opt { min-height: 38px; padding: 8px 12px; font-size: 0.82rem; }
+    body:not(.desktop-layout) .lot-sort-btn { min-height: 38px; padding: 6px 12px; font-size: 0.82rem; }
     body:not(.desktop-layout) .pagination button { min-width: var(--tap-min); min-height: var(--tap-min); font-size: 0.88rem; }
     body:not(.desktop-layout) .d-mode-seg { display: flex; width: 100%; }
     body:not(.desktop-layout) .d-mode-seg .d-mode-btn { flex: 1 1 0; min-height: var(--tap-min); font-size: 0.82rem; padding: 8px 10px; display: inline-flex; align-items: center; justify-content: center; }
     body:not(.desktop-layout) .hist-actions-cell { opacity: 1 !important; }
     body:not(.desktop-layout) .chat-msg-actions { opacity: 1 !important; }
-    body:not(.desktop-layout) .chat-msg-actions button { min-height: 38px; min-width: 38px; }
+    body:not(.desktop-layout) .chat-msg-actions button { min-height: 40px; min-width: 40px; }
     body:not(.desktop-layout) .chat-composer { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
 
     /* Notes — saisie ergonomique et cartes tactiles */
     body:not(.desktop-layout) .notes-player-chip { min-height: var(--tap-min); padding: 6px 14px; }
     body:not(.desktop-layout) .notes-flash-input-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
-    body:not(.desktop-layout) .notes-flash-input-row input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-    body:not(.desktop-layout) .notes-flash-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-    body:not(.desktop-layout) .notes-flash-input-row .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); }
-    body:not(.desktop-layout) .notes-flash-input-row button.primary { flex: 1 1 auto; min-height: var(--tap-min); }
+    body:not(.desktop-layout) .notes-flash-input-row input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 1; }
+    body:not(.desktop-layout) .notes-flash-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 2; }
+    body:not(.desktop-layout) .notes-flash-input-row .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); order: 3; }
+    body:not(.desktop-layout) .notes-flash-input-row button.primary { flex: 1 1 auto; min-height: var(--tap-min); order: 4; }
     body:not(.desktop-layout) .npb-add { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
-    body:not(.desktop-layout) .npb-add input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-    body:not(.desktop-layout) .npb-add .npb-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); }
-    body:not(.desktop-layout) .npb-add .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); }
-    body:not(.desktop-layout) .npb-add button.primary { flex: 1 1 auto; min-height: var(--tap-min); }
+    body:not(.desktop-layout) .npb-add input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 1; }
+    body:not(.desktop-layout) .npb-add .npb-date-field { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 2; }
+    body:not(.desktop-layout) .npb-add .notes-flash-date-toggle { flex: 0 0 var(--tap-min); width: var(--tap-min); height: var(--tap-min); min-height: var(--tap-min); order: 3; }
+    body:not(.desktop-layout) .npb-add button.primary { flex: 1 1 auto; min-height: var(--tap-min); order: 4; }
     body:not(.desktop-layout) .note-actions { margin-left: auto; gap: 8px; }
+    body:not(.desktop-layout) button.note-meta-edited { min-height: 36px; padding: 6px 10px; font-size: 0.75rem; }
 
     /* Quick stats : grille 2 colonnes */
     body:not(.desktop-layout) .quick-stats-bar {
@@ -5912,10 +5972,15 @@
       attached = false;
       document.removeEventListener('scroll', reposition, true);
       window.removeEventListener('resize', reposition);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', reposition);
+        window.visualViewport.removeEventListener('scroll', reposition);
+      }
     }
     function reposition() {
       var rect = anchorEl.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      var viewH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+      if (rect.bottom < 0 || rect.top > viewH) {
         detach();
         if (typeof onDetach === 'function') onDetach();
         return;
@@ -5924,6 +5989,10 @@
     }
     document.addEventListener('scroll', reposition, true);
     window.addEventListener('resize', reposition);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', reposition);
+      window.visualViewport.addEventListener('scroll', reposition);
+    }
     reposition();
     return detach;
   }
@@ -5955,18 +6024,26 @@
     }
 
     function place(r) {
-      const width = Math.round(Math.min(Math.max(r.width, 180), 320));
+      const viewW = (window.visualViewport && window.visualViewport.width) ? window.visualViewport.width : window.innerWidth;
+      const viewH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+      const width = Math.round(Math.min(Math.max(r.width, 180), Math.min(320, viewW - 16)));
       popup.style.width = width + 'px';
       // Bascule au-dessus du champ quand il n'y a pas la place en dessous — le
-      // composeur du tchat flottant est collé en bas de l'écran, donc le popup
-      // s'ouvrait hors-viewport (invisible) sans cette bascule.
+      // composeur du tchat flottant est collé en bas de l'écran, et sur mobile le
+      // clavier virtuel réduit le visualViewport.
       const popupHeight = popup.offsetHeight || 220;
-      const spaceBelow = window.innerHeight - r.bottom;
-      const top = (spaceBelow < popupHeight + 8 && r.top > popupHeight + 8)
-        ? r.top - popupHeight - 4
+      const spaceBelow = viewH - r.bottom;
+      const spaceAbove = r.top;
+      const goAbove = (spaceBelow < popupHeight + 8 && (spaceAbove > popupHeight + 8 || spaceAbove > spaceBelow));
+      const availSpace = goAbove ? spaceAbove - 8 : spaceBelow - 8;
+      const maxH = Math.max(100, Math.min(220, availSpace));
+      popup.style.maxHeight = maxH + 'px';
+      const effectiveH = Math.min(popupHeight, maxH);
+      const top = goAbove
+        ? Math.max(8, r.top - effectiveH - 4)
         : r.bottom + 4;
-      popup.style.left = Math.round(Math.min(r.left, window.innerWidth - width - 8)) + 'px';
-      popup.style.top  = Math.round(top) + 'px';
+      popup.style.left = Math.round(Math.max(8, Math.min(r.left, viewW - width - 8))) + 'px';
+      popup.style.top  = Math.round(Math.max(8, top)) + 'px';
     }
 
     function apply(entry) {
@@ -15449,6 +15526,7 @@
         }
 
         const actCell = headerTr.insertCell();
+        actCell.className = 'hist-actions-cell';
         actCell.style.whiteSpace = 'nowrap';
         if (groupId) {
           const editGroupBtn = document.createElement('button');
@@ -16237,22 +16315,28 @@
     document.body.appendChild(pop);
 
     function placePopover(rect, node) {
+      const bottomNav = document.getElementById('mobileBottomNav');
+      const navOffset = (bottomNav && getComputedStyle(bottomNav).display !== 'none')
+        ? (bottomNav.offsetHeight || 62)
+        : 0;
+      const viewH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+      const viewW = (window.visualViewport && window.visualViewport.width) ? window.visualViewport.width : window.innerWidth;
       const popH = node.offsetHeight || 240;
-      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceBelow = viewH - navOffset - rect.bottom;
       const spaceAbove = rect.top;
       let top;
-      if (spaceBelow < popH + 12 && spaceAbove > popH + 12) {
+      if (spaceBelow < popH + 12 && (spaceAbove > popH + 12 || spaceAbove > spaceBelow)) {
         top = Math.max(8, rect.top - popH - 6);
       } else {
-        top = rect.bottom + 6;
+        top = Math.min(rect.bottom + 6, Math.max(8, viewH - navOffset - popH - 8));
       }
       node.style.top = top + 'px';
-      const popW = Math.min(300, window.innerWidth - 16);
+      const popW = Math.min(300, viewW - 16);
       node.style.width = popW + 'px';
-      let left = rect.left;
-      const maxLeft = window.innerWidth - popW - 8;
-      if (left > maxLeft) left = Math.max(8, maxLeft);
+      const maxLeft = viewW - popW - 8;
+      const left = Math.max(8, Math.min(rect.left, maxLeft));
       node.style.left = left + 'px';
+      node.style.maxHeight = Math.max(160, Math.min(340, viewH - navOffset - 24)) + 'px';
     }
 
     _activeNoteHistoryPopover = pop;

@@ -4,9 +4,24 @@ const test   = require('node:test');
 const assert = require('node:assert');
 const fs     = require('node:fs');
 const path   = require('node:path');
+const vm     = require('node:vm');
+const { makeEnv, fire } = require('./dom-stub.js');
 
 const INDEX = path.join(__dirname, '..', 'Index.html');
 const html  = fs.readFileSync(INDEX, 'utf8');
+
+function extractFunction(source, name) {
+  const start = source.indexOf('function ' + name + '(');
+  assert.notStrictEqual(start, -1, name + ' introuvable dans Index.html');
+  let depth = 0, i = source.indexOf('{', start);
+  const open = i;
+  for (; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    else if (source[i] === '}') { depth--; if (depth === 0) break; }
+  }
+  assert.ok(i > open, name + ' : accolade fermante introuvable');
+  return source.slice(start, i + 1);
+}
 
 function block(startMarker, endMarker) {
   const start = html.indexOf(startMarker);
@@ -121,5 +136,125 @@ test('Actions tactiles inconditionnellement visibles sur mobile sans dépendre d
   assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.hist-actions-cell\s*\{[^}]*opacity:\s*1\s*!important/);
   assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.chat-msg-actions\s*\{[^}]*opacity:\s*1\s*!important/);
 });
+
+test('Tchat mobile : FAB à z-index 9001 au-dessus de la nav (9000) et safe-area-inset-top sur panneau plein écran', () => {
+  const chatFabBlock = block('body.mobile-layout .nav-chat-btn', 'body.mobile-layout .nav-chat-btn .chat-btn-label');
+  assert.match(chatFabBlock, /z-index:\s*9001;/);
+
+  const chatPanelBlock = block('body.mobile-layout .chat-side-panel', '/* Boutons contrôles droite */');
+  assert.match(chatPanelBlock, /padding-top:\s*env\(safe-area-inset-top/);
+
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.nav-chat-btn\s*\{[^}]*z-index:\s*9001;/);
+  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.chat-side-panel\s*\{[^}]*padding-top:\s*env\(safe-area-inset-top/);
+});
+
+test('Autocomplétion mentions : utilise visualViewport pour éviter d\'être caché sous le clavier virtuel', () => {
+  assert.match(html, /const\s+viewH\s*=\s*\(window\.visualViewport\s*&&\s*window\.visualViewport\.height\)\s*\?\s*window\.visualViewport\.height\s*:\s*window\.innerHeight;/);
+  assert.match(html, /popup\.style\.left\s*=\s*Math\.round\(Math\.max\(8,/);
+  assert.match(html, /popup\.style\.maxHeight\s*=\s*maxH\s*\+\s*['"]px['"]/);
+});
+
+test('Popover d\'historique de note : respecte l\'offset de la bottom nav mobile et ne déborde pas', () => {
+  assert.match(html, /const\s+navOffset\s*=\s*\(bottomNav\s*&&\s*getComputedStyle\(bottomNav\)\.display\s*!==\s*['"]none['"]\)/);
+  assert.match(html, /spaceBelow\s*=\s*viewH\s*-\s*navOffset\s*-\s*rect\.bottom;/);
+  assert.match(html, /node\.style\.maxHeight\s*=\s*Math\.max\(160,\s*Math\.min\(340,\s*viewH\s*-\s*navOffset\s*-\s*24\)\)\s*\+\s*['"]px['"];/);
+});
+
+test('Cibles tactiles avancées : conformité WCAG sur les filtres, modes, exports et raccourcis de date', () => {
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /\.date-shortcut\s*\{[^}]*min-height:\s*38px;/);
+  assert.match(mobileAutoBlock, /\.seg-btn\s*\{[^}]*min-height:\s*var\(--tap-min\);/);
+  assert.match(mobileAutoBlock, /\.row-shortcuts\s+\.row-shortcut\s*\{[^}]*min-height:\s*36px;/);
+  assert.match(mobileAutoBlock, /\.hist-fchip\s*\{[^}]*min-height:\s*var\(--tap-min\);/);
+  assert.match(mobileAutoBlock, /\.export-pill\s*\{[^}]*min-height:\s*38px;/);
+
+  const mobileLayoutBlock = block('/* ── Disposition générale mode mobile ── */', '/* Bottom nav :');
+  assert.match(mobileLayoutBlock, /\.export-pill\s*\{[^}]*min-height:\s*38px;/);
+  assert.match(mobileLayoutBlock, /\.hist-fchip\s*\{[^}]*min-height:\s*var\(--tap-min\);/);
+});
+
+test('Formulaires Notes et resizer : flex order ordonné et masquage du resizer sur mobile', () => {
+  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
+  assert.match(mobileAutoBlock, /\.notes-flash-input-row\s+input\[type="text"\]\s*\{[^}]*order:\s*1;/);
+  assert.match(mobileAutoBlock, /\.notes-flash-date-field\s*\{[^}]*order:\s*2;/);
+  assert.match(mobileAutoBlock, /\.notes-flash-input-row\s+\.notes-flash-date-toggle\s*\{[^}]*order:\s*3;/);
+  assert.match(mobileAutoBlock, /\.notes-flash-input-row\s+button\.primary\s*\{[^}]*order:\s*4;/);
+  assert.match(html, /body:not\(\.desktop-layout\)\s+\.bareme-resizer,\s*body\.mobile-layout\s+\.bareme-resizer\s*\{\s*display:\s*none\s*!important;\s*\}/);
+});
+
+test('Modales et export : intégration de safe-area-inset pour encoche et îlot dynamique', () => {
+  const modalBlock = block('.modal-backdrop {', '.modal-box {');
+  assert.match(modalBlock, /padding:\s*max\(16px,\s*env\(safe-area-inset-top/);
+
+  const exportBlock = block('.export-modal-overlay {', '.export-modal-box {');
+  assert.match(exportBlock, /padding:\s*max\(16px,\s*env\(safe-area-inset-top/);
+});
+
+test('Test fonctionnel approfondi : anchorFloating gère les instances concurrentes sans écraser les écouteurs visualViewport', () => {
+  const env = makeEnv({ visualViewport: { height: 400, width: 360 } });
+  vm.createContext(env);
+  const code = extractFunction(html, 'anchorFloating');
+  vm.runInContext(code, env);
+
+  const a1 = env.makeEl('button');
+  const f1 = env.makeEl('div');
+  let placed1 = 0, placed2 = 0;
+  const d1 = env.anchorFloating(f1, a1, () => { placed1++; });
+
+  const a2 = env.makeEl('button');
+  const f2 = env.makeEl('div');
+  const d2 = env.anchorFloating(f2, a2, () => { placed2++; });
+
+  assert.strictEqual(env.window.visualViewport._listeners.resize.length, 2, '2 écouteurs resize actifs');
+  assert.strictEqual(env.window.visualViewport._listeners.scroll.length, 2, '2 écouteurs scroll actifs');
+
+  // Détachement de la première instance
+  d1();
+  assert.strictEqual(env.window.visualViewport._listeners.resize.length, 1, '1 écouteur reste après premier detach');
+
+  // Déclenchement d'un événement visualViewport : la seconde instance doit toujours réagir
+  fire(env.window.visualViewport, 'resize');
+  assert.strictEqual(placed2, 2, 'instance 2 répond toujours après le détachement de instance 1');
+
+  d2();
+  assert.strictEqual(env.window.visualViewport._listeners.resize.length, 0, 'tout est nettoyé sans fuite');
+  assert.strictEqual(env.window.visualViewport._listeners.scroll.length, 0, 'tout est nettoyé sans fuite');
+});
+
+test('Test fonctionnel approfondi : autocomplétion des mentions avec clavier virtuel (visualViewport réduit à 300px)', () => {
+  const env = makeEnv({ visualViewport: { height: 300, width: 360 } });
+  env.getAvatarUrl = () => '';
+  vm.createContext(env);
+  const code = extractFunction(html, 'anchorFloating') + '\n' + extractFunction(html, 'attachMentionAutocomplete');
+  vm.runInContext(code, env);
+
+  env.cachedPlayers = [{ name: 'Thomas', color: '#3366ff' }, { name: 'Arthur', color: '#ff3366' }];
+  env.cachedCategories = [];
+
+  const inp = env.makeEl('input');
+  inp.value = '@th';
+  inp.selectionStart = 3;
+  // Champ situé au milieu de l'écran (top: 140, bottom: 180)
+  inp._rect = { top: 140, bottom: 180, left: 10, right: 200, width: 190, height: 40 };
+
+  const aut = env.attachMentionAutocomplete(inp);
+  fire(inp, 'input');
+
+  const popups = env.document.body.children.filter(c => c.classList.contains('md-mention-popup'));
+  assert.strictEqual(popups.length, 1, 'Le popup de mentions est injecté');
+  const popup = popups[0];
+
+  const topVal = parseInt(popup.style.top, 10);
+  const maxHVal = parseInt(popup.style.maxHeight, 10);
+
+  // Vérifications strictes : le popup ne doit ni dépasser en haut (>= 8px) ni sous le clavier (top + maxH <= 300px)
+  assert.ok(topVal >= 8, 'top doit être >= 8px');
+  assert.ok(topVal + maxHVal <= 300, 'Le popup et son contenu restent entièrement visibles au-dessus du clavier virtuel');
+
+  aut.destroy();
+  assert.strictEqual(env.window.visualViewport._listeners.resize.length, 0, 'Autocomplétion détruite sans fuite');
+});
+
 
 

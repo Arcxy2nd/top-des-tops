@@ -78,6 +78,8 @@ test('anchorFloating appelle onDetach et se débranche quand l\'ancre quitte l\'
   assert.strictEqual(detached, 1, 'onDetach appelé quand l\'ancre sort par le haut');
   assert.strictEqual(env.listenerCount(env.document, 'scroll', true), 0, 'écouteur scroll retiré');
   assert.strictEqual((env.window._listeners.resize || []).length, 0, 'écouteur resize retiré');
+  assert.strictEqual((env.window.visualViewport._listeners.resize || []).length, 0, 'écouteur visualViewport resize retiré');
+  assert.strictEqual((env.window.visualViewport._listeners.scroll || []).length, 0, 'écouteur visualViewport scroll retiré');
 });
 
 test('anchorFloating : detach() retire tout et est idempotent', () => {
@@ -89,11 +91,15 @@ test('anchorFloating : detach() retire tout et est idempotent', () => {
   const detach = anchorFloating(floater, anchor, () => {});
   assert.strictEqual(env.listenerCount(env.document, 'scroll', true), 1);
   assert.strictEqual((env.window._listeners.resize || []).length, 1);
+  assert.strictEqual((env.window.visualViewport._listeners.resize || []).length, 1);
+  assert.strictEqual((env.window.visualViewport._listeners.scroll || []).length, 1);
 
   detach();
   detach();
   assert.strictEqual(env.listenerCount(env.document, 'scroll', true), 0);
   assert.strictEqual((env.window._listeners.resize || []).length, 0);
+  assert.strictEqual((env.window.visualViewport._listeners.resize || []).length, 0);
+  assert.strictEqual((env.window.visualViewport._listeners.scroll || []).length, 0);
 });
 
 test('anchorFloating ne fuit sur aucun des 20 cycles attache/détache', () => {
@@ -108,6 +114,8 @@ test('anchorFloating ne fuit sur aucun des 20 cycles attache/détache', () => {
   }
   assert.strictEqual(env.listenerCount(env.document, 'scroll', true), 0);
   assert.strictEqual((env.window._listeners.resize || []).length, 0);
+  assert.strictEqual((env.window.visualViewport._listeners.resize || []).length, 0);
+  assert.strictEqual((env.window.visualViewport._listeners.scroll || []).length, 0);
 });
 
 test('plus aucun élément ancré ne câble ses propres écouteurs scroll/resize', () => {
@@ -127,7 +135,8 @@ test('plus aucun élément ancré ne câble ses propres écouteurs scroll/resize
     /group\.addEventListener/,
     /window\.addEventListener\((['"])resize\1, fit\)/,
     /document\.addEventListener\((['"])scroll\1, reposition, true\)/,
-    /window\.addEventListener\((['"])resize\1, reposition\)/
+    /window\.addEventListener\((['"])resize\1, reposition\)/,
+    /window\.visualViewport\.addEventListener\((['"])(resize|scroll)\1, reposition\)/
   ];
   const stray = raw.filter(o => !allowed.some(re => re.test(o.line)));
   assert.deepStrictEqual(stray.map(o => o.line), [],
