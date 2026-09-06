@@ -77,4 +77,45 @@ test('Index.html defines renderQuickStatsBar and boot sequence uses it safely', 
   assert.ok(html.includes('renderQuickStatsBar(cached.quickStats)'), 'la restauration du cache doit appeler renderQuickStatsBar');
 });
 
+test('apiGetBootstrapData falls back to __default__ preset matching PHRASES_DEFAULT_ID', () => {
+  const gas = loadGas();
+  gas.apiGetActivePhrasePreset = () => { throw new Error('Preset failure'); };
+  const res = gas.apiGetBootstrapData();
+  assert.strictEqual(res.activePreset.preset, '__default__');
+});
+
+test('Index.html renders navigation synchronously without waiting for network', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const navIdx = html.indexOf('function renderNav()');
+  assert.notStrictEqual(navIdx, -1);
+  const tail = html.slice(navIdx, navIdx + 3000);
+  assert.ok(tail.includes('renderNav();'), 'renderNav() doit être appelé immédiatement après sa définition');
+  assert.ok(tail.includes('initNavHoverTip();'), 'initNavHoverTip() doit être appelé immédiatement après sa définition');
+});
+
+test('Index.html does not trap desktop screens with a buggy _layoutStable ignoring mq.change', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  assert.strictEqual(html.includes('_layoutStable'), false, '_layoutStable ne doit pas exister dans Index.html');
+});
+
+test('Index.html controls #chatSidePanel display style and not a phantom #chatPanel', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const chatInitIdx = html.indexOf('function initChatWidget(');
+  assert.notStrictEqual(chatInitIdx, -1);
+  const chatBlock = html.slice(chatInitIdx, chatInitIdx + 1500);
+  assert.strictEqual(chatBlock.includes("document.getElementById('chatPanel')"), false, 'chatPanel fantôme ne doit pas être cherché');
+  assert.ok(chatBlock.includes("document.getElementById('chatSidePanel')"), 'chatSidePanel doit être ciblé');
+  assert.ok(chatBlock.includes("style.display = 'flex'"), 'le panneau du tchat ouvert doit être affiché avec display: flex');
+});
+
+
 

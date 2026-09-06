@@ -4317,7 +4317,7 @@ function apiGetBootstrapData() {
       filteredData:  safe(() => apiGetFilteredData([], [], '', ''), { success: true, chartData: { labels: [], datasets: [] } }),
       quickStats:    safe(() => apiGetQuickStats(), { success: true }),
       phrases:       safe(() => apiGetPhrases(), { success: true, phrases: [] }),
-      activePreset:  safe(() => apiGetActivePhrasePreset(), { success: true, preset: 'default' }),
+      activePreset:  safe(() => apiGetActivePhrasePreset(), { success: true, preset: '__default__' }),
       chatMessages:  safe(() => apiGetChatMessages(), { success: true, messages: [] })
     };
   } catch(e) { return fail(e); }

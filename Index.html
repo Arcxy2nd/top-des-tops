@@ -8237,15 +8237,14 @@
     if (_chatPanelOpen) closeChatPanel(); else openChatPanel();
   }
 
-  function initChatWidget(opts = {}) {
-    const skipInitialLoad = !!opts.skipInitialLoad;
+  function initChatWidget() {
     const btn = document.getElementById('chatToggleBtn');
     const closeBtn = document.getElementById('chatPanelClose');
     const sendBtn = document.getElementById('chatSendBtn');
     const input = document.getElementById('chatInput');
     const replyCancelBtn = document.getElementById('chatReplyBannerCancel');
     const messagesEl = document.getElementById('chatMessages');
-    const panel = document.getElementById('chatPanel');
+    const sidePanel = document.getElementById('chatSidePanel');
     if (btn) btn.addEventListener('click', toggleChatPanel);
     if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
     if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
@@ -8263,15 +8262,9 @@
       });
     }
     if (localStorage.getItem(CHAT_PANEL_OPEN_KEY) === '1' && btn && getComputedStyle(btn).display !== 'none') {
-      if (!skipInitialLoad) {
-        openChatPanel();
-      } else {
-        _chatPanelOpen = true;
-        if (panel) panel.classList.add('open');
-        btn.classList.add('active');
-      }
-    } else if (!skipInitialLoad) {
-      loadChat();
+      _chatPanelOpen = true;
+      if (sidePanel) sidePanel.style.display = 'flex';
+      btn.classList.add('active');
     }
     scheduleChatPoll();
   }
@@ -17500,6 +17493,11 @@
     group.addEventListener('click', () => tip.classList.remove('visible'));
   }
 
+  // Rendu immédiat synchrone de la navigation avec la liste par défaut NAV_PAGES
+  // pour un affichage instantané sans attendre le roundtrip réseau du bootstrap.
+  renderNav();
+  initNavHoverTip();
+
   // ── NATIVE WAAPI ANIMATIONS & SPOTLIGHT ──────────────────────────────
   function animateFadeSlideIn(el, { y = 15, duration = 300, scale = 1, delay = 0, onComplete } = {}) {
     if (!el || typeof el.animate !== 'function') {
@@ -17789,6 +17787,10 @@
     const mq = window.matchMedia('(max-width: 768px)');
 
     function applyLayout(isMobile) {
+      const wasMobile = document.body.classList.contains('mobile-layout');
+      const wasDesktop = document.body.classList.contains('desktop-layout');
+      const changed = (isMobile && !wasMobile) || (!isMobile && !wasDesktop);
+
       if (isMobile) {
         document.body.classList.add('mobile-layout');
         document.body.classList.remove('desktop-layout');
@@ -17802,23 +17804,20 @@
         if (label) label.textContent = 'Mobile';
         btn.title = 'Basculer en disposition Mobile (compact)';
       }
-      if (currentChart && currentChartData) {
+      if (changed && currentChart && currentChartData) {
         if (currentChartType === 'trend') renderTrendChart(currentChartData);
         else renderChart(currentChartData, currentChartType);
       }
     }
 
     const saved = localStorage.getItem('tdt_forced_layout');
-    const initialMobile = saved ? (saved === 'mobile') : mq.matches;
+    // Si window.innerWidth est à 0 (iframe GAS en cours de calcul initial),
+    // privilégier PC par défaut (§1) plutôt que de supposer faussement un micro-écran.
+    const initialMobile = saved ? (saved === 'mobile') : (window.innerWidth > 0 ? mq.matches : false);
     applyLayout(initialMobile);
 
-    // Dans l'iframe GAS, window.innerWidth part souvent de 0 et se stabilise
-    // après le premier rendu, déclenchant un mq.change parasite qui détruisait
-    // et recréait le graphique inutilement. On ignore le tout premier événement.
-    let _layoutStable = false;
     mq.addEventListener('change', e => {
       if (localStorage.getItem('tdt_forced_layout')) return;
-      if (!_layoutStable) { _layoutStable = true; return; }
       applyLayout(e.matches);
     });
 
@@ -19494,7 +19493,7 @@
     initGsapEffects();
     initSettingsTabs();
     initHistoryTabs();
-    initChatWidget({ skipInitialLoad: true });
+    initChatWidget();
     applyTooltipStylePrefs(getTooltipStylePrefs());
     renderTooltipStyleSettings();
     bindButtons();
@@ -19507,7 +19506,17 @@
     enableDragMultiSelect(document.getElementById('detectLegacyResults'), '.legacy-entry-cb', '.legacy-entry-row');
     bindExportButtons();
     initPhraseSettings();
-    showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
+    const hasCachedDashboard = (() => {
+      try {
+        const raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
+        if (!raw) return false;
+        const c = JSON.parse(raw);
+        return !!(c && c.chartData && c.chartData.labels && c.chartData.labels.length);
+      } catch (e) { return false; }
+    })();
+    if (!hasCachedDashboard) {
+      showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
+    }
     // loadCustomPhrases + apiGetActivePhrasePreset retirés :
     // fournis par apiGetBootstrapData (bootDataLoad)
 
@@ -19698,9 +19707,13 @@
 
       // 1. Navigation
       if (res.navPages && res.navPages.pages) {
+        const oldIds = NAV_PAGES.map(p => p.id).join(',');
+        const newIds = res.navPages.pages.map(p => p.id).join(',');
         NAV_PAGES = res.navPages.pages;
-        renderNav();
-        initNavHoverTip();
+        if (oldIds !== newIds) {
+          renderNav();
+          initNavHoverTip();
+        }
       }
 
       // 2. Branding & App Settings
@@ -19775,16 +19788,28 @@
         _baseChartData = cd;
         _lastFilterStartDate = '';
         _lastFilterEndDate = '';
-        currentChartData = cd;
         const skel = document.getElementById('chartSkeleton');
         const wrap = document.getElementById('chartWrapper');
         if (skel) skel.style.display = 'none';
         if (wrap) wrap.style.display = 'block';
-        renderChart(cd, currentChartType);
+
+        const dataChanged = !currentChartData || JSON.stringify(currentChartData) !== JSON.stringify(cd);
+        currentChartData = cd;
+        if (dataChanged || !currentChart) {
+          renderChart(cd, currentChartType);
+        }
         renderChartControls(currentChartType);
         const ranked = computeRankedTotals(cd);
-        renderPhrasesCard(ranked);
+        const rankedChanged = !lastPhraseSortedRows || JSON.stringify(lastPhraseSortedRows) !== JSON.stringify(ranked);
+        if (rankedChanged || !document.querySelector('#phrasesList .phrase-podium-card')) {
+          renderPhrasesCard(ranked);
+        }
         saveDashboardToCache(cd, res.quickStats, ranked);
+      } else {
+        const pList = document.getElementById('phrasesList');
+        if (pList && pList.querySelector('.skeleton-box')) {
+          pList.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+        }
       }
 
       // 9. Chat Messages
@@ -19794,6 +19819,7 @@
         _chatMessages.forEach(m => _chatSeenIds.add(m.id));
         _chatLoadedOnce = true;
         renderChatMessages(true);
+        updateChatBadge();
       }
 
       // 10. Secondary stats (Stats Hub)
@@ -19806,6 +19832,7 @@
 
   function fallbackBootLoad() {
     const steps = [
+      ['navigation',  () => { renderNav(); initNavHoverTip(); }],
       ['entités',     loadEntities],
       ['branding',    loadAppBranding],
       ['phrases',     () => loadCustomPhrases(() => {

@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.3] - 2026-09-06
+
+### Corrigé
+**Humanisé** : Correction de l'affichage sur PC, de la navigation et du panneau de tchat qui restaient figés ou invisibles au chargement.
+**Technique** :
+- `Index.html` : suppression du verrou `_layoutStable` qui bloquait les écrans desktop en mode mobile dans les iframes GAS, et conditionnement du re-rendu graphique aux réels changements de disposition.
+- `Index.html` : initialisation synchrone immédiate de la barre de navigation (`renderNav`, `initNavHoverTip`) dès le chargement sans attendre le réseau, et ajout dans `fallbackBootLoad`.
+- `Index.html` : correction de la restauration de l'état du tchat ciblant `#chatSidePanel` (`display: flex`) au lieu d'une classe fantôme sur `#chatPanel`.
+- `Index.html` : neutralisation des re-rendus parasites du graphique et des phrases lorsque les données reçues sont identiques au cache local.
+- `Code.gs` : correction de la constante de preset par défaut dans `apiGetBootstrapData` (`__default__` au lieu de `default`) alignée sur `PHRASES_DEFAULT_ID`.
+
 ## [v3.30.2] - 2026-09-06
 
 ### Corrigé

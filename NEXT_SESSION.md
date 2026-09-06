@@ -1,18 +1,19 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.2** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Résolution des rechargements multiples au démarrage — suppression des 4 appels RPC orphelins doublonnant le bootstrap composite, stabilisation du layout iframe (`_layoutStable`) et fiabilisation des fallbacks.
-- Suite de tests : **378 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.3** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction et fiabilisation des régressions de démarrage (v3.30.2) — déverrouillage de la disposition PC dans les iframes GAS, affichage synchrone instantané de la navigation, restauration correcte de `#chatSidePanel`, synchronisation du preset `__default__` et élimination des re-rendus redondants.
+- Suite de tests : **382 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
-- **Suppression des rechargements multiples au démarrage (`v3.30.2`)** :
-  - *Suppression des appels RPC orphelins* : retrait de `apiGetNavPages` (top-level script), passage de `skipInitialLoad: true` pour le tchat, suppression de `loadCustomPhrases` et `apiGetActivePhrasePreset` dans `window.onload`.
-  - *Unification dans le bootstrap composite* : transfert du seeding initial du preset Défaut dans le callback de `apiGetBootstrapData`.
-  - *Fiabilisation du fallback* : ajout des appels de secours pour phrases et tchat dans `fallbackBootLoad()` avec error handler sur `#phrasesList`.
-  - *Stabilisation responsive* : neutralisation du re-rendu graphique provoqué par le premier franchissement de media query (`0px` -> largeur réelle dans l'iframe GAS).
-  - *Déploiement* : workflow GitHub Actions exécuté et validé avec succès sur les deux cibles.
+- **Correction des régressions de démarrage et stabilisation (`v3.30.3`)** :
+  - *Déblocage de la disposition PC / mobile* : suppression du drapeau `_layoutStable` qui piègeait les écrans PC en mode mobile lors du dimensionnement initial des iframes GAS ; conditionnement du re-rendu du graphique au changement effectif de mode (`modeChanged`).
+  - *Affichage synchrone de la navigation* : appel immédiat de `renderNav()` et `initNavHoverTip()` dès le chargement du script sans attendre le réseau, garantissant un affichage instantané et zéro délai d'accès aux onglets ; inclusion dans `fallbackBootLoad()`.
+  - *Restauration du panneau de tchat* : ciblage propre de `#chatSidePanel` (`style.display = 'flex'`) au lieu d'une classe fantôme sur `#chatPanel` inexistant ; initialisation nettoyée et rafraîchissement du badge non-lu lors de la réponse bootstrap.
+  - *Suppression des re-rendus et flashes parasites* : neutralisation du re-rendu du graphique et du re-tirage aléatoire des phrases podium quand les données reçues sont strictement identiques aux données en cache local.
+  - *Harmonisation des presets* : correction du fallback preset dans `apiGetBootstrapData` (`__default__` au lieu de `default`) aligné sur `PHRASES_DEFAULT_ID`.
+  - *Tests* : 4 nouveaux tests de non-régression dans `tests/bootstrap.test.js` (382 tests au total, 100% verts).
 - **Audit critique et durcissement de la Materialized View (`v3.30.1`)** :
   - *Authentification UI & Mot de passe* :
     - `Index.html` : ajout de `apiRebuildAggregates` dans l'ensemble `_MUTATING_APIS` de `callServer` afin que `_identityPassword` soit bien transmis lors du clic sur le bouton de recalcul.
