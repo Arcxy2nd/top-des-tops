@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.6] - 2026-09-06
+
+### Modifié
+**Humanisé** : Protection des couleurs du projet contre toute régression future et suppression d'un bloc CSS en doublon.
+**Technique** :
+- `Index.html` : suppression du bloc `.pts-toggle-wrap` en doublon (6 lignes redondantes).
+- `tests/no-hardcoded-colors.test.js` : nouveau test de protection de l'invariant « couleurs lues depuis les données, jamais hardcodées » avec allowlist documentée de 45 usages légitimes (fallbacks CSS, palettes Chart.js, rendu Canvas, configurations de thèmes, palettes d'entités). Tout nouvel usage de couleur hardcodée fera échouer le test avec message explicite.
+- `tests/no-hardcoded-colors.test.js` : test de validation de la cohérence de l'allowlist (chaque entrée a une ligne > 0 et une justification > 10 caractères).
+
+### Constat
+**Humanisé** : Audit complet des chantiers P0/P1/P2/P3 — tous les points identifiés dans le rapport d'audit mobile et les suggestions de session sont déjà résolus dans les versions v3.30.2 à v3.30.5.
+**Technique** :
+- P0 Mobile : 5 bloquants déjà corrigés (z-index hiérarchie Toast 11000 > Chat/Barème 10000 > Bottom nav 9000, prévention zoom iOS 16px sur tous les inputs, actions tchat `@media (hover: none)`, mini-calendrier 32px, #lotSummaryBar repositionné `calc(68px + env(safe-area-inset-bottom))`).
+- P1 Dette : breakpoints déjà unifiés sous 768px, persistance CTA banner localStorage, touchstart Chart.js.
+- P2 Observabilité : instrumentation cache `_getCacheStats()` déjà en place et exposée via API.
+
 ## [v3.30.5] - 2026-09-06
 
 ### Modifié
