@@ -1,12 +1,23 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.4** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction de la détection mobile au démarrage (écrans physiques sous iframe 0px), persistance et affichage fidèle des phrases personnalisées sans sauts intempestifs, suppression des requêtes barème prématurées au chargement et fiabilisation de l'onglet actif.
-- Suite de tests : **386 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.6** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Audit complet des chantiers P0/P1/P2/P3 (tous déjà résolus dans v3.30.2-5), ajout d'un test de protection des couleurs hardcodées (allowlist documentée, 45 usages légitimes figés), suppression d'un doublon CSS `.pts-toggle-wrap`.
+- Suite de tests : **390 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Protection des couleurs et audit complet des chantiers P0/P1/P2/P3 (`v3.30.6`)** :
+  - *Test de protection des couleurs* : nouveau `tests/no-hardcoded-colors.test.js` avec allowlist documentée de 45 usages légitimes de couleurs hardcodées (fallbacks CSS, palettes Chart.js, rendu Canvas, configurations de thèmes, palettes d'entités). Tout nouvel usage fera échouer le test avec message explicite guidant vers l'allowlist ou les variables CSS.
+  - *Suppression doublon CSS* : bloc `.pts-toggle-wrap` en doublon retiré de `Index.html` (6 lignes redondantes).
+  - *Audit complet P0-P3* : vérification systématique de tous les chantiers identifiés dans le rapport d'audit mobile (32 problèmes) et les suggestions de session précédente. Constat : tous déjà résolus dans v3.30.2 à v3.30.5 (z-index hiérarchie Toast 11000 > Chat/Barème 10000 > Bottom nav 9000, prévention zoom iOS 16px, actions tchat `@media (hover: none)`, mini-calendrier 32px, #lotSummaryBar repositionné, breakpoints unifiés 768px, persistance CTA localStorage, touchstart Chart.js, instrumentation cache `_getCacheStats()`).
+  - *Tests* : 2 nouveaux tests dans `tests/no-hardcoded-colors.test.js` (390 tests au total, 100% verts).
+- **Audit CSS et protection des classes dynamiquement construites (`v3.30.5`)** :
+  - *Analyse exhaustive des classes CSS* : vérification systématique des 658 classes définies dans le bloc `<style>` d'`Index.html` — recherche de références littérales (HTML `class="..."`, JS `classList.*`, `className`, `innerHTML`) et dynamiques (template literals, concaténation de chaînes).
+  - *Identification des constructions dynamiques* : 9 classes ne sont jamais référencées littéralement mais toutes construites dynamiquement — `rank-1`, `rank-2`, `rank-3` via `` `rank-${p.rank}` `` (ligne ~7717), et `audit-cat-create`, `audit-cat-delete`, `audit-cat-update`, `audit-cat-auto`, `audit-cat-clean`, `audit-cat-other` via `'audit-cat-' + cat.cls` (ligne ~15048).
+  - *Protection par commentaires* : ajout de commentaires dans `Index.html` documentant les patterns de construction dynamique pour éviter que ces classes ne soient re-signalées comme mortes lors de futurs audits.
+  - *Tests de non-régression* : ajout de `tests/dynamic-css-classes.test.js` (2 tests) vérifiant la présence des 9 classes dynamiques dans le stylesheet et la persistance des patterns de construction (388 tests au total, 100% verts).
+  - *Conclusion* : aucune classe CSS morte identifiée — les ~30 candidates initialement suspectées étaient soit utilisées littéralement (majorité), soit construites dynamiquement (9 classes). Le backlog est clos.
 - **Fiabilisation mobile, phrases personnalisées et démarrage sans requêtes superflues (`v3.30.4`)** :
   - *Détection mobile sans piégeage* : détection des mobiles physiques par `screen.width <= 768` quand `window.innerWidth` démarre à `0px` dans l'iframe GAS, garantissant le chargement initial en mode mobile.
   - *Affichage fidèle des phrases personnalisées* : persistance des phrases et du preset actif dans `tdt_dashboard_cache` et détection de changement (`phrasesDataChanged`) pour actualiser le podium dès réception des données sans re-tirage aléatoire parasite si les données sont inchangées.
@@ -37,12 +48,11 @@
     - `tests/sheets-api-and-aggregates.test.js` : 6 nouveaux tests couvrant ces cas limites (378 tests passants au total).
 
 ## Écarts
-- Aucun écart. Tous les tests sont au vert (378/378).
+- Aucun écart. Tous les tests sont au vert (388/388).
 
 ## Rappels actifs + Backlog
 - **Prochaines pistes suggérées** :
   1. Si le taux de hit/miss du cache (nouveau panneau Santé) montre un taux de miss élevé en usage réel, revisiter le TTL de 600s — impossible à trancher sans données d'usage réel (interdiction d'interagir avec les données réelles, donc pas de mesure possible avant mise en prod).
-  2. ~30 classes CSS candidates supplémentaires (construction dynamique suspectée : `rank-${n}`, `audit-cat-` + variable, etc.) — nécessiteraient une vérification manuelle par classe avant suppression, non faite cette session par prudence.
 - **Action manuelle requise** : Le propriétaire du projet GAS doit effectuer une re-autorisation OAuth unique dans l'interface Google Apps Script pour valider le scope Drive (`https://www.googleapis.com/auth/drive`).
 - **Piège shell** : les heredocs Git Bash sur cette machine mangent un niveau d'antislash — `\(` devient `\(`. Ne jamais écrire de `new RegExp("...")` via heredoc ; passer par l'outil d'édition ou un fichier de script.
 - **Cross-realm dans les tests `vm`** : `assert.deepStrictEqual` / `instanceof` échoue sur des objets/dates/tableaux construits dans un sandbox `vm` différent du contexte Node — comparer via duck-typing ou `JSON.stringify(...)`.
