@@ -1,12 +1,18 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.1** (2026-09-06) — commitée et poussée sur `main` (déploiement CI vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Revue critique et durcissement de l'optimisation /boost (Materialized View & Google Sheets API v4) — résolution du blocage d'authentification UI sur `apiRebuildAggregates`, fiabilisation du cache ScriptCache, sécurisation du parsing des dates séries, recalcul sur événements récents/records, et cascade sur suppressions/annulations.
+- Version livrée : **v3.30.2** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Résolution des rechargements multiples au démarrage — suppression des 4 appels RPC orphelins doublonnant le bootstrap composite, stabilisation du layout iframe (`_layoutStable`) et fiabilisation des fallbacks.
 - Suite de tests : **378 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Suppression des rechargements multiples au démarrage (`v3.30.2`)** :
+  - *Suppression des appels RPC orphelins* : retrait de `apiGetNavPages` (top-level script), passage de `skipInitialLoad: true` pour le tchat, suppression de `loadCustomPhrases` et `apiGetActivePhrasePreset` dans `window.onload`.
+  - *Unification dans le bootstrap composite* : transfert du seeding initial du preset Défaut dans le callback de `apiGetBootstrapData`.
+  - *Fiabilisation du fallback* : ajout des appels de secours pour phrases et tchat dans `fallbackBootLoad()` avec error handler sur `#phrasesList`.
+  - *Stabilisation responsive* : neutralisation du re-rendu graphique provoqué par le premier franchissement de media query (`0px` -> largeur réelle dans l'iframe GAS).
+  - *Déploiement* : workflow GitHub Actions exécuté et validé avec succès sur les deux cibles.
 - **Audit critique et durcissement de la Materialized View (`v3.30.1`)** :
   - *Authentification UI & Mot de passe* :
     - `Index.html` : ajout de `apiRebuildAggregates` dans l'ensemble `_MUTATING_APIS` de `callServer` afin que `_identityPassword` soit bien transmis lors du clic sur le bouton de recalcul.
