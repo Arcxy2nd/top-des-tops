@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.2] - 2026-09-06
+
+### Corrigé
+**Humanisé** : L'app ne recharge plus le graphique, le podium, la navbar et le tchat 2 à 4 fois à chaque ouverture — le démarrage est nettement plus rapide et fluide.
+**Technique** :
+- `Index.html` : suppression de 4 appels RPC orphelins (`apiGetNavPages`, `apiGetChatMessages`, `apiGetPhrases`, `apiGetActivePhrasePreset`) qui doublonnaient les données déjà fournies par le bootstrap composite `apiGetBootstrapData`.
+- `Index.html` : passage de `skipInitialLoad: true` à `initChatWidget()` pour laisser le bootstrap injecter les messages une seule fois.
+- `Index.html` : déplacement de la logique de seed du preset Défaut dans le callback bootstrap, avec error handler nettoyant `#phrasesList` en cas d'échec.
+- `Index.html` : ajout de `loadCustomPhrases` + `loadChat` dans `fallbackBootLoad()` pour couvrir le chemin d'échec du bootstrap composite.
+- `Index.html` : ajout d'un drapeau `_layoutStable` ignorant le premier `mq.change` parasite de l'iframe GAS (passage de `width=0` à la largeur réelle) qui détruisait et recréait le graphique Chart.js inutilement.
+
 ## [v3.30.1] - 2026-09-06
 
 ### Corrigé
