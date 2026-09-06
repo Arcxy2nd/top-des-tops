@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.4] - 2026-09-06
+
+### Corrigé
+**Humanisé** : Les phrases personnalisées s'affichent instantanément sans re-tirage intempestif, l'affichage mobile démarre correctement et le chargement initial évite les requêtes inutiles.
+**Technique** :
+- `Index.html` : détection des mobiles physiques via `screen.width` lors du calcul initial à `innerWidth === 0` dans les iframes GAS pour éviter le blocage permanent en mode bureau.
+- `Index.html` : mise en cache des phrases et du preset actif dans `tdt_dashboard_cache` et détection des modifications (`phrasesDataChanged`) pour actualiser fidèlement le podium sans écraser les phrases personnalisées.
+- `Index.html` : conditionnement du chargement de `loadBaremeSettings` à l'onglet Paramètres actif pour supprimer deux requêtes RPC inutiles sur le Dashboard.
+- `Index.html` : préservation dynamique de l'onglet actif dans `renderNav` lors des actualisations de structure.
+- `Index.html` : affichage d'un état de chargement et réinitialisation des compteurs et délais dans `initChatWidget` lors de l'ouverture restaurée du panneau de tchat.
+- `tests/bootstrap.test.js` : ajout de 4 tests de non-régression couvrant la détection physique mobile, la conservation de l'onglet actif, la protection contre le chargement prématuré du barème et la persistance du cache des phrases (386 tests).
+
 ## [v3.30.3] - 2026-09-06
 
 ### Corrigé

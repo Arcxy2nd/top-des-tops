@@ -1,12 +1,19 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.3** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction et fiabilisation des régressions de démarrage (v3.30.2) — déverrouillage de la disposition PC dans les iframes GAS, affichage synchrone instantané de la navigation, restauration correcte de `#chatSidePanel`, synchronisation du preset `__default__` et élimination des re-rendus redondants.
-- Suite de tests : **382 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.4** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction de la détection mobile au démarrage (écrans physiques sous iframe 0px), persistance et affichage fidèle des phrases personnalisées sans sauts intempestifs, suppression des requêtes barème prématurées au chargement et fiabilisation de l'onglet actif.
+- Suite de tests : **386 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Fiabilisation mobile, phrases personnalisées et démarrage sans requêtes superflues (`v3.30.4`)** :
+  - *Détection mobile sans piégeage* : détection des mobiles physiques par `screen.width <= 768` quand `window.innerWidth` démarre à `0px` dans l'iframe GAS, garantissant le chargement initial en mode mobile.
+  - *Affichage fidèle des phrases personnalisées* : persistance des phrases et du preset actif dans `tdt_dashboard_cache` et détection de changement (`phrasesDataChanged`) pour actualiser le podium dès réception des données sans re-tirage aléatoire parasite si les données sont inchangées.
+  - *Suppression des requêtes barème parasites* : conditionnement de `loadBaremeSettings` à l'activation de `tab-settings`, éliminant deux requêtes RPC inutiles sur le Dashboard au démarrage.
+  - *Maintien de l'onglet actif dans la navigation* : prise en compte dynamique de `.tab-content.active` dans `renderNav` au lieu de marquer systématiquement le premier onglet actif.
+  - *Attente visuelle du tchat* : affichage d'un état de chargement et réinitialisation immédiate du badge et du délai de sondage lors de la restauration du tchat ouvert.
+  - *Tests* : 4 nouveaux tests de non-régression dans `tests/bootstrap.test.js` (386 tests au total, 100% verts).
 - **Correction des régressions de démarrage et stabilisation (`v3.30.3`)** :
   - *Déblocage de la disposition PC / mobile* : suppression du drapeau `_layoutStable` qui piègeait les écrans PC en mode mobile lors du dimensionnement initial des iframes GAS ; conditionnement du re-rendu du graphique au changement effectif de mode (`modeChanged`).
   - *Affichage synchrone de la navigation* : appel immédiat de `renderNav()` et `initNavHoverTip()` dès le chargement du script sans attendre le réseau, garantissant un affichage instantané et zéro délai d'accès aux onglets ; inclusion dans `fallbackBootLoad()`.

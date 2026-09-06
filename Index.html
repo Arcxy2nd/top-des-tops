@@ -8265,6 +8265,12 @@
       _chatPanelOpen = true;
       if (sidePanel) sidePanel.style.display = 'flex';
       btn.classList.add('active');
+      _chatUnreadCount = 0;
+      updateChatBadge();
+      resetChatBackoff();
+      if (messagesEl && !_chatLoadedOnce) {
+        messagesEl.innerHTML = '<div class="chat-empty" style="color:var(--text-muted);padding:20px;text-align:center;">Chargement du tchat...</div>';
+      }
     }
     scheduleChatPoll();
   }
@@ -10243,8 +10249,11 @@
     // en cache suffit tant qu'elles ont été chargées une première fois — pas
     // besoin de re-solliciter le serveur ni de re-clignoter la liste à chaque
     // ajout/renommage de joueur ou de catégorie ailleurs dans l'app.
-    if (baremeEntries === null) loadBaremeSettings();
-    else renderBaremeSettings(baremeEntries);
+    const settingsTab = document.getElementById('tab-settings');
+    if (settingsTab && settingsTab.classList.contains('active')) {
+      if (baremeEntries === null) loadBaremeSettings();
+      else renderBaremeSettings(baremeEntries);
+    }
 
     updateHistoryFilters();
     updateDonutPlayerSelect();
@@ -10763,13 +10772,20 @@
         _baseChartData = cached.baseChartData || cached.chartData;
         _lastFilterStartDate = cached.startDate !== undefined ? cached.startDate : '';
         _lastFilterEndDate = cached.endDate !== undefined ? cached.endDate : '';
+        if (cached.phrases && Array.isArray(cached.phrases)) {
+          _customPhrases = cached.phrases;
+        }
+        if (cached.activePreset) {
+          _activePreset = cached.activePreset;
+        }
         const skel = document.getElementById('chartSkeleton');
         const wrap = document.getElementById('chartWrapper');
         if (skel) skel.style.display = 'none';
         if (wrap) wrap.style.display = 'block';
         if (typeof Chart !== 'undefined') {
-          renderChart(cached.chartData, currentChartType || 'ranking');
-          renderChartControls(currentChartType || 'ranking');
+          if (currentChartType === 'trend') renderTrendChart(cached.chartData);
+          else renderChart(cached.chartData, currentChartType || 'stacked');
+          renderChartControls(currentChartType || 'stacked');
         }
         if (cached.quickStats) {
           renderQuickStatsBar(cached.quickStats);
@@ -10792,6 +10808,8 @@
         endDate: _lastFilterEndDate,
         quickStats: quickStats || null,
         ranked: ranked || (chartData ? computeRankedTotals(chartData) : null),
+        phrases: _customPhrases || null,
+        activePreset: _activePreset || null,
         savedAt: Date.now()
       }));
     } catch (e) { /* best-effort */ }
@@ -17454,7 +17472,8 @@
   }
 
   function renderNav() {
-    const html = NAV_PAGES.map((p, i) => navButtonHtml(p, i === 0 ? 'active' : '')).join('');
+    const activeTab = (document.querySelector('.tab-content.active') || {}).id || (NAV_PAGES[0] && NAV_PAGES[0].id) || 'tab-dashboard';
+    const html = NAV_PAGES.map(p => navButtonHtml(p, p.id === activeTab ? 'active' : '')).join('');
     const desktopGroup = document.getElementById('desktopNavGroup');
     const mobileGroup  = document.getElementById('mobileBottomNav');
     if (desktopGroup) desktopGroup.innerHTML = html;
@@ -17747,8 +17766,12 @@
       targetTab.classList.add('active');
     }
 
-    if (tabId === 'tab-history' && !_histLoadedOnce) { loadHistoryPage(1); }
-    if (tabId === 'tab-notes'   && !_notesLoadedOnce) { loadNotes(); }
+    if (tabId === 'tab-history'  && !_histLoadedOnce) { loadHistoryPage(1); }
+    if (tabId === 'tab-notes'    && !_notesLoadedOnce) { loadNotes(); }
+    if (tabId === 'tab-settings') {
+      if (baremeEntries === null) loadBaremeSettings();
+      else renderBaremeSettings(baremeEntries);
+    }
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
   }
 
@@ -17811,9 +17834,13 @@
     }
 
     const saved = localStorage.getItem('tdt_forced_layout');
-    // Si window.innerWidth est à 0 (iframe GAS en cours de calcul initial),
-    // privilégier PC par défaut (§1) plutôt que de supposer faussement un micro-écran.
-    const initialMobile = saved ? (saved === 'mobile') : (window.innerWidth > 0 ? mq.matches : false);
+    // Si window.innerWidth est > 0, on se fie directement à la media query.
+    // Si innerWidth est à 0 (iframe GAS au démarrage), on consulte screen.width
+    // pour distinguer un vrai mobile physique d'un écran de bureau.
+    const isPhysicalMobile = (typeof window !== 'undefined' && window.screen && typeof window.screen.width === 'number')
+      ? (window.screen.width <= 768)
+      : false;
+    const initialMobile = saved ? (saved === 'mobile') : (window.innerWidth > 0 ? mq.matches : isPhysicalMobile);
     applyLayout(initialMobile);
 
     mq.addEventListener('change', e => {
@@ -19753,11 +19780,20 @@
       }
 
       // 6. Phrases & Presets
+      let phrasesDataChanged = false;
       if (res.phrases && res.phrases.success) {
-        _customPhrases = res.phrases.phrases || [];
+        const incomingPhrases = res.phrases.phrases || [];
+        if (!_customPhrases || JSON.stringify(_customPhrases) !== JSON.stringify(incomingPhrases)) {
+          phrasesDataChanged = true;
+        }
+        _customPhrases = incomingPhrases;
       }
       if (res.activePreset && res.activePreset.success) {
-        _activePreset = res.activePreset.preset || PHRASES_DEFAULT_ID;
+        const incomingPreset = res.activePreset.preset || PHRASES_DEFAULT_ID;
+        if (_activePreset !== incomingPreset) {
+          phrasesDataChanged = true;
+        }
+        _activePreset = incomingPreset;
         // Seed du preset Défaut au tout premier lancement (déplacé ici
         // depuis l'ancien bloc loadCustomPhrases orphelin de window.onload)
         const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
@@ -19770,6 +19806,7 @@
             _customPhrases = seedRes.phrases;
             renderPresetChips();
             renderPhrasesEditorSection();
+            if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
           }, 'Initialisation Défaut');
         } else {
           renderPresetChips();
@@ -19796,12 +19833,14 @@
         const dataChanged = !currentChartData || JSON.stringify(currentChartData) !== JSON.stringify(cd);
         currentChartData = cd;
         if (dataChanged || !currentChart) {
-          renderChart(cd, currentChartType);
+          if (currentChartType === 'trend') renderTrendChart(cd);
+          else renderChart(cd, currentChartType);
         }
         renderChartControls(currentChartType);
         const ranked = computeRankedTotals(cd);
         const rankedChanged = !lastPhraseSortedRows || JSON.stringify(lastPhraseSortedRows) !== JSON.stringify(ranked);
-        if (rankedChanged || !document.querySelector('#phrasesList .phrase-podium-card')) {
+        const podiumCardMissing = !document.querySelector('#phrasesList .phrase-podium-card');
+        if (rankedChanged || phrasesDataChanged || podiumCardMissing) {
           renderPhrasesCard(ranked);
         }
         saveDashboardToCache(cd, res.quickStats, ranked);

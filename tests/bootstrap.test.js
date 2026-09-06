@@ -117,5 +117,69 @@ test('Index.html controls #chatSidePanel display style and not a phantom #chatPa
   assert.ok(chatBlock.includes("style.display = 'flex'"), 'le panneau du tchat ouvert doit être affiché avec display: flex');
 });
 
+test('Index.html distinguishes physical mobile devices on 0px iframe boot without locking mobile in desktop layout', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const lmtIdx = html.indexOf('function initLayoutModeToggle()');
+  assert.notStrictEqual(lmtIdx, -1);
+  const block = html.slice(lmtIdx, lmtIdx + 2500);
+  assert.ok(block.includes('isPhysicalMobile'), 'initLayoutModeToggle doit détecter un mobile physique');
+  assert.ok(block.includes('screen.width'), 'initLayoutModeToggle doit vérifier screen.width');
+});
+
+test('Index.html preserves active tab in renderNav instead of forcing first tab active', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const navIdx = html.indexOf('function renderNav()');
+  assert.notStrictEqual(navIdx, -1);
+  const block = html.slice(navIdx, navIdx + 600);
+  assert.ok(block.includes('.tab-content.active'), 'renderNav doit rechercher l\'onglet actif dans le DOM');
+  assert.strictEqual(block.includes('i === 0 ?'), false, 'renderNav ne doit plus forcer i === 0 comme seul onglet actif');
+});
+
+test('Index.html guards loadBaremeSettings so startup does not make bareme RPC calls on dashboard', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const paintIdx = html.indexOf('function _paintEntitiesUI(');
+  assert.notStrictEqual(paintIdx, -1);
+  const block = html.slice(paintIdx, paintIdx + 3000);
+  assert.ok(block.includes('tab-settings'), '_paintEntitiesUI doit vérifier si tab-settings est actif avant de charger le barème');
+
+  const goToTabIdx = html.indexOf('function goToTab(');
+  assert.notStrictEqual(goToTabIdx, -1);
+  const goToBlock = html.slice(goToTabIdx, goToTabIdx + 2000);
+  assert.ok(goToBlock.includes("tabId === 'tab-settings'"), 'goToTab doit charger le barème à la demande lors du basculement sur tab-settings');
+});
+
+test('Index.html caches phrases and activePreset in dashboard cache and updates podium when phrases arrive', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+
+  const restoreIdx = html.indexOf('function restoreDashboardFromCache()');
+  assert.notStrictEqual(restoreIdx, -1);
+  const restoreBlock = html.slice(restoreIdx, restoreIdx + 1200);
+  assert.ok(restoreBlock.includes('cached.phrases'), 'restoreDashboardFromCache doit restaurer les phrases en cache');
+  assert.ok(restoreBlock.includes('cached.activePreset'), 'restoreDashboardFromCache doit restaurer le preset actif');
+
+  const saveIdx = html.indexOf('function saveDashboardToCache(');
+  assert.notStrictEqual(saveIdx, -1);
+  const saveBlock = html.slice(saveIdx, saveIdx + 800);
+  assert.ok(saveBlock.includes('phrases:'), 'saveDashboardToCache doit sauvegarder phrases');
+  assert.ok(saveBlock.includes('activePreset:'), 'saveDashboardToCache doit sauvegarder activePreset');
+
+  const bootIdx = html.indexOf('function bootDataLoad()');
+  assert.notStrictEqual(bootIdx, -1);
+  const bootBlock = html.slice(bootIdx, bootIdx + 4500);
+  assert.ok(bootBlock.includes('phrasesDataChanged'), 'bootDataLoad doit détecter le changement des phrases pour mettre à jour le podium');
+});
+
+
 
 
