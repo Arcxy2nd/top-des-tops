@@ -17754,11 +17754,7 @@
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
   }
 
-  callServer('apiGetNavPages', [], res => {
-    NAV_PAGES = res.pages;
-    renderNav();
-    initNavHoverTip();
-  }, 'Chargement du menu');
+  // apiGetNavPages retiré : fourni par apiGetBootstrapData (bootDataLoad)
 
 
 
@@ -17816,13 +17812,13 @@
     const initialMobile = saved ? (saved === 'mobile') : mq.matches;
     applyLayout(initialMobile);
 
-    // Réévalue la disposition quand la fenêtre franchit le seuil 768px (dock vers
-    // un second écran, sortie du mode réduit, rotation de tablette) — sans ce
-    // listener, une page chargée sous 768px restait figée en mobile-layout même
-    // agrandie ensuite, rendant entre autres le Tchat inaccessible jusqu'au reload.
-    // Ignoré si l'utilisateur a explicitement forcé une disposition via le bouton.
+    // Dans l'iframe GAS, window.innerWidth part souvent de 0 et se stabilise
+    // après le premier rendu, déclenchant un mq.change parasite qui détruisait
+    // et recréait le graphique inutilement. On ignore le tout premier événement.
+    let _layoutStable = false;
     mq.addEventListener('change', e => {
       if (localStorage.getItem('tdt_forced_layout')) return;
+      if (!_layoutStable) { _layoutStable = true; return; }
       applyLayout(e.matches);
     });
 
@@ -19498,7 +19494,7 @@
     initGsapEffects();
     initSettingsTabs();
     initHistoryTabs();
-    initChatWidget();
+    initChatWidget({ skipInitialLoad: true });
     applyTooltipStylePrefs(getTooltipStylePrefs());
     renderTooltipStyleSettings();
     bindButtons();
@@ -19512,32 +19508,8 @@
     bindExportButtons();
     initPhraseSettings();
     showSkeleton(document.getElementById('phrasesList'), { rows: 3, height: 50 });
-    loadCustomPhrases(() => {
-      callServer('apiGetActivePhrasePreset', [], presetRes => {
-        _activePreset = (presetRes && presetRes.preset) || PHRASES_DEFAULT_ID;
-        const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
-        if (!hasDefault) {
-          const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
-            texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
-          const seedGen = ++_phrasesReqGen;
-          callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], res => {
-            if (seedGen !== _phrasesReqGen) return;
-            _customPhrases = res.phrases;
-            renderPresetChips();
-            renderPhrasesEditorSection();
-          }, 'Initialisation Défaut');
-        } else {
-          renderPresetChips();
-          renderPhrasesEditorSection();
-        }
-        if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
-      }, 'Chargement preset actif', () => {
-        // Sans ceci, le squelette du Podium restait posé jusqu'au chien de garde
-        // générique (15 s) au lieu de signaler l'échec tout de suite.
-        const list = document.getElementById('phrasesList');
-        if (list) list.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
-      });
-    });
+    // loadCustomPhrases + apiGetActivePhrasePreset retirés :
+    // fournis par apiGetBootstrapData (bootDataLoad)
 
     // Champs date/période par défaut du lot : interrupteur segmenté (même modèle
     // que les lignes) + choix Répéter/Répartir en langage clair.
@@ -19773,8 +19745,23 @@
       }
       if (res.activePreset && res.activePreset.success) {
         _activePreset = res.activePreset.preset || PHRASES_DEFAULT_ID;
-        renderPresetChips();
-        renderPhrasesEditorSection();
+        // Seed du preset Défaut au tout premier lancement (déplacé ici
+        // depuis l'ancien bloc loadCustomPhrases orphelin de window.onload)
+        const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
+        if (!hasDefault) {
+          const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
+            texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
+          const seedGen = ++_phrasesReqGen;
+          callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], seedRes => {
+            if (seedGen !== _phrasesReqGen) return;
+            _customPhrases = seedRes.phrases;
+            renderPresetChips();
+            renderPhrasesEditorSection();
+          }, 'Initialisation Défaut');
+        } else {
+          renderPresetChips();
+          renderPhrasesEditorSection();
+        }
       }
 
       // 7. Quick Stats
@@ -19821,6 +19808,30 @@
     const steps = [
       ['entités',     loadEntities],
       ['branding',    loadAppBranding],
+      ['phrases',     () => loadCustomPhrases(() => {
+        callServer('apiGetActivePhrasePreset', [], presetRes => {
+          _activePreset = (presetRes && presetRes.preset) || PHRASES_DEFAULT_ID;
+          const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
+          if (!hasDefault) {
+            const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
+              texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
+            const seedGen = ++_phrasesReqGen;
+            callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], seedRes => {
+              if (seedGen !== _phrasesReqGen) return;
+              _customPhrases = seedRes.phrases;
+              renderPresetChips();
+              renderPhrasesEditorSection();
+            }, 'Initialisation Défaut');
+          } else {
+            renderPresetChips();
+            renderPhrasesEditorSection();
+          }
+        }, 'Chargement preset actif', () => {
+          const list = document.getElementById('phrasesList');
+          if (list) list.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
+        });
+      })],
+      ['tchat',       () => loadChat()],
       ['statistiques', () => setTimeout(refreshDashboardStats, 150)]
     ];
     steps.forEach(([label, step]) => {
