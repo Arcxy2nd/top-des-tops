@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.5] - 2026-09-06
+
+### Modifié
+**Humanisé** : Vérification exhaustive des classes CSS suspectées d'être mortes — toutes sont en fait utilisées, aucune suppression nécessaire.
+**Technique** :
+- `Index.html` : ajout de commentaires documentant les classes CSS construites dynamiquement (`rank-1/2/3` via template literal, `audit-cat-*` via concaténation) pour éviter qu'elles ne soient re-signalées comme mortes.
+- `tests/dynamic-css-classes.test.js` : ajout de 2 tests de non-régression vérifiant la présence des 9 classes dynamiquement construites et des patterns de construction (388 tests au total, 100% verts).
+
 ## [v3.30.4] - 2026-09-06
 
 ### Corrigé
