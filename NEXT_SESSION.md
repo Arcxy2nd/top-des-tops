@@ -1,12 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.7** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction de la top-bar rapide (`#quickStatsBar`), élimination du double chargement / requêtes parasites au démarrage, et refonte du panneau Statistiques (`#statsHubCard` : tri des records, harmonisation du record absolu, avatars de secours avec monogramme).
-- Suite de tests : **390 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.8** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Prise en compte immédiate et cohérence des points automatiques (`AutoPoints.gs`) avec la top-bar rapide (`#quickStatsBar`), fiabilisation de `AggregatesService` et des rafraîchissements dynamiques client.
+- Suite de tests : **393 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Synchronisation des points automatiques & réactivité top-bar (`v3.30.8`)** :
+  - *Cohérence et persistance AggregatesService* : non-éviction de la vue matérialisée dans `CacheService` lors des clear caches de configuration (`AggregatesService.clearMemoryOnly()`), flushes explicites (`SpreadsheetApp.flush()`) pour synchroniser les écritures en tampon avant interrogation par Sheets API v4 REST, et garde anti-double-comptage sur cache froid (`_coldRebuildHappened`).
+  - *Réactivité dynamique client* : déclenchement immédiat de `loadQuickStats` et purge du cache graphique `_baseChartData` lors de l'exécution manuelle des règles automatiques (`runAutoRulesNowBtn`), du rafraîchissement global (`globalRefresh`), de la soumission de lots (`apiAddBulkPlan`), de la modification d'entrées (`apiUpdateHistoryEntry`), de la suppression (`apiDeleteHistoryEntries`), des annulations d'audit (`apiUndoAuditEntry`) et de la navigation vers l'onglet Dashboard (`goToTab`).
+  - *Tests* : 3 nouveaux tests de non-régression dans `tests/autopoints-quickstats.test.js` (393 tests au total, 100% verts).
 - **Top-bar rapide, démarrage optimisé et panneau Statistiques réparé (`v3.30.7`)** :
   - *Top-bar connectée et synchronisée* : `loadQuickStats` prend désormais en compte l'univers actif (`activeDashboardUniverse`), les boutons de bascule d'univers mettent à jour la barre immédiatement, et le clic sur « Ce mois-ci » (`#qsMonthPill`) bascule vers l'Historique en activant directement le filtre de période mensuel (`button[data-range="month"]`).
   - *Suppression du double chargement et des flashes* : identification et suppression de l'appel RPC parasite `apiGetBareme` exécuté au boot par la création prématurée d'une ligne de lot dans `_paintEntitiesUI`. Le chargement du barème rapide est désormais différé à la demande lors du basculement effectif sur l'onglet Saisie (`tab-inject`). `renderQuickStatsBar` et `loadQuickStats` ne provoquent plus de scintillement / rechargement d'image lorsque les données sont identiques ou déjà affichées.

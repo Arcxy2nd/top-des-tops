@@ -496,8 +496,8 @@ const ConfigService = (() => {
     _scriptPropertiesCache = null;
     _memCacheHits = null;
     _memCacheMisses = null;
-    if (typeof AggregatesService !== 'undefined' && AggregatesService.clearCache) {
-      AggregatesService.clearCache();
+    if (typeof AggregatesService !== 'undefined' && AggregatesService.clearMemoryOnly) {
+      AggregatesService.clearMemoryOnly();
     }
   };
   const getLogsCache = () => _logsCache;
@@ -521,6 +521,9 @@ function withLock(operation) {
   }
   try {
     const result = operation();
+    if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.flush === 'function') {
+      SpreadsheetApp.flush();
+    }
     try { _bumpLogsVersion(); } catch (e) { Logger.log('logs version bump failed (cache invalidation may be stale): ' + (e && e.message)); }
     return result;
   } finally {
@@ -1292,6 +1295,9 @@ const StorageService = {
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
 
     history.getRange(initialLastRow + 1, 1, rows.length, 7).setValues(rows);
+    if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.flush === 'function') {
+      SpreadsheetApp.flush();
+    }
 
     try {
       if (typeof AggregatesService !== 'undefined') {
@@ -2284,10 +2290,12 @@ const ChatService = {
 // ─── AGGREGATES SERVICE (MATERIALIZED VIEW) ──────────────────────────────────
 const AggregatesService = (() => {
   let _memAggregates = null;
+  let _coldRebuildHappened = false;
   const _AGGREGATES_CACHE_KEY = 'aggregates_mat_view_v1';
 
   function clearCache() {
     _memAggregates = null;
+    _coldRebuildHappened = false;
     try {
       const cache = CacheService.getScriptCache();
       if (typeof cache.remove === 'function') {
@@ -2295,6 +2303,10 @@ const AggregatesService = (() => {
         cache.remove(_AGGREGATES_CACHE_KEY + '_chunks');
       }
     } catch (_) {}
+  }
+
+  function clearMemoryOnly() {
+    _memAggregates = null;
   }
 
   function _getCacheKey() {
@@ -2310,7 +2322,8 @@ const AggregatesService = (() => {
       lastEvent: null,
       globalBest: null,
       totalEntries: 0,
-      totalPoints: 0
+      totalPoints: 0,
+      lastHistoryRow: 0
     };
   }
 
@@ -2385,6 +2398,9 @@ const AggregatesService = (() => {
         sheet.clear();
       }
       sheet.getRange(1, 1, rows.length, 7).setValues(rows);
+      if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.flush === 'function') {
+        SpreadsheetApp.flush();
+      }
       _headerOffsetMemo['aggregates'] = 1;
     } catch (_) {}
   }
@@ -2411,6 +2427,12 @@ const AggregatesService = (() => {
       } else if (type === 'SNAPSHOT') {
         agg.totalPoints = parseInt(r[4], 10) || 0;
         agg.totalEntries = parseInt(r[5], 10) || 0;
+        if (r[6]) {
+          try {
+            const snap = JSON.parse(r[6]);
+            if (snap && snap.lastHistoryRow) agg.lastHistoryRow = snap.lastHistoryRow;
+          } catch (_) {}
+        }
       }
     });
     return agg;
@@ -2427,6 +2449,9 @@ const AggregatesService = (() => {
 
     const { values } = _readDataRows('history', historySheet, 5);
     const agg = _emptyAggregates();
+    try {
+      agg.lastHistoryRow = (typeof historySheet.getLastRow === 'function') ? historySheet.getLastRow() : (values.length + 1);
+    } catch (_) {}
 
     try {
       const allP = SettingsService.getEntities('Players');
@@ -2534,12 +2559,18 @@ const AggregatesService = (() => {
       }
     }
 
+    _coldRebuildHappened = true;
     return rebuild();
   }
 
   function increment(entries) {
     if (!entries || !entries.length) return;
+    _coldRebuildHappened = false;
     const agg = getAggregates();
+    if (_coldRebuildHappened) {
+      _coldRebuildHappened = false;
+      return agg;
+    }
     entries.forEach(e => {
       const d = _parseDateCell(e.date);
       const player = e.player ? String(e.player).trim() : '';
@@ -2585,6 +2616,9 @@ const AggregatesService = (() => {
       }
     });
 
+    if (agg.lastHistoryRow) {
+      agg.lastHistoryRow += entries.length;
+    }
     _persist(agg);
   }
 
@@ -2689,12 +2723,16 @@ const AggregatesService = (() => {
       return rebuild();
     }
 
+    if (agg.lastHistoryRow) {
+      agg.lastHistoryRow = Math.max(1, agg.lastHistoryRow - removedRows.length);
+    }
     _persist(agg);
     return agg;
   }
 
   return {
     clearCache,
+    clearMemoryOnly,
     getAggregates,
     rebuild,
     increment,

@@ -261,6 +261,9 @@ const AutoPointsService = (() => {
       const nextRun = computeNextRun(r, new Date(r.nextRun));
       sheet.getRange(r.rowIndex, 11, 1, 2).setValues([[_formatIsoDate(nextRun), _formatIsoDate(now)]]);
     });
+    if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.flush === 'function') {
+      SpreadsheetApp.flush();
+    }
     ConfigService.clearCache();
 
     if (valid.length) {

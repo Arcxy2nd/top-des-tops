@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.8] - 2026-09-11
+
+### Corrigé
+**Humanisé** : Les points automatiques sont désormais immédiatement comptabilisés et visibles dans la barre rapide sous la navigation, les classements et l'historique sans nécessiter de rechargement complet de la page.
+**Technique** :
+- `Code.gs` : préservation de la vue matérialisée `CacheService` lors de la réinitialisation de configuration (`ConfigService.clearCache()` appelle `AggregatesService.clearMemoryOnly()` au lieu d'évincer le cache global). Flush systématique (`SpreadsheetApp.flush()`) dans `withLock`, `StorageService.appendBulkPlan` et `AggregatesService._persist` pour synchroniser les écritures en tampon avant toute interrogation Sheets API v4 REST (`_fetchSheetValues`). Protection anti-double-comptage sur cache froid (`_coldRebuildHappened`) et suivi du pointeur `lastHistoryRow`.
+- `AutoPoints.gs` : ajout de `SpreadsheetApp.flush()` dans `AutoPointsService.runDue()` après mise à jour des prochaines échéances de règles.
+- `Index.html` : rafraîchissement dynamique immédiat de la barre rapide (`loadQuickStats`), invalidation du cache graphique (`_baseChartData = null`) et mise à jour des vues lors de l'exécution manuelle des règles automatiques (`runAutoRulesNowBtn`), du rafraîchissement global (`globalRefresh`), de l'envoi de lots (`apiAddBulkPlan`), de la modification d'entrée (`apiUpdateHistoryEntry`), de la suppression d'historique (`apiDeleteHistoryEntries`), des annulations d'audit (`apiUndoAuditEntry`) et du retour sur l'onglet Dashboard (`goToTab`).
+- `tests/autopoints-quickstats.test.js` : suite de tests automatisés validant la réactivité de `apiGetQuickStats`, l'absence de double-comptage sur cache froid et la persistance du cache des agrégats (393/393 tests verts).
+
 ## [v3.30.7] - 2026-09-11
 
 ### Corrigé

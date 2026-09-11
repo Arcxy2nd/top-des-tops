@@ -9519,6 +9519,7 @@
   // ── REFRESH GLOBAL ───────────────────────────────────────────────────
   function globalRefresh() {
     _baseChartData = null;
+    if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse, true);
     const btn = document.getElementById('globalRefreshBtn');
     const stopLoading = startBtnLoading(btn);
     let pending = 2; // loadEntities + loadAppBranding
@@ -9536,6 +9537,7 @@
     const activeTab = document.querySelector('.tab-content.active');
     if (activeTab) {
       const tabId = activeTab.id;
+      if (tabId === 'tab-dashboard') applyFilters();
       if (tabId === 'tab-history') loadHistoryPage(currentHistoryPage);
       if (tabId === 'tab-notes')   loadNotes();
     }
@@ -14859,6 +14861,8 @@
       lotGroupSeq = 0;
       addEntryRow();
       updateLotSummary();
+      _baseChartData = null;
+      if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
       applyFilters();
       baremeEntries = null;
       showToast(plan.length === 1 ? 'Lot enregistré !' : `Lot enregistré (${plan.length} dates).`, 'success');
@@ -15146,6 +15150,8 @@
             callServer('apiUndoAuditEntry', [log.id, _whoAmI || ''], res => {
               showToast('Action annulée.', 'success');
               loadAuditLog(_auditCurrentPage);
+              _baseChartData = null;
+              if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
               loadHistoryPage(currentHistoryPage);
               applyFilters();
             }, 'Annuler action journal', () => { undoBtn.disabled = false; });
@@ -15280,7 +15286,12 @@
       allIndexes.push(...p.rowIndexes);
     });
     pendingDeletions.clear();
-    callServer('apiDeleteHistoryEntries', [allIndexes, _whoAmI || ''], () => callback(), 'Suppression différée', () => callback());
+    callServer('apiDeleteHistoryEntries', [allIndexes, _whoAmI || ''], () => {
+      _baseChartData = null;
+      if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+      if (typeof applyFilters === 'function') applyFilters();
+      callback();
+    }, 'Suppression différée', () => callback());
   }
 
   function scheduleDeletion(rowIndexes) {
@@ -15324,6 +15335,9 @@
       pending.toastEl.style.animation = 'fadeOut 0.3s ease forwards';
       setTimeout(() => pending.toastEl.remove(), 300);
       callServer('apiDeleteHistoryEntries', [rowIndexes, _whoAmI || ''], () => {
+        _baseChartData = null;
+        if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+        if (typeof applyFilters === 'function') applyFilters();
         _doLoadHistoryPage(currentHistoryPage);
       }, 'Suppression historique', () => {
         rowIndexes.forEach(ri => {
@@ -16640,6 +16654,8 @@
                 callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
                   if (undoRes && undoRes.success) {
                     showToast('Modification annulée.', 'success');
+                    _baseChartData = null;
+                    if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
                     loadHistoryPage(currentHistoryPage);
                     applyFilters();
                   } else {
@@ -16651,6 +16667,8 @@
               showToast(msg, 'success');
             }
             histSelected.clear();
+            _baseChartData = null;
+            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
             loadHistoryPage(currentHistoryPage);
             applyFilters();
           }
@@ -16779,6 +16797,8 @@
               callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
                 if (undoRes && undoRes.success) {
                   showToast('Modification du groupe annulée.', 'success');
+                  _baseChartData = null;
+                  if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
                   loadHistoryPage(currentHistoryPage);
                   applyFilters();
                 } else {
@@ -16789,6 +16809,8 @@
           } else {
             showToast(msg, 'success');
           }
+          _baseChartData = null;
+          if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
           loadHistoryPage(currentHistoryPage);
           applyFilters();
         }
@@ -16891,6 +16913,8 @@
           } else {
             showToast('Entrée modifiée.', 'success');
             log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur;
+            _baseChartData = null;
+            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
             loadHistoryPage(currentHistoryPage);
             applyFilters();
             if (nextAfterSave && hasNext) {
@@ -17102,6 +17126,10 @@
             : ((res && res.result && typeof res.result.skipped === 'number') ? res.result.skipped : 0);
           if (count > 0) {
             showToast(count + ' règle(s) automatique(s) exécutée(s).', 'success');
+            _baseChartData = null;
+            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse, true);
+            if (typeof applyFilters === 'function') applyFilters();
+            if (typeof loadHistoryPage === 'function') loadHistoryPage(1);
             loadAutoRules();
           } else if (skipped > 0) {
             showToast(skipped + ' règle(s) ignorée(s) (joueur/Top introuvable).', 'warning');
@@ -17798,6 +17826,9 @@
       targetTab.classList.add('active');
     }
 
+    if (tabId === 'tab-dashboard') {
+      if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+    }
     if (tabId === 'tab-history'  && !_histLoadedOnce) { loadHistoryPage(1); }
     if (tabId === 'tab-notes'    && !_notesLoadedOnce) { loadNotes(); }
     if (tabId === 'tab-settings') {
