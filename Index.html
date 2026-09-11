@@ -2526,6 +2526,15 @@
       width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
       border: 2px solid var(--sr-accent, var(--border));
     }
+    .sr-avatar-initials {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface); color: var(--text);
+      font-weight: 800; font-size: 0.85rem; text-transform: uppercase;
+      user-select: none;
+    }
+    .sr-hero-avatar.sr-avatar-initials {
+      font-size: 1.05rem;
+    }
     /* Cluster de deux avatars superposés (lignes « duo ») */
     .sr-avatar-cluster { flex-shrink: 0; display: flex; align-items: center; }
     .sr-avatar-cluster .sr-avatar:last-child { margin-left: -14px; }
@@ -6309,6 +6318,8 @@
     return 'il y a ' + days + 'j';
   }
 
+  let _currentQuickStatsUniverse = 'main';
+
   function renderQuickStatsBar(data) {
     if (!data) return;
     const s = (data && data.stats) ? data.stats : data;
@@ -6329,11 +6340,13 @@
       if (s.leader) {
         if (leaderAvatar) {
           const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.leader.player) : null;
-          leaderAvatar.src = getAvatarUrl(s.leader.player, p ? p.meta : '');
+          const targetUrl = getAvatarUrl(s.leader.player, p ? p.meta : '');
+          if (leaderAvatar.getAttribute('src') !== targetUrl) leaderAvatar.src = targetUrl;
           leaderAvatar.onerror = () => { leaderAvatar.src = getAvatarUrl(s.leader.player, ''); };
           leaderAvatar.style.display = '';
         }
-        leaderValue.textContent = s.leader.player + ' · ' + s.leader.points + ' pts';
+        const txt = s.leader.player + ' · ' + s.leader.points + ' pts';
+        if (leaderValue.textContent !== txt) leaderValue.textContent = txt;
       } else {
         if (leaderAvatar) leaderAvatar.style.display = 'none';
         leaderValue.textContent = 'Pas encore de scores';
@@ -6341,29 +6354,34 @@
     }
 
     if (gapValue) {
-      if (s.gap === null || s.gap === undefined) {
-        gapValue.textContent = '—';
-      } else if (s.gap === 0) {
-        gapValue.textContent = s.chaser ? 'Égalité avec ' + s.chaser.player : 'Égalité';
-      } else {
-        gapValue.textContent = s.gap + ' pts' + (s.chaser ? ' devant ' + s.chaser.player : '');
+      let txt = '—';
+      if (s.gap !== null && s.gap !== undefined) {
+        if (s.gap === 0) {
+          txt = s.chaser ? 'Égalité avec ' + s.chaser.player : 'Égalité';
+        } else {
+          txt = s.gap + ' pts' + (s.chaser ? ' devant ' + s.chaser.player : '');
+        }
       }
+      if (gapValue.textContent !== txt) gapValue.textContent = txt;
     }
 
     if (monthValue) {
       const mc = s.monthCount || 0;
-      monthValue.textContent = mc + ' entrée' + (mc > 1 ? 's' : '');
+      const txt = mc + ' entrée' + (mc > 1 ? 's' : '');
+      if (monthValue.textContent !== txt) monthValue.textContent = txt;
     }
 
     if (lastValue) {
       if (s.lastEvent) {
         if (lastAvatar) {
           const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.lastEvent.player) : null;
-          lastAvatar.src = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
+          const targetUrl = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
+          if (lastAvatar.getAttribute('src') !== targetUrl) lastAvatar.src = targetUrl;
           lastAvatar.onerror = () => { lastAvatar.src = getAvatarUrl(s.lastEvent.player, ''); };
           lastAvatar.style.display = '';
         }
-        lastValue.textContent = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + (s.lastEvent.date ? timeAgo(new Date(s.lastEvent.date)) : '');
+        const txt = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + (s.lastEvent.date ? timeAgo(new Date(s.lastEvent.date)) : '');
+        if (lastValue.textContent !== txt) lastValue.textContent = txt;
       } else {
         if (lastAvatar) lastAvatar.style.display = 'none';
         lastValue.textContent = 'Aucun événement';
@@ -6374,11 +6392,13 @@
       if (s.globalBest) {
         if (recordAvatar) {
           const p = Array.isArray(cachedPlayers) ? cachedPlayers.find(pl => pl.name === s.globalBest.player) : null;
-          recordAvatar.src = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
+          const targetUrl = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
+          if (recordAvatar.getAttribute('src') !== targetUrl) recordAvatar.src = targetUrl;
           recordAvatar.onerror = () => { recordAvatar.src = getAvatarUrl(s.globalBest.player, ''); };
           recordAvatar.style.display = '';
         }
-        recordValue.textContent = s.globalBest.player + ' · ' + s.globalBest.points + ' pts';
+        const txt = s.globalBest.player + ' · ' + s.globalBest.points + ' pts';
+        if (recordValue.textContent !== txt) recordValue.textContent = txt;
       } else {
         if (recordAvatar) recordAvatar.style.display = 'none';
         recordValue.textContent = 'Aucun record';
@@ -6386,15 +6406,21 @@
     }
   }
 
-  function loadQuickStats() {
+  function loadQuickStats(universe, forceSkeleton) {
+    const u = universe || activeDashboardUniverse || 'main';
     const leaderValue = document.getElementById('qsLeaderValue');
     const gapValue     = document.getElementById('qsGapValue');
     const monthValue   = document.getElementById('qsMonthValue');
     const lastValue    = document.getElementById('qsLastValue');
     const recordValue  = document.getElementById('qsRecordValue');
-    [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && skeletonizeText(el, 60));
 
-    callServer('apiGetQuickStats', ['main'], res => {
+    const hasData = leaderValue && leaderValue.textContent && leaderValue.textContent !== '—';
+    if (forceSkeleton || !hasData || _currentQuickStatsUniverse !== u) {
+      [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && skeletonizeText(el, 60));
+    }
+    _currentQuickStatsUniverse = u;
+
+    callServer('apiGetQuickStats', [u], res => {
       renderQuickStatsBar(res);
     }, 'Chargement résumé', err => {
       [leaderValue, gapValue, monthValue, lastValue, recordValue].forEach(el => el && unskeletonizeText(el));
@@ -6410,9 +6436,14 @@
     if (typeof switchStatsHubPane === 'function') switchStatsHubPane('records');
     document.getElementById('statsHubCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  function goToHistoryThisMonth() {
+    goToTab('tab-history');
+    const btn = document.querySelector('#histRangeChips button[data-range="month"]');
+    if (btn) btn.click();
+  }
   document.getElementById('qsLeaderPill').addEventListener('click', goToPodium);
   document.getElementById('qsGapPill').addEventListener('click', goToPodium);
-  document.getElementById('qsMonthPill').addEventListener('click', () => goToTab('tab-history'));
+  document.getElementById('qsMonthPill').addEventListener('click', goToHistoryThisMonth);
   document.getElementById('qsLastPill').addEventListener('click', () => goToTab('tab-history'));
   document.getElementById('qsRecordPill').addEventListener('click', goToRecords);
 
@@ -14153,6 +14184,10 @@
       if (baremeEntries) {
         renderBaremeQuickBtns(baremeEntries, topName);
       } else {
+        const injectTab = document.getElementById('tab-inject');
+        if (!injectTab || !injectTab.classList.contains('active')) {
+          return;
+        }
         const gen = ++_baremeReqGen;
         callServer('apiGetBareme', [], res => {
           if (gen !== _baremeReqGen) return;
@@ -14163,6 +14198,7 @@
         });
       }
     }
+    div._refreshBareme = refreshBaremeForTop;
 
     div.appendChild(topBar);
     div.appendChild(mainRow);
@@ -17768,6 +17804,28 @@
       if (baremeEntries === null) loadBaremeSettings();
       else renderBaremeSettings(baremeEntries);
     }
+    if (tabId === 'tab-inject') {
+      if (!baremeEntries) {
+        const gen = ++_baremeReqGen;
+        callServer('apiGetBareme', [], res => {
+          if (gen !== _baremeReqGen) return;
+          baremeEntries = res.entries;
+          document.querySelectorAll('.entry-row').forEach(row => {
+            if (typeof row._refreshBareme === 'function') {
+              const cSel = row.querySelector('.c-sel');
+              row._refreshBareme(cSel ? cSel.value : '');
+            }
+          });
+        }, 'Barème rapide');
+      } else {
+        document.querySelectorAll('.entry-row').forEach(row => {
+          if (typeof row._refreshBareme === 'function') {
+            const cSel = row.querySelector('.c-sel');
+            row._refreshBareme(cSel ? cSel.value : '');
+          }
+        });
+      }
+    }
     if (tabId === 'tab-guide')   { initGuideAccordion(); }
   }
 
@@ -18134,6 +18192,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
+        loadQuickStats('main');
         refreshDashboardStats(true);
       });
       univAltBtn.addEventListener('click', () => {
@@ -18145,6 +18204,7 @@
         selectedCategoryChips.clear();
         renderCategoryChips();
         applyFilters();
+        loadQuickStats('alt');
         refreshDashboardStats(true);
       });
     }
@@ -19048,8 +19108,17 @@
     const mkAvatar = who => {
       const img = document.createElement('img');
       img.className = 'sr-avatar';
+      img.alt = who || '';
       img.src = getAvatarUrl(who, playerMetaOf(who));
-      img.onerror = () => { img.style.visibility = 'hidden'; };
+      img.onerror = () => {
+        img.onerror = () => {
+          const initials = document.createElement('span');
+          initials.className = 'sr-avatar sr-avatar-initials';
+          initials.textContent = (who || '?').slice(0, 2).toUpperCase();
+          if (img.parentNode) img.parentNode.replaceChild(initials, img);
+        };
+        img.src = getAvatarUrl(who, '');
+      };
       return img;
     };
     if (cfg.secondPlayer) {
@@ -19166,8 +19235,17 @@
         trophy.className = 'sr-hero-trophy'; trophy.textContent = '🏆';
         const av = document.createElement('img');
         av.className = 'sr-hero-avatar';
+        av.alt = gb.player || '';
         av.src = getAvatarUrl(gb.player, playerMetaOf(gb.player));
-        av.onerror = () => { av.style.visibility = 'hidden'; };
+        av.onerror = () => {
+          av.onerror = () => {
+            const initials = document.createElement('span');
+            initials.className = 'sr-hero-avatar sr-avatar-initials';
+            initials.textContent = (gb.player || '?').slice(0, 2).toUpperCase();
+            if (av.parentNode) av.parentNode.replaceChild(initials, av);
+          };
+          av.src = getAvatarUrl(gb.player, '');
+        };
         const b = document.createElement('div');
         b.className = 'sr-hero-body';
         const lab = document.createElement('div'); lab.className = 'sr-hero-label'; lab.textContent = 'Record absolu';

@@ -1,12 +1,17 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.6** (2026-09-06) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Audit complet des chantiers P0/P1/P2/P3 (tous déjà résolus dans v3.30.2-5), ajout d'un test de protection des couleurs hardcodées (allowlist documentée, 45 usages légitimes figés), suppression d'un doublon CSS `.pts-toggle-wrap`.
+- Version livrée : **v3.30.7** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction de la top-bar rapide (`#quickStatsBar`), élimination du double chargement / requêtes parasites au démarrage, et refonte du panneau Statistiques (`#statsHubCard` : tri des records, harmonisation du record absolu, avatars de secours avec monogramme).
 - Suite de tests : **390 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Top-bar rapide, démarrage optimisé et panneau Statistiques réparé (`v3.30.7`)** :
+  - *Top-bar connectée et synchronisée* : `loadQuickStats` prend désormais en compte l'univers actif (`activeDashboardUniverse`), les boutons de bascule d'univers mettent à jour la barre immédiatement, et le clic sur « Ce mois-ci » (`#qsMonthPill`) bascule vers l'Historique en activant directement le filtre de période mensuel (`button[data-range="month"]`).
+  - *Suppression du double chargement et des flashes* : identification et suppression de l'appel RPC parasite `apiGetBareme` exécuté au boot par la création prématurée d'une ligne de lot dans `_paintEntitiesUI`. Le chargement du barème rapide est désormais différé à la demande lors du basculement effectif sur l'onglet Saisie (`tab-inject`). `renderQuickStatsBar` et `loadQuickStats` ne provoquent plus de scintillement / rechargement d'image lorsque les données sont identiques ou déjà affichées.
+  - *Panneau Statistiques réparé* : tri strict des records dans `apiGetPlayerRecords` par points décroissants (puis date la plus ancienne, puis ordre alphabétique du joueur), départage unifié et déterministe pour le Record absolu entre `AggregatesService`, `apiGetQuickStats` et `apiGetPlayerRecords`. Remplacement du masquage d'avatar défaillant (`visibility = 'hidden'`) par un fallback monogramme/initiales (`.sr-avatar-initials`) évitant tout trou dans l'affichage.
+  - *Tests* : validation par les 390 tests unitaires et d'intégration existants et mise à jour de l'allowlist dans `tests/no-hardcoded-colors.test.js`. Vérification visuelle et comportementale complète via headless Edge CDP.
 - **Protection des couleurs et audit complet des chantiers P0/P1/P2/P3 (`v3.30.6`)** :
   - *Test de protection des couleurs* : nouveau `tests/no-hardcoded-colors.test.js` avec allowlist documentée de 45 usages légitimes de couleurs hardcodées (fallbacks CSS, palettes Chart.js, rendu Canvas, configurations de thèmes, palettes d'entités). Tout nouvel usage fera échouer le test avec message explicite guidant vers l'allowlist ou les variables CSS.
   - *Suppression doublon CSS* : bloc `.pts-toggle-wrap` en doublon retiré de `Index.html` (6 lignes redondantes).

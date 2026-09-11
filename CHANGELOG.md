@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.7] - 2026-09-11
+
+### Corrigé
+**Humanisé** : La barre rapide sous la navigation est désormais synchronisée avec l'univers actif et réactive au clic, le double chargement au démarrage est éliminé, et le panneau Statistiques affiche les records parfaitement ordonnés avec des avatars de secours propres.
+**Technique** :
+- `Code.gs` : synchronisation du calcul de `globalBest` dans `AggregatesService` (`rebuild`/`increment`), `apiGetQuickStats` et `apiGetPlayerRecords` avec départage déterministe unifié (score décroissant, puis date la plus ancienne, puis nom alphabétique). Tri strict des résultats de `apiGetPlayerRecords` par points décroissants.
+- `Index.html` : synchronisation de `loadQuickStats` avec `activeDashboardUniverse`, connexion du clic « Ce mois-ci » (`#qsMonthPill`) vers l'Historique avec sélection automatique du filtre mensuel, et suppression du clignotement / flash lors du rafraîchissement des statistiques rapides.
+- `Index.html` : neutralisation de l'appel RPC parasite `apiGetBareme` au démarrage de la page (déclenché par la création anticipée de la première ligne de lot dans `_paintEntitiesUI`), avec chargement différé à la demande lors du basculement sur l'onglet Saisie (`tab-inject`).
+- `Index.html` : fiabilisation de l'affichage des avatars dans le panneau Statistiques (`buildStatRow` et héros `scanRecords`) avec fallback monogramme/initiales (`.sr-avatar-initials`) en cas d'image manquante ou inaccessible.
+- `tests/no-hardcoded-colors.test.js` : mise à jour de l'allowlist pour refléter les nouvelles lignes de code et maintenir 100% de tests verts (390/390).
+
 ## [v3.30.6] - 2026-09-06
 
 ### Modifié

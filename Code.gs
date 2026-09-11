@@ -2468,7 +2468,13 @@ const AggregatesService = (() => {
         };
       }
 
-      if (!agg.globalBest || pts > agg.globalBest.points) {
+      const isNewBest = !agg.globalBest ||
+        pts > agg.globalBest.points ||
+        (pts === agg.globalBest.points && (
+          d.getTime() < (new Date(agg.globalBest.dateStr)).getTime() ||
+          (d.getTime() === (new Date(agg.globalBest.dateStr)).getTime() && player.localeCompare(agg.globalBest.player) < 0)
+        ));
+      if (isNewBest) {
         agg.globalBest = {
           player: player,
           points: pts,
@@ -2564,7 +2570,13 @@ const AggregatesService = (() => {
         };
       }
 
-      if (!agg.globalBest || pts > agg.globalBest.points) {
+      const isNewBest = !agg.globalBest ||
+        pts > agg.globalBest.points ||
+        (pts === agg.globalBest.points && (
+          d.getTime() < (new Date(agg.globalBest.dateStr)).getTime() ||
+          (d.getTime() === (new Date(agg.globalBest.dateStr)).getTime() && player.localeCompare(agg.globalBest.player) < 0)
+        ));
+      if (isNewBest) {
         agg.globalBest = {
           player: player,
           points: pts,
@@ -3687,7 +3699,17 @@ function apiGetQuickStats(universe) {
       const sortedByDate = logs.slice().sort((a, b) => b.timestamp - a.timestamp);
       const last = sortedByDate.length ? sortedByDate[0] : null;
 
-      const globalBest = logs.reduce((best, log) => (!best || log.points > best.points) ? log : best, null);
+      const globalBest = logs.reduce((best, log) => {
+        if (!best) return log;
+        if (log.points > best.points) return log;
+        if (log.points === best.points) {
+          const tLog = log.timestamp instanceof Date ? log.timestamp.getTime() : new Date(log.timestamp).getTime();
+          const tBest = best.timestamp instanceof Date ? best.timestamp.getTime() : new Date(best.timestamp).getTime();
+          if (tLog < tBest) return log;
+          if (tLog === tBest && log.player.localeCompare(best.player) < 0) return log;
+        }
+        return best;
+      }, null);
 
       return {
         success: true,
@@ -4698,13 +4720,18 @@ function apiGetPlayerRecords(universe) {
 
     const dayKey = _dayKey;
 
-    let globalBest = null;
     const records = Object.keys(byPlayer).map(player => {
       const list = byPlayer[player];
-      const best = list.reduce((m, r) => r.points > m.points ? r : m, list[0]);
-      if (!globalBest || best.points > globalBest.points) {
-        globalBest = { player, points: best.points, dateStr: dayKey(best.date) };
-      }
+      const best = list.reduce((m, r) => {
+        if (!m) return r;
+        if (r.points > m.points) return r;
+        if (r.points === m.points) {
+          const dR = r.date instanceof Date ? r.date.getTime() : new Date(r.date).getTime();
+          const dM = m.date instanceof Date ? m.date.getTime() : new Date(m.date).getTime();
+          if (dR < dM) return r;
+        }
+        return m;
+      }, list[0]);
 
       const days = [...new Set(list.map(r => dayKey(r.date)))].sort();
       let longestStreak = days.length ? 1 : 0;
@@ -4715,8 +4742,28 @@ function apiGetPlayerRecords(universe) {
         longestStreak = Math.max(longestStreak, currentStreak);
       }
 
-      return { player, bestSingleEntry: best.points, bestEntryDate: dayKey(best.date), longestStreakDays: longestStreak };
+      return {
+        player,
+        bestSingleEntry: best ? best.points : 0,
+        bestEntryDate: best ? dayKey(best.date) : '',
+        longestStreakDays: longestStreak
+      };
     });
+
+    records.sort((a, b) =>
+      (b.bestSingleEntry - a.bestSingleEntry) ||
+      (a.bestEntryDate && b.bestEntryDate ? a.bestEntryDate.localeCompare(b.bestEntryDate) : 0) ||
+      a.player.localeCompare(b.player)
+    );
+
+    let globalBest = null;
+    if (records.length && records[0].bestSingleEntry > 0) {
+      globalBest = {
+        player: records[0].player,
+        points: records[0].bestSingleEntry,
+        dateStr: records[0].bestEntryDate
+      };
+    }
 
     const res = { success: true, records, globalBest };
     _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
