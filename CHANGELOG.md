@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.9] - 2026-09-11
+
+### Modifié
+**Humanisé** : Refonte intégrale et récursive des 5 volets de la section Statistiques (Records, Tendances, Jour actif, Combos et Mentions) : catégorisation enrichie, calendrier standardisé Lundi-Dimanche avec jauge Semaine/Week-end, cartes KPI héroïques, calcul des points et moyennes par combo, et protection totale de sécurité et de thématisation.
+**Technique** :
+- `Code.gs` :
+  - `apiGetPlayerRecords` : chaque record individuel et le record absolu (`globalBest`) intègrent désormais la catégorie dominante (`bestCategory` / `category`) avec son emoji et sa couleur thématique pour contextualiser le record de chaque joueur.
+  - `apiGetTrends` : standardisation du comparatif 30j vs 30j précédents (points et entrées) pour les tops et les joueurs, conservation des joueurs inactifs (-100%), calcul des indicateurs de synthèse globaux (`summary`: `recentTotalEntries`, `prevTotalEntries`, `entriesChangePct`, `recentTotalPoints`, `prevTotalPoints`, `pointsChangePct`).
+  - `apiGetActiveWeekday` : calendrier ordonné du Lundi (index 0) au Dimanche (index 6) conforme à la norme ISO 8601 et à l'usage français (via conversion `(d.getDay() + 6) % 7`), métriques de synthèse du jour champion (`topWeekday`, `topWeekdayCount`, `topWeekdayPct`) et répartition semaine ouvrée vs week-end (`weekdayVsWeekend`).
+  - `apiGetTopPlayerCategoryPairs` : calcul de `totalPoints` et `avgPoints` pour chaque association joueur-top, avec tri déterministe par occurrences décroissantes puis total de points.
+- `Index.html` :
+  - CSS : création des composants `.stats-kpi-grid`, `.stats-kpi-card`, `.stats-kpi-label`, `.stats-kpi-val`, `.stats-kpi-sub`, `.stats-split-wrap`, `.stats-split-bar`, `.stats-split-segment`, `.stats-mentions-hero-grid`, `.stats-mention-card`, `.stats-columns-grid`, `.sr-streak-badge`. Respect strict de l'invariant sans couleurs hardcodées via variables CSS et mixages `color-mix`.
+  - HTML : renommage de l'onglet « Duo » en « 🎯 Combos » pour supprimer l'ambiguïté avec les mentions, ajout des conteneurs héroïques de KPI `#trendsSummary` et `#weekdaySummary`.
+  - JS : helpers `formatStatDate`, refonte complète des fonctions d'affichage `scanRecords()` (date au format français, pill de catégorie avec fallback, flamme de série conditionnelle `streak >= 2`), `loadTrends()` & `renderTrends()` (cartes KPI héroïques de plus forte hausse / baisse / volume, sélecteur dynamique d'indicateurs points vs entrées, hauteur dynamique Chart.js), `loadActiveWeekday()` (affichage Lundi-Dimanche, cartes KPI et jauge proportionnelle Semaine/Week-end), `scanTopPairs()` (cartes combo enrichies avec médailles, avatar, pill de catégorie, points totaux et moyenne par entrée) et `loadMentionStats()` (grille héroïque de 3 cartes : Plus mentionné, Plus bavard, Duo complice avec double avatar imbriqué, suivie du double classement tabulaire).
+  - Sécurité : 100% des interpolations `innerHTML` sécurisées par `escapeHtml(...)`.
+- `tests/statshub-redesign.test.js` : suite de tests automatisés validant la complétude des contrats de données des 5 nouveaux endpoints/formats statistiques (397/397 tests verts).
+
 ## [v3.30.8] - 2026-09-11
 
 ### Corrigé

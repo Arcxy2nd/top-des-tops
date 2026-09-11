@@ -1,12 +1,20 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.8** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Prise en compte immédiate et cohérence des points automatiques (`AutoPoints.gs`) avec la top-bar rapide (`#quickStatsBar`), fiabilisation de `AggregatesService` et des rafraîchissements dynamiques client.
-- Suite de tests : **393 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.9** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Refonte récursive et intégrale du panneau Statistiques (`#statsHubCard`) : Records avec catégorie et dates FR, Tendances avec KPIs 30j vs 30j et hauteur adaptative, Jour actif ordonné Lun-Dim avec jauge Semaine/Week-end, Combos avec points totaux et moyennes, Mentions héroïques avec double avatar et double classement.
+- Suite de tests : **397 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Refonte intégrale et récursive du Hub Statistiques (`v3.30.9`)** :
+  - *Records enrichis* : intégration de la catégorie dominante (`bestCategory` et `globalBest.category`) avec son emoji et sa couleur thématique dans `apiGetPlayerRecords`. Dates formatées en français (`formatStatDate`), flamme de série `🔥 Xj consécutifs` affichée avec discernement (`streak >= 2`).
+  - *Tendances normalisées & KPIs* : calcul homogène 30j vs 30j pour les Tops et les Joueurs dans `apiGetTrends`, préservation des inactifs (-100%), cartes KPIs héroïques de synthèse (Plus forte progression, Plus fort recul, Volume 30j), commutateur points/entrées dynamique et ajustement automatique de la hauteur du canvas Chart.js pour éliminer tout écrasement sur mobile.
+  - *Jour actif Lundi-Dimanche & Jauge* : réalignement complet de la semaine sur le standard français et ISO 8601 (Lundi index 0 à Dimanche index 6 via `(d.getDay() + 6) % 7`), cartes KPIs (Jour champion, % Semaine, % Week-end) et jauge proportionnelle bicolore `.stats-split-bar`.
+  - *Combos valorisés* : clarification sémantique (« 🎯 Combos » au lieu de « Duo »), calcul du total des points et de la moyenne de points par entrée pour chaque association joueur-top dans `apiGetTopPlayerCategoryPairs`, affichage valorisé avec médailles, avatar, pill thématique et statistiques complètes.
+  - *Mentions héroïques & complices* : trio de cartes héroïques (Plus mentionné, Plus bavard, Duo complice avec double avatar imbriqué), suivi d'une grille à deux colonnes pour les classements détaillés de citations et d'auteurs.
+  - *Sécurité et Design System* : 100% des interpolations `innerHTML` protégées par `escapeHtml(...)`, zéro couleur hardcodée (variables CSS et `color-mix`), adaptabilité mobile totale.
+  - *Tests* : 4 nouveaux tests unitaires dans `tests/statshub-redesign.test.js` (397 tests au total, 100% verts).
 - **Synchronisation des points automatiques & réactivité top-bar (`v3.30.8`)** :
   - *Cohérence et persistance AggregatesService* : non-éviction de la vue matérialisée dans `CacheService` lors des clear caches de configuration (`AggregatesService.clearMemoryOnly()`), flushes explicites (`SpreadsheetApp.flush()`) pour synchroniser les écritures en tampon avant interrogation par Sheets API v4 REST, et garde anti-double-comptage sur cache froid (`_coldRebuildHappened`).
   - *Réactivité dynamique client* : déclenchement immédiat de `loadQuickStats` et purge du cache graphique `_baseChartData` lors de l'exécution manuelle des règles automatiques (`runAutoRulesNowBtn`), du rafraîchissement global (`globalRefresh`), de la soumission de lots (`apiAddBulkPlan`), de la modification d'entrées (`apiUpdateHistoryEntry`), de la suppression (`apiDeleteHistoryEntries`), des annulations d'audit (`apiUndoAuditEntry`) et de la navigation vers l'onglet Dashboard (`goToTab`).

@@ -4784,6 +4784,7 @@ function apiGetPlayerRecords(universe) {
         player,
         bestSingleEntry: best ? best.points : 0,
         bestEntryDate: best ? dayKey(best.date) : '',
+        bestCategory: best ? best.category : '',
         longestStreakDays: longestStreak
       };
     });
@@ -4799,7 +4800,8 @@ function apiGetPlayerRecords(universe) {
       globalBest = {
         player: records[0].player,
         points: records[0].bestSingleEntry,
-        dateStr: records[0].bestEntryDate
+        dateStr: records[0].bestEntryDate,
+        category: records[0].bestCategory || ''
       };
     }
 
@@ -4826,19 +4828,25 @@ function apiGetTrends(universe) {
     const recent   = rows.filter(r => r.date >= cutoff1 && r.date <= now);
     const previous = rows.filter(r => r.date >= cutoff2 && r.date < cutoff1);
 
-    function countByCategory(list) {
-      const m = {};
-      list.forEach(r => { m[r.category] = (m[r.category] || 0) + 1; });
-      return m;
+    function statsByCategory(list) {
+      const counts = {};
+      const points = {};
+      list.forEach(r => {
+        counts[r.category] = (counts[r.category] || 0) + 1;
+        points[r.category] = (points[r.category] || 0) + (Number(r.points) || 0);
+      });
+      return { counts, points };
     }
-    const recentByCat = countByCategory(recent);
-    const prevByCat   = countByCategory(previous);
-    const categories  = [...new Set([...Object.keys(recentByCat), ...Object.keys(prevByCat)])];
+    const recentCat = statsByCategory(recent);
+    const prevCat   = statsByCategory(previous);
+    const categories = [...new Set([...Object.keys(recentCat.counts), ...Object.keys(prevCat.counts)])];
     const categoryTrends = categories.map(cat => {
-      const before = prevByCat[cat] || 0;
-      const after  = recentByCat[cat] || 0;
+      const before = prevCat.counts[cat] || 0;
+      const after  = recentCat.counts[cat] || 0;
+      const beforePts = prevCat.points[cat] || 0;
+      const afterPts  = recentCat.points[cat] || 0;
       const changePct = before === 0 ? (after > 0 ? 100 : 0) : Math.round(((after - before) / before) * 100);
-      return { category: cat, before, after, changePct };
+      return { category: cat, before, after, beforePts, afterPts, changePct };
     }).sort((a, b) => b.changePct - a.changePct);
 
     const byPlayerAll = {};
@@ -4846,14 +4854,61 @@ function apiGetTrends(universe) {
     const playerTrends = Object.keys(byPlayerAll).map(player => {
       const all = byPlayerAll[player];
       const recentEntries = all.filter(r => r.date >= cutoff1 && r.date <= now);
-      if (!recentEntries.length) return null;
-      const historicalAvg = all.reduce((s, r) => s + r.points, 0) / all.length;
-      const recentAvg = recentEntries.reduce((s, r) => s + r.points, 0) / recentEntries.length;
-      const changePct = historicalAvg === 0 ? 0 : Math.round(((recentAvg - historicalAvg) / historicalAvg) * 100);
-      return { player, historicalAvg: Math.round(historicalAvg), recentAvg: Math.round(recentAvg), changePct };
+      const prevEntries   = all.filter(r => r.date >= cutoff2 && r.date < cutoff1);
+
+      if (!recentEntries.length && !prevEntries.length) return null;
+
+      const before = prevEntries.length;
+      const after  = recentEntries.length;
+      const beforePts = prevEntries.reduce((s, r) => s + (Number(r.points) || 0), 0);
+      const afterPts  = recentEntries.reduce((s, r) => s + (Number(r.points) || 0), 0);
+
+      // Pourcentage de variation calculé sur les entrées (ou points si entrées stables)
+      let changePct = 0;
+      if (before === 0) {
+        changePct = after > 0 ? 100 : 0;
+      } else if (after === 0) {
+        changePct = -100;
+      } else {
+        changePct = Math.round(((after - before) / before) * 100);
+      }
+
+      const historicalAvg = all.reduce((s, r) => s + (Number(r.points) || 0), 0) / (all.length || 1);
+      const recentAvg = recentEntries.length
+        ? recentEntries.reduce((s, r) => s + (Number(r.points) || 0), 0) / recentEntries.length
+        : 0;
+
+      return {
+        player,
+        before,
+        after,
+        beforePts,
+        afterPts,
+        changePct,
+        historicalAvg: Math.round(historicalAvg),
+        recentAvg: Math.round(recentAvg)
+      };
     }).filter(Boolean).sort((a, b) => b.changePct - a.changePct);
 
-    const res = { success: true, categoryTrends, playerTrends };
+    // Métriques globales de synthèse
+    const recentTotalEntries = recent.length;
+    const prevTotalEntries   = previous.length;
+    const entriesChangePct   = prevTotalEntries === 0 ? (recentTotalEntries > 0 ? 100 : 0) : Math.round(((recentTotalEntries - prevTotalEntries) / prevTotalEntries) * 100);
+
+    const recentTotalPoints  = recent.reduce((s, r) => s + (Number(r.points) || 0), 0);
+    const prevTotalPoints    = previous.reduce((s, r) => s + (Number(r.points) || 0), 0);
+    const pointsChangePct    = prevTotalPoints === 0 ? (recentTotalPoints > 0 ? 100 : 0) : Math.round(((recentTotalPoints - prevTotalPoints) / prevTotalPoints) * 100);
+
+    const summary = {
+      recentTotalEntries,
+      prevTotalEntries,
+      entriesChangePct,
+      recentTotalPoints,
+      prevTotalPoints,
+      pointsChangePct
+    };
+
+    const res = { success: true, categoryTrends, playerTrends, summary };
     _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
@@ -4869,15 +4924,46 @@ function apiGetActiveWeekday(universe) {
       try { return JSON.parse(raw); } catch (e) {}
     }
     const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
-    const counts = [0, 0, 0, 0, 0, 0, 0]; // index = Date.getDay(), 0 = dimanche
-    rows.forEach(r => { counts[r.date.getDay()]++; });
+    // 0 = Lundi, 1 = Mardi, ..., 5 = Samedi, 6 = Dimanche (standard ISO et français)
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    rows.forEach(r => {
+      // Date.getDay() : 0=Dimanche, 1=Lundi, ..., 6=Samedi
+      const isoWeekday = (r.date.getDay() + 6) % 7;
+      counts[isoWeekday]++;
+    });
 
-    const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-    const byWeekday = labels.map((label, i) => ({ weekday: label, count: counts[i] }));
+    const labels = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    const totalEntries = rows.length;
+    const byWeekday = labels.map((label, i) => ({
+      weekday: label,
+      count: counts[i],
+      pct: totalEntries ? Math.round((counts[i] / totalEntries) * 100) : 0
+    }));
+
     let topIndex = 0;
-    for (let i = 1; i < counts.length; i++) if (counts[i] > counts[topIndex]) topIndex = i;
+    for (let i = 1; i < counts.length; i++) {
+      if (counts[i] > counts[topIndex]) topIndex = i;
+    }
 
-    const res = { success: true, byWeekday, topWeekday: rows.length ? labels[topIndex] : null };
+    const weekdayCount = counts[0] + counts[1] + counts[2] + counts[3] + counts[4]; // Lun-Ven
+    const weekendCount = counts[5] + counts[6]; // Sam-Dim
+    const weekdayPct = totalEntries ? Math.round((weekdayCount / totalEntries) * 100) : 0;
+    const weekendPct = totalEntries ? Math.round((weekendCount / totalEntries) * 100) : 0;
+
+    const res = {
+      success: true,
+      byWeekday,
+      topWeekday: rows.length ? labels[topIndex] : null,
+      topWeekdayCount: rows.length ? counts[topIndex] : 0,
+      topWeekdayPct: rows.length && totalEntries ? Math.round((counts[topIndex] / totalEntries) * 100) : 0,
+      totalEntries,
+      weekdayVsWeekend: {
+        weekdayCount,
+        weekendCount,
+        weekdayPct,
+        weekendPct
+      }
+    };
     _cachePutChunked(cache, key, JSON.stringify(res), CONFIG.CACHE_TTL_SECONDS);
     return res;
   } catch(e) { return fail(e); }
@@ -4894,16 +4980,26 @@ function apiGetTopPlayerCategoryPairs(universe) {
     }
     const rows = isAlt ? AltStorageService.getAltLogs() : StorageService.getFullHistoryRowsCached();
     const counts = {};
+    const points = {};
     rows.forEach(r => {
       const key = r.player + '|' + r.category;
       counts[key] = (counts[key] || 0) + 1;
+      points[key] = (points[key] || 0) + (Number(r.points) || 0);
     });
     const pairs = Object.keys(counts)
       .map(key => {
         const sep = key.indexOf('|');
-        return { player: key.slice(0, sep), category: key.slice(sep + 1), count: counts[key] };
+        const c = counts[key];
+        const p = points[key];
+        return {
+          player: key.slice(0, sep),
+          category: key.slice(sep + 1),
+          count: c,
+          totalPoints: p,
+          avgPoints: Math.round(p / (c || 1))
+        };
       })
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => (b.count - a.count) || (b.totalPoints - a.totalPoints))
       .slice(0, 10);
 
     const res = { success: true, pairs };

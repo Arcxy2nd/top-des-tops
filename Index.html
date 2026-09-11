@@ -2588,6 +2588,190 @@
       color: var(--text-muted); margin: 16px 0 8px; display: flex; gap: 6px; align-items: center;
     }
     .sr-section:first-child { margin-top: 0; }
+
+    /* ── STATS HUB ENHANCEMENTS — Grilles KPI, split-bars & mentions ── */
+    .stats-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stats-kpi-card {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    body.light .stats-kpi-card { background: rgba(0, 0, 0, 0.03); }
+    .stats-kpi-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+    .stats-kpi-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stats-kpi-val {
+      font-size: 1.22rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .stats-kpi-val small {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .stats-kpi-sub {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .stats-badge-up {
+      color: var(--success);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .stats-badge-down {
+      color: var(--error);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .stats-badge-neutral {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Jauge Semaine vs Week-end */
+    .stats-split-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .stats-split-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--btn-alt);
+      overflow: hidden;
+      display: flex;
+      width: 100%;
+    }
+    .stats-split-segment.weekday {
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+    .stats-split-segment.weekend {
+      background: color-mix(in srgb, var(--accent) 40%, var(--border));
+      transition: width 0.3s ease;
+    }
+    .stats-split-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Grille héroïque des mentions */
+    .stats-mentions-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .stats-mention-card {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    body.light .stats-mention-card { background: rgba(0, 0, 0, 0.03); }
+    .stats-mention-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    }
+    .stats-mention-body { flex: 1; min-width: 0; }
+    .stats-mention-title {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .stats-mention-name {
+      font-weight: 800;
+      font-size: 0.96rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stats-mention-metric {
+      font-size: 1.22rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      line-height: 1;
+      margin-top: 4px;
+    }
+    .stats-mention-metric small {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+
+    /* Grille en 2 colonnes pour classements */
+    .stats-columns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .sr-streak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--warn) 20%, transparent);
+      color: color-mix(in srgb, var(--warn) 85%, var(--text));
+      border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+    }
     .hist-range-btn {
       padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
       background: var(--btn-alt); color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
@@ -4694,7 +4878,7 @@
           <button class="stats-hub-tab active" data-pane="records">🏅 Records</button>
           <button class="stats-hub-tab" data-pane="trends">📈 Tendances</button>
           <button class="stats-hub-tab" data-pane="weekday">📅 Jour actif</button>
-          <button class="stats-hub-tab" data-pane="pairs">🔁 Duo</button>
+          <button class="stats-hub-tab" data-pane="pairs">🎯 Combos</button>
           <button class="stats-hub-tab" data-pane="mentions">💬 Mentions</button>
         </div>
       </div>
@@ -4707,10 +4891,12 @@
           <button class="chart-type-btn" data-scope="player">Par joueur</button>
         </div>
         <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">30 derniers jours vs 30 jours précédents.</p>
-        <div class="chart-wrapper" style="height:280px;"><canvas id="trendsChart"></canvas></div>
+        <div id="trendsSummary" class="stats-kpi-grid" style="display:none;"></div>
+        <div class="chart-wrapper" id="trendsChartWrapper" style="height:280px;"><canvas id="trendsChart"></canvas></div>
         <div id="trendsEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Pas assez de données récentes.</div>
       </div>
       <div class="stats-hub-pane" data-pane="weekday">
+        <div id="weekdaySummary" class="stats-kpi-grid" style="display:none;"></div>
         <div class="chart-wrapper" style="height:240px;"><canvas id="weekdayChart"></canvas></div>
         <div id="weekdayEmpty" style="display:none;color:var(--text-muted);margin:10px 0;">Aucune donnée.</div>
       </div>
@@ -19252,6 +19438,19 @@
     container.appendChild(btn);
   }
 
+  function formatStatDate(dateStr) {
+    if (!dateStr) return '';
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime()) ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : String(dateStr);
+  }
+
   // ── RECORDS ──────────────────────────────────────────────────────────
   function scanRecords() {
     const container = document.getElementById('recordsResults');
@@ -19280,8 +19479,15 @@
         const b = document.createElement('div');
         b.className = 'sr-hero-body';
         const lab = document.createElement('div'); lab.className = 'sr-hero-label'; lab.textContent = 'Record absolu';
-        const nm  = document.createElement('div'); nm.className = 'sr-hero-name';  nm.textContent = gb.player;
-        const sub = document.createElement('div'); sub.className = 'sr-hero-sub';  sub.textContent = 'en une entrée · le ' + gb.dateStr;
+        const nm  = document.createElement('div'); nm.className = 'sr-hero-name';
+        nm.appendChild(document.createTextNode(gb.player));
+        if (gb.category) {
+          const pill = categoryPill(gb.category);
+          pill.style.marginLeft = '8px';
+          nm.appendChild(pill);
+        }
+        const sub = document.createElement('div'); sub.className = 'sr-hero-sub';
+        sub.textContent = 'en une seule entrée · le ' + formatStatDate(gb.dateStr);
         b.appendChild(lab); b.appendChild(nm); b.appendChild(sub);
         const pts = document.createElement('div'); pts.className = 'sr-hero-pts';
         pts.appendChild(document.createTextNode(gb.points));
@@ -19289,21 +19495,26 @@
         hero.appendChild(trophy); hero.appendChild(av); hero.appendChild(b); hero.appendChild(pts);
         container.appendChild(hero);
       }
-      if (res.records.length) {
+      if (res.records && res.records.length) {
         const list = document.createElement('div');
         list.className = 'sr-list';
         res.records.forEach((r, i) => {
+          let subText = 'record le ' + formatStatDate(r.bestEntryDate);
+          if (r.longestStreakDays >= 2) {
+            subText += ' · 🔥 ' + r.longestStreakDays + ' j d\'affilée';
+          }
           list.appendChild(buildStatRow({
             rank: i + 1,
             playerName: r.player,
             accent: playerColor(r.player),
-            sub: 'record le ' + r.bestEntryDate + ' · série ' + r.longestStreakDays + ' j',
+            nameSuffix: r.bestCategory ? categoryPill(r.bestCategory) : null,
+            sub: subText,
             value: r.bestSingleEntry, valueLabel: 'pts'
           }));
         });
         container.appendChild(list);
       } else if (!res.globalBest) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun record enregistré pour le moment.</p>';
       }
     }, 'Chargement records', err => {
       renderRetryableError(container, scanRecords);
@@ -19311,18 +19522,20 @@
   }
 
   // ── TENDANCES ────────────────────────────────────────────────────────
-  // Barres divergentes (vert/rouge autour de 0%) : plus lisible qu'une liste
-  // de pourcentages pour comparer d'un coup d'œil qui progresse ou régresse.
+  // Barres divergentes (vert/rouge autour de 0%) avec KPIs de synthèse et hauteur adaptative.
   let trendsScope = 'category';
   let _trendsData = null;
   let trendsChartInstance = null;
 
   function loadTrends() {
-    callServer('apiGetTrends', [activeDashboardUniverse], res => { _trendsData = res; renderTrends(); }, 'Chargement tendances', err => {
+    callServer('apiGetTrends', [activeDashboardUniverse], res => {
+      _trendsData = res;
+      renderTrends();
+    }, 'Chargement tendances', err => {
       const empty = document.getElementById('trendsEmpty');
-      const wrapper = document.getElementById('trendsChart')?.closest('.chart-wrapper');
-      // Texte distinct d'un "vraiment vide" : sans ça, une panne backend et une
-      // absence réelle de données affichaient exactement le même message.
+      const wrapper = document.getElementById('trendsChartWrapper') || document.getElementById('trendsChart')?.closest('.chart-wrapper');
+      const summaryEl = document.getElementById('trendsSummary');
+      if (summaryEl) summaryEl.style.display = 'none';
       if (empty) { empty.textContent = 'Données indisponibles.'; empty.style.display = 'block'; }
       if (wrapper) wrapper.style.display = 'none';
     });
@@ -19330,48 +19543,121 @@
 
   function renderTrends() {
     if (!_trendsData) return;
-    const rows = trendsScope === 'category' ? _trendsData.categoryTrends : _trendsData.playerTrends;
+    const isCat = (trendsScope === 'category');
+    const rows = isCat ? _trendsData.categoryTrends : _trendsData.playerTrends;
     const empty = document.getElementById('trendsEmpty');
-    const wrapper = document.getElementById('trendsChart').closest('.chart-wrapper');
-    if (!rows.length) {
+    const wrapper = document.getElementById('trendsChartWrapper') || document.getElementById('trendsChart').closest('.chart-wrapper');
+    const summaryEl = document.getElementById('trendsSummary');
+
+    if (!rows || !rows.length) {
+      if (summaryEl) summaryEl.style.display = 'none';
       empty.textContent = 'Pas assez de données récentes.';
-      empty.style.display = 'block'; wrapper.style.display = 'none';
+      empty.style.display = 'block';
+      wrapper.style.display = 'none';
       return;
     }
-    empty.style.display = 'none'; wrapper.style.display = '';
+    empty.style.display = 'none';
+    wrapper.style.display = '';
+
+    // KPI Cards de synthèse
+    if (summaryEl) {
+      summaryEl.innerHTML = '';
+      summaryEl.style.display = 'grid';
+
+      const sorted = rows.slice().sort((a, b) => b.changePct - a.changePct);
+      const topUp   = sorted.find(r => r.changePct > 0);
+      const topDown = sorted.slice().reverse().find(r => r.changePct < 0);
+
+      // Carte 1 : Plus forte progression
+      const cardUp = document.createElement('div');
+      cardUp.className = 'stats-kpi-card';
+      const upName = topUp ? (isCat ? topUp.category : topUp.player) : 'Aucun';
+      const upVal = topUp ? '+' + topUp.changePct + '%' : 'Stable';
+      const upSub = topUp ? upName + ' (' + topUp.before + ' → ' + topUp.after + ' entrées)' : 'Aucune hausse récente';
+      cardUp.innerHTML = '<div class="stats-kpi-label">🚀 Progression</div>' +
+        '<div class="stats-kpi-val ' + (topUp ? 'stats-badge-up' : 'stats-badge-neutral') + '">' + escapeHtml(upVal) + '</div>' +
+        '<div class="stats-kpi-sub">' + escapeHtml(upSub) + '</div>';
+      summaryEl.appendChild(cardUp);
+
+      // Carte 2 : Plus fort recul
+      const cardDown = document.createElement('div');
+      cardDown.className = 'stats-kpi-card';
+      const downName = topDown ? (isCat ? topDown.category : topDown.player) : 'Aucun';
+      const downVal = topDown ? topDown.changePct + '%' : '0%';
+      const downSub = topDown ? downName + ' (' + topDown.before + ' → ' + topDown.after + ' entrées)' : 'Aucune baisse récente';
+      cardDown.innerHTML = '<div class="stats-kpi-label">💤 Recul</div>' +
+        '<div class="stats-kpi-val ' + (topDown ? 'stats-badge-down' : 'stats-badge-neutral') + '">' + escapeHtml(downVal) + '</div>' +
+        '<div class="stats-kpi-sub">' + escapeHtml(downSub) + '</div>';
+      summaryEl.appendChild(cardDown);
+
+      // Carte 3 : Volume global 30 jours
+      if (_trendsData.summary) {
+        const sm = _trendsData.summary;
+        const cardSum = document.createElement('div');
+        cardSum.className = 'stats-kpi-card';
+        const sign = sm.entriesChangePct >= 0 ? '+' : '';
+        const badgeCls = sm.entriesChangePct > 0 ? 'stats-badge-up' : (sm.entriesChangePct < 0 ? 'stats-badge-down' : 'stats-badge-neutral');
+        cardSum.innerHTML = '<div class="stats-kpi-label">📊 Activité 30j</div>' +
+          '<div class="stats-kpi-val">' + escapeHtml(sm.recentTotalEntries) + ' <small class="' + escapeHtml(badgeCls) + '">' + escapeHtml(sign) + escapeHtml(sm.entriesChangePct) + '%</small></div>' +
+          '<div class="stats-kpi-sub">' + escapeHtml(sm.recentTotalPoints) + ' pts cumulés (' + escapeHtml(sm.prevTotalEntries) + ' entrées préc.)</div>';
+        summaryEl.appendChild(cardSum);
+      }
+    }
 
     const sorted = rows.slice().sort((a, b) => b.changePct - a.changePct);
-    const labels = sorted.map(r => trendsScope === 'category' ? r.category : r.player);
+    const labels = sorted.map(r => isCat ? r.category : r.player);
     const values = sorted.map(r => r.changePct);
+
+    // Ajustement dynamique de la hauteur pour confort visuel optimal
+    const desiredHeight = Math.max(260, Math.min(600, sorted.length * 42));
+    wrapper.style.height = desiredHeight + 'px';
+
     const c = getChartColors();
     const success = getComputedStyle(document.body).getPropertyValue('--success').trim();
     const error   = getComputedStyle(document.body).getPropertyValue('--error').trim();
-    const colors  = values.map(v => v >= 0 ? success : error);
+    const colors  = values.map(v => v > 0 ? success : (v < 0 ? error : c.muted));
 
     if (trendsChartInstance) trendsChartInstance.destroy();
     trendsChartInstance = new Chart(document.getElementById('trendsChart').getContext('2d'), {
       type: 'bar',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4 }] },
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
       options: {
         indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
               label: ctx => {
                 const r = sorted[ctx.dataIndex];
-                const detail = trendsScope === 'category'
-                  ? r.before + ' → ' + r.after + ' entrées'
-                  : 'moyenne ' + r.historicalAvg + ' → ' + r.recentAvg + ' pts';
-                return (r.changePct >= 0 ? '+' : '') + r.changePct + '% (' + detail + ')';
+                const prefix = r.changePct > 0 ? '+' : '';
+                const ptsInfo = (r.afterPts != null) ? ' · ' + (r.afterPts || 0) + ' pts' : '';
+                return prefix + r.changePct + '% (' + r.before + ' → ' + r.after + ' entrées' + ptsInfo + ')';
               }
             }
           }
         },
         scales: {
-          x: { ticks: { color: c.muted, callback: v => v + '%' }, grid: { color: c.grid } },
-          y: { ticks: { color: c.text }, grid: { display: false } }
+          x: {
+            ticks: {
+              color: c.muted,
+              callback: v => (v > 0 ? '+' : '') + v + '%'
+            },
+            grid: { color: c.grid }
+          },
+          y: {
+            ticks: { color: c.text, font: { weight: '600' } },
+            grid: { display: false }
+          }
         }
       }
     });
@@ -19384,14 +19670,61 @@
     callServer('apiGetActiveWeekday', [activeDashboardUniverse], res => {
       const empty = document.getElementById('weekdayEmpty');
       const wrapper = document.getElementById('weekdayChart').closest('.chart-wrapper');
-      if (!res.topWeekday) {
+      const summaryEl = document.getElementById('weekdaySummary');
+
+      if (!res.topWeekday || !res.totalEntries) {
+        if (summaryEl) summaryEl.style.display = 'none';
         empty.textContent = 'Aucune donnée.';
-        empty.style.display = 'block'; wrapper.style.display = 'none';
+        empty.style.display = 'block';
+        wrapper.style.display = 'none';
         return;
       }
-      empty.style.display = 'none'; wrapper.style.display = '';
+      empty.style.display = 'none';
+      wrapper.style.display = '';
+
+      // KPI Summary cards + Jauge
+      if (summaryEl) {
+        summaryEl.innerHTML = '';
+        summaryEl.style.display = 'grid';
+
+        const cardTop = document.createElement('div');
+        cardTop.className = 'stats-kpi-card';
+        cardTop.innerHTML = '<div class="stats-kpi-label">🌟 Jour champion</div>' +
+          '<div class="stats-kpi-val">' + escapeHtml(res.topWeekday) + '</div>' +
+          '<div class="stats-kpi-sub">' + escapeHtml(res.topWeekdayCount) + ' entrée(s) · ' + escapeHtml(res.topWeekdayPct) + '% de l\'activité</div>';
+        summaryEl.appendChild(cardTop);
+
+        const cardWd = document.createElement('div');
+        cardWd.className = 'stats-kpi-card';
+        cardWd.innerHTML = '<div class="stats-kpi-label">🏢 En semaine</div>' +
+          '<div class="stats-kpi-val">' + escapeHtml(res.weekdayVsWeekend.weekdayPct) + '%</div>' +
+          '<div class="stats-kpi-sub">' + escapeHtml(res.weekdayVsWeekend.weekdayCount) + ' entrées du Lundi au Vendredi</div>';
+        summaryEl.appendChild(cardWd);
+
+        const cardWe = document.createElement('div');
+        cardWe.className = 'stats-kpi-card';
+        cardWe.innerHTML = '<div class="stats-kpi-label">🏖️ En week-end</div>' +
+          '<div class="stats-kpi-val">' + escapeHtml(res.weekdayVsWeekend.weekendPct) + '%</div>' +
+          '<div class="stats-kpi-sub">' + escapeHtml(res.weekdayVsWeekend.weekendCount) + ' entrées Samedi & Dimanche</div>';
+        summaryEl.appendChild(cardWe);
+
+        const splitWrap = document.createElement('div');
+        splitWrap.className = 'stats-split-wrap';
+        splitWrap.style.gridColumn = '1 / -1';
+        splitWrap.innerHTML = '<div class="stats-split-bar">' +
+          '<div class="stats-split-segment weekday" style="width:' + escapeHtml(res.weekdayVsWeekend.weekdayPct) + '%;" title="Semaine: ' + escapeHtml(res.weekdayVsWeekend.weekdayPct) + '%"></div>' +
+          '<div class="stats-split-segment weekend" style="width:' + escapeHtml(res.weekdayVsWeekend.weekendPct) + '%;" title="Week-end: ' + escapeHtml(res.weekdayVsWeekend.weekendPct) + '%"></div>' +
+          '</div>' +
+          '<div class="stats-split-legend">' +
+          '<span>🏢 Semaine (' + escapeHtml(res.weekdayVsWeekend.weekdayPct) + '%)</span>' +
+          '<span>🏖️ Week-end (' + escapeHtml(res.weekdayVsWeekend.weekendPct) + '%)</span>' +
+          '</div>';
+        summaryEl.appendChild(splitWrap);
+      }
+
       const c = getChartColors();
       const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim();
+      const mutedBar = tint(accent, 0.70);
 
       if (weekdayChartInstance) weekdayChartInstance.destroy();
       weekdayChartInstance = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
@@ -19400,19 +19733,27 @@
           labels: res.byWeekday.map(w => w.weekday),
           datasets: [{
             data: res.byWeekday.map(w => w.count),
-            backgroundColor: res.byWeekday.map(w => w.weekday === res.topWeekday ? accent : tint(accent, 0.75)),
-            borderRadius: 4
+            backgroundColor: res.byWeekday.map(w => w.weekday === res.topWeekday ? accent : mutedBar),
+            borderRadius: 6,
+            borderSkipped: false
           }]
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
+          responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Jour le plus actif : ' + res.topWeekday, color: c.text, font: { weight: '700' }, padding: { bottom: 10 } },
-            tooltip: { callbacks: { label: ctx => ctx.raw + ' entrée(s)' } }
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const item = res.byWeekday[ctx.dataIndex];
+                  return ctx.raw + ' entrée(s) (' + (item ? item.pct : 0) + '% du total)';
+                }
+              }
+            }
           },
           scales: {
-            x: { ticks: { color: c.muted }, grid: { display: false } },
+            x: { ticks: { color: c.text, font: { weight: '600' } }, grid: { display: false } },
             y: { ticks: { color: c.muted, precision: 0 }, grid: { color: c.grid } }
           }
         }
@@ -19420,81 +19761,178 @@
     }, 'Chargement jour actif', err => {
       const empty = document.getElementById('weekdayEmpty');
       const wrapper = document.getElementById('weekdayChart')?.closest('.chart-wrapper');
+      const summaryEl = document.getElementById('weekdaySummary');
+      if (summaryEl) summaryEl.style.display = 'none';
       if (empty) { empty.textContent = 'Données indisponibles.'; empty.style.display = 'block'; }
       if (wrapper) wrapper.style.display = 'none';
     });
   }
 
-  // ── DUO LE PLUS FRÉQUENT ─────────────────────────────────────────────
+  // ── COMBOS LE PLUS FRÉQUENT ──────────────────────────────────────────
   function scanTopPairs() {
     const container = document.getElementById('pairsResults');
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetTopPlayerCategoryPairs', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      if (!res.pairs.length) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune donnée.</p>';
+      if (!res.pairs || !res.pairs.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucun combo trouvé pour le moment.</p>';
         return;
       }
       const list = document.createElement('div');
       list.className = 'sr-list';
       res.pairs.forEach((pair, i) => {
+        const sub = (pair.totalPoints != null)
+          ? pair.totalPoints + ' pts cumulés · moyenne ' + (pair.avgPoints || Math.round(pair.totalPoints / pair.count)) + ' pts/entrée'
+          : pair.count + ' entrées enregistrées';
         list.appendChild(buildStatRow({
           rank: i + 1,
           playerName: pair.player,
           accent: playerColor(pair.player),
           nameSuffix: categoryPill(pair.category),
-          value: pair.count, valueLabel: 'fois'
+          sub,
+          value: pair.count,
+          valueLabel: 'fois'
         }));
       });
       container.appendChild(list);
-    }, 'Chargement duos fréquents', err => {
+    }, 'Chargement combos fréquents', err => {
       renderRetryableError(container, scanTopPairs);
     });
   }
 
   // ── MENTIONS ─────────────────────────────────────────────────────────
-  function mentionSection(container, icon, label) {
-    const h = document.createElement('div');
-    h.className = 'sr-section';
-    h.textContent = icon + ' ' + label;
-    container.appendChild(h);
-    const list = document.createElement('div');
-    list.className = 'sr-list';
-    container.appendChild(list);
-    return list;
-  }
-
   function loadMentionStats() {
     const container = document.getElementById('mentionsResults');
     showSkeleton(container, { rows: 3, height: 30 });
     callServer('apiGetMentionStats', [activeDashboardUniverse], res => {
       container.innerHTML = '';
-      if (res.mostMentioned.length) {
-        const list = mentionSection(container, '📣', 'Les plus mentionnés');
-        res.mostMentioned.forEach((m, i) => list.appendChild(buildStatRow({
-          rank: i + 1, playerName: m.player, accent: playerColor(m.player),
-          value: m.count, valueLabel: 'mentions'
-        })));
+      const hasMentioned = res.mostMentioned && res.mostMentioned.length > 0;
+      const hasMentioning = res.mostMentioning && res.mostMentioning.length > 0;
+      const hasDuo = !!res.topDuo;
+
+      if (!hasMentioned && !hasMentioning && !hasDuo) {
+        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention "@Joueur" trouvée dans l\'historique ou les notes.</p>';
+        return;
       }
-      if (res.mostMentioning.length) {
-        const list = mentionSection(container, '✍️', 'Ceux qui mentionnent le plus');
-        res.mostMentioning.forEach((m, i) => list.appendChild(buildStatRow({
-          rank: i + 1, playerName: m.player, accent: playerColor(m.player),
-          value: m.count, valueLabel: 'écrites'
-        })));
+
+      // 1. Grille héroïque des faits marquants (3 cartes)
+      const heroGrid = document.createElement('div');
+      heroGrid.className = 'stats-mentions-hero-grid';
+
+      const mkMentionAvatar = who => {
+        const img = document.createElement('img');
+        img.className = 'sr-avatar';
+        img.alt = who || '';
+        img.src = getAvatarUrl(who, playerMetaOf(who));
+        img.onerror = () => {
+          img.onerror = () => {
+            const initials = document.createElement('span');
+            initials.className = 'sr-avatar sr-avatar-initials';
+            initials.textContent = (who || '?').slice(0, 2).toUpperCase();
+            if (img.parentNode) img.parentNode.replaceChild(initials, img);
+          };
+          img.src = getAvatarUrl(who, '');
+        };
+        return img;
+      };
+
+      if (hasMentioned) {
+        const topM = res.mostMentioned[0];
+        const card = document.createElement('div');
+        card.className = 'stats-mention-card';
+        if (playerColor(topM.player)) card.style.setProperty('--sr-accent', playerColor(topM.player));
+        card.appendChild(mkMentionAvatar(topM.player));
+        const b = document.createElement('div');
+        b.className = 'stats-mention-body';
+        b.innerHTML = '<div class="stats-mention-title">📣 Plus mentionné(e)</div>' +
+          '<div class="stats-mention-name">' + escapeHtml(topM.player) + '</div>' +
+          '<div class="stats-mention-metric">' + escapeHtml(topM.count) + '<small>mentions reçues</small></div>';
+        card.appendChild(b);
+        heroGrid.appendChild(card);
       }
-      if (res.topDuo) {
-        const list = mentionSection(container, '🔗', 'Duo le plus complice');
-        list.appendChild(buildStatRow({
-          badge: '🤝',
-          playerName: res.topDuo.playerA, secondPlayer: res.topDuo.playerB,
-          accent: playerColor(res.topDuo.playerA),
-          value: res.topDuo.count, valueLabel: 'croisées'
-        }));
+
+      if (hasMentioning) {
+        const topW = res.mostMentioning[0];
+        const card = document.createElement('div');
+        card.className = 'stats-mention-card';
+        if (playerColor(topW.player)) card.style.setProperty('--sr-accent', playerColor(topW.player));
+        card.appendChild(mkMentionAvatar(topW.player));
+        const b = document.createElement('div');
+        b.className = 'stats-mention-body';
+        b.innerHTML = '<div class="stats-mention-title">✍️ Plus bavard(e)</div>' +
+          '<div class="stats-mention-name">' + escapeHtml(topW.player) + '</div>' +
+          '<div class="stats-mention-metric">' + escapeHtml(topW.count) + '<small>citations rédigées</small></div>';
+        card.appendChild(b);
+        heroGrid.appendChild(card);
       }
-      if (!res.mostMentioned.length && !res.mostMentioning.length && !res.topDuo) {
-        container.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Aucune mention trouvée.</p>';
+
+      if (hasDuo) {
+        const d = res.topDuo;
+        const card = document.createElement('div');
+        card.className = 'stats-mention-card';
+        if (playerColor(d.playerA)) card.style.setProperty('--sr-accent', playerColor(d.playerA));
+        const cluster = document.createElement('div');
+        cluster.className = 'sr-avatar-cluster';
+        cluster.appendChild(mkMentionAvatar(d.playerA));
+        cluster.appendChild(mkMentionAvatar(d.playerB));
+        card.appendChild(cluster);
+        const b = document.createElement('div');
+        b.className = 'stats-mention-body';
+        b.innerHTML = '<div class="stats-mention-title">🤝 Duo complice</div>' +
+          '<div class="stats-mention-name">' + escapeHtml(d.playerA) + ' & ' + escapeHtml(d.playerB) + '</div>' +
+          '<div class="stats-mention-metric">' + escapeHtml(d.count) + '<small>mentions croisées</small></div>';
+        card.appendChild(b);
+        heroGrid.appendChild(card);
       }
+      container.appendChild(heroGrid);
+
+      // 2. Grille à 2 colonnes pour classements détaillés
+      const colsGrid = document.createElement('div');
+      colsGrid.className = 'stats-columns-grid';
+
+      if (hasMentioned) {
+        const col1 = document.createElement('div');
+        const h1 = document.createElement('div');
+        h1.className = 'sr-section';
+        h1.textContent = '📣 Top 5 des joueurs les plus cités';
+        col1.appendChild(h1);
+        const list1 = document.createElement('div');
+        list1.className = 'sr-list';
+        res.mostMentioned.slice(0, 5).forEach((m, i) => {
+          list1.appendChild(buildStatRow({
+            rank: i + 1,
+            playerName: m.player,
+            accent: playerColor(m.player),
+            value: m.count,
+            valueLabel: 'mentions'
+          }));
+        });
+        col1.appendChild(list1);
+        colsGrid.appendChild(col1);
+      }
+
+      if (hasMentioning) {
+        const col2 = document.createElement('div');
+        const h2 = document.createElement('div');
+        h2.className = 'sr-section';
+        h2.textContent = '✍️ Top 5 des auteurs les plus actifs';
+        col2.appendChild(h2);
+        const list2 = document.createElement('div');
+        list2.className = 'sr-list';
+        res.mostMentioning.slice(0, 5).forEach((m, i) => {
+          list2.appendChild(buildStatRow({
+            rank: i + 1,
+            playerName: m.player,
+            accent: playerColor(m.player),
+            value: m.count,
+            valueLabel: 'écrites'
+          }));
+        });
+        col2.appendChild(list2);
+        colsGrid.appendChild(col2);
+      }
+
+      container.appendChild(colsGrid);
     }, 'Chargement mentions', err => {
       renderRetryableError(container, loadMentionStats);
     });
