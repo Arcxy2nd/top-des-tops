@@ -169,6 +169,14 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   // Mini calendar width and cell height are compact
   assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*0\s+0\s+200px/s);
   assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*18px/s);
+
+  // "Du" and "Au" are stacked vertically
+  assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-direction:\s*column/s);
+
+  // Calculation mode title and options are grouped in .d-period-calc-group with compact spacing
+  assert.match(html, /\.d-period-calc-group\s*\{/);
+  assert.match(html, /calcGroup\.className\s*=\s*'d-period-calc-group'/);
+  assert.match(html, /\.fill-choice\s*\{[^}]*flex-direction:\s*column/s);
 });
 
 

@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.10] - 2026-09-13
+
+### Modifié
+**Humanisé** : En mode période de saisie de lot, les dates « Du » et « Au » sont désormais superposées verticalement avec des champs élargis, et le bloc des modes de calcul est compacté sans espaces superflus.
+**Technique** :
+- `Index.html` :
+  - `.d-period-dates-row` passe en `flex-direction: column` avec alignement vertical des sélecteurs de début et de fin (`Du` / `Au`), largeur 100% et largeur minimale des libellés (`min-width: 24px`) garantissant un alignement visuel parfait.
+  - Regroupement du titre et des options de score dans `.d-period-calc-group`, resserrement des espacements (`gap: 2px` dans `.fill-choice`), réduction de la hauteur des options `.fill-opt` (`padding: 3px 7px`, `min-height: 23px`, `font-size: 0.74rem`, `line-height: 1.25`) et compacité du récapitulatif `.d-fill-preview`.
+- `AutoPoints.gs` : fiabilisation du calcul de la date courante avec repli `_dayKey(now)` évitant un décalage de fuseau horaire en environnement sans `Utilities`.
+- `tests/lot-period.test.js` : assertions de non-régression sur la disposition verticale `.d-period-dates-row` et la structure `.d-period-calc-group`.
+
 ## [v3.30.9] - 2026-09-11
 
 ### Modifié

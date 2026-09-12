@@ -1547,16 +1547,20 @@
     .d-period-left-col {
       display: flex; flex-direction: column; gap: 6px; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 7px 9px; flex: 1 1 230px; min-width: 210px; box-sizing: border-box;
+      padding: 7px 9px; flex: 1 1 220px; min-width: 200px; box-sizing: border-box;
     }
     .d-period-dates-row {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: 4px; width: 100%;
     }
     .d-period-input-group {
-      display: flex; align-items: center; gap: 4px; flex: 1 1 auto;
+      display: flex; align-items: center; gap: 6px; width: 100%;
     }
     .d-period-lbl {
-      font-size: 0.72rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;
+      font-size: 0.72rem; color: var(--text-muted); font-weight: 700; white-space: nowrap; min-width: 24px;
+    }
+    .d-period-input-group .d-start,
+    .d-period-input-group .d-end {
+      flex: 1 1 auto; width: 100%; min-width: 0;
     }
     .d-period-shortcuts {
       display: flex; align-items: center; gap: 3px; flex-wrap: wrap; width: 100%;
@@ -1594,20 +1598,23 @@
 
     /* Colonne 3 : Mode de calcul du score + Aperçu live */
     .d-period-right-col {
-      display: flex; flex-direction: column; gap: 5px; justify-content: space-between;
+      display: flex; flex-direction: column; gap: 6px; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 7px 9px; flex: 1 1 240px; min-width: 210px; box-sizing: border-box;
+      padding: 7px 9px; flex: 1 1 220px; min-width: 200px; box-sizing: border-box;
+    }
+    .d-period-calc-group {
+      display: flex; flex-direction: column; gap: 3px;
     }
     .d-period-right-title {
-      font-size: 0.72rem; color: var(--text-muted); font-weight: 700;
+      font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 1px;
     }
     .fill-choice {
-      display: flex; flex-direction: column; gap: 4px; margin: 0;
+      display: flex; flex-direction: column; gap: 2px; margin: 0;
     }
     .fill-opt {
-      text-align: left; padding: 4px 8px; border-radius: 6px;
+      text-align: left; padding: 3px 7px; border-radius: 5px;
       background: var(--btn-alt); border: 1px solid var(--border); color: var(--text-muted);
-      font-family: inherit; font-size: 0.76rem; font-weight: 600; cursor: pointer; min-height: 26px;
+      font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer; min-height: 23px; line-height: 1.25;
       transition: background 0.12s, color 0.12s, border-color 0.12s;
     }
     .fill-opt::before { content: '○ '; }
@@ -1619,7 +1626,7 @@
       font-size: 0.72rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums;
       background: color-mix(in srgb, var(--accent) 10%, transparent);
       border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-      border-radius: 6px; padding: 4px 8px; box-sizing: border-box; text-align: center;
+      border-radius: 6px; padding: 3px 6px; box-sizing: border-box; text-align: center;
     }
     .d-fill-preview:empty { display: none; }
     .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
@@ -13920,6 +13927,9 @@
     const periodRightCol = document.createElement('div');
     periodRightCol.className = 'd-period-right-col';
 
+    const calcGroup = document.createElement('div');
+    calcGroup.className = 'd-period-calc-group';
+
     const fillTitle = document.createElement('div');
     fillTitle.className = 'd-period-right-title';
     fillTitle.textContent = 'Mode de calcul :';
@@ -13929,11 +13939,13 @@
       updateLotSummary();
     });
 
+    calcGroup.appendChild(fillTitle);
+    calcGroup.appendChild(fillToggle);
+
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
 
-    periodRightCol.appendChild(fillTitle);
-    periodRightCol.appendChild(fillToggle);
+    periodRightCol.appendChild(calcGroup);
     periodRightCol.appendChild(fillPreview);
 
     periodPanel.appendChild(periodLeftCol);

@@ -1,4 +1,4 @@
-# CONTEXTE PROJET : TOP-DES-TOPS (v2026.07)
+# CONTEXTE PROJET : TOP-DES-TOPS (v2026.09)
 
 ---
 
@@ -89,7 +89,7 @@ Hébergée sur **Google Apps Script** — pas de serveur, pas de base de donnée
 | Tests       | Node.js test runner natif (`node --test`, `npm test`, `npm run verify`), VM GAS et stubs DOM |
 | Déploiement | Web App GAS (`/exec` URL) |
 
-Pas de build, pas de framework, aucune dépendance npm à l'exécution. Deux librairies sont chargées depuis un CDN dans `<head>` (Chart.js, GSAP) et trois à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
+Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seule librairie d'affichage est chargée depuis un CDN dans `<head>` (Chart.js 4.5.1 ; GSAP et Lenis ont été retirés en v2.2.0 et v3.28.0 au profit de l'API Web Animations native pour alléger le bundle et fluidifier le rendu) et trois bibliothèques sont chargées à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
 
 ---
 
@@ -110,15 +110,15 @@ Settings      : Key | Value
 AltCategories : Name | Description | Emoji | Hex color
 AltHistory    : Date | Player | Category | Points | Description | [RefHistoryRowId] | [GroupId] | [Saiseur]
 AutoRules     : ID | Joueur | Catégorie | Points | Description | Fréquence | Intervalle | JoursSemaine | JourMois | DateDébut | ProchaineExécution | DernièreExécution | Actif | CrééPar
+Aggregates    : Vue matérialisée persistante (totaux, métriques par joueur/catégorie/mois, lastEvent, globalBest)
 ```
 
-Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory** et **AutoRules** sont optionnelles — créées automatiquement si absentes.
+Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
 
 ### Ligne 1 : en-tête non garanti
 
-`History`, `Players` et `Categories` ne sont **jamais** créées par l'app (elle refuse de démarrer sans elles) : elles ont été faites à la main et, dans les deux instances réelles, **n'ont pas de ligne de titres** — la ligne 1 contient une vraie donnée. Aucune lecture ne doit donc supposer un en-tête.
-
-Règle : passer par `_readDataRows()` / `_firstDataRow()` / `_headerOffsetFromValues()` (socle `SHEET_HEADERS` + `_isHeaderRow()` en tête de `Code.gs`). Jamais de `data.slice(1)`, de `getRange(2, …)`, de `rowIndex = i + 2` ni de garde `rowIndex < 2` en dur — chacun de ces motifs rend invisible la première entité de la feuille (et la masque au contrôle de doublon, ce qui permet de la recréer). Vaut aussi pour les écritures : ne jamais écrire de libellé en ligne 1 sans avoir vérifié l'offset.
+`History`, `Players` et `Categories` ne sont **jamais** créées par l'app (elle refuse de démarrer sans elles) : elles ont été faites à la main et, dans les deux instances réelles, **pouvaient ne pas avoir de ligne de titres** (la ligne 1 contenait une vraie donnée). Depuis la v3.23.0, l'application assure la génération transparente des en-têtes officiels en ligne 1 (`CANONICAL_SHEET_HEADERS` et `_ensureSheetHeaders()`).
+Néanmoins, pour garantir une résilience totale et éviter de masquer le premier élément ou de créer des doublons, toute lecture doit continuer à passer strictement par `_readDataRows()` / `_firstDataRow()` / `_headerOffsetFromValues()` (socle `SHEET_HEADERS` + `_isHeaderRow()` en tête de `Code.gs`). Jamais de `data.slice(1)`, de `getRange(2, …)`, de `rowIndex = i + 2` ni de garde `rowIndex < 2` en dur. Vaut aussi pour les écritures : ne jamais écrire de libellé en ligne 1 sans avoir vérifié l'offset.
 
 ---
 
@@ -140,6 +140,8 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `SettingsSheetService` | Gestion des paramètres de l'application dans la feuille Settings |
 | `AltSettingsService` / `AltStorageService` | Gestion des catégories et scores du Top Alt |
 | `AutoRulesService` | Gestion et exécution automatique des règles récurrentes de points |
+| `AggregatesService` | Maintien incrémental de la vue matérialisée (totaux, métriques, lastEvent, globalBest) avec cache multi-niveaux |
+| `BackupService` | Création de copies complètes / instantanés (snapshots) sur Google Drive |
 
 ---
 
@@ -151,14 +153,14 @@ Fichier HTML/CSS/JS monofichier.
 
 | Onglet | Contenu |
 |--------|---------|
-| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires, puis en bas : Records, Tendances, Jour le plus actif, Duo le plus fréquent |
-| ✍️ Saisir un Lot | Constructeur de lignes de score (joueur + Top + points + date), saisie batch |
-| ⚙️ Paramètres | Gestion joueurs, catégories, barème, presets de phrases, sous-onglet 🔧 Outils |
+| 📊 Dashboard | Filtres croisés, sélecteur de graphique, graphique principal, card Commentaires, Hub Statistiques repliable (5 volets à chargement à la demande : Records, Tendances, Jour actif, Combos, Mentions) |
+| ✍️ Saisir un Lot | Constructeur de lignes de score (joueur + Top + points + date), saisie batch, support des Tops Alternatifs et sous-tops |
+| ⚙️ Paramètres | Gestion joueurs, catégories, barème, presets de phrases, automatisations, sous-onglet 🔧 Outils |
 | 📝 Notes | Notes libres par joueur |
-| 📜 Historique | Tableau paginé des entrées, filtres, édition description, suppression, sous-onglet 🔍 Journal d'audit |
-| ❓ Guide | Documentation inline |
+| 📜 Historique | Tableau paginé des entrées, sélection groupée in-memory avec case maîtresse de lot, filtres, édition description/lot, suppression, sous-onglet 🔍 Journal d'audit (avec annulation 1-clic) |
+| ❓ Guide | Documentation inline thématique et recherche dynamique |
 
-`🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé, nettoyage (zéros/orphelins/doublons/scores aberrants), détection/regroupement de lots répartis, groupes hérités, joueurs inactifs, points automatiques.
+`🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé (avec efficacité du cache et détection d'homonymes), nettoyage (zéros/orphelins/doublons ; les outils "scores aberrants" et "joueurs inactifs" ont été retirés en v3.15.1), détection/regroupement de lots répartis, groupes hérités, points automatiques, recalcul des agrégats et création d'instantanés (snapshots Google Drive).
 
 ### Tchat flottant
 
@@ -202,11 +204,15 @@ Widget indépendant des graphiques, toujours visible dans le Dashboard. Affiche 
 
 ### Patterns frontend clés
 
-- `callServer()` — wrapper centralisé pour tous les appels `google.script.run`, avec gestion d'erreur
+- `callServer()` — wrapper centralisé pour tous les appels `google.script.run`, avec gestion d'erreur et transmission automatique du mot de passe de session (`_identityPassword`) pour les fonctions de mutation listées dans `_MUTATING_APIS`
 - `showToast()` — notifications non-bloquantes avec option undo (5 secondes)
+- Démarrage instantané via bootstrap composite (`apiGetBootstrapData`) en 1 seul roundtrip RPC regroupant les 10 requêtes d'initialisation, avec stratégie stale-while-revalidate (`tdt_dashboard_cache`) et repli `fallbackBootLoad()`
 - Le dernier classement affiché est gardé en mémoire pour permettre un "Nouveau tirage" sans rechargement
-- Thème dark/light persisté en localStorage
-- Sélection d'identité : si mot de passe défini → modale de confirmation → vérification côté serveur
+- Thème dark/light persisté en localStorage (avec classe temporaire `body.theme-switching` neutralisant les transitions pour éliminer les flashs de couleur)
+- Sélection d'identité : si mot de passe défini dans `Players` (stocké en clair pour les gestionnaires humains, suite à l'annulation du hachage v3.21.0) → modale de confirmation → vérification côté serveur et validation systématique par `requireAuthor(author, password)` sur toutes les fonctions d'écriture
+- Filtrage in-memory côté client sans requête réseau lorsque seules les puces joueurs/catégories changent à dates constantes
+- Éléments flottants ancrés dynamiquement via `anchorFloating()` et modales gérées par pile `openModal()` / `closeModal()` avec capture Échap, piège de tabulation et retour de focus
+- Assemblage groupé du DOM via `DocumentFragment` pour éliminer le layout thrashing lors du rendu des listes (Historique, Notes)
 
 ### Filtres croisés
 
@@ -296,6 +302,10 @@ Toute action qui modifie des données (créer, éditer, supprimer, dissocier, ac
 
 Toute action qui modifie des données doit être consignée dans le journal d'audit (`AuditService.log()`), avec l'auteur, l'action, la cible et un résumé du changement. Une action qui écrit dans le Sheet sans laisser de trace dans le journal est incomplète.
 
+### Adressage strict par rowIndex et protection contre les homonymes
+
+Toute manipulation d'entité existante (Joueur, Top, Barème, Phrase, Note, Historique) doit cibler la ligne physique par son numéro de ligne exact (`rowIndex`) combiné à une vérification du libellé attendu (`expectedName`), et **jamais par nom seul sur toute la feuille**. Si deux joueurs portent le même nom, le ciblage par nom modifie ou supprime silencieusement la première occurrence trouvée. En cas d'homonymie détectée, le renommage est strictement bloqué par le serveur. Ne jamais implémenter de mécanisme de fusion automatique d'homonymes — cela violerait l'intégrité des données réelles (incident documenté).
+
 ### Exhaustivité obligatoire — pas de fonctionnalité à moitié posée
 
 Quand une fonctionnalité s'applique à un type de champ (markdown/mentions sur les descriptions, avatar sur un nom de joueur…), elle doit être posée sur **toutes** les instances de ce champ dans l'app, pas seulement celles rencontrées en premier. Avant de considérer une fonctionnalité terminée, lister explicitement tous les endroits où ce champ existe (grep sur son nom, son placeholder, son pattern d'input) et vérifier chacun un par un — ne pas se fier à la mémoire ou aux premiers exemples trouvés.
@@ -337,6 +347,9 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 - Commentaires uniquement pour le *pourquoi* non évident — jamais pour décrire ce que le code fait.
 - Pas de classe ES6 — objets littéraux ou IIFE, cohérent avec le reste du codebase.
 - Aucune constante hardcodée dans la logique : les valeurs configurables vont dans le Sheet ou en haut du fichier dans un bloc `CONFIG`.
+- **Sécurité des injections (XSS)** : Neutralisation systématique de toute donnée dynamique interpolée dans l'interface (`escapeHtml()` obligatoire sur les chaînes de texte, descriptions, noms, métadonnées et URLs d'avatar `img.src` ; `cssUrl()` pour les propriétés CSSOM de fond). Interdiction d'injecter des données brutes en `innerHTML`.
+- **Mise en cache sûre (limite d'octets Google)** : Ne jamais utiliser un calcul de taille en caractères (`.length`) ni un `cache.put()` nu sur des données variables contenant des caractères accentués, emojis ou paires de substituts UTF-8. Passer systématiquement par les helpers dédiés `_byteLength()`, `_cachePutChunked()` et `_cacheGetChunked()` bornés en octets réels (`CONFIG.CACHE_MAX_BYTES`).
+- **Déploiement CI & Nettoyage de commentaires** : Le workflow GitHub Actions exécute `strip-comments.js` avant `clasp push` pour éviter que l'analyseur Apps Script ne tronque ou ne corrompe le code à cause de commentaires complexes ou de scriptlets. Ne jamais réintroduire de syntaxe template `createTemplateFromFile().evaluate()` pour servir l'application (`createHtmlOutputFromFile()` obligatoire).
 
 ### Changelog
 

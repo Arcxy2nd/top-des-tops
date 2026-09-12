@@ -247,7 +247,7 @@ const AutoPointsService = (() => {
       const tz = (typeof Session !== 'undefined' && Session.getScriptTimeZone) ? Session.getScriptTimeZone() : 'Etc/UTC';
       const today = (typeof Utilities !== 'undefined' && Utilities.formatDate)
         ? Utilities.formatDate(now, tz, 'yyyy-MM-dd')
-        : now.toISOString().slice(0, 10);
+        : (typeof _dayKey === 'function' ? _dayKey(now) : (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')));
       const entries = valid.map(r => ({
         player: r.player, category: r.category, points: r.points, times: 1,
         description: r.description || 'Points automatiques', groupTag: '',

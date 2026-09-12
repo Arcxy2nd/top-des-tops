@@ -1,12 +1,17 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.9** (2026-09-11) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Refonte récursive et intégrale du panneau Statistiques (`#statsHubCard`) : Records avec catégorie et dates FR, Tendances avec KPIs 30j vs 30j et hauteur adaptative, Jour actif ordonné Lun-Dim avec jauge Semaine/Week-end, Combos avec points totaux et moyennes, Mentions héroïques avec double avatar et double classement.
+- Version livrée : **v3.30.10** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Rééquilibrage ergonomique de la saisie par période : superposition verticale des sélecteurs de dates « Du » et « Au » avec alignement plein format, regroupement et réduction de l'empreinte spatiale des options de mode de calcul de score.
 - Suite de tests : **397 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Ergonomie du sélecteur de période & compacité du calcul (`v3.30.10`)** :
+  - *Superposition verticale « Du » et « Au »* : `.d-period-dates-row` restructuré en colonne verticale (`flex-direction: column; gap: 4px;`), chaque date bénéficiant de toute la largeur de sa ligne (`flex: 1; width: 100%`) avec libellés harmonisés (`min-width: 24px`) pour un alignement strict.
+  - *Compacité et regroupement du calcul de score* : création du conteneur `.d-period-calc-group` reliant immédiatement le titre « Mode de calcul : » à ses deux options sans vide vertical artificiel. Espacement resserré (`gap: 2px` dans `.fill-choice`), options `.fill-opt` plus compactes (`padding: 3px 7px`, `min-height: 23px`, `font-size: 0.74rem`) et aperçu `.d-fill-preview` optimisé.
+  - *Fiabilisation timezone AutoPoints* : repli sur `_dayKey(now)` dans `AutoPoints.gs` en environnement de test sans `Utilities`, évitant tout décalage UTC/local lors des exécutions entre minuit et 2h du matin.
+  - *Tests* : enrichissement de `tests/lot-period.test.js` validant les propriétés CSS et structurelles (397 tests au total, 100% verts).
 - **Refonte intégrale et récursive du Hub Statistiques (`v3.30.9`)** :
   - *Records enrichis* : intégration de la catégorie dominante (`bestCategory` et `globalBest.category`) avec son emoji et sa couleur thématique dans `apiGetPlayerRecords`. Dates formatées en français (`formatStatDate`), flamme de série `🔥 Xj consécutifs` affichée avec discernement (`streak >= 2`).
   - *Tendances normalisées & KPIs* : calcul homogène 30j vs 30j pour les Tops et les Joueurs dans `apiGetTrends`, préservation des inactifs (-100%), cartes KPIs héroïques de synthèse (Plus forte progression, Plus fort recul, Volume 30j), commutateur points/entrées dynamique et ajustement automatique de la hauteur du canvas Chart.js pour éliminer tout écrasement sur mobile.
