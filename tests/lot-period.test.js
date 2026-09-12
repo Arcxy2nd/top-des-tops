@@ -166,9 +166,9 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   assert.match(html, /\.d-period-dates-row\s*\{/);
   assert.match(html, /\.d-period-shortcuts\s*\{/);
 
-  // Mini calendar width and cell height are compact
-  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*0\s+0\s+200px/s);
-  assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*18px/s);
+  // Mini calendar width and cell height are enlarged
+  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*1\s+1\s+300px/s);
+  assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*22px/s);
 
   // "Du" and "Au" are stacked vertically
   assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-direction:\s*column/s);

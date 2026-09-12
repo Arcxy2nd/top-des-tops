@@ -1,12 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.10** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Rééquilibrage ergonomique de la saisie par période : superposition verticale des sélecteurs de dates « Du » et « Au » avec alignement plein format, regroupement et réduction de l'empreinte spatiale des options de mode de calcul de score.
+- Version livrée : **v3.30.11** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Élargissement du mini-calendrier de saisie de lot et calibrage proportionnel des colonnes latérales (dates/raccourcis à gauche, mode de calcul du score à droite).
 - Suite de tests : **397 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Élargissement du calendrier & calibrage des colonnes latérales (`v3.30.11`)** :
+  - *Expansion du mini-calendrier* : `.d-cal` passe en flexible `flex: 1 1 300px; min-width: 240px;` (suppression du `flex: 0 0 200px; max-width: 220px;`), offrant plus de 57% de la largeur totale au calendrier (~660px sur desktop standard). Cellules `.d-cal-day` confortables (`height: 22px; line-height: 22px; font-size: 0.74rem; border-radius: 4px;`), grille aérée (`gap: 2px`) et typographie d'en-tête soignée.
+  - *Calibrage des colonnes latérales* : colonne de gauche `.d-period-left-col` cadrée à `flex: 0 1 240px; min-width: 210px; max-width: 260px;` avec boutons raccourcis compacts (`padding: 3px 4px; font-size: 0.67rem;`), colonne de droite `.d-period-right-col` cadrée à `flex: 0 1 230px; min-width: 200px; max-width: 250px;`.
+  - *Tests* : mise à jour de `tests/lot-period.test.js` pour valider les nouvelles dimensions sans régression mobile (`397/397` tests passés avec succès).
 - **Ergonomie du sélecteur de période & compacité du calcul (`v3.30.10`)** :
   - *Superposition verticale « Du » et « Au »* : `.d-period-dates-row` restructuré en colonne verticale (`flex-direction: column; gap: 4px;`), chaque date bénéficiant de toute la largeur de sa ligne (`flex: 1; width: 100%`) avec libellés harmonisés (`min-width: 24px`) pour un alignement strict.
   - *Compacité et regroupement du calcul de score* : création du conteneur `.d-period-calc-group` reliant immédiatement le titre « Mode de calcul : » à ses deux options sans vide vertical artificiel. Espacement resserré (`gap: 2px` dans `.fill-choice`), options `.fill-opt` plus compactes (`padding: 3px 7px`, `min-height: 23px`, `font-size: 0.74rem`) et aperçu `.d-fill-preview` optimisé.

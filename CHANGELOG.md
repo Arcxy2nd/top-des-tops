@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.11] - 2026-09-13
+
+### Modifié
+**Humanisé** : Le mini-calendrier de saisie par période est considérablement élargi pour offrir un confort visuel optimal, tandis que les colonnes latérales (dates et mode de calcul) sont calibrées au plus juste.
+**Technique** :
+- `Index.html` :
+  - `.d-period-left-col` : calibré à `flex: 0 1 240px; min-width: 210px; max-width: 260px;`, avec raccourcis de date compactés (`.row-shortcut` à `padding: 3px 4px; font-size: 0.67rem;`).
+  - `.d-cal` : expansion flexible avec `flex: 1 1 300px; min-width: 240px;` (au lieu d'une largeur fixe à 200px), cases de jours `.d-cal-day` rehaussées à `height: 22px; line-height: 22px; font-size: 0.74rem; border-radius: 4px;`, grille aérée (`gap: 2px`) et en-tête lisible (`font-size: 0.78rem`).
+  - `.d-period-right-col` : calibré à `flex: 0 1 230px; min-width: 200px; max-width: 250px;`.
+- `tests/lot-period.test.js` : mise à jour des assertions sur l'agrandissement du mini-calendrier (`flex: 1 1 300px` et `height: 22px`).
+
 ## [v3.30.10] - 2026-09-13
 
 ### Modifié

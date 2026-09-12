@@ -1547,7 +1547,7 @@
     .d-period-left-col {
       display: flex; flex-direction: column; gap: 6px; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 7px 9px; flex: 1 1 220px; min-width: 200px; box-sizing: border-box;
+      padding: 7px 9px; flex: 0 1 240px; min-width: 210px; max-width: 260px; box-sizing: border-box;
     }
     .d-period-dates-row {
       display: flex; flex-direction: column; gap: 4px; width: 100%;
@@ -1566,26 +1566,26 @@
       display: flex; align-items: center; gap: 3px; flex-wrap: wrap; width: 100%;
     }
     .d-period-shortcuts .row-shortcut {
-      flex: 1 1 auto; text-align: center;
+      flex: 1 1 auto; text-align: center; padding: 3px 4px; font-size: 0.67rem;
     }
 
-    /* Colonne 2 : Mini-calendrier compact */
+    /* Colonne 2 : Mini-calendrier agrandi */
     .d-cal {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 4px 6px; flex: 0 0 200px; max-width: 220px; min-width: 190px; box-sizing: border-box;
+      padding: 5px 8px; flex: 1 1 300px; min-width: 240px; box-sizing: border-box;
       display: flex; flex-direction: column; justify-content: space-between;
     }
-    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.74rem; }
-    .d-cal-title { font-size: 0.74rem; font-weight: 700; color: var(--text); }
-    .d-cal-nav, .d-cal-today { padding: 1px 5px; font-size: 0.7rem; min-height: 20px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+    .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; font-size: 0.78rem; }
+    .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); }
+    .d-cal-nav, .d-cal-today { padding: 2px 7px; font-size: 0.72rem; min-height: 22px; border-radius: 4px; background: var(--btn-alt); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
     .d-cal-nav:hover, .d-cal-today:hover { background: var(--accent); color: var(--on-accent); }
-    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: 0.68rem; }
-    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 0; font-size: 0.62rem; }
+    .d-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 0.72rem; }
+    .d-cal-dow { text-align: center; font-weight: 700; color: var(--text-muted); padding: 1px 0; font-size: 0.66rem; }
     .d-cal-day {
-      width: 100%; min-width: 0; height: 18px; line-height: 18px; padding: 0;
+      width: 100%; min-width: 0; height: 22px; line-height: 22px; padding: 0;
       border: 1px solid transparent; background: transparent;
-      color: var(--text); font-family: inherit; font-size: 0.7rem; cursor: pointer;
-      border-radius: 3px; transition: background 0.1s, color 0.1s;
+      color: var(--text); font-family: inherit; font-size: 0.74rem; cursor: pointer;
+      border-radius: 4px; transition: background 0.1s, color 0.1s;
       display: flex; align-items: center; justify-content: center; box-sizing: border-box;
       font-weight: 500;
     }
@@ -1594,13 +1594,13 @@
     .d-cal-day.in-range { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
     .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
-    .d-cal-hint { font-size: 0.65rem; color: var(--text-muted); text-align: center; margin-top: 2px; }
+    .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); text-align: center; margin-top: 3px; }
 
     /* Colonne 3 : Mode de calcul du score + Aperçu live */
     .d-period-right-col {
       display: flex; flex-direction: column; gap: 6px; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 7px 9px; flex: 1 1 220px; min-width: 200px; box-sizing: border-box;
+      padding: 7px 9px; flex: 0 1 230px; min-width: 200px; max-width: 250px; box-sizing: border-box;
     }
     .d-period-calc-group {
       display: flex; flex-direction: column; gap: 3px;
