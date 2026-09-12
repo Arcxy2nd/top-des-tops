@@ -160,9 +160,9 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   // .d-mode-seg is horizontal flex
   assert.match(html, /\.d-mode-seg\s*\{[^}]*flex-direction:\s*row/s);
 
-  // .d-period contains 2 columns (Left ±55-60%, Right ±40-45%)
-  assert.match(html, /\.d-period-left-col\s*\{[^}]*flex:\s*58\s+1\s+320px/s);
-  assert.match(html, /\.d-period-right-col\s*\{[^}]*flex:\s*42\s+1\s+260px/s);
+  // .d-period contains 2 columns (Left ~45-50%, Right ~50-55%)
+  assert.match(html, /\.d-period-left-col\s*\{[^}]*flex:\s*48\s+1\s+280px/s);
+  assert.match(html, /\.d-period-right-col\s*\{[^}]*flex:\s*52\s+1\s+300px/s);
   assert.match(html, /\.d-period-dates-row\s*\{/);
   assert.match(html, /\.d-period-shortcuts\s*\{/);
 
@@ -170,8 +170,9 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   assert.match(html, /\.d-cal\s*\{[^}]*background:\s*transparent/s);
   assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*22px/s);
 
-  // "Du" and "Au" are on the same line
+  // "Du" and "Au" are strictly on the same line (flex-direction: row, flex-wrap: nowrap)
   assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-direction:\s*row/s);
+  assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-wrap:\s*nowrap/s);
 
   // 4 shortcuts on a single line
   assert.match(html, /\.d-period-shortcuts\s*\{[^}]*flex-wrap:\s*nowrap/s);
