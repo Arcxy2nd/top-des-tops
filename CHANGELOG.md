@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.12] - 2026-09-13
+
+### Modifié
+**Humanisé** : Refonte du sélecteur de période de saisie de lot en 2 colonnes ergonomiques : la colonne gauche regroupe de manière ultra-compacte les onglets de mode, les deux champs de date côte à côte et les 4 boutons de raccourci sur une seule ligne ; la colonne droite réunit le calendrier mensuel, le texte récapitulatif, le mode de calcul et le total estimé sans aucun vide vertical.
+**Technique** :
+- `Index.html` :
+  - Restructuration du panneau `.d-period` en 2 colonnes (`align-items: flex-start; gap: 10px;`).
+  - Colonne gauche `.d-period-left-col` (±55-60%, `flex: 58 1 320px`) : `.d-period-dates-row` en ligne (`flex-direction: row; gap: 8px;`), inputs Du/Au sur la même ligne (`flex: 1 1 130px`), `.d-period-shortcuts` sur une seule ligne (`flex-wrap: nowrap;`, 4 boutons équilibrés), empilement vertical compact sans grand vide (`justify-content: flex-start`).
+  - Colonne droite `.d-period-right-col` (±40-45%, `flex: 42 1 260px`) : encapsulation unifiée intégrant le mini-calendrier `.d-cal` (`background: transparent; border: none; padding: 0;`), correction de `min-height: 22px` sur `.d-cal-day`, enchaînement direct avec le séparateur de calcul `.d-period-calc-group` et le résumé `.d-fill-preview`.
+- `tests/lot-period.test.js` : mise à jour des assertions pour valider l'architecture 2 colonnes, l'alignement horizontal des dates Du/Au et l'imbrication du calendrier dans la colonne droite.
+
 ## [v3.30.11] - 2026-09-13
 
 ### Modifié

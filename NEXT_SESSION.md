@@ -1,12 +1,18 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.11** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Élargissement du mini-calendrier de saisie de lot et calibrage proportionnel des colonnes latérales (dates/raccourcis à gauche, mode de calcul du score à droite).
+- Version livrée : **v3.30.12** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Refonte du sélecteur de période en layout 2 colonnes ergonomique (colonne gauche ±55-60% avec dates et raccourcis sur 1 ligne, colonne droite ±40-45% avec calendrier, mode de calcul et total collés sans vide).
 - Suite de tests : **397 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Refonte du sélecteur de période en 2 colonnes ergonomiques (`v3.30.12`)** :
+  - *Layout 2 colonnes compact* : passage de 3 à 2 colonnes dans `.d-period` (`align-items: flex-start; gap: 10px;`).
+  - *Colonne gauche (±55-60%)* : `.d-period-left-col` (`flex: 58 1 320px; min-width: 280px; padding: 8px 10px;`) empile de façon ultra-compacte (`justify-content: flex-start`) les onglets « Un jour » / « Une période », les deux sélecteurs de date « Du » et « Au » sur une seule ligne (`.d-period-dates-row` en `flex-direction: row; gap: 8px;`), et les 4 boutons raccourcis sur une seule ligne (`.d-period-shortcuts` avec `flex-wrap: nowrap`). Aucune zone vide verticale résiduelle (hauteur ~131px).
+  - *Colonne droite (±40-45%)* : `.d-period-right-col` (`flex: 42 1 260px; min-width: 240px;`) réunit en une carte unique le mini-calendrier `.d-cal` (`background: transparent; border: none; padding: 0;`), le texte hint récapitulatif (« 1 jour : du 13 sept. au 13 sept. »), le bloc « Mode de calcul : » avec bordure supérieure subtile, et le récapitulatif live `.d-fill-preview`.
+  - *Correction min-height calendrier* : neutralisation du `min-height: var(--tap-min)` global des boutons sur `.d-cal-day` via `min-height: 22px; height: 22px;` pour un calendrier dense, net et parfaitement calé.
+  - *Tests* : mise à jour de `tests/lot-period.test.js` pour couvrir la disposition 2 colonnes, l'alignement horizontal et l'imbrication (`397/397` tests au vert).
 - **Élargissement du calendrier & calibrage des colonnes latérales (`v3.30.11`)** :
   - *Expansion du mini-calendrier* : `.d-cal` passe en flexible `flex: 1 1 300px; min-width: 240px;` (suppression du `flex: 0 0 200px; max-width: 220px;`), offrant plus de 57% de la largeur totale au calendrier (~660px sur desktop standard). Cellules `.d-cal-day` confortables (`height: 22px; line-height: 22px; font-size: 0.74rem; border-radius: 4px;`), grille aérée (`gap: 2px`) et typographie d'en-tête soignée.
   - *Calibrage des colonnes latérales* : colonne de gauche `.d-period-left-col` cadrée à `flex: 0 1 240px; min-width: 210px; max-width: 260px;` avec boutons raccourcis compacts (`padding: 3px 4px; font-size: 0.67rem;`), colonne de droite `.d-period-right-col` cadrée à `flex: 0 1 230px; min-width: 200px; max-width: 250px;`.

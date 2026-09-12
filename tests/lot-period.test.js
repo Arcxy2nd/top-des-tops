@@ -160,18 +160,26 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   // .d-mode-seg is horizontal flex
   assert.match(html, /\.d-mode-seg\s*\{[^}]*flex-direction:\s*row/s);
 
-  // .d-period contains 3 balanced columns across the width
-  assert.match(html, /\.d-period-left-col\s*\{/);
-  assert.match(html, /\.d-period-right-col\s*\{/);
+  // .d-period contains 2 columns (Left ±55-60%, Right ±40-45%)
+  assert.match(html, /\.d-period-left-col\s*\{[^}]*flex:\s*58\s+1\s+320px/s);
+  assert.match(html, /\.d-period-right-col\s*\{[^}]*flex:\s*42\s+1\s+260px/s);
   assert.match(html, /\.d-period-dates-row\s*\{/);
   assert.match(html, /\.d-period-shortcuts\s*\{/);
 
-  // Mini calendar width and cell height are enlarged
-  assert.match(html, /\.d-cal\s*\{[^}]*flex:\s*1\s+1\s+300px/s);
+  // Mini calendar is embedded in right column
+  assert.match(html, /\.d-cal\s*\{[^}]*background:\s*transparent/s);
   assert.match(html, /\.d-cal-day\s*\{[^}]*height:\s*22px/s);
 
-  // "Du" and "Au" are stacked vertically
-  assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-direction:\s*column/s);
+  // "Du" and "Au" are on the same line
+  assert.match(html, /\.d-period-dates-row\s*\{[^}]*flex-direction:\s*row/s);
+
+  // 4 shortcuts on a single line
+  assert.match(html, /\.d-period-shortcuts\s*\{[^}]*flex-wrap:\s*nowrap/s);
+
+  // Calendar and calculation mode are assembled in the right column
+  assert.match(html, /periodRightCol\.appendChild\(cal\)/);
+  assert.match(html, /periodRightCol\.appendChild\(calcGroup\)/);
+  assert.match(html, /periodRightCol\.appendChild\(fillPreview\)/);
 
   // Calculation mode title and options are grouped in .d-period-calc-group with compact spacing
   assert.match(html, /\.d-period-calc-group\s*\{/);
