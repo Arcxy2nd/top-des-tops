@@ -5764,9 +5764,10 @@
         <input type="password" id="identityPwdInput" placeholder="Mot de passe" autocomplete="off" />
       </div>
       <p class="identity-pwd-error" id="identityPwdError" style="display:none;">Mot de passe incorrect.</p>
-      <div class="modal-actions">
-        <button id="identityPwdCancel" class="secondary" type="button">Annuler</button>
-        <button id="identityPwdSubmit" class="primary" type="button">Valider</button>
+      <div class="modal-actions" style="flex-wrap: wrap; gap: 8px;">
+        <button id="identityPwdCancel" class="secondary" type="button" style="flex: 1;">Annuler</button>
+        <button id="identityPwdSubmit" class="primary" type="button" style="flex: 1;">Valider</button>
+        <button id="identityPwdChangeUser" class="secondary" type="button" style="width: 100%; font-size: 0.8rem; margin-top: 4px;">Changer d'utilisateur (se déconnecter)</button>
       </div>
     </div>
   </div>
@@ -6073,17 +6074,19 @@
   let _auditSortDir = 'desc'; // 'desc' = plus récents d'abord (défaut) | 'asc' = plus anciens d'abord
   const AUDIT_PAGE_SIZE = 20;
 
-  function requireIdentity() {
-    if (_whoAmI) return true;
-    showToast('Sélectionne ton identité avant d\'agir.', 'error');
-    const btn = document.getElementById('whoAmIBtn');
-    if (btn) {
-      btn.classList.remove('pulse');
-      void btn.offsetWidth;
-      btn.classList.add('pulse');
-      setTimeout(() => btn.classList.remove('pulse'), 1500);
+  function requireIdentity(onVerified) {
+    if (!_whoAmI) {
+      showToast('Sélectionne ton identité avant d\'agir.', 'error');
+      if (typeof openWhoAmIDropdown === 'function') openWhoAmIDropdown();
+      if (typeof pulseWhoAmIBtn === 'function') pulseWhoAmIBtn();
+      return false;
     }
-    return false;
+    const p = (typeof cachedPlayers !== 'undefined' && cachedPlayers) ? cachedPlayers.find(x => x.name === _whoAmI) : null;
+    if (p && p.hasPassword && !_identityPassword) {
+      if (typeof openIdentityPwdModal === 'function') openIdentityPwdModal(p, onVerified);
+      return false;
+    }
+    return true;
   }
   window.requireIdentity = requireIdentity;
 
@@ -9042,11 +9045,12 @@
   }
   window.showToast = showToast;
 
-  function showActionToast(msg, actionLabel, onAction, duration) {
+  function showActionToast(msg, actionLabel, onAction, duration, type) {
     const t = document.createElement('div');
-    t.className = 'toast success has-action';
+    const toastType = type || 'success';
+    t.className = 'toast ' + toastType + ' has-action';
     const txt = document.createElement('span');
-    txt.textContent = '✓ ' + msg;
+    txt.textContent = (toastType === 'success' ? '✓ ' : '⚠ ') + msg;
     t.appendChild(txt);
     if (actionLabel && typeof onAction === 'function') {
       const actBtn = document.createElement('button');
@@ -9060,7 +9064,7 @@
       t.appendChild(actBtn);
     }
     document.getElementById('toastContainer').appendChild(t);
-    const ms = duration || 6500;
+    const ms = duration || (toastType === 'error' ? 7000 : 6500);
     setTimeout(() => {
       t.style.animation = 'fadeOut 0.3s ease forwards';
       setTimeout(() => t.remove(), 300);
@@ -9639,6 +9643,27 @@
     let runner = google.script.run
       .withSuccessHandler(res => {
         if (res && res.success === false) {
+          const errStr = String(res.error || '');
+          if (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise')) {
+            _identityPassword = '';
+            const p = cachedPlayers && cachedPlayers.find(x => x.name === _whoAmI);
+            if (p && p.hasPassword) {
+              openIdentityPwdModal(p);
+              const errEl = document.getElementById('identityPwdError');
+              if (errEl) {
+                errEl.style.display = 'block';
+                errEl.textContent = 'Mot de passe requis pour agir en tant que ' + _whoAmI + '.';
+              }
+            } else {
+              showActionToast('Mot de passe requis pour agir en tant que ' + (_whoAmI || 'ce joueur') + '.', 'Changer d\'utilisateur', () => {
+                logoutIdentity();
+                openWhoAmIDropdown();
+              }, 7000, 'error');
+              pulseWhoAmIBtn();
+            }
+            if (onError) onError(res.error);
+            return;
+          }
           if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
           if (onError) onError(res.error);
           return;
@@ -10564,16 +10589,19 @@
   }
 
   let _identityPwdTarget = null; // player object pending verification
+  let _identityPwdOnVerified = null;
 
   function closeIdentityPwdModal() {
     closeModal(document.getElementById('identityPwdModal'));
     document.getElementById('identityPwdInput').value = '';
     document.getElementById('identityPwdError').style.display = 'none';
     _identityPwdTarget = null;
+    _identityPwdOnVerified = null;
   }
 
-  function openIdentityPwdModal(player) {
+  function openIdentityPwdModal(player, onVerified) {
     _identityPwdTarget = player;
+    _identityPwdOnVerified = onVerified || null;
     const modal  = document.getElementById('identityPwdModal');
     const avatar = document.getElementById('identityPwdAvatar');
     avatar.src = getAvatarUrl(player.name, player.meta);
@@ -10598,11 +10626,14 @@
       if (res && res.granted) {
         _identityPassword = pwd;
         applyIdentity(player.name);
+        const cb = _identityPwdOnVerified;
         closeIdentityPwdModal();
         showToast(`Identité confirmée : ${player.name}`, 'success');
+        if (typeof cb === 'function') cb();
       } else {
         const box = document.querySelector('#identityPwdModal .identity-pwd-box');
         document.getElementById('identityPwdError').style.display = 'block';
+        document.getElementById('identityPwdError').textContent = 'Mot de passe incorrect.';
         box.classList.remove('shake');
         void box.offsetWidth; // restart animation
         box.classList.add('shake');
@@ -10626,6 +10657,29 @@
     if (detachWhoAmI) { detachWhoAmI(); detachWhoAmI = null; }
     const wrap = document.getElementById('whoAmIWrap');
     if (wrap) wrap.classList.remove('open');
+  }
+
+  function openWhoAmIDropdown() {
+    const wrap = document.getElementById('whoAmIWrap');
+    const btn  = document.getElementById('whoAmIBtn');
+    if (!wrap || !btn) return;
+    renderWhoAmI();
+    wrap.classList.add('open');
+    if (detachWhoAmI) { detachWhoAmI(); detachWhoAmI = null; }
+    if (typeof anchorFloating === 'function') {
+      detachWhoAmI = anchorFloating(
+        document.getElementById('whoAmIDropdown'), btn, placeWhoAmI, closeWhoAmIDropdown);
+    }
+  }
+
+  function pulseWhoAmIBtn() {
+    const btn = document.getElementById('whoAmIBtn');
+    if (btn) {
+      btn.classList.remove('pulse');
+      void btn.offsetWidth;
+      btn.classList.add('pulse');
+      setTimeout(() => btn.classList.remove('pulse'), 1500);
+    }
   }
 
   /** Sets the current identity and refreshes the who-am-i button + dropdown. */
@@ -20242,10 +20296,7 @@
       e.stopPropagation();
       const wrap = document.getElementById('whoAmIWrap');
       if (wrap.classList.contains('open')) { closeWhoAmIDropdown(); return; }
-      renderWhoAmI();
-      wrap.classList.add('open');
-      detachWhoAmI = anchorFloating(
-        document.getElementById('whoAmIDropdown'), e.currentTarget, placeWhoAmI, closeWhoAmIDropdown);
+      openWhoAmIDropdown();
     });
     // Le dropdown n'est pas reparenté (contrairement au rich-select) : il
     // reste sous #whoAmIWrap dans le DOM. La garde contains() est quand même
@@ -20258,6 +20309,14 @@
 
     document.getElementById('identityPwdCancel').addEventListener('click', closeIdentityPwdModal);
     document.getElementById('identityPwdSubmit').addEventListener('click', submitIdentityPwd);
+    const changeUserBtn = document.getElementById('identityPwdChangeUser');
+    if (changeUserBtn) {
+      changeUserBtn.addEventListener('click', () => {
+        closeIdentityPwdModal();
+        logoutIdentity();
+        openWhoAmIDropdown();
+      });
+    }
     document.getElementById('identityPwdInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') submitIdentityPwd();
     });

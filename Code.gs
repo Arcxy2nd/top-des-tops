@@ -588,7 +588,7 @@ function requireAuthor(author, password) {
       AuditService.log(name, 'Échec authentification', 'Sécurité', '', '',
         'Mot de passe invalide ou requis pour agir en tant que ' + name);
     } catch (_) {}
-    throw new Error("Mot de passe invalide ou requis pour agir en tant que " + name + " — resélectionne ton identité.");
+    throw new Error("Mot de passe invalide ou requis pour agir en tant que " + name + " — confirme ton mot de passe ou change d'utilisateur.");
   }
   return name;
 }

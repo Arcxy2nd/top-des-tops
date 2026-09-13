@@ -113,7 +113,40 @@ function loadIdentityEnv(opts = {}) {
   wrap.appendChild(dropdown);
   env.document.body.appendChild(wrap);
 
-  const fns = ['applyIdentity', 'logoutIdentity', 'renderWhoAmI', 'wordDiffHtml', 'auditDiffValue', 'escapeHtml'];
+  // DOM elements required for identityPwdModal
+  const modal = env.register('identityPwdModal', env.makeEl('div'));
+  const pwdBox = env.makeEl('div');
+  pwdBox.className = 'identity-pwd-box';
+  modal.appendChild(pwdBox);
+  env.register('identityPwdAvatar', env.makeEl('img'));
+  env.register('identityPwdName', env.makeEl('span'));
+  env.register('identityPwdInput', env.makeEl('input'));
+  env.register('identityPwdError', env.makeEl('p'));
+  env.register('identityPwdCancel', env.makeEl('button'));
+  env.register('identityPwdSubmit', env.makeEl('button'));
+  env.register('identityPwdChangeUser', env.makeEl('button'));
+
+  env.openModal = el => { if (el) el.style.display = 'block'; };
+  env.closeModal = el => { if (el) el.style.display = 'none'; };
+  env.detachWhoAmI = null;
+  env.anchorFloating = null;
+  env.placeWhoAmI = () => {};
+  env._identityPwdTarget = null;
+  env._identityPwdOnVerified = null;
+
+  const fns = [
+    'applyIdentity',
+    'logoutIdentity',
+    'renderWhoAmI',
+    'openWhoAmIDropdown',
+    'pulseWhoAmIBtn',
+    'requireIdentity',
+    'openIdentityPwdModal',
+    'closeIdentityPwdModal',
+    'wordDiffHtml',
+    'auditDiffValue',
+    'escapeHtml'
+  ];
   const src = fns.map(n => extractFunction(html, n)).join('\n') +
               '\n' + fns.map(n => 'this.__' + n + ' = ' + n + ';').join('\n');
   vm.runInContext(src, env);
@@ -222,3 +255,57 @@ test('auditDiffValue crée des éléments de classe audit-before et audit-after 
   assert.ok(dot, 'Un point couleur doit être créé pour un code hexadécimal');
   assert.strictEqual(dot.style.background, '#2ed573');
 });
+
+test('requireIdentity retourne false, alerte et ouvre le sélecteur d\'identité quand _whoAmI est null', () => {
+  const { env, requireIdentity } = loadIdentityEnv({ initialUser: null });
+  const res = requireIdentity();
+  assert.strictEqual(res, false, 'Doit retourner false quand aucun utilisateur n\'est connecté');
+  assert.ok(env.toasts.some(t => t.type === 'error' && t.msg.includes('Sélectionne ton identité')));
+  const wrap = env.document.getElementById('whoAmIWrap');
+  assert.ok(wrap.classList.contains('open'), 'Le dropdown d\'identité doit être ouvert');
+});
+
+test('requireIdentity ouvre la modale de mot de passe et retourne false si le joueur est protégé et sans mot de passe en session', () => {
+  const { env, requireIdentity } = loadIdentityEnv({ initialUser: 'Bob', initialPwd: '' });
+  let callbackRan = false;
+  const res = requireIdentity(() => { callbackRan = true; });
+  assert.strictEqual(res, false, 'Doit retourner false tant que le mot de passe n\'est pas confirmé');
+  const modal = env.document.getElementById('identityPwdModal');
+  assert.strictEqual(modal.style.display, 'block', 'La modale de mot de passe doit s\'ouvrir');
+  assert.strictEqual(env.document.getElementById('identityPwdName').textContent, 'Bob');
+  assert.strictEqual(callbackRan, false);
+  assert.strictEqual(typeof env._identityPwdOnVerified, 'function');
+});
+
+test('requireIdentity retourne true si le joueur est protégé et le mot de passe est déjà saisi', () => {
+  const { env, requireIdentity } = loadIdentityEnv({ initialUser: 'Bob', initialPwd: 'secretPassword' });
+  const res = requireIdentity();
+  assert.strictEqual(res, true, 'Doit retourner true quand le mot de passe est présent');
+  const modal = env.document.getElementById('identityPwdModal');
+  assert.notStrictEqual(modal.style.display, 'block');
+});
+
+test('requireIdentity retourne true si le joueur n\'a pas de mot de passe configuré', () => {
+  const { env, requireIdentity } = loadIdentityEnv({ initialUser: 'Alice', initialPwd: '' });
+  const res = requireIdentity();
+  assert.strictEqual(res, true, 'Doit retourner true directement pour un profil sans mot de passe');
+});
+
+test('Le bouton Changer d\'utilisateur ferme la modale mot de passe, déconnecte et ouvre le dropdown', () => {
+  const { env, openIdentityPwdModal, closeIdentityPwdModal, logoutIdentity, openWhoAmIDropdown } = loadIdentityEnv({ initialUser: 'Bob', initialPwd: '' });
+  openIdentityPwdModal({ name: 'Bob', hasPassword: true, meta: '' });
+  const modal = env.document.getElementById('identityPwdModal');
+  assert.strictEqual(modal.style.display, 'block');
+
+  // Simule le clic sur #identityPwdChangeUser câblé dans Index.html
+  closeIdentityPwdModal();
+  logoutIdentity();
+  openWhoAmIDropdown();
+
+  assert.strictEqual(modal.style.display, 'none', 'La modale doit être fermée');
+  assert.strictEqual(env._whoAmI, null, '_whoAmI doit être réinitialisé');
+  assert.strictEqual(env._identityPassword, '', '_identityPassword doit être vidé');
+  const wrap = env.document.getElementById('whoAmIWrap');
+  assert.ok(wrap.classList.contains('open'), 'Le sélecteur Qui suis-je doit être ouvert');
+});
+

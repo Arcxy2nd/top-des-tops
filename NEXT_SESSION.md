@@ -1,12 +1,18 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.17** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Mode de calcul de période par défaut basculé sur « Un total à répartir » (`distribute`) dans la saisie par lot.
-- Suite de tests : **406 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.18** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Demande proactive de mot de passe ou incitation au changement d'utilisateur lors d'une action protégée non authentifiée.
+- Suite de tests : **411 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Confirmation de mot de passe & changement d'utilisateur (`v3.30.18`)** :
+  - *Parcours bienveillant & interception client* : remplacement des messages d'erreur agressifs par une interception proactive dans `requireIdentity(onVerified)` (`Index.html`). Si le joueur sélectionné est protégé par mot de passe et que la session n'est pas encore saisie (`!_identityPassword`), l'action ouvre directement la modale de mot de passe `openIdentityPwdModal(p, onVerified)` sans envoyer de requête rejetée au serveur.
+  - *Bouton « Changer d'utilisateur »* : ajout du bouton `#identityPwdChangeUser` dans la modale `#identityPwdModal` permettant en un clic de se déconnecter (`logoutIdentity()`) et d'ouvrir le sélecteur de joueurs (`openWhoAmIDropdown()`).
+  - *Guidance automatique* : si aucun joueur n'est sélectionné, ouverture automatique du sélecteur d'identité et pulsation du bouton `whoAmIBtn`. En cas de rejet serveur inattendu (`callServer`), affichage d'un toast d'action avec bouton « Changer d'utilisateur ».
+  - *Backend clarifié* : mise à jour du message d'erreur dans `requireAuthor` (`Code.gs`) : « Mot de passe invalide ou requis pour agir en tant que [nom] — confirme ton mot de passe ou change d'utilisateur. »
+  - *Tests* : 5 nouveaux tests unitaires dans `tests/identity-logout-and-diff.test.js` (`411/411` tests au vert).
 - **Mode « Un total à répartir » par défaut (`v3.30.17`)** :
   - *Par défaut naturel* : le mode de calcul d'une période dans la saisie par lot (`Index.html`) s'initialise désormais sur « Un total à répartir » (`distribute`) au lieu de répéter le score chaque jour (`repeat`).
   - *Alignement global* : mise à jour de `createFillToggle` (repli sur `distribute`, première option en tête), de l'en-tête du lot (`defaultFillSlot`), des lignes (`addEntryRow`), de `computeRowTotalPoints`, `submitLot` et `applyDateAllBtn`.

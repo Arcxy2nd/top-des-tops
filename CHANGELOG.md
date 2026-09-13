@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.18] - 2026-09-13
+
+### Modifié
+**Humanisé** : Remplacement du message d'erreur bloquant (« ⚠ Envoi lot : Mot de passe invalide ou requis pour agir en tant que... ») par un parcours fluide et bienveillant. Si le profil sélectionné est protégé par mot de passe et que la session n'est pas authentifiée, l'application intercepte l'action pour inviter directement à confirmer le mot de passe, tout en proposant une option claire « Changer d'utilisateur (se déconnecter) » afin de basculer instantanément de joueur sans friction.
+**Technique** :
+- `Code.gs` :
+  - `requireAuthor` : message d'erreur clarifié invitant à confirmer son mot de passe ou changer d'utilisateur.
+- `Index.html` :
+  - `#identityPwdModal` : ajout du bouton d'action `#identityPwdChangeUser` (« Changer d'utilisateur (se déconnecter) ») réinitialisant la session (`logoutIdentity()`) et ouvrant le sélecteur d'identité (`openWhoAmIDropdown()`).
+  - `requireIdentity(onVerified)` : interception proactive si le profil a un mot de passe configuré (`p.hasPassword`) et que `_identityPassword` est vide, ouvrant directement `openIdentityPwdModal(p, onVerified)` sans envoyer de requête au serveur. Si aucun joueur n'est sélectionné, ouverture automatique du sélecteur d'identité et pulsation du bouton `whoAmIBtn`.
+  - `openIdentityPwdModal` & `submitIdentityPwd` : prise en charge d'un rappel `onVerified` pour exécuter l'action en attente après saisie réussie.
+  - `showActionToast` : support du paramètre `type` (ex: toast d'action rouge d'erreur avec durée adaptée).
+  - `callServer` : intercepteur pour erreurs d'authentification ouvrant la modale de confirmation ou proposant le changement d'utilisateur.
+- `tests/identity-logout-and-diff.test.js` :
+  - Ajout de 5 tests unitaires couvrant l'interception proactive, la validation avec mot de passe et la déconnexion directe depuis la modale (411 tests au vert).
+
 ## [v3.30.17] - 2026-09-13
 
 ### Modifié
