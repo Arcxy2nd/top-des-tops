@@ -6271,6 +6271,9 @@
   }
 
   let WHO_AM_I_KEY = getWhoAmIStorageKey();
+  let SETTINGS_CACHE_KEY = getSettingsCacheKey();
+  let APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
+  let DASHBOARD_CACHE_KEY = getDashboardCacheKey();
   let _whoAmI = null;
   let _identityPassword = '';
 
@@ -6747,7 +6750,7 @@
     if (logoInput)  logoInput.value  = _appSettings.logoUrl;
   }
 
-  let APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
+  APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
 
   function loadAppBranding(onDone) {
     try {
@@ -10770,7 +10773,7 @@
   document.addEventListener('keydown', onModalKeydown, true);
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
-  let SETTINGS_CACHE_KEY = getSettingsCacheKey();
+  SETTINGS_CACHE_KEY = getSettingsCacheKey();
   // Compteur de génération : loadEntities() (déclenché au démarrage) et le
   // réordonnancement (▲/▼) écrivent tous deux dans cachedPlayers/cachedCategories
   // de façon asynchrone et indépendante. Sans garde, une réponse apiGetSettings
@@ -11399,7 +11402,7 @@
   }
 
   // Cache dashboard pour affichage instantané (stale-while-revalidate)
-  let DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
+  DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
   let _baseChartData = null;
   let _lastFilterStartDate = null;
   let _lastFilterEndDate = null;

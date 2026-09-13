@@ -340,4 +340,37 @@ test('dashboard and phrase cache keys partition by instance and migrate smoothly
   assert.strictEqual(getPhraseSettingsB().count, 3);
 });
 
+test('Index.html inline script executes completely without TDZ or initialization errors', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const match = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/i);
+  assert.ok(match, 'inline script must exist');
+  const code = match[1];
+
+  const env = makeEnv();
+  env.window = env;
+  env.addEventListener = () => {};
+  env.window.addEventListener = () => {};
+  env.localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  env.sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  env.Chart = function() { return { destroy() {} }; };
+  const origGetEl = env.document.getElementById;
+  env.document.getElementById = id => {
+    let el = origGetEl(id);
+    if (!el) {
+      el = env.makeEl('div', id);
+      el.style = {};
+      env.register(id, el);
+    }
+    return el;
+  };
+  env.document.querySelector = sel => env.makeEl('div', sel);
+  env.document.querySelectorAll = sel => [];
+
+  vm.createContext(env);
+  assert.doesNotThrow(() => {
+    vm.runInContext(code, env);
+  }, 'Index.html script must execute without throwing top-level errors (such as TDZ ReferenceErrors)');
+});
+
+
 
