@@ -204,11 +204,11 @@ Widget indépendant des graphiques, toujours visible dans le Dashboard. Affiche 
 
 ### Saisie de lot & Mode Période
 
-- **Mode « Un jour » vs « Une période »** : Permet d'assigner une date unique ou une plage `[Du, Au]` avec mode de calcul (`Répéter` le score sur chaque jour ou `Répartir` le total équitablement sur la durée).
+- **Mode « Un jour » vs « Une période »** : Permet d'assigner une date unique ou une plage `[Du, Au]` avec mode de calcul. Le mode par défaut s'initialise **obligatoirement sur « Un total à répartir » (`distribute`)** (inversé en v3.30.17, remplaçant la répétition quotidienne historique `repeat` qui provoquait des saisies excessives involontaires).
 - **Invariant de robustesse & recalcul dynamique** :
   - Écouteurs `input` et `change` sur les bornes début/fin déclenchant immédiatement la mise à jour du résumé du lot (`updateLotSummary()`), du mini-calendrier (`cal.refresh()`) et de l'aperçu textuel (`updateDatePreview()`).
   - Normalisation automatique des bornes inversées (`startInput > endInput`) sans blocage.
-  - Recalcul instantané du lot sur les raccourcis de durée (`+3 j`, `+7 j`, `+14 j`, `+1 mois`), l'interrupteur de mode, le mode de score et « Appliquer à toutes les lignes ».
+  - Recalcul instantané du lot sur les raccourcis de durée rétrospectifs (`-3 j`, `-7 j`, `-14 j`, `-1 mois`), l'interrupteur de mode, le mode de score et « Appliquer à toutes les lignes ».
   - Cohérence stricte entre `lineDates()` et `daysBetweenInclusive()`.
 
 ### Patterns frontend clés
@@ -218,7 +218,7 @@ Widget indépendant des graphiques, toujours visible dans le Dashboard. Affiche 
 - Démarrage instantané via bootstrap composite (`apiGetBootstrapData`) en 1 seul roundtrip RPC regroupant les 10 requêtes d'initialisation, avec stratégie stale-while-revalidate (`tdt_dashboard_cache`) et repli `fallbackBootLoad()`
 - Le dernier classement affiché est gardé en mémoire pour permettre un "Nouveau tirage" sans rechargement
 - Thème dark/light persisté en localStorage (avec classe temporaire `body.theme-switching` neutralisant les transitions pour éliminer les flashs de couleur)
-- Sélection d'identité : si mot de passe défini dans `Players` (stocké en clair pour les gestionnaires humains, suite à l'annulation du hachage v3.21.0) → modale de confirmation → vérification côté serveur et validation systématique par `requireAuthor(author, password)` sur toutes les fonctions d'écriture
+- Sélection d'identité : si mot de passe défini dans `Players` (stocké en clair pour les gestionnaires humains, suite à l'annulation du hachage v3.21.0). Interception proactive côté client (v3.30.18) : si un joueur protégé est sélectionné et la session non authentifiée (`!_identityPassword`), `requireIdentity(onVerified)` ouvre immédiatement la modale de mot de passe avant tout appel réseau pour éviter un rejet serveur agressif, avec option en un clic « Changer d'utilisateur » pour réinitialiser la session en cas de mot de passe inconnu. Validation systématique par `requireAuthor(author, password)` côté serveur sur toutes les fonctions d'écriture.
 - Filtrage in-memory côté client sans requête réseau lorsque seules les puces joueurs/catégories changent à dates constantes
 - Éléments flottants ancrés dynamiquement via `anchorFloating()` et modales gérées par pile `openModal()` / `closeModal()` avec capture Échap, piège de tabulation et retour de focus
 - Assemblage groupé du DOM via `DocumentFragment` pour éliminer le layout thrashing lors du rendu des listes (Historique, Notes)
@@ -321,6 +321,10 @@ Quand une fonctionnalité s'applique à un type de champ (markdown/mentions sur 
 
 Exception à traiter au cas par cas, jamais par oubli : un champ qui partage un nom technique mais pas la même nature (ex. `meta` sert d'URL d'avatar pour un joueur mais de description pour un Top) n'hérite pas aveuglément du traitement — mais l'exception doit être identifiée et justifiée, jamais silencieuse.
 
+### Protection contre la fermeture accidentelle des modales
+
+Les fenêtres modales (`openModal()`, `#modalBackdrop`) ne doivent **jamais se fermer lors d'un clic sur l'arrière-plan semi-transparent** (décision v1.1.0, renforcée v3.17.0). La fermeture s'effectue exclusivement par action explicite (bouton Annuler / Fermer) ou touche Échap (`_modalStack`), pour empêcher toute perte accidentelle de saisie non validée.
+
 ### Quatre critères de qualité interface
 
 Chaque écran, formulaire ou composant ajouté ou modifié doit être :
@@ -359,6 +363,9 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 - **Sécurité des injections (XSS)** : Neutralisation systématique de toute donnée dynamique interpolée dans l'interface (`escapeHtml()` obligatoire sur les chaînes de texte, descriptions, noms, métadonnées et URLs d'avatar `img.src` ; `cssUrl()` pour les propriétés CSSOM de fond). Interdiction d'injecter des données brutes en `innerHTML`.
 - **Mise en cache sûre (limite d'octets Google)** : Ne jamais utiliser un calcul de taille en caractères (`.length`) ni un `cache.put()` nu sur des données variables contenant des caractères accentués, emojis ou paires de substituts UTF-8. Passer systématiquement par les helpers dédiés `_byteLength()`, `_cachePutChunked()` et `_cacheGetChunked()` bornés en octets réels (`CONFIG.CACHE_MAX_BYTES`).
 - **Déploiement CI & Nettoyage de commentaires** : Le workflow GitHub Actions exécute `strip-comments.js` avant `clasp push` pour éviter que l'analyseur Apps Script ne tronque ou ne corrompe le code à cause de commentaires complexes ou de scriptlets. Ne jamais réintroduire de syntaxe template `createTemplateFromFile().evaluate()` pour servir l'application (`createHtmlOutputFromFile()` obligatoire).
+- **Synchronisation synchrone Sheets API v4 (`SpreadsheetApp.flush()`)** : Depuis v3.30.0, la lecture rapide passe par Sheets API v4 REST (`_fetchSheetValues`). Les écritures `SpreadsheetApp` (`setValues()`, `appendRow()`) restent dans le cache d'écriture local de GAS et sont invisibles pour l'API REST v4 sans synchronisation explicite. Tout bloc d'écriture de données doit **obligatoirement appeler `SpreadsheetApp.flush()`** avant toute relecture immédiate via l'API REST (incident résolu en v3.30.8).
+- **Gestion des dates de cellules Sheets API v4 (`_parseDateCell`)** : Sheets API v4 avec `SERIAL_NUMBER` retourne les dates en numéros de série (jours depuis le 30/12/1899). Interdiction absolue de faire `new Date(val)` direct sur une cellule lue via `_fetchSheetValues`, ce qui génère l'anomalie « 01/01/1970 » (valeur interprétée en millisecondes). Passer systématiquement par `_parseDateCell()` (backend) et `_parseLocalDateWithNow()` / garde `'—'` (frontend) (résolu en v3.30.14).
+- **Reparentage DOM déterministe (`appendChild` vs `insertBefore`)** : Dans les interfaces dynamiques où des éléments changent de conteneur (ex. `setDateMode` basculant entre jour unique et période), proscrire `insertBefore` ciblant un élément potentiellement reparenté ailleurs, ce qui lève une `DOMException: NotFoundError` fatale sous les navigateurs stricts. Utiliser des séquences directes d'`appendChild` pour réinsérer les éléments dans l'ordre attendu (résolu en v3.30.15).
 
 ### Changelog
 
@@ -425,6 +432,8 @@ Les skills installés doivent être **invoqués aux moments-clés**, pas ignoré
 Web App GAS — exécutée en tant que le propriétaire, accessible à tout compte Google. Le code est déployé vers **deux copies** ("Site tops" et "Tops RDS", même code, Sheet différent), chacune derrière son propre lien court short.io stable.
 
 Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` déclenche un workflow GitHub Actions (`.github/workflows/deploy-gas.yml`) qui, pour chaque copie listée dans `deploy-targets.json` : pousse le code via `clasp`, archive l'ancien déploiement, en crée un nouveau (nouvelle URL `/exec`), puis repointe le lien short.io correspondant vers cette nouvelle URL. Plus de déploiement manuel dans l'éditeur GAS.
+
+**Interdiction absolue des déploiements in-place (`clasp deploy -i`)** : Abandonné en v3.3.0 suite à des pannes récurrentes de cache CDN Google servant d'anciennes versions d'assets sans possibilité d'invalidation. Tout déploiement doit être strictement immuable (`clasp deploy --description`), avec archivage/suppression de l'ancien (`clasp undeploy`) et mise à jour dynamique du pointeur court short.io.
 
 Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
 

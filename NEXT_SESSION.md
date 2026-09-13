@@ -7,6 +7,8 @@
 - Init recommandé : standard.
 
 ## Dernière session
+- **Mise à jour des règles du projet via /learn (`context.md`)** :
+  - Synchronisation complète de `context.md` avec les leçons et revirements d'architecture du `CHANGELOG.md` : obligation de `SpreadsheetApp.flush()` avant lecture REST Sheets API v4, désérialisation des dates via `_parseDateCell` (garde anti-1970), interdiction formelle des déploiements `clasp deploy -i`, protection contre la fermeture de modale au clic backdrop, reparentage DOM déterministe par `appendChild`, mode de calcul de période `distribute` par défaut, raccourcis rétrospectifs et interception proactive d'identité avec déconnexion.
 - **Confirmation de mot de passe & changement d'utilisateur (`v3.30.18`)** :
   - *Parcours bienveillant & interception client* : remplacement des messages d'erreur agressifs par une interception proactive dans `requireIdentity(onVerified)` (`Index.html`). Si le joueur sélectionné est protégé par mot de passe et que la session n'est pas encore saisie (`!_identityPassword`), l'action ouvre directement la modale de mot de passe `openIdentityPwdModal(p, onVerified)` sans envoyer de requête rejetée au serveur.
   - *Bouton « Changer d'utilisateur »* : ajout du bouton `#identityPwdChangeUser` dans la modale `#identityPwdModal` permettant en un clic de se déconnecter (`logoutIdentity()`) et d'ouvrir le sélecteur de joueurs (`openWhoAmIDropdown()`).
