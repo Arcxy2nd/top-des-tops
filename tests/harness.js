@@ -246,7 +246,7 @@ const EXPORTED_GLOBALS = [
   'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService', 'AggregatesService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor', 'runAutoPoints',
   '_byteLength', '_cachePutChunked', '_cacheGetChunked',
-  '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS', '_fetchSheetValues', '_parseDateCell'
+  '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS', '_fetchSheetValues', '_parseDateCell', '_parseLocalDateWithNow'
 ];
 
 /**

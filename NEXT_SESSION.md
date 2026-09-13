@@ -1,12 +1,18 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.13** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Rééquilibrage vertical parfait du sélecteur de période en 2 colonnes (colonne gauche : dates, raccourcis et bloc calcul pour combler le vide ; colonne droite : calendrier sur toute la hauteur).
-- Suite de tests : **397 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.14** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction définitive du problème de datage « 01/01/1970 » sur les cartes de notes, l'historique et les Tops Alternatifs via la conversion propre des numéros de série Sheets API v4 et ajout de l'édition de date de note.
+- Suite de tests : **403 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Résolution de l'anomalie de datage 01/01/1970 (`v3.30.14`)** :
+  - *Cause racine identifiée* : `_fetchSheetValues` exploitant Sheets API v4 avec `dateTimeRenderOption: 'SERIAL_NUMBER'`, les dates des cellules sont renvoyées en numéros de série Sheets (ex: 46278). Dans `NotesService.getAllNotes()`, `new Date(row[0])` interprétait le nombre en millisecondes écoulées depuis 1970 (46 secondes après minuit le 01/01/1970).
+  - *Conversion et sécurisation backend* : migration vers `_parseDateCell` dans `NotesService.getAllNotes()`, `AltStorageService._parseAltHistoryRow`, `ChatService.getAllMessages`, `_historyRowSummary`, `apiGetAuditLog` et `apiGetNoteHistory`.
+  - *Édition de date de note* : `NotesService.editNote` et `apiEditNote` acceptent désormais `optNewDate` pour mettre à jour la colonne Date lors de l'édition d'une note ancienne.
+  - *Frontend Index.html* : garde anti-1970 dans `buildNoteCard` et `relativeDateLabel` (repli propre `'—'`), et sélecteur de date `<input type="date" id="mNoteDate">` dans le modal d'édition de note.
+  - *Tests* : 6 nouveaux tests unitaires dans `tests/notes-dating.test.js` (403 tests au total, 100% verts).
 - **Équilibrage vertical du sélecteur de période (`v3.30.13`)** :
   - *Comblement du vide à gauche* : intégration de `.d-period-calc-group` (« Mode de calcul : », options radio) et de `.d-fill-preview` (« 1 pt/j × 1 jour = 1 total ») dans la colonne gauche `.d-period-left-col`, juste sous les boutons raccourcis avec séparateur fin.
   - *Symétrie et hauteur égale (229px)* : passage de `.d-period` en `align-items: stretch;`, équilibrant parfaitement les cartes gauche et droite à 229px sans aucun espace vide résiduel.

@@ -4,6 +4,25 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.14] - 2026-09-13
+
+### Corrigé
+**Humanisé** : Résolution de l'anomalie de datage affichant « 01/01/1970 » sur les cartes de notes, l'historique et les Tops Alternatifs. Les numéros de série Sheets sont désormais convertis en dates réelles modernes, et le modal d'édition de note permet désormais de consulter et corriger la date d'une note.
+**Technique** :
+- `Code.gs` :
+  - `NotesService.getAllNotes()` : remplacement de `new Date(row[0])` et `new Date(row[6])` par `_parseDateCell`, éliminant la conversion erronée des numéros de série Sheets API v4 (`SERIAL_NUMBER`) en millisecondes epoch Unix (1970). Filtrage des dates $\le 1970$ vers `null`.
+  - `NotesService.editNote(rowIndex, newText, editor, optNewDate)` et `apiEditNote` : support de la modification de la date d'une note lors de l'édition avec renvoi du timestamp actualisé.
+  - `AltStorageService._parseAltHistoryRow` et `addNativeAltEntries` : normalisation via `_parseDateCell` et `_parseLocalDateWithNow` rejetant les dates invalides ou $\le 1970$.
+  - `ChatService.getAllMessages` et `apiGetAuditLog` : utilisation de `_parseDateCell` pour sécuriser les timestamps issus de l'API Sheets.
+  - `_parseDateCell(val)` : gestion native des chaînes ISO `YYYY-MM-DD` en heure locale et rejet systématique des années $\le 1970$ (`Invalid Date`).
+  - `_parseLocalDateWithNow(dateStr)` : support étendu (ISO, format européen `DD/MM/YYYY`, série Sheets, objet `Date`), avec repli sécurisé sur `new Date()` pour les entrées vides et `NaN` pour les entrées invalides.
+- `Index.html` :
+  - `buildNoteCard(note)` et `relativeDateLabel(date)` : garde active masquant l'affichage « 01/01/1970 » au profit d'un repli propre `'—'` si la date est manquante ou $\le 1970$.
+  - `openEditNoteModal(note)` : ajout d'un champ `<input type="date" id="mNoteDate">` permettant la consultation et la correction immédiate de la date d'une note.
+  - Sécurisation anti-1970 dans les cellules de date du tableau de l'historique (`#historyTable`) et du sélecteur universel de Tops Alternatifs.
+- `tests/notes-dating.test.js` : 6 nouveaux tests unitaires validant la conversion des numéros de série Sheets en dates réelles, la neutralisation de l'anomalie 1970, l'édition de date de note et la robustesse multi-formats de `_parseLocalDateWithNow`.
+- `tests/harness.js` : ajout de `_parseLocalDateWithNow` dans `EXPORTED_GLOBALS`.
+
 ## [v3.30.13] - 2026-09-13
 
 ### Modifié

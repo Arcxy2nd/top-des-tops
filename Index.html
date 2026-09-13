@@ -10082,7 +10082,7 @@
         const altLinks = cachedAltMap[rIdStr] || [];
 
         const d = new Date(l.date || l.timestamp);
-        const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+        const dateStr = (!d || isNaN(d) || d.getFullYear() <= 1970) ? '—' : d.toLocaleDateString('fr-FR');
         const pColor = playerColor(l.player);
         const playerObj = cachedPlayers.find(p => p.name === l.player);
 
@@ -10238,7 +10238,7 @@
 
         entries.forEach(e => {
           const d = new Date(e.date);
-          const dateStr = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+          const dateStr = (!d || isNaN(d) || d.getFullYear() <= 1970) ? '—' : d.toLocaleDateString('fr-FR');
           const pColor = playerColor(e.player);
           const pl = cachedPlayers.find(p => p.name === e.player);
           const isNative = !!e.isNative;
@@ -15981,7 +15981,7 @@
     dateCell.setAttribute('data-label', 'Date');
     dateCell.style.setProperty('--player-color', pColor);
     const d = new Date(log.timestamp);
-    dateCell.textContent = isNaN(d) ? '—' : d.toLocaleDateString('fr-FR');
+    dateCell.textContent = (!d || isNaN(d) || d.getFullYear() <= 1970) ? '—' : d.toLocaleDateString('fr-FR');
 
     const playerCell = tr.insertCell();
     playerCell.className = 'hist-player-cell';
@@ -16443,7 +16443,7 @@
   }
 
   function relativeDateLabel(date) {
-    if (!date || isNaN(date.getTime())) return '';
+    if (!date || isNaN(date.getTime()) || date.getFullYear() <= 1970) return '';
     const days = Math.floor((new Date().setHours(0,0,0,0) - new Date(date).setHours(0,0,0,0)) / 86400000);
     if (days === 0) return "aujourd'hui";
     if (days === 1) return 'hier';
@@ -16471,8 +16471,9 @@
 
   function buildNoteCard(note) {
     const d = note.timestamp ? new Date(note.timestamp) : null;
-    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
-    const relStr   = d && !isNaN(d) ? relativeDateLabel(d) : '';
+    const isValidDate = d && !isNaN(d.getTime()) && d.getFullYear() > 1970;
+    const dateStr = isValidDate ? d.toLocaleDateString('fr-FR') : '—';
+    const relStr   = isValidDate ? relativeDateLabel(d) : '';
 
     const card = document.createElement('div');
     card.className = 'note-card';
@@ -16507,7 +16508,7 @@
     }
     if (note.lastEditedBy && note.lastEditedAt) {
       const ed = new Date(note.lastEditedAt);
-      const edStr = !isNaN(ed) ? ed.toLocaleDateString('fr-FR') : '';
+      const edStr = (!isNaN(ed.getTime()) && ed.getFullYear() > 1970) ? ed.toLocaleDateString('fr-FR') : '';
       const editedBtn = document.createElement('button');
       editedBtn.type = 'button';
       editedBtn.className = 'note-meta-item note-meta-edited';
@@ -16659,11 +16660,15 @@
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     const d = note.timestamp ? new Date(note.timestamp) : null;
-    const dateStr = (d && !isNaN(d)) ? d.toLocaleDateString('fr-FR') : '—';
+    const isValidDate = d && !isNaN(d.getTime()) && d.getFullYear() > 1970;
+    const dateVal = isValidDate ? toDateStr(d) : toDateStr(new Date());
 
     box.innerHTML =
       '<h3>Éditer la note</h3>' +
-      '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">' + escapeHtml(dateStr) + '</p>' +
+      '<div class="modal-field" style="margin-bottom:12px;">' +
+        '<label>Date de la note</label>' +
+        '<input type="date" id="mNoteDate" value="' + escapeHtml(dateVal) + '" style="width:auto;max-width:200px;">' +
+      '</div>' +
       '<div class="modal-field" style="margin-bottom:12px;">' +
         '<label>Contenu de la note</label>' +
         '<div id="mNoteTextEditor"></div>' +
@@ -16685,13 +16690,15 @@
       if (!requireIdentity()) return;
       const v = noteEditor._getValue().trim();
       if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
+      const newDateVal = (document.getElementById('mNoteDate') && document.getElementById('mNoteDate').value) || '';
       closeModal();
-      callServer('apiEditNote', [note.rowIndex, v, _whoAmI || ''], res => {
+      callServer('apiEditNote', [note.rowIndex, v, _whoAmI || '', newDateVal], res => {
         const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
         if (target) {
           target.text = v;
+          if (res && res.timestamp) target.timestamp = res.timestamp;
           target.lastEditedBy = _whoAmI || '';
-          target.lastEditedAt = res.editedAt || new Date().toISOString();
+          target.lastEditedAt = (res && res.editedAt) || new Date().toISOString();
         }
         renderNotesBlocks();
         showToast('Note modifiée.', 'success');

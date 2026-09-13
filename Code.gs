@@ -25,11 +25,32 @@ function _pad2(n) { return String(n).padStart(2, '0'); }
 /** Formats a Date as a local 'YYYY-MM-DD' key (no timezone conversion). */
 function _dayKey(d) { return d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate()); }
 
-/** Parses a 'YYYY-MM-DD' string into a local Date, carrying the current time-of-day (throws-free — check isNaN on the result). */
+/** Parses a date input into a local Date, carrying the current time-of-day (safe fallback to now if empty, NaN if invalid). */
 function _parseLocalDateWithNow(dateStr) {
   const now = new Date();
-  const parts = String(dateStr).trim().split('-').map(Number);
-  return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), now.getSeconds());
+  if (dateStr === undefined || dateStr === null || dateStr === '') return new Date();
+  if (dateStr instanceof Date) {
+    return (isNaN(dateStr.getTime()) || dateStr.getFullYear() <= 1970) ? new Date(NaN) : new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+  }
+  if (typeof dateStr === 'number') {
+    const parsed = _parseDateCell(dateStr);
+    if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1970) {
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+    }
+    return new Date(NaN);
+  }
+  const s = String(dateStr).trim();
+  if (!s) return new Date();
+  const parts = s.split('-').map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2]) && parts[0] > 1970) {
+    const d = new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), now.getSeconds());
+    return isNaN(d.getTime()) ? new Date(NaN) : d;
+  }
+  const parsed = _parseDateCell(s);
+  if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1970) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+  }
+  return new Date(NaN);
 }
 
 /** Generates a short, collision-resistant id used to tag/group a batch of rows. */
@@ -265,12 +286,16 @@ function _colIndexToA1(colIndex) {
 /** Parses a cell value into a valid Date object, handling Date instances, Sheets serial numbers, ISO & European strings. */
 function _parseDateCell(val) {
   if (!val) return new Date(NaN);
-  if (val && typeof val.getTime === 'function') return val;
-  if (typeof val === 'number') {
-    if (!Number.isFinite(val) || val < 1000) return new Date(NaN);
-    const ms = Math.round((val - 25569) * 86400 * 1000);
+  if (val && typeof val.getTime === 'function') {
+    return (isNaN(val.getTime()) || val.getFullYear() <= 1970) ? new Date(NaN) : val;
+  }
+  if (typeof val === 'number' || (typeof val === 'string' && /^\d+(\.\d+)?$/.test(String(val).trim()))) {
+    const num = Number(val);
+    if (!Number.isFinite(num) || num < 1000) return new Date(NaN);
+    const ms = Math.round((num - 25569) * 86400 * 1000);
     const u = new Date(ms);
-    return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds());
+    const res = new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds());
+    return res.getFullYear() <= 1970 ? new Date(NaN) : res;
   }
   const s = String(val).trim();
   if (!s) return new Date(NaN);
@@ -279,6 +304,7 @@ function _parseDateCell(val) {
     const d = parseInt(dmyMatch[1], 10);
     const m = parseInt(dmyMatch[2], 10) - 1;
     const y = parseInt(dmyMatch[3], 10);
+    if (y <= 1970) return new Date(NaN);
     const rest = dmyMatch[4].trim();
     if (rest) {
       const timeParts = rest.split(/[:\s]+/).filter(Boolean).map(Number);
@@ -286,7 +312,21 @@ function _parseDateCell(val) {
     }
     return new Date(y, m, d);
   }
-  return new Date(s);
+  const ymdMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(.*)$/);
+  if (ymdMatch) {
+    const y = parseInt(ymdMatch[1], 10);
+    if (y <= 1970) return new Date(NaN);
+    const m = parseInt(ymdMatch[2], 10) - 1;
+    const d = parseInt(ymdMatch[3], 10);
+    const rest = ymdMatch[4].trim();
+    if (rest) {
+      const timeParts = rest.split(/[:\sT]+/).filter(Boolean).map(Number);
+      return new Date(y, m, d, timeParts[0] || 0, timeParts[1] || 0, timeParts[2] || 0);
+    }
+    return new Date(y, m, d);
+  }
+  const fallback = new Date(s);
+  return (isNaN(fallback.getTime()) || fallback.getFullYear() <= 1970) ? new Date(NaN) : fallback;
 }
 
 /**
@@ -1794,14 +1834,14 @@ const AltStorageService = {
   },
 
   _parseAltHistoryRow(row, i, startRow) {
-    const d = new Date(row[0]);
+    const d = _parseDateCell(row[0]);
     const player = row[1] ? row[1].toString() : '';
     const category = row[2] ? row[2].toString() : '';
     const points = parseInt(row[3], 10);
     return {
       rowIndex: i + (startRow === undefined ? 2 : startRow),
       date: d,
-      dateValid: !isNaN(d.getTime()),
+      dateValid: !isNaN(d.getTime()) && d.getFullYear() > 1970,
       player,
       category,
       points,
@@ -1941,8 +1981,8 @@ const AltStorageService = {
       if (!e.altCategory || !allAltCats.includes(e.altCategory)) throw new Error('Top Alternatif invalide : ' + e.altCategory);
       const pts = parseInt(e.points, 10);
       if (isNaN(pts) || pts < 1) throw new Error('Les points doivent être ≥ 1.');
-      const targetDate = e.date ? new Date(e.date) : new Date();
-      if (isNaN(targetDate.getTime())) throw new Error('Date invalide : ' + e.date);
+      const targetDate = e.date ? _parseLocalDateWithNow(e.date) : new Date();
+      if (isNaN(targetDate.getTime()) || targetDate.getFullYear() <= 1970) throw new Error('Date invalide : ' + e.date);
       return this._buildAltRow({
         date: targetDate,
         player: e.player,
@@ -2112,17 +2152,17 @@ const NotesService = {
       const player = row[1] ? row[1].toString() : '';
       const text   = row[2] ? row[2].toString() : '';
       if (!player && !text) continue;
-      const d = new Date(row[0]);
-      const editedAt = row[6] ? new Date(row[6]) : null;
+      const d = _parseDateCell(row[0]);
+      const editedAt = row[6] ? _parseDateCell(row[6]) : null;
       out.push({
-        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
+        timestamp: (!d || isNaN(d.getTime()) || d.getFullYear() <= 1970) ? null : d.toISOString(),
         player,
         text,
         rowIndex: i + startRow,
         noteId: row[3] ? row[3].toString() : '',
         createdBy: row[4] ? row[4].toString() : '',
         lastEditedBy: row[5] ? row[5].toString() : '',
-        lastEditedAt: (editedAt && !isNaN(editedAt.getTime())) ? editedAt.toISOString() : null
+        lastEditedAt: (editedAt && !isNaN(editedAt.getTime()) && editedAt.getFullYear() > 1970) ? editedAt.toISOString() : null
       });
     }
     out.reverse();
@@ -2159,7 +2199,7 @@ const NotesService = {
   /** Renvoie le NoteId de la ligne éditée (le génère à la volée si la note est
    *  antérieure à l'introduction du suivi — elle devient traçable dès cette édition,
    *  sans attendre un rattachement rétroactif). Écrit ModifiéPar/ModifiéLe directement. */
-  editNote(rowIndex, newText, editor) {
+  editNote(rowIndex, newText, editor, optNewDate) {
     const sheet = this._sheet();
     const idx = parseInt(rowIndex, 10);
     if (isNaN(idx) || idx < _firstDataRow('notes', sheet)) throw new Error("Ligne invalide.");
@@ -2171,9 +2211,17 @@ const NotesService = {
       noteId = _generateGroupId();
       sheet.getRange(idx, 4).setValue(noteId);
     }
+    let updatedTimestamp = null;
+    if (optNewDate) {
+      const targetDate = _parseLocalDateWithNow(optNewDate);
+      if (!isNaN(targetDate.getTime()) && targetDate.getFullYear() > 1970) {
+        sheet.getRange(idx, 1).setValue(targetDate);
+        updatedTimestamp = targetDate.toISOString();
+      }
+    }
     sheet.getRange(idx, 6, 1, 2).setValues([[editor || '', new Date()]]);
     _bumpNotesVersion();
-    return noteId;
+    return { noteId, timestamp: updatedTimestamp };
   },
 
   /** Lit le NoteId stocké à une ligne donnée (utilisé par les endpoints api* pour
@@ -2228,10 +2276,10 @@ const ChatService = {
       const author = row[2] ? row[2].toString() : '';
       const text   = row[3] ? row[3].toString() : '';
       if (!id || (!author && !text)) continue;
-      const d = new Date(row[1]);
+      const d = _parseDateCell(row[1]);
       const msg = {
         id,
-        timestamp: isNaN(d.getTime()) ? null : d.toISOString(),
+        timestamp: (!d || isNaN(d.getTime()) || d.getFullYear() <= 1970) ? null : d.toISOString(),
         author,
         text,
         replyToId: row[4] ? row[4].toString() : '',
@@ -3548,9 +3596,9 @@ function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filt
 function _historyRowSummary(rowIndex) {
   try {
     const row = ConfigService.getSheets().history.getRange(rowIndex, 1, 1, 5).getValues()[0];
-    const d   = new Date(row[0]);
+    const d   = _parseDateCell(row[0]);
     const pad  = n => String(n).padStart(2, '0');
-    const ds   = isNaN(d.getTime()) ? '?'
+    const ds   = (!d || isNaN(d.getTime()) || d.getFullYear() <= 1970) ? '?'
       : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
     return [row[1] || '?', row[2] || '?', (parseInt(row[3], 10) || '?') + ' pts', ds, row[4] || ''].join(' | ');
   } catch (_) { return 'ligne #' + rowIndex; }
@@ -3996,8 +4044,8 @@ function apiGetAuditLog(page, pageSize, filterAuthor, filterAction, startDate, e
     const filtered = [];
     for (let i = data.length - 1; i >= 0; i--) {  // reverse → les plus récents d'abord
       const row = data[i];
-      const ts  = new Date(row[0]);
-      if (isNaN(ts.getTime())) continue;
+      const ts  = _parseDateCell(row[0]);
+      if (!ts || isNaN(ts.getTime()) || ts.getFullYear() <= 1970) continue;
       if (filterAuthor && row[1] !== filterAuthor) continue;
       if (filterAction && row[2] !== filterAction) continue;
       if (start && ts < start) continue;
@@ -4318,8 +4366,9 @@ function apiGetNoteHistory(noteId) {
     const entries = [];
     data.forEach(row => {
       if (row[3] !== 'Note' || row[2] !== 'Note modifiée' || row[6] !== needle) return;
+      const d = _parseDateCell(row[0]);
       entries.push({
-        timestamp: new Date(row[0]).toISOString(),
+        timestamp: (!d || isNaN(d.getTime()) || d.getFullYear() <= 1970) ? '' : d.toISOString(),
         author: row[1] ? row[1].toString() : '',
         before: row[4] ? row[4].toString() : '',
         after:  row[5] ? row[5].toString() : ''
@@ -4330,20 +4379,29 @@ function apiGetNoteHistory(noteId) {
   } catch(e) { return fail(e); }
 }
 
-function apiEditNote(rowIndex, newText, author, password) {
+function apiEditNote(rowIndex, newText, author, optNewDate, password) {
   try {
-    requireAuthor(author, password);
+    let targetDateStr = optNewDate;
+    let pwd = password;
+    if (typeof optNewDate === 'string' && optNewDate.length > 0 && !optNewDate.includes('-') && !optNewDate.includes('/') && isNaN(new Date(optNewDate).getTime())) {
+      pwd = optNewDate;
+      targetDateStr = undefined;
+    }
+    requireAuthor(author, pwd);
     return withLock(() => {
       const sheet = ConfigService.getSheets().notes;
       const before = _noteRowSummary(rowIndex);
       const beforeRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
-      const noteId = NotesService.editNote(rowIndex, newText, author); // backfille un NoteId si absent, écrit ModifiéPar/ModifiéLe
+      const res = NotesService.editNote(rowIndex, newText, author, targetDateStr);
       const afterRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
       AuditService.log(author, 'Note modifiée', 'Note', before, (newText || '').trim(),
-        'note:' + noteId,
+        'note:' + res.noteId,
         { sheet: 'notes', op: 'update', rowIndex, before: beforeRow, after: afterRow });
-      const editedAt = afterRow[6] instanceof Date ? afterRow[6].toISOString() : null;
-      return { success: true, noteId, editedAt };
+      const ed = _parseDateCell(afterRow[6]);
+      const editedAt = (ed && !isNaN(ed.getTime()) && ed.getFullYear() > 1970) ? ed.toISOString() : null;
+      const d = _parseDateCell(afterRow[0]);
+      const finalTimestamp = res.timestamp || ((d && !isNaN(d.getTime()) && d.getFullYear() > 1970) ? d.toISOString() : null);
+      return { success: true, noteId: res.noteId, editedAt, timestamp: finalTimestamp };
     });
   } catch(e) { return fail(e); }
 }
