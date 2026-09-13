@@ -1538,16 +1538,16 @@
       padding: 5px 8px; font-size: 0.82rem; width: auto; min-width: 135px;
     }
 
-    /* Panneau « Une période » : Layout 2 colonnes (Gauche ~45-50% : Mode + Dates 1 ligne + Raccourcis 1 ligne / Droite ~50-55% : Calendrier + Calcul + Résumé) */
+    /* Panneau « Une période » : Layout 2 colonnes équilibrées */
     .d-period {
-      display: none; flex-direction: row; align-items: flex-start; gap: 8px; flex-wrap: wrap; width: 100%; min-width: 0;
+      display: none; flex-direction: row; align-items: stretch; gap: 8px; flex-wrap: wrap; width: 100%; min-width: 0;
     }
 
-    /* Colonne 1 (Gauche, environ 45-50%) : Mode + Dates Du/Au sur 1 ligne + Raccourcis sur 1 ligne */
+    /* Colonne 1 (Gauche, environ 45-50%) : Mode + Dates Du/Au + Raccourcis + Mode de calcul + Résumé */
     .d-period-left-col {
-      display: flex; flex-direction: column; gap: 5px; justify-content: flex-start;
+      display: flex; flex-direction: column; gap: 5px; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 6px 8px; flex: 48 1 280px; max-width: 50%; min-width: 240px; box-sizing: border-box;
+      padding: 7px 9px; flex: 48 1 280px; max-width: 50%; min-width: 240px; box-sizing: border-box;
     }
     .d-period-dates-row {
       display: flex; flex-direction: row; align-items: center; gap: 6px; width: 100%; flex-wrap: nowrap;
@@ -1569,18 +1569,49 @@
       flex: 1 1 0; text-align: center; padding: 3px 4px; font-size: 0.7rem; white-space: nowrap;
     }
 
-    /* Colonne 2 (Droite, environ 50-55%) : Calendrier + Texte hint + Mode de calcul + Résumé */
+    /* Mode de calcul du score placé sous les raccourcis à gauche pour combler le vide */
+    .d-period-calc-group {
+      display: flex; flex-direction: column; gap: 2px;
+      border-top: 1px solid var(--border); padding-top: 4px; margin-top: 1px;
+    }
+    .d-period-right-title {
+      font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 1px;
+    }
+    .fill-choice {
+      display: flex; flex-direction: column; gap: 2px; margin: 0;
+    }
+    .fill-opt {
+      text-align: left; padding: 3px 7px; border-radius: 5px;
+      background: var(--btn-alt); border: 1px solid var(--border); color: var(--text-muted);
+      font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer; min-height: 23px; line-height: 1.25;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .fill-opt::before { content: '○ '; }
+    .fill-opt.active::before { content: '● '; }
+    .fill-opt.active { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
+
+    /* Aperçu chiffré live en bas de colonne gauche */
+    .d-fill-preview {
+      font-size: 0.72rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 6px; padding: 3px 6px; box-sizing: border-box; text-align: center;
+      margin-top: 1px;
+    }
+    .d-fill-preview:empty { display: none; }
+
+    /* Colonne 2 (Droite, environ 50-55%) : Calendrier occupant toute la hauteur disponible */
     .d-period-right-col {
-      display: flex; flex-direction: column; gap: 4px;
+      display: flex; flex-direction: column; justify-content: space-between;
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 6px 8px; flex: 52 1 300px; min-width: 270px; box-sizing: border-box;
+      padding: 7px 9px; flex: 52 1 300px; min-width: 270px; box-sizing: border-box;
     }
 
-    /* Mini-calendrier intégré dans la colonne droite : occupe toute la largeur */
+    /* Mini-calendrier intégré dans la colonne droite : occupe toute la hauteur */
     .d-cal {
       background: transparent; border: none; border-radius: 0;
-      padding: 0; width: 100%; box-sizing: border-box;
-      display: flex; flex-direction: column; gap: 2px;
+      padding: 0; width: 100%; height: 100%; box-sizing: border-box;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 2px;
     }
     .d-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 0.78rem; }
     .d-cal-title { font-size: 0.78rem; font-weight: 700; color: var(--text); }
@@ -1602,37 +1633,6 @@
     .d-cal-day.is-preview { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
     .d-cal-day.is-end { background: var(--accent); color: var(--on-accent); font-weight: 700; }
     .d-cal-hint { font-size: 0.68rem; color: var(--text-muted); text-align: center; margin-top: 2px; }
-
-    /* Mode de calcul du score immédiatement collé sous le calendrier */
-    .d-period-calc-group {
-      display: flex; flex-direction: column; gap: 2px;
-      border-top: 1px solid var(--border); padding-top: 4px; margin-top: 2px;
-    }
-    .d-period-right-title {
-      font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 1px;
-    }
-    .fill-choice {
-      display: flex; flex-direction: column; gap: 2px; margin: 0;
-    }
-    .fill-opt {
-      text-align: left; padding: 3px 7px; border-radius: 5px;
-      background: var(--btn-alt); border: 1px solid var(--border); color: var(--text-muted);
-      font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer; min-height: 23px; line-height: 1.25;
-      transition: background 0.12s, color 0.12s, border-color 0.12s;
-    }
-    .fill-opt::before { content: '○ '; }
-    .fill-opt.active::before { content: '● '; }
-    .fill-opt.active { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
-
-    /* Aperçu chiffré live en bas de colonne droite */
-    .d-fill-preview {
-      font-size: 0.72rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums;
-      background: color-mix(in srgb, var(--accent) 10%, transparent);
-      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-      border-radius: 6px; padding: 3px 6px; box-sizing: border-box; text-align: center;
-      margin-top: 1px;
-    }
-    .d-fill-preview:empty { display: none; }
     .row-shortcuts { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
     .row-shortcut {
       background: var(--btn-alt); border: 1px solid var(--border);
@@ -13921,15 +13921,6 @@
     periodLeftCol.appendChild(datesRow);
     periodLeftCol.appendChild(durationShortcuts);
 
-    // 2. Colonne Droite : Calendrier + Mode de calcul du score + Aperçu live
-    const periodRightCol = document.createElement('div');
-    periodRightCol.className = 'd-period-right-col';
-
-    const cal = createMiniCalendar(startInput, endInput, () => {
-      updateDatePreview();
-      updateLotSummary();
-    });
-
     const calcGroup = document.createElement('div');
     calcGroup.className = 'd-period-calc-group';
 
@@ -13948,9 +13939,19 @@
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
 
+    periodLeftCol.appendChild(calcGroup);
+    periodLeftCol.appendChild(fillPreview);
+
+    // 2. Colonne Droite : Calendrier occupant la hauteur disponible
+    const periodRightCol = document.createElement('div');
+    periodRightCol.className = 'd-period-right-col';
+
+    const cal = createMiniCalendar(startInput, endInput, () => {
+      updateDatePreview();
+      updateLotSummary();
+    });
+
     periodRightCol.appendChild(cal);
-    periodRightCol.appendChild(calcGroup);
-    periodRightCol.appendChild(fillPreview);
 
     periodPanel.appendChild(periodLeftCol);
     periodPanel.appendChild(periodRightCol);

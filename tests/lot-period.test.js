@@ -177,10 +177,12 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   // 4 shortcuts on a single line
   assert.match(html, /\.d-period-shortcuts\s*\{[^}]*flex-wrap:\s*nowrap/s);
 
-  // Calendar and calculation mode are assembled in the right column
+  // Calculation mode and preview fill the empty space in the left column
+  assert.match(html, /periodLeftCol\.appendChild\(calcGroup\)/);
+  assert.match(html, /periodLeftCol\.appendChild\(fillPreview\)/);
+
+  // Calendar is placed in the right column
   assert.match(html, /periodRightCol\.appendChild\(cal\)/);
-  assert.match(html, /periodRightCol\.appendChild\(calcGroup\)/);
-  assert.match(html, /periodRightCol\.appendChild\(fillPreview\)/);
 
   // Calculation mode title and options are grouped in .d-period-calc-group with compact spacing
   assert.match(html, /\.d-period-calc-group\s*\{/);

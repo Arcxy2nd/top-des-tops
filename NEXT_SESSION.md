@@ -1,12 +1,17 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.12** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Refonte du sélecteur de période en layout 2 colonnes ergonomique (colonne gauche ~45-50% avec dates et raccourcis sur 1 ligne, colonne droite ~50-55% avec calendrier pleine largeur, mode de calcul et total collés sans vide).
+- Version livrée : **v3.30.13** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Rééquilibrage vertical parfait du sélecteur de période en 2 colonnes (colonne gauche : dates, raccourcis et bloc calcul pour combler le vide ; colonne droite : calendrier sur toute la hauteur).
 - Suite de tests : **397 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Équilibrage vertical du sélecteur de période (`v3.30.13`)** :
+  - *Comblement du vide à gauche* : intégration de `.d-period-calc-group` (« Mode de calcul : », options radio) et de `.d-fill-preview` (« 1 pt/j × 1 jour = 1 total ») dans la colonne gauche `.d-period-left-col`, juste sous les boutons raccourcis avec séparateur fin.
+  - *Symétrie et hauteur égale (229px)* : passage de `.d-period` en `align-items: stretch;`, équilibrant parfaitement les cartes gauche et droite à 229px sans aucun espace vide résiduel.
+  - *Colonne droite dédiée au calendrier* : `.d-period-right-col` héberge exclusivement le mini-calendrier `.d-cal` qui exploite toute la hauteur disponible avec en-tête en haut, grille des jours au centre et texte récapitulatif (« 1 jour : du 13 sept. au 13 sept. ») en bas.
+  - *Tests* : mise à jour de `tests/lot-period.test.js` pour valider l'imbrication du bloc calcul à gauche et du calendrier à droite (`397/397` tests au vert).
 - **Refonte du sélecteur de période en 2 colonnes ergonomiques (`v3.30.12`)** :
   - *Layout 2 colonnes compact* : passage de 3 à 2 colonnes dans `.d-period` (`align-items: flex-start; gap: 8px;`).
   - *Colonne gauche (~45-50%)* : `.d-period-left-col` (`flex: 48 1 280px; max-width: 50%; min-width: 240px; padding: 6px 8px;`) empile de façon ultra-compacte (`justify-content: flex-start`) les onglets « Un jour » / « Une période », les deux sélecteurs de date « Du » et « Au » strictement côte à côte sur une seule ligne (`.d-period-dates-row` en `flex-direction: row; flex-wrap: nowrap; gap: 6px;`), et les 4 boutons raccourcis sur une seule ligne (`.d-period-shortcuts` avec `flex-wrap: nowrap; gap: 3px`). Hauteur compacte de ~121px sans aucun espace vide.

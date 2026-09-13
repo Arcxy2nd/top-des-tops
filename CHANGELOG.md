@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.13] - 2026-09-13
+
+### Modifié
+**Humanisé** : Équilibrage parfait du sélecteur de période en 2 colonnes : le bloc « Mode de calcul » et son résumé sont déplacés dans la colonne gauche sous les raccourcis pour combler l'espace vide, tandis que la colonne droite est entièrement dédiée au calendrier mensuel et à son texte récapitulatif. Les deux cartes ont désormais exactement la même hauteur.
+**Technique** :
+- `Index.html` :
+  - Déplacement de `.d-period-calc-group` et `.d-fill-preview` dans `.d-period-left-col`, sous `.d-period-shortcuts`, avec séparateur fin pour combler le vide vertical de la colonne gauche.
+  - `.d-period` passe en `align-items: stretch;` pour garantir une hauteur identique (229px) et une symétrie parfaite entre les deux colonnes.
+  - `.d-period-right-col` héberge exclusivement le mini-calendrier `.d-cal` qui occupe 100% de sa hauteur et largeur avec en-tête en haut, grille au centre et texte récapitulatif en bas.
+- `tests/lot-period.test.js` : mise à jour des assertions pour vérifier l'intégration du mode de calcul dans la colonne gauche et du calendrier dans la colonne droite.
+
 ## [v3.30.12] - 2026-09-13
 
 ### Modifié
