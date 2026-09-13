@@ -151,3 +151,34 @@ test('addNote refuses an unlinked Discord account', () => {
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, false);
 });
+
+test('getLeaderboard returns a ranked, formatted list of all players', () => {
+  const gas = makeContext('right-secret');
+  gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111', top: 'Mario Kart', points: '10'
+  } });
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getLeaderboard', secret: 'right-secret' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.match(body.message, /Alex/);
+  assert.match(body.message, /10 pts/);
+});
+
+test("getNotes lists a player's notes, most recent first", () => {
+  const gas = makeContext('right-secret');
+  gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'premiere note'
+  } });
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', player: 'Alex' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.match(body.message, /premiere note/);
+});
+
+test('getNotes reports no notes for a player with none', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', player: 'Sam' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.match(body.message, /Aucune note/);
+});

@@ -126,4 +126,31 @@ const DiscordBridgeService = {
       return this.ok_('✅ Note ajoutée pour ' + player);
     });
   },
+
+  getLeaderboard_(e) {
+    const totals = apiGetPlayerTotals(null, null, null);
+    if (!totals.success) return this.err_(totals.error || "Impossible de lire le classement.");
+    const labels = totals.chartData.labels || [];
+    const data = (totals.chartData.datasets[0] || {}).data || [];
+    const ranking = labels.map((name, i) => ({ name, points: data[i] || 0 }))
+      .sort((a, b) => b.points - a.points);
+    if (!ranking.length) return this.ok_("Aucun joueur enregistré pour l'instant.");
+    const medals = ['🥇', '🥈', '🥉'];
+    const lines = ranking.map((r, i) => (medals[i] || (i + 1) + '.') + ' ' + r.name + ' — ' + r.points + ' pts');
+    return this.ok_(lines.join('\n'));
+  },
+
+  getNotes_(e) {
+    const playerParam = e.parameter.player;
+    if (!playerParam || !playerParam.trim()) return this.err_("Le paramètre 'joueur' est obligatoire.");
+    const all = NotesService.getAllNotes().notes;
+    const matches = all.filter(n => n.player.toLowerCase() === playerParam.trim().toLowerCase());
+    if (!matches.length) return this.ok_("Aucune note pour " + playerParam + ".");
+    const lines = matches.slice(0, 10).map(n => {
+      const d = n.timestamp ? new Date(n.timestamp) : null;
+      const dateLabel = d ? _pad2(d.getDate()) + '/' + _pad2(d.getMonth() + 1) + '/' + d.getFullYear() : '?';
+      return dateLabel + ' — ' + n.text;
+    });
+    return this.ok_(lines.join('\n'));
+  }
 };
