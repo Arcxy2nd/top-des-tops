@@ -2988,6 +2988,9 @@ const AnalyticsService = {
  * ?view= on every link/bookmark they use afterwards.
  */
 function doGet(e) {
+  if (e && e.parameter && e.parameter.bgAction) {
+    return DiscordBridgeService.handleRequest(e);
+  }
   // createHtmlOutputFromFile (pas de rendu templaté) : Index.html ne contient
   // plus aucun scriptlet <?  ?> à évaluer, et le moteur de template de GAS
   // corrompt silencieusement les très gros fichiers HTML qui en contiennent

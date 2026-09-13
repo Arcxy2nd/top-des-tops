@@ -231,6 +231,14 @@ function gasMocks() {
       },
       XFrameOptionsMode: { ALLOWALL: 1 }
     },
+    ContentService: {
+      createTextOutput: text => ({
+        _text: text,
+        _mime: null,
+        setMimeType(m) { this._mime = m; return this; }
+      }),
+      MimeType: { JSON: 'JSON' }
+    },
     ScriptApp: {
       getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec' })
     },
@@ -244,6 +252,7 @@ const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
   'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
   'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService', 'AggregatesService',
+  'DiscordBridgeService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor', 'runAutoPoints',
   '_byteLength', '_cachePutChunked', '_cacheGetChunked',
   '_ensureSheetHeaders', 'CANONICAL_SHEET_HEADERS', '_fetchSheetValues', '_parseDateCell', '_parseLocalDateWithNow'
@@ -269,10 +278,11 @@ function buildEpilogue(source) {
 function loadGas(extraMocks) {
   const code = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
   const autoPointsCode = fs.readFileSync(path.join(__dirname, '..', 'AutoPoints.gs'), 'utf8');
+  const discordBridgeCode = fs.readFileSync(path.join(__dirname, '..', 'DiscordBridge.gs'), 'utf8');
   const sandbox = Object.assign(gasMocks(), extraMocks || {});
   vm.createContext(sandbox);
-  const source = code + '\n' + autoPointsCode;
-  vm.runInContext(source + buildEpilogue(source), sandbox, { filename: 'Code.gs+AutoPoints.gs' });
+  const source = code + '\n' + autoPointsCode + '\n' + discordBridgeCode;
+  vm.runInContext(source + buildEpilogue(source), sandbox, { filename: 'Code.gs+AutoPoints.gs+DiscordBridge.gs' });
   return sandbox.__exports;
 }
 
