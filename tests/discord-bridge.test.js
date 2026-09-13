@@ -19,7 +19,7 @@ function makeContext(secret) {
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre', 'Discord ID'],
     ['Alex', '', '', '', '1', '111111111111111111'],
-    ['Sam', '', '', '', '2', '']
+    ['Sam', '', '', '', '2', '222222222222222222']
   ]);
   const categories = makeSheet([
     ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
@@ -156,7 +156,7 @@ test('addPoints credits an explicit target player, distinct from the author', ()
   const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
-    top: 'Mario Kart', points: '5', player: 'Sam'
+    top: 'Mario Kart', points: '5', targetDiscordId: '222222222222222222'
   } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
@@ -168,21 +168,21 @@ test('addPoints credits an explicit target player, distinct from the author', ()
   assert.strictEqual(auditRows[1][1], 'Alex');    // audited under the author
 });
 
-test('addPoints refuses an unknown target player', () => {
+test('addPoints refuses an unlinked target Discord account', () => {
   const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
-    top: 'Mario Kart', points: '5', player: 'Personne'
+    top: 'Mario Kart', points: '5', targetDiscordId: '999999999999999999'
   } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, false);
-  assert.match(body.message, /inconnu/);
+  assert.match(body.message, /ciblé/);
 });
 
 test('addNote credits an explicit target player, distinct from the author', () => {
   const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
-    bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'bravo', player: 'Sam'
+    bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'bravo', targetDiscordId: '222222222222222222'
   } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
@@ -216,7 +216,7 @@ test("getNotes lists a player's notes, most recent first", () => {
   gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'premiere note'
   } });
-  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', player: 'Alex' } });
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', targetDiscordId: '111111111111111111' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
   assert.match(body.message, /premiere note/);
@@ -224,8 +224,16 @@ test("getNotes lists a player's notes, most recent first", () => {
 
 test('getNotes reports no notes for a player with none', () => {
   const gas = makeContext('right-secret');
-  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', player: 'Sam' } });
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', targetDiscordId: '222222222222222222' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
   assert.match(body.message, /Aucune note/);
+});
+
+test('getNotes refuses an unlinked target Discord account', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', targetDiscordId: '999999999999999999' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /ciblé/);
 });

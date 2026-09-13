@@ -77,35 +77,28 @@ const DiscordBridgeService = {
     }
   },
 
-  /** Résout un nom de joueur saisi (insensible à la casse) vers son nom canonique exact, ou null. */
-  resolvePlayerByName_(name) {
-    const target = String(name || '').trim().toLowerCase();
-    if (!target) return null;
-    const match = SettingsService.getEntities('Players').find(p => p.name.toLowerCase() === target);
-    return match ? match.name : null;
-  },
-
   /**
-   * `discordId` résout l'auteur (identité/permission — sert de Saiseur). `player`, s'il est
-   * fourni, résout la cible (à qui les points/la note sont attribués) ; omis, la cible est
-   * l'auteur lui-même. Player et Saiseur sont deux colonnes distinctes de History/Notes —
-   * les confondre aurait empêché quiconque d'agir pour un autre joueur (bug identifié en
-   * session le 2026-09-13, avant tout usage réel).
+   * `discordId` résout l'auteur (identité/permission — sert de Saiseur). `targetDiscordId`,
+   * s'il est fourni, résout la cible (à qui les points/la note sont attribués) — via le même
+   * mécanisme (compte Discord mentionné/sélectionné côté Discord, jamais un nom tapé à la
+   * main : zéro faute de frappe possible, décision prise en session le 2026-09-13). Omis, la
+   * cible est l'auteur lui-même. Player et Saiseur sont deux colonnes distinctes de
+   * History/Notes — les confondre aurait empêché quiconque d'agir pour un autre joueur.
    */
   addPoints_(e) {
     const discordId = e.parameter.discordId;
+    const targetDiscordId = e.parameter.targetDiscordId;
     const top = e.parameter.top;
     const pointsRaw = e.parameter.points;
     const desc = e.parameter.desc || '';
-    const targetRaw = e.parameter.player;
 
     const author = this.resolvePlayerByDiscordId(discordId);
     if (!author) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
 
     let player = author;
-    if (targetRaw && targetRaw.trim()) {
-      const matchedPlayer = this.resolvePlayerByName_(targetRaw);
-      if (!matchedPlayer) return this.err_("Joueur inconnu : '" + targetRaw + "'. Vérifie l'orthographe exacte.");
+    if (targetDiscordId && String(targetDiscordId).trim()) {
+      const matchedPlayer = this.resolvePlayerByDiscordId(targetDiscordId);
+      if (!matchedPlayer) return this.err_("Le compte Discord ciblé n'est lié à aucun joueur.");
       player = matchedPlayer;
     }
 
@@ -137,16 +130,16 @@ const DiscordBridgeService = {
 
   addNote_(e) {
     const discordId = e.parameter.discordId;
+    const targetDiscordId = e.parameter.targetDiscordId;
     const text = e.parameter.text;
-    const targetRaw = e.parameter.player;
 
     const author = this.resolvePlayerByDiscordId(discordId);
     if (!author) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
 
     let player = author;
-    if (targetRaw && targetRaw.trim()) {
-      const matchedPlayer = this.resolvePlayerByName_(targetRaw);
-      if (!matchedPlayer) return this.err_("Joueur inconnu : '" + targetRaw + "'. Vérifie l'orthographe exacte.");
+    if (targetDiscordId && String(targetDiscordId).trim()) {
+      const matchedPlayer = this.resolvePlayerByDiscordId(targetDiscordId);
+      if (!matchedPlayer) return this.err_("Le compte Discord ciblé n'est lié à aucun joueur.");
       player = matchedPlayer;
     }
 
@@ -176,11 +169,12 @@ const DiscordBridgeService = {
   },
 
   getNotes_(e) {
-    const playerParam = e.parameter.player;
-    if (!playerParam || !playerParam.trim()) return this.err_("Le paramètre 'joueur' est obligatoire.");
+    const targetDiscordId = e.parameter.targetDiscordId;
+    const player = this.resolvePlayerByDiscordId(targetDiscordId);
+    if (!player) return this.err_("Le compte Discord ciblé n'est lié à aucun joueur.");
     const all = NotesService.getAllNotes().notes;
-    const matches = all.filter(n => n.player.toLowerCase() === playerParam.trim().toLowerCase());
-    if (!matches.length) return this.ok_("Aucune note pour " + playerParam + ".");
+    const matches = all.filter(n => n.player.toLowerCase() === player.toLowerCase());
+    if (!matches.length) return this.ok_("Aucune note pour " + player + ".");
     const lines = matches.slice(0, 10).map(n => {
       const d = n.timestamp ? new Date(n.timestamp) : null;
       const dateLabel = d ? _pad2(d.getDate()) + '/' + _pad2(d.getMonth() + 1) + '/' + d.getFullYear() : '?';
