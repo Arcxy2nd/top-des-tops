@@ -201,14 +201,18 @@ function gasMocks() {
     HtmlService: {
       createHtmlOutputFromFile: name => ({
         _file: name,
+        _appended: '',
         _metaTag: null,
+        append(str) { this._appended = (this._appended || '') + str; return this; },
         addMetaTag(name, content) { this._metaTag = { name, content }; return this; },
         setTitle() { return this; },
         setXFrameOptionsMode() { return this; }
       }),
       createHtmlOutput: html => ({
         _html: html,
+        _appended: '',
         _metaTag: null,
+        append(str) { this._appended = (this._appended || '') + str; return this; },
         addMetaTag(name, content) { this._metaTag = { name, content }; return this; },
         setTitle() { return this; },
         setXFrameOptionsMode() { return this; }
@@ -240,7 +244,8 @@ function gasMocks() {
       MimeType: { JSON: 'JSON' }
     },
     ScriptApp: {
-      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec' })
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/FAKE_DEPLOYMENT_ID/exec' }),
+      getScriptId: () => 'MOCK_SCRIPT_ID_12345'
     },
     Logger: { log: () => {} }
   };

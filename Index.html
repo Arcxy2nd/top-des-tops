@@ -6240,9 +6240,76 @@
     return src;
   }
 
-  const WHO_AM_I_KEY = 'tdt_who_am_i';
-  let _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
+  function getAppInstancePrefix() {
+    return (typeof window !== 'undefined' && window.__APP_INSTANCE_ID__)
+      ? ('tdt_' + window.__APP_INSTANCE_ID__ + '_')
+      : 'tdt_';
+  }
+
+  function getWhoAmIStorageKey() {
+    return getAppInstancePrefix() + 'who_am_i';
+  }
+
+  function getIdentityPwdStorageKey() {
+    return getAppInstancePrefix() + 'pwd';
+  }
+
+  function getSettingsCacheKey() {
+    return getAppInstancePrefix() + 'cache_settings';
+  }
+
+  function getAppSettingsCacheKey() {
+    return getAppInstancePrefix() + 'cache_appsettings';
+  }
+
+  let WHO_AM_I_KEY = getWhoAmIStorageKey();
+  let _whoAmI = null;
   let _identityPassword = '';
+
+  function getIdentityPassword() {
+    if (!_identityPassword) {
+      try {
+        _identityPassword = sessionStorage.getItem(getIdentityPwdStorageKey()) || '';
+      } catch (_) {}
+    }
+    return _identityPassword || '';
+  }
+
+  function setIdentityPassword(pwd) {
+    _identityPassword = pwd || '';
+    try {
+      const k = getIdentityPwdStorageKey();
+      if (_identityPassword) {
+        sessionStorage.setItem(k, _identityPassword);
+      } else {
+        sessionStorage.removeItem(k);
+      }
+    } catch (_) {}
+  }
+
+  function syncIdentityFromStorage() {
+    WHO_AM_I_KEY = getWhoAmIStorageKey();
+    let stored = null;
+    try {
+      stored = localStorage.getItem(WHO_AM_I_KEY);
+      // Migration from legacy un-prefixed key if instance key is absent
+      if (!stored && WHO_AM_I_KEY !== 'tdt_who_am_i') {
+        const legacy = localStorage.getItem('tdt_who_am_i');
+        if (legacy) {
+          stored = legacy;
+          localStorage.setItem(WHO_AM_I_KEY, legacy);
+        }
+      }
+    } catch (_) {}
+    _whoAmI = stored || null;
+
+    try {
+      const storedPwd = sessionStorage.getItem(getIdentityPwdStorageKey());
+      _identityPassword = storedPwd || '';
+    } catch (_) {}
+  }
+  window.syncIdentityFromStorage = syncIdentityFromStorage;
+  syncIdentityFromStorage();
 
   // ── Audit log state ──────────────────────────────────────────────────────────
   let _auditCurrentPage = 1;
@@ -6250,6 +6317,7 @@
   const AUDIT_PAGE_SIZE = 20;
 
   function requireIdentity(onVerified) {
+    if (!_whoAmI && typeof syncIdentityFromStorage === 'function') syncIdentityFromStorage();
     if (!_whoAmI) {
       showToast('Sélectionne ton identité avant d\'agir.', 'error');
       if (typeof openWhoAmIDropdown === 'function') openWhoAmIDropdown();
@@ -6257,7 +6325,8 @@
       return false;
     }
     const p = (typeof cachedPlayers !== 'undefined' && cachedPlayers) ? cachedPlayers.find(x => x.name === _whoAmI) : null;
-    if (p && p.hasPassword && !_identityPassword) {
+    const pwd = (typeof getIdentityPassword === 'function') ? getIdentityPassword() : (_identityPassword || '');
+    if (p && p.hasPassword && !pwd) {
       if (typeof openIdentityPwdModal === 'function') openIdentityPwdModal(p, onVerified);
       return false;
     }
@@ -6657,11 +6726,16 @@
     if (logoInput)  logoInput.value  = _appSettings.logoUrl;
   }
 
-  const APP_SETTINGS_CACHE_KEY = 'tdt_cache_appsettings';
+  let APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
 
   function loadAppBranding(onDone) {
     try {
-      const cached = JSON.parse(localStorage.getItem(APP_SETTINGS_CACHE_KEY) || 'null');
+      APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
+      let raw = localStorage.getItem(APP_SETTINGS_CACHE_KEY);
+      if (!raw && APP_SETTINGS_CACHE_KEY !== 'tdt_cache_appsettings') {
+        raw = localStorage.getItem('tdt_cache_appsettings');
+      }
+      const cached = JSON.parse(raw || 'null');
       if (cached) {
         _appSettings = cached;
         applyAppBranding();
@@ -9815,28 +9889,39 @@
   ]);
 
   function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
+    const handleAuthError = (errMessage) => {
+      _identityPassword = '';
+      if (typeof setIdentityPassword === 'function') setIdentityPassword('');
+      const currentWho = (typeof _whoAmI !== 'undefined') ? _whoAmI : null;
+      const players = (typeof cachedPlayers !== 'undefined' && cachedPlayers) ? cachedPlayers : null;
+      const p = players ? players.find(x => x.name === currentWho) : null;
+      if (p && p.hasPassword && typeof openIdentityPwdModal === 'function') {
+        openIdentityPwdModal(p, () => {
+          callServer(fn, params, onSuccess, errorLabel, onError, silent);
+        });
+        const errEl = (typeof document !== 'undefined' && document.getElementById) ? document.getElementById('identityPwdError') : null;
+        if (errEl) {
+          errEl.style.display = 'block';
+          errEl.textContent = 'Mot de passe requis pour agir en tant que ' + (currentWho || '') + '.';
+        }
+      } else if (typeof showActionToast === 'function') {
+        showActionToast('Mot de passe requis pour agir en tant que ' + (currentWho || 'ce joueur') + '.', 'Changer d\'utilisateur', () => {
+          if (typeof logoutIdentity === 'function') logoutIdentity();
+          if (typeof openWhoAmIDropdown === 'function') openWhoAmIDropdown();
+        }, 7000, 'error');
+        if (typeof pulseWhoAmIBtn === 'function') pulseWhoAmIBtn();
+      } else if (!silent && typeof showToast === 'function') {
+        showToast((errorLabel || 'Erreur') + ' : ' + errMessage, 'error');
+      }
+      if (onError) onError(errMessage);
+    };
+
     let runner = google.script.run
       .withSuccessHandler(res => {
         if (res && res.success === false) {
           const errStr = String(res.error || '');
-          if (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise')) {
-            _identityPassword = '';
-            const p = cachedPlayers && cachedPlayers.find(x => x.name === _whoAmI);
-            if (p && p.hasPassword) {
-              openIdentityPwdModal(p);
-              const errEl = document.getElementById('identityPwdError');
-              if (errEl) {
-                errEl.style.display = 'block';
-                errEl.textContent = 'Mot de passe requis pour agir en tant que ' + _whoAmI + '.';
-              }
-            } else {
-              showActionToast('Mot de passe requis pour agir en tant que ' + (_whoAmI || 'ce joueur') + '.', 'Changer d\'utilisateur', () => {
-                logoutIdentity();
-                openWhoAmIDropdown();
-              }, 7000, 'error');
-              pulseWhoAmIBtn();
-            }
-            if (onError) onError(res.error);
+          if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
+            handleAuthError(res.error);
             return;
           }
           if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
@@ -9856,11 +9941,19 @@
         }
       })
       .withFailureHandler(err => {
+        const errStr = String((err && err.message) || err || '');
+        if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
+          handleAuthError(errStr);
+          return;
+        }
         if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
         if (onError) onError(err);
       });
+    const pwd = (typeof getIdentityPassword === 'function')
+      ? getIdentityPassword()
+      : (_identityPassword || '');
     const actualParams = _MUTATING_APIS.has(fn)
-      ? [...params, _identityPassword || '']
+      ? [...params, pwd]
       : params;
     runner[fn](...actualParams);
   }
@@ -9892,22 +9985,28 @@
     }, 0);
 
     upBtn.addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      const cur = siblings();
-      const i = cur.indexOf(itemEl);
-      if (i <= 0) return;
-      upBtn.disabled = true; downBtn.disabled = true;
-      container.insertBefore(itemEl, cur[i - 1]);
-      onReorder();
+      const doMove = () => {
+        const cur = siblings();
+        const i = cur.indexOf(itemEl);
+        if (i <= 0) return;
+        upBtn.disabled = true; downBtn.disabled = true;
+        container.insertBefore(itemEl, cur[i - 1]);
+        onReorder();
+      };
+      if (!requireIdentity(doMove)) return;
+      doMove();
     });
     downBtn.addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      const cur = siblings();
-      const i = cur.indexOf(itemEl);
-      if (i === -1 || i >= cur.length - 1) return;
-      upBtn.disabled = true; downBtn.disabled = true;
-      cur[i + 1].after(itemEl);
-      onReorder();
+      const doMove = () => {
+        const cur = siblings();
+        const i = cur.indexOf(itemEl);
+        if (i === -1 || i >= cur.length - 1) return;
+        upBtn.disabled = true; downBtn.disabled = true;
+        cur[i + 1].after(itemEl);
+        onReorder();
+      };
+      if (!requireIdentity(doMove)) return;
+      doMove();
     });
 
     return [upBtn, downBtn];
@@ -10510,7 +10609,7 @@
   }
 
   function openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor, rowIndex) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor, rowIndex))) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     const isCat  = entityType === 'Categories';
@@ -10563,22 +10662,41 @@
     if (metaEditor) document.getElementById('mNewMetaEditor').appendChild(metaEditor);
 
     document.getElementById('mSave').onclick = () => {
-      if (!requireIdentity()) return;
-      const n  = document.getElementById('mNewName').value.trim();
-      const m  = metaEditor ? metaEditor._getValue().trim() : document.getElementById('mNewMeta').value.trim();
-      const ic = isCat ? ((document.getElementById('mNewIcon') || {}).value || '').trim() : '';
-      const col = picker.value;
-      if (!n) return;
-      closeModal();
-      const cache = isCat ? cachedCategories : cachedPlayers;
-      const item  = cache.find(x => x.name === oldName);
-      if (item) item.color = col;
-      callServer('apiSetColor', [entityType, rowIndex, oldName, col, _whoAmI || ''], () => {}, 'Color save');
-      callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || '', rowIndex], () => {
-        loadEntities();
-        showToast('Modifié avec succès.', 'success');
-        refreshColorDependentViews();
-      }, 'Erreur renommage');
+      const doSave = () => {
+        const n  = document.getElementById('mNewName').value.trim();
+        const m  = metaEditor ? metaEditor._getValue().trim() : document.getElementById('mNewMeta').value.trim();
+        const ic = isCat ? ((document.getElementById('mNewIcon') || {}).value || '').trim() : '';
+        const col = picker.value;
+        if (!n) return;
+        closeModal();
+        const cache = isCat ? cachedCategories : cachedPlayers;
+        const item  = cache.find(x => x.name === oldName);
+        if (item) item.color = col;
+
+        const performRename = () => {
+          callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || '', rowIndex], () => {
+            if (isPlay && oldName === _whoAmI) {
+              applyIdentity(n);
+            }
+            loadEntities();
+            showToast('Modifié avec succès.', 'success');
+            refreshColorDependentViews();
+          }, 'Erreur renommage');
+        };
+
+        if (col && col !== currentColor) {
+          callServer('apiSetColor', [entityType, rowIndex, oldName, col, _whoAmI || ''], () => {
+            performRename();
+          }, 'Color save', () => {
+            performRename();
+          });
+        } else {
+          performRename();
+        }
+      };
+
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
     document.getElementById('mCancel').onclick = closeModal;
     openModal();
@@ -10631,7 +10749,7 @@
   document.addEventListener('keydown', onModalKeydown, true);
 
   // ── CHARGEMENT DES ENTITÉS ───────────────────────────────────────────
-  const SETTINGS_CACHE_KEY = 'tdt_cache_settings';
+  let SETTINGS_CACHE_KEY = getSettingsCacheKey();
   // Compteur de génération : loadEntities() (déclenché au démarrage) et le
   // réordonnancement (▲/▼) écrivent tous deux dans cachedPlayers/cachedCategories
   // de façon asynchrone et indépendante. Sans garde, une réponse apiGetSettings
@@ -10708,7 +10826,12 @@
     const gen = ++_entitiesReqGen;
     let paintedFromCache = false;
     try {
-      const cached = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
+      SETTINGS_CACHE_KEY = getSettingsCacheKey();
+      let raw = localStorage.getItem(SETTINGS_CACHE_KEY);
+      if (!raw && SETTINGS_CACHE_KEY !== 'tdt_cache_settings') {
+        raw = localStorage.getItem('tdt_cache_settings');
+      }
+      const cached = JSON.parse(raw || 'null');
       if (cached && cached.players && cached.categories) {
         cachedPlayers    = cached.players;
         cachedCategories = cached.categories;
@@ -10799,7 +10922,7 @@
       btn.disabled = false;
       if (_identityPwdTarget !== player) return; // modal was cancelled before this response arrived
       if (res && res.granted) {
-        _identityPassword = pwd;
+        setIdentityPassword(pwd);
         applyIdentity(player.name);
         const cb = _identityPwdOnVerified;
         closeIdentityPwdModal();
@@ -10860,15 +10983,18 @@
   /** Sets the current identity and refreshes the who-am-i button + dropdown. */
   function applyIdentity(name) {
     _whoAmI = name;
-    localStorage.setItem(WHO_AM_I_KEY, name);
-    renderWhoAmI();
-    closeWhoAmIDropdown();
+    WHO_AM_I_KEY = (typeof getWhoAmIStorageKey === 'function') ? getWhoAmIStorageKey() : (typeof WHO_AM_I_KEY !== 'undefined' ? WHO_AM_I_KEY : 'tdt_who_am_i');
+    try { localStorage.setItem(WHO_AM_I_KEY, name); } catch (_) {}
+    if (typeof renderWhoAmI === 'function') renderWhoAmI();
+    if (typeof closeWhoAmIDropdown === 'function') closeWhoAmIDropdown();
   }
 
   function logoutIdentity() {
     _whoAmI = null;
     _identityPassword = '';
-    localStorage.removeItem(WHO_AM_I_KEY);
+    if (typeof setIdentityPassword === 'function') setIdentityPassword('');
+    const key = (typeof getWhoAmIStorageKey === 'function') ? getWhoAmIStorageKey() : (typeof WHO_AM_I_KEY !== 'undefined' ? WHO_AM_I_KEY : 'tdt_who_am_i');
+    try { localStorage.removeItem(key); } catch (_) {}
     renderWhoAmI();
     closeWhoAmIDropdown();
     showToast('Déconnecté.', 'info');
@@ -10885,12 +11011,19 @@
     const dropdown = document.getElementById('whoAmIDropdown');
     if (!wrap) return;
 
-    if (!_whoAmI) _whoAmI = localStorage.getItem(WHO_AM_I_KEY) || null;
+    if (!_whoAmI && typeof syncIdentityFromStorage === 'function') syncIdentityFromStorage();
+    const key = (typeof getWhoAmIStorageKey === 'function') ? getWhoAmIStorageKey() : (typeof WHO_AM_I_KEY !== 'undefined' ? WHO_AM_I_KEY : 'tdt_who_am_i');
+    if (!_whoAmI) _whoAmI = localStorage.getItem(key) || null;
     if (_whoAmI && cachedPlayers.length > 0 && !cachedPlayers.find(p => p.name === _whoAmI)) {
       _whoAmI = null;
       _identityPassword = '';
-      localStorage.removeItem(WHO_AM_I_KEY);
+      if (typeof setIdentityPassword === 'function') setIdentityPassword('');
+      try { localStorage.removeItem(key); } catch (_) {}
     }
+
+    const hasPwd = () => {
+      return (typeof getIdentityPassword === 'function') ? getIdentityPassword() : (_identityPassword || '');
+    };
 
     const updateBtn = () => {
       const btn = document.getElementById('whoAmIBtn');
@@ -10898,12 +11031,20 @@
       if (p) {
         avatar.src = getAvatarUrl(p.name, p.meta);
         avatar.onerror = () => { avatar.src = getAvatarUrl(p.name, ''); };
-        nameSpan.textContent = p.name;
-        if (btn) btn.classList.remove('unselected');
+        const needsPwd = p.hasPassword && !hasPwd();
+        nameSpan.textContent = p.name + (needsPwd ? ' 🔒' : '');
+        if (btn) {
+          btn.classList.remove('unselected');
+          if (needsPwd) btn.classList.add('needs-pwd');
+          else btn.classList.remove('needs-pwd');
+        }
       } else {
         avatar.src = getAvatarUrl('?', '');
         nameSpan.textContent = 'Qui suis-je ?';
-        if (btn) btn.classList.add('unselected');
+        if (btn) {
+          btn.classList.add('unselected');
+          btn.classList.remove('needs-pwd');
+        }
       }
     };
     updateBtn();
@@ -10933,16 +11074,32 @@
 
       const badge = document.createElement('span');
       badge.className = 'who-am-i-badge';
-      badge.textContent = p.name === _whoAmI ? '✓' : (p.hasPassword ? '🔒' : '');
+      const isCurrent = (p.name === _whoAmI);
+      const needsPwd = p.hasPassword && !hasPwd();
+      if (isCurrent) {
+        badge.textContent = needsPwd ? '🔒' : '✓';
+        if (needsPwd) badge.title = 'Mot de passe requis — clique pour déverrouiller';
+      } else {
+        badge.textContent = p.hasPassword ? '🔒' : '';
+      }
       opt.appendChild(badge);
 
       opt.addEventListener('click', () => {
-        if (p.name === _whoAmI) { closeWhoAmIDropdown(); return; }
+        if (p.name === _whoAmI) {
+          if (p.hasPassword && !hasPwd()) {
+            closeWhoAmIDropdown();
+            openIdentityPwdModal(p);
+            return;
+          }
+          closeWhoAmIDropdown();
+          return;
+        }
         if (p.hasPassword) {
           closeWhoAmIDropdown();
           openIdentityPwdModal(p);
         } else {
           _identityPassword = '';
+          if (typeof setIdentityPassword === 'function') setIdentityPassword('');
           applyIdentity(p.name);
         }
       });
@@ -11095,11 +11252,14 @@
           colorDot.style.background = colorIn.value;
         });
         colorIn.addEventListener('change', () => {
-          if (!requireIdentity()) return;
-          const p = cachedPlayers.find(p => p.name === item.name);
-          if (p) p.color = colorIn.value;
-          callServer('apiSetColor', ['Players', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
-          refreshColorDependentViews();
+          const doChange = () => {
+            const p = cachedPlayers.find(p => p.name === item.name);
+            if (p) p.color = colorIn.value;
+            callServer('apiSetColor', ['Players', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
+            refreshColorDependentViews();
+          };
+          if (!requireIdentity(doChange)) return;
+          doChange();
         });
         colorLbl.appendChild(colorDot);
         colorLbl.appendChild(colorIn);
@@ -11125,11 +11285,14 @@
           colorDot.style.background = colorIn.value;
         });
         colorIn.addEventListener('change', () => {
-          if (!requireIdentity()) return;
-          const c = cachedCategories.find(c => c.name === item.name);
-          if (c) c.color = colorIn.value;
-          callServer('apiSetColor', ['Categories', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
-          refreshColorDependentViews();
+          const doChange = () => {
+            const c = cachedCategories.find(c => c.name === item.name);
+            if (c) c.color = colorIn.value;
+            callServer('apiSetColor', ['Categories', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
+            refreshColorDependentViews();
+          };
+          if (!requireIdentity(doChange)) return;
+          doChange();
         });
         colorLbl.appendChild(colorDot);
         colorLbl.appendChild(colorIn);
@@ -11157,16 +11320,19 @@
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
-        if (!requireIdentity()) return;
-        openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
-          buzz();
-          // rowIndex cible précisément cette ligne — indispensable si un autre Joueur/Top
-          // partage le même nom (deux lignes homonymes ne doivent plus disparaître ensemble).
-          callServer('apiManageEntity', ['DELETE', type, null, null, item.name, null, _whoAmI || '', item.rowIndex], () => {
-            loadEntities(); applyFilters();
-            showToast('Supprimé.', 'success');
-          }, 'Suppression');
-        });
+        const doDelete = () => {
+          openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
+            buzz();
+            // rowIndex cible précisément cette ligne — indispensable si un autre Joueur/Top
+            // partage le même nom (deux lignes homonymes ne doivent plus disparaître ensemble).
+            callServer('apiManageEntity', ['DELETE', type, null, null, item.name, null, _whoAmI || '', item.rowIndex], () => {
+              loadEntities(); applyFilters();
+              showToast('Supprimé.', 'success');
+            }, 'Suppression');
+          });
+        };
+        if (!requireIdentity(doDelete)) return;
+        doDelete();
       });
       btns.appendChild(editBtn); btns.appendChild(delBtn);
       li.appendChild(left); li.appendChild(btns);
@@ -11703,9 +11869,10 @@
     localStorage.setItem(TOOLTIP_PREFS_KEY, JSON.stringify(prefs));
     applyTooltipStylePrefs(prefs);
     if (!skipServer) {
+      if (!_whoAmI) return;
       if (_tooltipSaveTimer) clearTimeout(_tooltipSaveTimer);
       _tooltipSaveTimer = setTimeout(() => {
-        callServer('apiSaveTooltipStyle', [JSON.stringify(prefs), _whoAmI || 'Système'], () => {}, null, () => {});
+        callServer('apiSaveTooltipStyle', [JSON.stringify(prefs), _whoAmI], () => {}, null, () => {});
       }, 400);
     }
   }
@@ -15266,7 +15433,7 @@
   }
 
   function runBulkPlan(plan, btn) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => runBulkPlan(plan, btn))) return;
     if (!plan.length) { showToast('Rien à enregistrer.', 'error'); return; }
     const restore = startBtnLoading(btn, 'Écriture…');
 
@@ -16771,20 +16938,23 @@
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '🗑️ Supprimer';
     delBtn.addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      openConfirmModal('Supprimer cette note ?', () => {
-        buzz();
-        callServer('apiDeleteNote', [note.rowIndex, _whoAmI || ''], () => {
-          // La suppression d'une ligne dans le Sheet décale toutes les lignes
-          // suivantes d'un cran : on répercute ce décalage localement pour ne
-          // pas devoir tout recharger depuis le serveur.
-          _allNotesRaw = _allNotesRaw
-            .filter(n => n.rowIndex !== note.rowIndex)
-            .map(n => n.rowIndex > note.rowIndex ? Object.assign({}, n, { rowIndex: n.rowIndex - 1 }) : n);
-          renderNotesBlocks();
-          showToast('Note supprimée.', 'success');
-        }, 'Suppression note');
-      });
+      const doDelete = () => {
+        openConfirmModal('Supprimer cette note ?', () => {
+          buzz();
+          callServer('apiDeleteNote', [note.rowIndex, _whoAmI || ''], () => {
+            // La suppression d'une ligne dans le Sheet décale toutes les lignes
+            // suivantes d'un cran : on répercute ce décalage localement pour ne
+            // pas devoir tout recharger depuis le serveur.
+            _allNotesRaw = _allNotesRaw
+              .filter(n => n.rowIndex !== note.rowIndex)
+              .map(n => n.rowIndex > note.rowIndex ? Object.assign({}, n, { rowIndex: n.rowIndex - 1 }) : n);
+            renderNotesBlocks();
+            showToast('Note supprimée.', 'success');
+          }, 'Suppression note');
+        });
+      };
+      if (!requireIdentity(doDelete)) return;
+      doDelete();
     });
     actions.appendChild(editBtn); actions.appendChild(delBtn);
     footer.appendChild(actions);
@@ -16886,7 +17056,7 @@
   }
 
   function openEditNoteModal(note) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openEditNoteModal(note))) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
     const d = note.timestamp ? new Date(note.timestamp) : null;
@@ -16917,29 +17087,32 @@
     setTimeout(() => noteEditor._textarea.focus(), 50);
 
     document.getElementById('mSave').onclick = () => {
-      if (!requireIdentity()) return;
-      const v = noteEditor._getValue().trim();
-      if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
-      const newDateVal = (document.getElementById('mNoteDate') && document.getElementById('mNoteDate').value) || '';
-      closeModal();
-      callServer('apiEditNote', [note.rowIndex, v, _whoAmI || '', newDateVal], res => {
-        const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
-        if (target) {
-          target.text = v;
-          if (res && res.timestamp) target.timestamp = res.timestamp;
-          target.lastEditedBy = _whoAmI || '';
-          target.lastEditedAt = (res && res.editedAt) || new Date().toISOString();
-        }
-        renderNotesBlocks();
-        showToast('Note modifiée.', 'success');
-      }, 'Édition note');
+      const doSave = () => {
+        const v = noteEditor._getValue().trim();
+        if (!v) { showToast('La note ne peut pas être vide.', 'error'); return; }
+        const newDateVal = (document.getElementById('mNoteDate') && document.getElementById('mNoteDate').value) || '';
+        closeModal();
+        callServer('apiEditNote', [note.rowIndex, v, _whoAmI || '', newDateVal], res => {
+          const target = _allNotesRaw.find(n => n.rowIndex === note.rowIndex);
+          if (target) {
+            target.text = v;
+            if (res && res.timestamp) target.timestamp = res.timestamp;
+            target.lastEditedBy = _whoAmI || '';
+            target.lastEditedAt = (res && res.editedAt) || new Date().toISOString();
+          }
+          renderNotesBlocks();
+          showToast('Note modifiée.', 'success');
+        }, 'Édition note');
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
     document.getElementById('mCancel').onclick = closeModal;
     openModal();
   }
 
   function openBulkEditModal() {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(openBulkEditModal)) return;
     if (!histSelected.size) return;
 
     const selectedLogs = histPageLogs.filter(function(l) {
@@ -17042,7 +17215,6 @@
     wireBulkToggle('mbToggleSaiseur',  'mbSaiseurRS',   null);
 
     document.getElementById('mbSave').onclick = function() {
-      if (!requireIdentity()) return;
       const rowIndexes = Array.from(histSelected);
       const fields = {};
 
@@ -17078,41 +17250,48 @@
         return;
       }
 
-      closeModal();
-      callServer('apiUpdateBulkEntries', [rowIndexes, fields, _whoAmI || ''],
-        function(res) {
-          if (res && res.success === false) {
-            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
-          } else {
-            const skipped = (res && res.skipped && res.skipped.length) ? res.skipped.length : 0;
-            const done = rowIndexes.length - skipped;
-            const msg = done + ' entrée' + (done > 1 ? 's' : '') + ' modifiée' + (done > 1 ? 's' : '') + (skipped ? ' (' + skipped + ' ignorée' + (skipped > 1 ? 's' : '') + ')' : '') + '.';
-            if (res && res.auditRowId) {
-              showActionToast(msg, 'Annuler', function() {
-                if (!requireIdentity()) return;
-                callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
-                  if (undoRes && undoRes.success) {
-                    showToast('Modification annulée.', 'success');
-                    _baseChartData = null;
-                    if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
-                    loadHistoryPage(currentHistoryPage);
-                    applyFilters();
-                  } else {
-                    showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
-                  }
-                }, 'Annulation bulk');
-              });
+      const doSave = () => {
+        closeModal();
+        callServer('apiUpdateBulkEntries', [rowIndexes, fields, _whoAmI || ''],
+          function(res) {
+            if (res && res.success === false) {
+              showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
             } else {
-              showToast(msg, 'success');
+              const skipped = (res && res.skipped && res.skipped.length) ? res.skipped.length : 0;
+              const done = rowIndexes.length - skipped;
+              const msg = done + ' entrée' + (done > 1 ? 's' : '') + ' modifiée' + (done > 1 ? 's' : '') + (skipped ? ' (' + skipped + ' ignorée' + (skipped > 1 ? 's' : '') + ')' : '') + '.';
+              if (res && res.auditRowId) {
+                showActionToast(msg, 'Annuler', function() {
+                  const doUndo = () => {
+                    callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
+                      if (undoRes && undoRes.success) {
+                        showToast('Modification annulée.', 'success');
+                        _baseChartData = null;
+                        if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+                        loadHistoryPage(currentHistoryPage);
+                        applyFilters();
+                      } else {
+                        showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
+                      }
+                    }, 'Annulation bulk');
+                  };
+                  if (!requireIdentity(doUndo)) return;
+                  doUndo();
+                });
+              } else {
+                showToast(msg, 'success');
+              }
+              histSelected.clear();
+              _baseChartData = null;
+              if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+              loadHistoryPage(currentHistoryPage);
+              applyFilters();
             }
-            histSelected.clear();
-            _baseChartData = null;
-            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
-            loadHistoryPage(currentHistoryPage);
-            applyFilters();
-          }
-        }, 'Modification groupée'
-      );
+          }, 'Modification groupée'
+        );
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
 
     document.getElementById('mbCancel').onclick = closeModal;
@@ -17120,7 +17299,7 @@
   }
 
   function openGroupEditModal(groupId, members) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openGroupEditModal(groupId, members))) return;
     if (!members || !members.length) return;
 
     const box = document.getElementById('modalBox');
@@ -17141,56 +17320,83 @@
         '<span>👥 Joueurs : <strong>' + escapeHtml(distinctPlayers.join(', ')) + '</strong></span> · ' +
         '<span>⭐ Total : <strong>' + totalPts + ' pts</strong></span>' +
       '</div>' +
-      '<div class="modal-grid">' +
+      '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">' +
+        'Cochez les champs à appliquer à l\'ensemble des entrées de ce groupe :' +
+      '</p>' +
+      '<div class="modal-grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">' +
         '<div class="modal-field">' +
-          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleDate"> Modifier la Date</label>' +
-          '<input type="date" id="mgDate" value="' + escapeHtml(dateVal) + '" disabled>' +
+          '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+            '<input type="checkbox" id="mgToggleDate" style="accent-color:var(--primary); cursor:pointer;">' +
+            '<span>Date</span>' +
+          '</label>' +
+          '<input type="date" id="mgDate" value="' + dateVal + '" disabled style="margin-top:4px; opacity:0.4;">' +
         '</div>' +
         '<div class="modal-field">' +
-          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleCategory"> Modifier le Top</label>' +
-          '<div id="mgCategoryRS" style="opacity:0.5; pointer-events:none;"></div>' +
+          '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+            '<input type="checkbox" id="mgToggleCategory" style="accent-color:var(--primary); cursor:pointer;">' +
+            '<span>Top</span>' +
+          '</label>' +
+          '<div id="mgCategoryRS" style="margin-top:4px; opacity:0.4; pointer-events:none;"></div>' +
         '</div>' +
       '</div>' +
-      '<div class="modal-grid single">' +
-        '<div class="modal-field">' +
-          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleDesc"> Modifier la Description</label>' +
-          '<div id="mgDescEditor" style="opacity:0.5; pointer-events:none;"></div>' +
-        '</div>' +
+      '<div class="modal-field" style="margin-bottom:12px;">' +
+        '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+          '<input type="checkbox" id="mgToggleDesc" style="accent-color:var(--primary); cursor:pointer;">' +
+          '<span>Description</span>' +
+        '</label>' +
+        '<div id="mgDescEditor" style="margin-top:4px; opacity:0.4; pointer-events:none;"></div>' +
       '</div>' +
-      '<div class="modal-grid single">' +
-        '<div class="modal-field">' +
-          '<label class="mb-field-toggle"><input type="checkbox" id="mgToggleSaiseur"> Modifier le Saiseur</label>' +
-          '<div id="mgSaiseurRS" style="opacity:0.5; pointer-events:none;"></div>' +
-        '</div>' +
+      '<div class="modal-field" style="margin-bottom:16px;">' +
+        '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+          '<input type="checkbox" id="mgToggleSaiseur" style="accent-color:var(--primary); cursor:pointer;">' +
+          '<span>Saisi par</span>' +
+        '</label>' +
+        '<div id="mgSaiseurRS" style="margin-top:4px; opacity:0.4; pointer-events:none;"></div>' +
       '</div>' +
       '<div class="modal-actions">' +
-        '<button id="mgSave" class="primary">Enregistrer le groupe</button>' +
+        '<button id="mgSave" class="primary">Appliquer au groupe</button>' +
         '<button id="mgCancel" class="secondary">Annuler</button>' +
       '</div>';
 
-    const categoryRS = buildRichSelect({ type: 'category', value: sameCat || '', onChange: function() {} });
-    const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: first.saiseur || null, onChange: function() {}, nullable: true });
-    const descEditor = buildTextEditor({ value: first.description || '', rows: 3, placeholder: 'Description du groupe…' });
-
+    const categoryRS = buildRichSelect({
+      options: cachedCategories.map(function(c) {
+        return { value: c.name, label: c.name, icon: c.icon || '', meta: c.meta || '', color: categoryColor(c.name) };
+      }),
+      value: sameCat || '',
+      placeholder: '— Conserver les tops actuels —'
+    });
     document.getElementById('mgCategoryRS').appendChild(categoryRS);
-    document.getElementById('mgSaiseurRS').appendChild(saiseurRS);
+
+    const descEditor = buildTextEditor({
+      value: first.description || '',
+      rows: 2,
+      placeholder: '— Conserver les descriptions actuelles —'
+    });
     document.getElementById('mgDescEditor').appendChild(descEditor);
 
-    function wireGroupToggle(toggleId, containerId, inputId) {
-      const tg = document.getElementById(toggleId);
-      tg.addEventListener('change', function() {
+    const saiseurRS = buildRichSelect({
+      options: [{ value: '', label: '— Anonyme —' }].concat(cachedPlayers.map(function(p) {
+        return { value: p.name, label: p.name, icon: getAvatarUrl(p.name, p.meta), color: playerColor(p.name) };
+      })),
+      value: first.saiseur || '',
+      placeholder: '— Conserver les auteurs de saisie —'
+    });
+    document.getElementById('mgSaiseurRS').appendChild(saiseurRS);
+
+    function wireGroupToggle(chkId, rsContainerId, inputId) {
+      document.getElementById(chkId).onchange = function() {
+        const on = this.checked;
+        if (rsContainerId) {
+          const el = document.getElementById(rsContainerId);
+          el.style.opacity = on ? '1' : '0.4';
+          el.style.pointerEvents = on ? 'auto' : 'none';
+        }
         if (inputId) {
-          const inp = document.getElementById(inputId);
-          inp.disabled = !tg.checked;
-          inp.style.opacity = tg.checked ? '1' : '0.5';
-          if (tg.checked) inp.focus();
+          const el = document.getElementById(inputId);
+          el.disabled = !on;
+          el.style.opacity = on ? '1' : '0.4';
         }
-        if (containerId) {
-          const c = document.getElementById(containerId);
-          c.style.opacity = tg.checked ? '1' : '0.5';
-          c.style.pointerEvents = tg.checked ? 'auto' : 'none';
-        }
-      });
+      };
     }
 
     wireGroupToggle('mgToggleDate',     null,           'mgDate');
@@ -17199,61 +17405,67 @@
     wireGroupToggle('mgToggleSaiseur',  'mgSaiseurRS',  null);
 
     document.getElementById('mgSave').onclick = function() {
-      if (!requireIdentity()) return;
-      const fields = {};
-      if (document.getElementById('mgToggleDate').checked) {
-        const dVal = document.getElementById('mgDate').value;
-        if (!dVal) { showToast('Date requise.', 'error'); return; }
-        fields.date = dVal;
-      }
-      if (document.getElementById('mgToggleCategory').checked) {
-        const catVal = categoryRS._getValue();
-        if (!catVal) { showToast('Top requis.', 'error'); return; }
-        fields.category = catVal;
-      }
-      if (document.getElementById('mgToggleDesc').checked) {
-        fields.description = descEditor._getValue().trim();
-      }
-      if (document.getElementById('mgToggleSaiseur').checked) {
-        fields.saiseur = saiseurRS._getValue() || '';
-      }
-
-      if (!Object.keys(fields).length) {
-        showToast('Cochez au moins un champ à modifier.', 'error');
-        return;
-      }
-
-      const rowIndexes = members.map(function(m) { return m.rowIndex; });
-      closeModal();
-      callServer('apiUpdateBulkEntries', [rowIndexes, fields, _whoAmI || ''], function(res) {
-        if (res && res.success === false) {
-          showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
-        } else {
-          const msg = 'Groupe de ' + rowIndexes.length + ' entrées modifié.';
-          if (res && res.auditRowId) {
-            showActionToast(msg, 'Annuler', function() {
-              if (!requireIdentity()) return;
-              callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
-                if (undoRes && undoRes.success) {
-                  showToast('Modification du groupe annulée.', 'success');
-                  _baseChartData = null;
-                  if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
-                  loadHistoryPage(currentHistoryPage);
-                  applyFilters();
-                } else {
-                  showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
-                }
-              }, 'Annulation groupe');
-            });
-          } else {
-            showToast(msg, 'success');
-          }
-          _baseChartData = null;
-          if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
-          loadHistoryPage(currentHistoryPage);
-          applyFilters();
+      const doSave = () => {
+        const fields = {};
+        if (document.getElementById('mgToggleDate').checked) {
+          const dVal = document.getElementById('mgDate').value;
+          if (!dVal) { showToast('Date requise.', 'error'); return; }
+          fields.date = dVal;
         }
-      }, 'Modification groupe');
+        if (document.getElementById('mgToggleCategory').checked) {
+          const catVal = categoryRS._getValue();
+          if (!catVal) { showToast('Top requis.', 'error'); return; }
+          fields.category = catVal;
+        }
+        if (document.getElementById('mgToggleDesc').checked) {
+          fields.description = descEditor._getValue().trim();
+        }
+        if (document.getElementById('mgToggleSaiseur').checked) {
+          fields.saiseur = saiseurRS._getValue() || '';
+        }
+
+        if (!Object.keys(fields).length) {
+          showToast('Cochez au moins un champ à modifier.', 'error');
+          return;
+        }
+
+        const rowIndexes = members.map(function(m) { return m.rowIndex; });
+        closeModal();
+        callServer('apiUpdateBulkEntries', [rowIndexes, fields, _whoAmI || ''], function(res) {
+          if (res && res.success === false) {
+            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+          } else {
+            const msg = 'Groupe de ' + rowIndexes.length + ' entrées modifié.';
+            if (res && res.auditRowId) {
+              showActionToast(msg, 'Annuler', function() {
+                const doUndo = () => {
+                  callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], function(undoRes) {
+                    if (undoRes && undoRes.success) {
+                      showToast('Modification du groupe annulée.', 'success');
+                      _baseChartData = null;
+                      if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+                      loadHistoryPage(currentHistoryPage);
+                      applyFilters();
+                    } else {
+                      showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
+                    }
+                  }, 'Annulation groupe');
+                };
+                if (!requireIdentity(doUndo)) return;
+                doUndo();
+              });
+            } else {
+              showToast(msg, 'success');
+            }
+            _baseChartData = null;
+            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+            loadHistoryPage(currentHistoryPage);
+            applyFilters();
+          }
+        }, 'Modification groupe');
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
 
     document.getElementById('mgCancel').onclick = closeModal;
@@ -17261,7 +17473,7 @@
   }
 
   function openFullEditHistoryModal(log) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openFullEditHistoryModal(log))) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
 
@@ -17331,37 +17543,40 @@
     }
 
     function doSave(nextAfterSave) {
-      if (!requireIdentity()) return;
-      const date     = document.getElementById('mEditDate').value;
-      const pts      = parseInt(document.getElementById('mEditPts').value, 10);
-      const player   = playerRS._getValue();
-      const category = categoryRS._getValue();
-      const desc     = descEditor._getValue().trim();
-      const saiseur  = saiseurRS._getValue() || '';
+      const performSave = () => {
+        const date     = document.getElementById('mEditDate').value;
+        const pts      = parseInt(document.getElementById('mEditPts').value, 10);
+        const player   = playerRS._getValue();
+        const category = categoryRS._getValue();
+        const desc     = descEditor._getValue().trim();
+        const saiseur  = saiseurRS._getValue() || '';
 
-      if (!date)                 { showToast('Date requise.', 'error'); return; }
-      if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
-      if (!player)               { showToast('Joueur requis.', 'error'); return; }
-      if (!category)             { showToast('Top requis.', 'error'); return; }
+        if (!date)                 { showToast('Date requise.', 'error'); return; }
+        if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
+        if (!player)               { showToast('Joueur requis.', 'error'); return; }
+        if (!category)             { showToast('Top requis.', 'error'); return; }
 
-      if (!nextAfterSave) closeModal();
-      callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }, _whoAmI || ''],
-        function(res) {
-          if (res && res.success === false) {
-            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
-          } else {
-            showToast('Entrée modifiée.', 'success');
-            log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur;
-            _baseChartData = null;
-            if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
-            loadHistoryPage(currentHistoryPage);
-            applyFilters();
-            if (nextAfterSave && hasNext) {
-              openFullEditHistoryModal(histPageLogs[currIdx + 1]);
+        if (!nextAfterSave) closeModal();
+        callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }, _whoAmI || ''],
+          function(res) {
+            if (res && res.success === false) {
+              showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+            } else {
+              showToast('Entrée modifiée.', 'success');
+              log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur;
+              _baseChartData = null;
+              if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
+              loadHistoryPage(currentHistoryPage);
+              applyFilters();
+              if (nextAfterSave && hasNext) {
+                openFullEditHistoryModal(histPageLogs[currIdx + 1]);
+              }
             }
-          }
-        }, 'Modification entrée'
-      );
+          }, 'Modification entrée'
+        );
+      };
+      if (!requireIdentity(performSave)) return;
+      performSave();
     }
 
     document.getElementById('mSave').onclick = function() { doSave(false); };
@@ -17381,33 +17596,36 @@
   }
 
   function duplicateHistoryEntry(log) {
-    if (!requireIdentity()) return;
-    const today = toDateStr(new Date());
-    openConfirmModal(
-      'Dupliquer cette entrée pour ' + escapeHtml(log.player) + ' (' + escapeHtml(log.category) + ', ' + log.points + ' pts) à la date d\'aujourd\'hui (' + today + ') ?',
-      function() {
-        const payload = [{
-          date: today,
-          entries: [{
-            player:      log.player,
-            category:    log.category,
-            points:      log.points,
-            times:       1,
-            description: log.description || '',
-            saiseur:     _whoAmI || ''
-          }]
-        }];
-        callServer('apiAddBulkPlan', [payload, _whoAmI || ''], function() {
-          showToast('Entrée dupliquée pour aujourd\'hui !', 'success');
-          loadHistoryPage(currentHistoryPage);
-          applyFilters();
-        }, 'Duplication entrée');
-      }
-    );
+    const doDup = () => {
+      const today = toDateStr(new Date());
+      openConfirmModal(
+        'Dupliquer cette entrée pour ' + escapeHtml(log.player) + ' (' + escapeHtml(log.category) + ', ' + log.points + ' pts) à la date d\'aujourd\'hui (' + today + ') ?',
+        function() {
+          const payload = [{
+            date: today,
+            entries: [{
+              player:      log.player,
+              category:    log.category,
+              points:      log.points,
+              times:       1,
+              description: log.description || '',
+              saiseur:     _whoAmI || ''
+            }]
+          }];
+          callServer('apiAddBulkPlan', [payload, _whoAmI || ''], function() {
+            showToast('Entrée dupliquée pour aujourd\'hui !', 'success');
+            loadHistoryPage(currentHistoryPage);
+            applyFilters();
+          }, 'Duplication entrée');
+        }
+      );
+    };
+    if (!requireIdentity(doDup)) return;
+    doDup();
   }
 
   function openQuickDescEditor(log, catCell, descEl, fullEl, onCancelCallback) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openQuickDescEditor(log, catCell, descEl, fullEl, onCancelCallback))) return;
     const isNew = !fullEl;
     if (isNew) {
       fullEl = document.createElement('div');
@@ -17431,24 +17649,28 @@
 
     saveBtn.onclick = function(e) {
       e.stopPropagation();
-      const newDesc = ta.value.trim();
-      const d = log.timestamp ? new Date(log.timestamp) : new Date();
-      callServer('apiUpdateHistoryEntry', [log.rowIndex, {
-        date: toDateStr(d),
-        player: log.player,
-        category: log.category,
-        points: log.points,
-        description: newDesc,
-        saiseur: log.saiseur || ''
-      }, _whoAmI || ''], function(res) {
-        if (res && res.success === false) {
-          showToast('Erreur : ' + (res.error || 'Impossible de mettre à jour.'), 'error');
-        } else {
-          showToast('Description mise à jour.', 'success');
-          log.description = newDesc;
-          loadHistoryPage(currentHistoryPage);
-        }
-      }, 'Modification description');
+      const doSave = () => {
+        const newDesc = ta.value.trim();
+        const d = log.timestamp ? new Date(log.timestamp) : new Date();
+        callServer('apiUpdateHistoryEntry', [log.rowIndex, {
+          date: toDateStr(d),
+          player: log.player,
+          category: log.category,
+          points: log.points,
+          description: newDesc,
+          saiseur: log.saiseur || ''
+        }, _whoAmI || ''], function(res) {
+          if (res && res.success === false) {
+            showToast('Erreur : ' + (res.error || 'Impossible de mettre à jour.'), 'error');
+          } else {
+            showToast('Description mise à jour.', 'success');
+            log.description = newDesc;
+            loadHistoryPage(currentHistoryPage);
+          }
+        }, 'Modification description');
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
 
     cancelBtn.onclick = function(e) {
@@ -17643,7 +17865,7 @@
   }
 
   function openEditAutoRuleModal(rule) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openEditAutoRuleModal(rule))) return;
     const body = document.getElementById('modalBox');
     const startStr = rule.startDate ? rule.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10);
     body.innerHTML =
@@ -17723,22 +17945,26 @@
       }
 
       const patch = { player, category, points: pts, frequency, description, interval, daysOfWeek, dayOfMonth, startDate };
-      closeModal();
-      callServer('apiUpdateAutoRule', [rule.id, patch, _whoAmI || ''], res => {
-        if (res && res.success === false) {
-          showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
-        } else {
-          showToast('Règle modifiée avec succès !', 'success');
-          loadAutoRules();
-        }
-      }, 'Mise à jour règle auto');
+      const doSave = () => {
+        closeModal();
+        callServer('apiUpdateAutoRule', [rule.id, patch, _whoAmI || ''], res => {
+          if (res && res.success === false) {
+            showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
+          } else {
+            showToast('Règle modifiée avec succès !', 'success');
+            loadAutoRules();
+          }
+        }, 'Mise à jour règle auto');
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
     document.getElementById('mCancelAuto').onclick = closeModal;
     openModal();
   }
 
   function openDuplicateAutoRuleModal(rule) {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(() => openDuplicateAutoRuleModal(rule))) return;
     const body = document.getElementById('modalBox');
     const startStr = new Date().toISOString().slice(0, 10);
     body.innerHTML =
@@ -17821,11 +18047,15 @@
         player, category, points: pts, frequency, description,
         interval, daysOfWeek, dayOfMonth, startDate
       };
-      closeModal();
-      callServer('apiAddAutoRule', [newRule, _whoAmI || ''], () => {
-        showToast('Règle dupliquée avec succès !', 'success');
-        loadAutoRules();
-      }, 'Duplication règle auto');
+      const doSave = () => {
+        closeModal();
+        callServer('apiAddAutoRule', [newRule, _whoAmI || ''], () => {
+          showToast('Règle dupliquée avec succès !', 'success');
+          loadAutoRules();
+        }, 'Duplication règle auto');
+      };
+      if (!requireIdentity(doSave)) return;
+      doSave();
     };
     document.getElementById('mCancelDup').onclick = closeModal;
     openModal();
@@ -17921,7 +18151,7 @@
   }
 
   function handleAddAutoRule() {
-    if (!requireIdentity()) return;
+    if (!requireIdentity(handleAddAutoRule)) return;
     const frequency = document.getElementById('autoRuleFrequency').value;
     const daysOfWeek = Array.from(document.querySelectorAll('#autoRuleWeekdays input:checked')).map(cb => parseInt(cb.value, 10));
     const rule = {
@@ -18481,32 +18711,38 @@
     });
 
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      const name = document.getElementById('newPlayerName').value.trim();
-      const meta = document.getElementById('newPlayerMeta').value.trim();
-      if (!name) { showToast('Nom requis.', 'error'); return; }
-      callServer('apiManageEntity', ['ADD', 'Players', name, meta, null, null, _whoAmI || ''], () => {
-        document.getElementById('newPlayerName').value = '';
-        document.getElementById('newPlayerMeta').value = '';
-        loadEntities(); showToast('Joueur ajouté.', 'success');
-      }, 'Ajout joueur');
+      const doAdd = () => {
+        const name = document.getElementById('newPlayerName').value.trim();
+        const meta = document.getElementById('newPlayerMeta').value.trim();
+        if (!name) { showToast('Nom requis.', 'error'); return; }
+        callServer('apiManageEntity', ['ADD', 'Players', name, meta, null, null, _whoAmI || '', null], () => {
+          document.getElementById('newPlayerName').value = '';
+          document.getElementById('newPlayerMeta').value = '';
+          loadEntities(); showToast('Joueur ajouté.', 'success');
+        }, 'Ajout joueur');
+      };
+      if (!requireIdentity(doAdd)) return;
+      doAdd();
     });
 
     const newCategoryMetaEditor = buildTextEditor({ value: '', rows: 2, placeholder: 'Description (optionnel)' });
     document.getElementById('newCategoryMetaEditor').appendChild(newCategoryMetaEditor);
 
     document.getElementById('addCategoryBtn').addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      const name = document.getElementById('newCategoryName').value.trim();
-      const meta = newCategoryMetaEditor._getValue().trim();
-      const icon = document.getElementById('newCategoryIcon').value.trim();
-      if (!name) { showToast('Nom requis.', 'error'); return; }
-      callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null, icon, _whoAmI || ''], () => {
-        document.getElementById('newCategoryName').value = '';
-        newCategoryMetaEditor._setValue('');
-        document.getElementById('newCategoryIcon').value = '';
-        loadEntities(); showToast('Top ajouté.', 'success');
-      }, 'Ajout Top');
+      const doAdd = () => {
+        const name = document.getElementById('newCategoryName').value.trim();
+        const meta = newCategoryMetaEditor._getValue().trim();
+        const icon = document.getElementById('newCategoryIcon').value.trim();
+        if (!name) { showToast('Nom requis.', 'error'); return; }
+        callServer('apiManageEntity', ['ADD', 'Categories', name, meta, null, icon, _whoAmI || '', null], () => {
+          document.getElementById('newCategoryName').value = '';
+          newCategoryMetaEditor._setValue('');
+          document.getElementById('newCategoryIcon').value = '';
+          loadEntities(); showToast('Top ajouté.', 'success');
+        }, 'Ajout Top');
+      };
+      if (!requireIdentity(doAdd)) return;
+      doAdd();
     });
 
     const addAltBtnEl = document.getElementById('addAltCatBtn');
@@ -20512,11 +20748,16 @@
   // avec restauration instantanée via cache local (stale-while-revalidate)
   // et repli gracieux par requêtes individuelles si nécessaire.
   function bootDataLoad() {
-    try { renderWhoAmI(); } catch (e) { console.error('bootDataLoad/identité', e); }
+    try { syncIdentityFromStorage(); renderWhoAmI(); } catch (e) { console.error('bootDataLoad/identité', e); }
 
     // Pré-remplissage des entités depuis le cache pour affichage instantané
     try {
-      const cachedSettings = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || 'null');
+      SETTINGS_CACHE_KEY = getSettingsCacheKey();
+      let raw = localStorage.getItem(SETTINGS_CACHE_KEY);
+      if (!raw && SETTINGS_CACHE_KEY !== 'tdt_cache_settings') {
+        raw = localStorage.getItem('tdt_cache_settings');
+      }
+      const cachedSettings = JSON.parse(raw || 'null');
       if (cachedSettings && cachedSettings.players && cachedSettings.categories) {
         cachedPlayers    = cachedSettings.players;
         cachedCategories = cachedSettings.categories;
@@ -20598,17 +20839,17 @@
         // Seed du preset Défaut au tout premier lancement (déplacé ici
         // depuis l'ancien bloc loadCustomPhrases orphelin de window.onload)
         const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
-        if (!hasDefault) {
+        if (!hasDefault && _whoAmI) {
           const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
             texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
           const seedGen = ++_phrasesReqGen;
-          callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], seedRes => {
+          callServer('apiSavePhrasesBatch', [seed, _whoAmI], seedRes => {
             if (seedGen !== _phrasesReqGen) return;
             _customPhrases = seedRes.phrases;
             renderPresetChips();
             renderPhrasesEditorSection();
             if (lastPhraseSortedRows) renderPhrasesCard(lastPhraseSortedRows);
-          }, 'Initialisation Défaut');
+          }, 'Initialisation Défaut', null, true);
         } else {
           renderPresetChips();
           renderPhrasesEditorSection();
@@ -20679,16 +20920,16 @@
         callServer('apiGetActivePhrasePreset', [], presetRes => {
           _activePreset = (presetRes && presetRes.preset) || PHRASES_DEFAULT_ID;
           const hasDefault = (_customPhrases || []).some(p => p.preset === PHRASES_DEFAULT_ID);
-          if (!hasDefault) {
+          if (!hasDefault && _whoAmI) {
             const seed = Object.entries(RANKING_PHRASES).flatMap(([pool, texts]) =>
               texts.map(text => ({ preset: PHRASES_DEFAULT_ID, pool, text })));
             const seedGen = ++_phrasesReqGen;
-            callServer('apiSavePhrasesBatch', [seed, _whoAmI || 'Système'], seedRes => {
+            callServer('apiSavePhrasesBatch', [seed, _whoAmI], seedRes => {
               if (seedGen !== _phrasesReqGen) return;
               _customPhrases = seedRes.phrases;
               renderPresetChips();
               renderPhrasesEditorSection();
-            }, 'Initialisation Défaut');
+            }, 'Initialisation Défaut', null, true);
           } else {
             renderPresetChips();
             renderPhrasesEditorSection();
@@ -20802,15 +21043,18 @@
       const ok = document.createElement('button');
       ok.className = 'small primary'; ok.textContent = '✓';
       ok.addEventListener('click', () => {
-        if (!requireIdentity()) return;
-        if (!actIn.value.trim()) { showToast('Action vide.', 'error'); return; }
-        const restore = startBtnLoading(ok, '…');
-        const gen = ++_baremeReqGen;
-        callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
-          restore();
-          if (gen !== _baremeReqGen) return;
-          baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
-        }, 'Update barème', () => restore());
+        const doUpdate = () => {
+          if (!actIn.value.trim()) { showToast('Action vide.', 'error'); return; }
+          const restore = startBtnLoading(ok, '…');
+          const gen = ++_baremeReqGen;
+          callServer('apiUpdateBaremeEntry', [entry.rowIndex, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
+            restore();
+            if (gen !== _baremeReqGen) return;
+            baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+          }, 'Update barème', () => restore());
+        };
+        if (!requireIdentity(doUpdate)) return;
+        doUpdate();
       });
       const cancel = document.createElement('button');
       cancel.className = 'small'; cancel.textContent = '✕';
@@ -20822,14 +21066,17 @@
     const delBtn = document.createElement('button');
     delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
     delBtn.addEventListener('click', () => {
-      if (!requireIdentity()) return;
-      const restore = startBtnLoading(delBtn, '…');
-      const gen = ++_baremeReqGen;
-      callServer('apiDeleteBaremeEntry', [entry.rowIndex, _whoAmI || ''], res => {
-        restore();
-        if (gen !== _baremeReqGen) return;
-        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
-      }, 'Suppr. barème', () => restore());
+      const doDelete = () => {
+        const restore = startBtnLoading(delBtn, '…');
+        const gen = ++_baremeReqGen;
+        callServer('apiDeleteBaremeEntry', [entry.rowIndex, _whoAmI || ''], res => {
+          restore();
+          if (gen !== _baremeReqGen) return;
+          baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+        }, 'Suppr. barème', () => restore());
+      };
+      if (!requireIdentity(doDelete)) return;
+      doDelete();
     });
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
@@ -20847,15 +21094,18 @@
     const addBtn = document.createElement('button');
     addBtn.className = 'primary small'; addBtn.textContent = '+ Ajouter';
     const submit = () => {
-      if (!requireIdentity()) return;
-      if (!actIn.value.trim()) { showToast('Action vide.', 'error'); actIn.focus(); return; }
-      const restore = startBtnLoading(addBtn, '…');
-      const gen = ++_baremeReqGen;
-      callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
-        restore();
-        if (gen !== _baremeReqGen) return;
-        baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
-      }, 'Ajout barème', () => restore());
+      const doSubmit = () => {
+        if (!actIn.value.trim()) { showToast('Action vide.', 'error'); actIn.focus(); return; }
+        const restore = startBtnLoading(addBtn, '…');
+        const gen = ++_baremeReqGen;
+        callServer('apiAddBaremeEntry', [topName, actIn.value.trim(), ptsIn.value, _whoAmI || ''], res => {
+          restore();
+          if (gen !== _baremeReqGen) return;
+          baremeEntries = res.entries; renderBaremeSettings(res.entries); renderBaremeDrawer(res.entries);
+        }, 'Ajout barème', () => restore());
+      };
+      if (!requireIdentity(doSubmit)) return;
+      doSubmit();
     };
     addBtn.addEventListener('click', submit);
     actIn.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });

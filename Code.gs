@@ -974,7 +974,7 @@ const SettingsService = {
     }
     let rows = rowsData
       .map((r, i) => ({ r, rowIndex: i + 2 }))
-      .filter(x => x.r[0]);
+      .filter(x => x.r[0] && x.r[0].toString().trim());
     rows = _sortByOrdreOrOriginal(rows, x => x.r[4]);
     const result = rows.map(x => {
       const r = x.r;
@@ -982,17 +982,17 @@ const SettingsService = {
         // Players : [0] Name | [1] Avatar URL | [2] Hex color | [3] Password (never sent to client) | [4] Ordre
         return {
           rowIndex: x.rowIndex,
-          name:  r[0].toString(),
+          name:  r[0] != null ? r[0].toString().trim() : "",
           meta:  r[1] ? r[1].toString() : "",
           icon:  "",
           color: r[2] ? r[2].toString() : "",
-          hasPassword: !!(r[3] && r[3].toString().trim())
+          hasPassword: !!(r[3] != null && r[3].toString().trim())
         };
       } else {
         // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color | [4] Ordre
         return {
           rowIndex: x.rowIndex,
-          name:  r[0].toString(),
+          name:  r[0] != null ? r[0].toString().trim() : "",
           meta:  r[1] ? r[1].toString() : "",
           icon:  r[2] ? r[2].toString() : "",
           color: r[3] ? r[3].toString() : ""
@@ -1005,6 +1005,7 @@ const SettingsService = {
   },
 
   addEntity(type, name, meta, icon) {
+    name = (name || '').toString().trim();
     if (!name) throw new Error("Le nom ne peut pas être vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
@@ -1013,10 +1014,10 @@ const SettingsService = {
     // A duplicate name isn't just cosmetic here: deleteEntity() removes every
     // row matching a name, so two entities sharing one would both vanish on
     // what looks like a single, unitary deletion.
-    if (data.some((row, i) => i >= off && row[0] === name)) {
+    if (data.some((row, i) => i >= off && (row[0] || '').toString().trim() === name)) {
       throw new Error(`${name} existe déjà.`);
     }
-    const nextOrdre = data.slice(off).filter(r => r[0]).length + 1;
+    const nextOrdre = data.slice(off).filter(r => r[0] && r[0].toString().trim()).length + 1;
     if (type === 'Players') {
       sheet.appendRow([name, meta || "", "", "", nextOrdre]);
     } else {
@@ -1034,7 +1035,9 @@ const SettingsService = {
     _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const idx = rowIndex - 1;
-    if (!data[idx] || data[idx][0] !== expectedName) {
+    const currentName = (data[idx] && data[idx][0] != null) ? data[idx][0].toString().trim() : '';
+    const expName = (expectedName || '').toString().trim();
+    if (!data[idx] || currentName !== expName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
     const colIndex = type === 'Players' ? 3 : 4;
@@ -1054,7 +1057,9 @@ const SettingsService = {
     _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const row = data[rowIndex - 1];
-    if (!row || row[0] !== expectedName) {
+    const currentName = (row && row[0] != null) ? row[0].toString().trim() : '';
+    const expName = (expectedName || '').toString().trim();
+    if (!row || currentName !== expName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
     sheet.deleteRow(rowIndex);
@@ -1067,12 +1072,15 @@ const SettingsService = {
   },
 
   renameEntity(type, rowIndex, oldName, newName, newMeta, newIcon) {
+    oldName = (oldName || '').toString().trim();
+    newName = (newName || '').toString().trim();
     if (!newName) throw new Error("Nouveau nom vide.");
     const sheet = ConfigService.getSheets()[type.toLowerCase()];
     _ensureSheetHeaders(type.toLowerCase(), sheet);
     const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const idx = rowIndex - 1;
-    if (!data[idx] || data[idx][0] !== oldName) {
+    const currentName = (data[idx] && data[idx][0] != null) ? data[idx][0].toString().trim() : '';
+    if (!data[idx] || currentName !== oldName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
     // Renommer propage en cascade vers History/Notes/Chat/Bareme/Phrases par simple
@@ -1082,12 +1090,12 @@ const SettingsService = {
     // ne peut pas empêcher ici (History/Notes/Chat n'ont pas de colonne d'identifiant).
     // On refuse plutôt que de tenter une fusion automatique (voir §7, incident joueur
     // perdu) : l'utilisateur doit lever l'ambiguïté à la main dans le Google Sheet.
-    if (data.filter((row, i) => i >= _headerOffsetFromValues(type.toLowerCase(), data) && row[0] === oldName).length > 1) {
+    if (data.filter((row, i) => i >= _headerOffsetFromValues(type.toLowerCase(), data) && (row[0] || '').toString().trim() === oldName).length > 1) {
       const label = type === 'Players' ? 'joueurs' : 'Tops';
       throw new Error(`Plusieurs ${label} partagent le nom "${oldName}" — renomme d'abord l'un des doublons directement dans le Google Sheet pour lever l'ambiguïté avant de pouvoir renommer depuis l'app.`);
     }
     if (newName !== oldName && data.some((row, i) =>
-        i >= _headerOffsetFromValues(type.toLowerCase(), data) && i !== idx && row[0] === newName)) {
+        i >= _headerOffsetFromValues(type.toLowerCase(), data) && i !== idx && (row[0] || '').toString().trim() === newName)) {
       throw new Error(`${newName} existe déjà.`);
     }
     if (type === 'Players') {
@@ -1108,7 +1116,7 @@ const SettingsService = {
       const vals     = range.getValues();
       let modified   = false;
       for (let i = 0; i < vals.length; i++) {
-        if (vals[i][0] === oldName) { vals[i][0] = newName; modified = true; }
+        if ((vals[i][0] || '').toString().trim() === oldName) { vals[i][0] = newName; modified = true; }
       }
       if (modified) {
         range.setValues(vals);
@@ -1153,7 +1161,7 @@ const SettingsService = {
         const newPool   = 'cat:' + newName;
         let poolModified = false;
         for (let i = 0; i < poolVals.length; i++) {
-          if (poolVals[i][0] === oldPool) { poolVals[i][0] = newPool; poolModified = true; }
+          if ((poolVals[i][0] || '').toString().trim() === oldPool) { poolVals[i][0] = newPool; poolModified = true; }
         }
         if (poolModified) poolRange.setValues(poolVals);
       }
@@ -1175,21 +1183,24 @@ const SettingsService = {
     const vals  = range.getValues();
     let modified = false;
     for (let i = 0; i < vals.length; i++) {
-      if (vals[i][0] === oldName) { vals[i][0] = newName; modified = true; }
+      if ((vals[i][0] || '').toString().trim() === oldName) { vals[i][0] = newName; modified = true; }
     }
     if (modified) range.setValues(vals);
   },
 
   /** Returns true if the given password matches the player's password (column D of Players). */
   verifyIdentity(name, password) {
+    const targetName = (name || '').toString().trim();
+    if (!targetName) throw new Error("Identité non renseignée.");
     const sheet = ConfigService.getSheets().players;
     const data  = _fetchSheetValues('players', sheet);
     const off   = _headerOffsetFromValues('players', data);
     for (let i = off; i < data.length; i++) {
-      if (data[i][0] === name) {
-        const stored = data[i][3] ? data[i][3].toString().trim() : "";
+      const cellName = (data[i][0] != null ? data[i][0].toString().trim() : '');
+      if (cellName === targetName) {
+        const stored = (data[i][3] != null ? data[i][3].toString().trim() : '');
         if (!stored) return true; // no password configured → free access
-        return stored === (password || "").toString().trim();
+        return stored === (password || '').toString().trim();
       }
     }
     throw new Error(`Joueur "${name}" introuvable.`);
@@ -1207,7 +1218,7 @@ const SettingsService = {
     const data  = _fetchSheetValues(type.toLowerCase(), sheet);
     const off   = _headerOffsetFromValues(type.toLowerCase(), data);
     const validRowIndexes = [];
-    for (let i = off; i < data.length; i++) if (data[i][0]) validRowIndexes.push(i + 1);
+    for (let i = off; i < data.length; i++) if (data[i][0] && data[i][0].toString().trim()) validRowIndexes.push(i + 1);
     const wanted = orderedRowIndexes.map(Number);
     const isPermutation = wanted.length === validRowIndexes.length &&
       validRowIndexes.every(r => wanted.includes(r)) &&
@@ -1215,7 +1226,9 @@ const SettingsService = {
     if (!isPermutation) throw new Error("La nouvelle liste ne correspond pas aux éléments existants — recharge la page et réessaie.");
     if (wanted.some(r => r < 1 + off)) throw new Error("Ligne invalide.");
     wanted.forEach((rowIndex, i) => {
-      if (data[rowIndex - 1][0] !== expectedNames[i]) {
+      const currentName = (data[rowIndex - 1][0] != null) ? data[rowIndex - 1][0].toString().trim() : '';
+      const expName = (expectedNames[i] != null) ? expectedNames[i].toString().trim() : '';
+      if (currentName !== expName) {
         throw new Error("Cette liste a changé entre-temps — recharge la page et réessaie.");
       }
     });
@@ -2996,10 +3009,22 @@ function doGet(e) {
   // corrompt silencieusement les très gros fichiers HTML qui en contiennent
   // (constaté en v3.5.0 : ~28 000 caractères tronqués côté serveur, provoquant
   // une SyntaxError au chargement et une interface totalement vide).
-  return HtmlService.createHtmlOutputFromFile('Index')
+  let instanceId = '';
+  try {
+    instanceId = (typeof ScriptApp !== 'undefined' && ScriptApp.getScriptId)
+      ? ScriptApp.getScriptId().slice(0, 10)
+      : 'default';
+  } catch (_) {
+    instanceId = 'default';
+  }
+  const out = HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Tops des Tops')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  if (typeof out.append === 'function') {
+    out.append('<script>window.__APP_INSTANCE_ID__ = ' + JSON.stringify(instanceId) + '; if (window.syncIdentityFromStorage) window.syncIdentityFromStorage();</script>');
+  }
+  return out;
 }
 
 function apiGetSettings() {

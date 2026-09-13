@@ -44,8 +44,19 @@ const { test } = require('node:test');
 const assert = require('assert');
 const { loadGas, makeSheet, injectSheets } = require('./harness.js');
 
-function makeContext() {
-  const gas = loadGas();
+/** propStore lets each test control DISCORD_BRIDGE_SECRET, same pattern as tests/cache.test.js. */
+function makeContext(secret) {
+  const propStore = {};
+  if (secret !== undefined) propStore.DISCORD_BRIDGE_SECRET = secret;
+  const gas = loadGas({
+    PropertiesService: {
+      getScriptProperties: () => ({
+        getProperty: k => (k in propStore ? propStore[k] : null),
+        getProperties: () => Object.assign({}, propStore),
+        setProperty: (k, v) => { propStore[k] = String(v); }
+      })
+    }
+  });
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre', 'Discord ID'],
     ['Alex', '', '', '', '1', '111111111111111111'],
@@ -71,16 +82,14 @@ test('handleRequest denies when DISCORD_BRIDGE_SECRET is unset (default-deny)', 
 });
 
 test('handleRequest denies when the provided secret does not match', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getLeaderboard', secret: 'wrong-secret' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, false);
 });
 
 test('handleRequest rejects an unknown bgAction with the right secret', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'doSomethingElse', secret: 'right-secret' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, false);
@@ -88,27 +97,31 @@ test('handleRequest rejects an unknown bgAction with the right secret', () => {
 });
 
 test('resolvePlayerByDiscordId finds the linked player and returns null when unlinked', () => {
-  const gas = makeContext();
+  const gas = makeContext('right-secret');
   assert.strictEqual(gas.DiscordBridgeService.resolvePlayerByDiscordId('111111111111111111'), 'Alex');
   assert.strictEqual(gas.DiscordBridgeService.resolvePlayerByDiscordId('999999999999999999'), null);
   assert.strictEqual(gas.DiscordBridgeService.resolvePlayerByDiscordId(''), null);
 });
 
 test('doGet delegates to DiscordBridgeService when bgAction is present', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
-  const out = gas.doGet({ parameter: { bgAction: 'getLeaderboard', secret: 'right-secret' } });
+  const gas = makeContext('right-secret');
+  // getLeaderboard_ doesn't exist yet at this task's stage — an unrecognized
+  // action still proves doGet routed into the bridge (JSON out, not HTML).
+  const out = gas.doGet({ parameter: { bgAction: 'unknown', secret: 'right-secret' } });
   assert.strictEqual(out._mime, 'JSON');
   const body = JSON.parse(out._text);
-  assert.strictEqual(body.ok, true);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /inconnue/);
 });
 
 test('doGet still serves Index.html when bgAction is absent', () => {
-  const gas = makeContext();
+  const gas = makeContext('right-secret');
   const out = gas.doGet({ parameter: {} });
   assert.strictEqual(out._file, 'Index');
 });
 ```
+
+(this supersedes the initial default-mock approach — `PropertiesService` is passed per-test through `loadGas(extraMocks)`, matching the existing convention in `tests/cache.test.js`, rather than exported globally.)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -316,8 +329,7 @@ Append to `tests/discord-bridge.test.js`:
 
 ```js
 test('addPoints writes a history row for the linked player and audits it', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
     top: 'Mario Kart', points: '5', desc: 'via test'
@@ -335,8 +347,7 @@ test('addPoints writes a history row for the linked player and audits it', () =>
 });
 
 test('addPoints refuses an unlinked Discord account', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '000000000000000000',
     top: 'Mario Kart', points: '5'
@@ -347,8 +358,7 @@ test('addPoints refuses an unlinked Discord account', () => {
 });
 
 test('addPoints refuses an unknown top', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
     top: 'Top Inexistant', points: '5'
@@ -359,8 +369,7 @@ test('addPoints refuses an unknown top', () => {
 });
 
 test('addPoints refuses zero or negative points', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
     top: 'Mario Kart', points: '0'
@@ -371,8 +380,7 @@ test('addPoints refuses zero or negative points', () => {
 });
 
 test('addNote writes a note for the linked player', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'ping via discord'
   } });
@@ -385,8 +393,7 @@ test('addNote writes a note for the linked player', () => {
 });
 
 test('addNote refuses an unlinked Discord account', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addNote', secret: 'right-secret', discordId: '000000000000000000', text: 'ping'
   } });
@@ -494,8 +501,7 @@ Append to `tests/discord-bridge.test.js`:
 
 ```js
 test('getLeaderboard returns a ranked, formatted list of all players', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111', top: 'Mario Kart', points: '10'
   } });
@@ -507,8 +513,7 @@ test('getLeaderboard returns a ranked, formatted list of all players', () => {
 });
 
 test("getNotes lists a player's notes, most recent first", () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   gas.DiscordBridgeService.handleRequest({ parameter: {
     bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'premiere note'
   } });
@@ -519,8 +524,7 @@ test("getNotes lists a player's notes, most recent first", () => {
 });
 
 test('getNotes reports no notes for a player with none', () => {
-  const gas = makeContext();
-  gas.PropertiesService.getScriptProperties().setProperty('DISCORD_BRIDGE_SECRET', 'right-secret');
+  const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'getNotes', secret: 'right-secret', player: 'Sam' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
