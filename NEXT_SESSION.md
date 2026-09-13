@@ -1,22 +1,27 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Branche active : `feature/discord-bridge-commands` (non fusionnée dans `main` — travail en cours, ne pas merger avant validation complète sur la copie de test).
-- Bridge Discord/BotGhost : code complet et testé (`DiscordBridge.gs` + branche `doGet` + `tests/discord-bridge.test.js`, 15 cas). Suite complète : **431/431 verts** (`npm run verify`).
+- Branche active : `main` (fusionnée et déployée).
+- Système d'identité & session refondu : cloisonnement multi-instances (`window.__APP_INSTANCE_ID__`), persistance de mot de passe en `sessionStorage`, alignement strict des arguments `apiManageEntity`, normalisation trim/mots de passe numériques Sheets et reprise automatique d'action (`onVerified`). Suite complète : **447/447 verts** (`npm run verify`).
+- Bridge Discord/BotGhost : code complet et testé (`DiscordBridge.gs` + branche `doGet` + `tests/discord-bridge.test.js`, 15 cas).
 - Poussé sur la copie de test (scriptId `1fiBPQDpb9KGmdjtHzamK9JNmqypsgpXgzQpVztDp3IDYH4Cd_WAgqsdd`) et déployé sur un lien fixe : `https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec` (deploymentId `AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e` — redéployer en place avec `clasp deploy -i <id>` après chaque `clasp push`, jamais un nouveau lien).
 - **Bloqué sur 3 actions manuelles** (voir Rappels actifs) avant que ce lien réponde vraiment : autorisation OAuth du script (consent Google jamais donné sur ce nouveau projet), Script Properties (`SPREADSHEET_ID`, `DISCORD_BRIDGE_SECRET`) à poser dans l'éditeur, et Players/Categories à peupler avec des données factices.
-- Prochaine tâche prioritaire : débloquer ces 3 points, vérifier une requête réelle depuis BotGhost, puis merger la branche dans `main` une fois validé.
+- Prochaine tâche prioritaire : débloquer ces 3 points, vérifier une requête réelle depuis BotGhost.
 - Init recommandé : standard.
 
 ## Dernière session
-- **Bridge BotGhost pour les commandes Discord (`feature/discord-bridge-commands`, non fusionné)** :
-  - *Nouveau fichier `DiscordBridge.gs`* : pont HTTP GET entre BotGhost et l'app, branché sur une seule ligne ajoutée en tête de `doGet(e)` (si `e.parameter.bgAction` présent, délègue à `DiscordBridgeService.handleRequest(e)` et répond en JSON via `ContentService` ; sinon comportement HTML inchangé).
-  - *4 actions* : `addPoints` (écrit dans History via `StorageService.appendBulkPlan`, valide le Top et les points ≥ 1), `getLeaderboard` (classement complet formaté), `addNote` (écrit dans Notes), `getNotes` (notes d'un joueur, formatées). Chacune journalisée dans `AuditService` quand elle écrit.
-  - *Identité* : un joueur lié à un compte Discord via une colonne « Discord ID » ajoutée à la main dans `Players` (jamais dans `CANONICAL_SHEET_HEADERS`, recherchée dynamiquement par nom d'en-tête) — le compte Discord lié est la preuve d'identité, pas de mot de passe demandé sur ce canal (décision de brainstorming du 2026-09-13).
-  - *Sécurité* : secret partagé (`DISCORD_BRIDGE_SECRET`, Script Property) passé en paramètre d'URL — jamais en header (GAS n'expose aucun header personnalisé à `doGet`/`doPost`) — toujours en GET (GAS ne suit pas fiablement la redirection 302 en POST). Refus par défaut si la Script Property est absente, testé explicitement.
-  - *`.claspignore` corrigé* : `DiscordBridge.gs` n'était pas dans l'allowlist (`**/**` puis `!Fichier`) — silencieusement exclu de tout `clasp push`, y compris vers « Site tops »/« Tops RDS » en prod. Ajouté.
-  - *Déployé sur la copie de test* uniquement (scriptId `1fiBPQDpb9KGmdjtHzamK9JNmqypsgpXgzQpVztDp3IDYH4Cd_WAgqsdd`), lien fixe via `clasp deploy` (pas de short.io, pas de nouveau lien à chaque changement — redéployer en place avec `clasp deploy -i <id>`).
-  - *Tests* : 15 nouveaux cas dans `tests/discord-bridge.test.js`, harness (`tests/harness.js`) étendu pour charger `DiscordBridge.gs` et mocker `ContentService`. Suite complète `431/431` verts.
+- **Fiabilisation & Refonte du Système d'Identité / Authentification (v3.30.20)** :
+  - *Cloisonnement inter-liens* : injection de `window.__APP_INSTANCE_ID__` via `HtmlOutput.append()` dans `doGet` ; toutes les clés de stockage (`localStorage`, `sessionStorage`) sont préfixées, empêchant toute collision entre « Site tops » et « Tops RDS » avec migration automatique transparente.
+  - *Boucle de mot de passe résolue* : argument `rowIndex` manquant rétabli avec `null` pour l'ajout de joueurs et de tops dans `Index.html` afin que le mot de passe ne soit plus injecté au mauvais paramètre dans `apiManageEntity` ; normalisation des `.trim()` et conversion en chaîne des cellules Sheets dans `SettingsService.verifyIdentity` et `getEntities` (support des mots de passe `'0'`).
+  - *Persistance mobile* : `sessionStorage` mémorise le mot de passe de session actif, protégeant contre l'amnésie lors des mises en veille et rafraîchissements sans écriture sur disque permanent.
+  - *Reprise d'action* : `requireIdentity(onVerified)` mémorise et ré-exécute automatiquement l'action cliquée après saisie du mot de passe.
+  - *Sécurisation modales & profil* : les modales complexes ne ferment plus avant la vérification d'identité ; le renommage de son propre compte met à jour l'identité locale sans déconnexion ; exclusion de `apiVerifyIdentity` des intercepteurs automatiques d'erreur.
+  - *Tests* : 16 nouveaux tests dans `tests/identity.test.js` et `tests/identity-partition-session.test.js`, suite complète à **447/447 verts**.
+- **Bridge BotGhost pour les commandes Discord** :
+  - *Nouveau fichier `DiscordBridge.gs`* : pont HTTP GET entre BotGhost et l'app, branché sur une seule ligne ajoutée en tête de `doGet(e)`.
+  - *4 actions* : `addPoints`, `getLeaderboard`, `addNote`, `getNotes`. Chacune journalisée dans `AuditService`.
+  - *Sécurité* : secret partagé (`DISCORD_BRIDGE_SECRET`, Script Property) avec refus par défaut si absent.
+
 
 ## Écarts
 - Notification sortante (l'app prévient Discord d'un ajout de points fait depuis le site) validée en brainstorming mais volontairement laissée hors de ce plan — sujet à un plan séparé une fois ces 4 commandes entrantes éprouvées (voir `docs/superpowers/plans/2026-09-13-discord-bridge-commands.md`, section "Écart documenté").
