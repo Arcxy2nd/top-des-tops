@@ -78,3 +78,76 @@ test('doGet still serves Index.html when bgAction is absent', () => {
   const out = gas.doGet({ parameter: {} });
   assert.strictEqual(out._file, 'Index');
 });
+
+test('addPoints writes a history row for the linked player and audits it', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
+    top: 'Mario Kart', points: '5', desc: 'via test'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  const historyRows = gas.ConfigService.getSheets().history._grid;
+  assert.strictEqual(historyRows.length, 2);
+  assert.strictEqual(historyRows[1][1], 'Alex');
+  assert.strictEqual(historyRows[1][2], 'Mario Kart');
+  assert.strictEqual(historyRows[1][3], 5);
+  const auditRows = gas.ConfigService.getSheets().auditLog._grid;
+  assert.strictEqual(auditRows.length, 2);
+  assert.strictEqual(auditRows[1][1], 'Alex');
+});
+
+test('addPoints refuses an unlinked Discord account', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '000000000000000000',
+    top: 'Mario Kart', points: '5'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /lié/);
+});
+
+test('addPoints refuses an unknown top', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
+    top: 'Top Inexistant', points: '5'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /inconnu/);
+});
+
+test('addPoints refuses zero or negative points', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
+    top: 'Mario Kart', points: '0'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /≥ 1/);
+});
+
+test('addNote writes a note for the linked player', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'ping via discord'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  const noteRows = gas.ConfigService.getSheets().notes._grid;
+  assert.strictEqual(noteRows.length, 2);
+  assert.strictEqual(noteRows[1][1], 'Alex');
+  assert.strictEqual(noteRows[1][2], 'ping via discord');
+});
+
+test('addNote refuses an unlinked Discord account', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addNote', secret: 'right-secret', discordId: '000000000000000000', text: 'ping'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+});

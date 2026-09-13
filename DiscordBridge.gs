@@ -75,4 +75,55 @@ const DiscordBridgeService = {
       return this.err_(err && err.message ? err.message : String(err));
     }
   },
+
+  addPoints_(e) {
+    const discordId = e.parameter.discordId;
+    const top = e.parameter.top;
+    const pointsRaw = e.parameter.points;
+    const desc = e.parameter.desc || '';
+
+    const player = this.resolvePlayerByDiscordId(discordId);
+    if (!player) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+
+    if (!top || !top.trim()) return this.err_("Le paramètre 'top' est obligatoire.");
+    const categories = SettingsService.getEntities('Categories').map(c => c.name);
+    const matchedTop = categories.find(c => c.toLowerCase() === top.trim().toLowerCase());
+    if (!matchedTop) return this.err_("Top inconnu : '" + top + "'. Vérifie l'orthographe exacte.");
+
+    const points = parseInt(pointsRaw, 10);
+    if (isNaN(points) || points < 1) return this.err_("Les points doivent être un entier ≥ 1.");
+
+    return withLock(() => {
+      const { history } = ConfigService.getSheets();
+      const startRow = history.getLastRow() + 1;
+      const todayStr = _dayKey(new Date());
+      StorageService.appendBulkPlan([{
+        date: todayStr,
+        entries: [{ player, category: matchedTop, points, times: 1, description: desc }]
+      }]);
+      const endRow = history.getLastRow();
+      const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 7).getValues() : [];
+      AuditService.log(player, 'Saisie de points', 'History', '', '1 entrée',
+        player + ' +' + points + ' pts · ' + matchedTop + (desc ? ' — "' + desc.slice(0, 40) + '"' : '') + ' (via Discord)',
+        addedRows.length ? { sheet: 'history', op: 'insertMany', rows: addedRows } : null);
+      return this.ok_('✅ ' + player + ' +' + points + ' pts sur ' + matchedTop + (desc ? ' (' + desc + ')' : ''));
+    });
+  },
+
+  addNote_(e) {
+    const discordId = e.parameter.discordId;
+    const text = e.parameter.text;
+    const player = this.resolvePlayerByDiscordId(discordId);
+    if (!player) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+    if (!text || !text.trim()) return this.err_("Le paramètre 'texte' est obligatoire.");
+
+    return withLock(() => {
+      const note = NotesService.addNote(player, text, '', player);
+      const sheet = ConfigService.getSheets().notes;
+      AuditService.log(player, 'Note ajoutée', 'Note: ' + player, '', player + ' : ' + text.trim(),
+        'note:' + note.noteId + ' (via Discord)',
+        { sheet: 'notes', op: 'insert', rowIndex: note.rowIndex, after: sheet.getRange(note.rowIndex, 1, 1, 7).getValues()[0] });
+      return this.ok_('✅ Note ajoutée pour ' + player);
+    });
+  },
 };
