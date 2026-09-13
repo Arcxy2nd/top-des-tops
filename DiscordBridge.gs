@@ -154,3 +154,50 @@ const DiscordBridgeService = {
     return this.ok_(lines.join('\n'));
   }
 };
+
+/**
+ * Utilitaire MANUEL, à lancer une seule fois depuis l'éditeur Apps Script (jamais appelé
+ * par l'app, jamais exposé via doGet) pour amorcer un Google Sheet neuf sans le moindre
+ * onglet — le cas d'une copie de test créée vide, où l'app refuse de démarrer (§3
+ * context.md : History/Players/Categories ne sont jamais créées automatiquement sur un
+ * vrai Sheet). Strictement additif : ne touche jamais un onglet déjà présent, donc
+ * totalement inoffensif si on le lance par erreur sur "Site tops" ou "Tops RDS" (leurs
+ * 3 onglets existent déjà, la fonction ne fait alors rien).
+ */
+function bootstrapDiscordTestSheet() {
+  const ss = SpreadsheetApp.openById(ConfigService.getSpreadsheetId());
+
+  let players = ss.getSheetByName('Players');
+  if (!players) {
+    players = ss.insertSheet('Players');
+    players.appendRow(['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre', 'Discord ID']);
+    players.getRange(1, 1, 1, 6).setFontWeight('bold');
+    players.appendRow(['TestPlayer1', '', '#ff4757', '', '1', '']);
+    players.appendRow(['TestPlayer2', '', '#7c8cff', '', '2', '']);
+  }
+
+  let categories = ss.getSheetByName('Categories');
+  if (!categories) {
+    categories = ss.insertSheet('Categories');
+    categories.appendRow(['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']);
+    categories.getRange(1, 1, 1, 5).setFontWeight('bold');
+    categories.appendRow(['Mario Kart', '', '🏎️', '#ff4757', '1']);
+  }
+
+  let history = ss.getSheetByName('History');
+  if (!history) {
+    history = ss.insertSheet('History');
+    history.appendRow(['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']);
+    history.getRange(1, 1, 1, 7).setFontWeight('bold');
+  }
+
+  // Un classeur Google Sheets tout neuf porte un onglet par défaut ("Feuille 1" ou
+  // "Sheet1") — supprimé une fois les 3 vrais onglets en place pour ne pas laisser un
+  // onglet fantôme vide traîner dans l'app.
+  if (ss.getSheets().length > 3) {
+    const stray = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
+    if (stray) ss.deleteSheet(stray);
+  }
+
+  Logger.log('Bootstrap terminé : Players (2 joueurs factices), Categories (1 Top factice) et History sont prêts. Renseigne ta propre colonne Discord ID sur un joueur pour tester le bridge.');
+}
