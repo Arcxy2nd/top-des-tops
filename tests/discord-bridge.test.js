@@ -152,6 +152,53 @@ test('addNote refuses an unlinked Discord account', () => {
   assert.strictEqual(body.ok, false);
 });
 
+test('addPoints credits an explicit target player, distinct from the author', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
+    top: 'Mario Kart', points: '5', player: 'Sam'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.match(body.message, /Sam/);
+  const historyRows = gas.ConfigService.getSheets().history._grid;
+  assert.strictEqual(historyRows[1][1], 'Sam');   // Player column: the target
+  assert.strictEqual(historyRows[1][6], 'Alex');  // Saiseur column: the author
+  const auditRows = gas.ConfigService.getSheets().auditLog._grid;
+  assert.strictEqual(auditRows[1][1], 'Alex');    // audited under the author
+});
+
+test('addPoints refuses an unknown target player', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addPoints', secret: 'right-secret', discordId: '111111111111111111',
+    top: 'Mario Kart', points: '5', player: 'Personne'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, false);
+  assert.match(body.message, /inconnu/);
+});
+
+test('addNote credits an explicit target player, distinct from the author', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: {
+    bgAction: 'addNote', secret: 'right-secret', discordId: '111111111111111111', text: 'bravo', player: 'Sam'
+  } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  const noteRows = gas.ConfigService.getSheets().notes._grid;
+  assert.strictEqual(noteRows[1][1], 'Sam');   // Joueur column: the target
+  assert.strictEqual(noteRows[1][4], 'Alex');  // CrééPar column: the author
+});
+
+test('listTops returns the current categories', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'listTops', secret: 'right-secret' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.deepStrictEqual(body.choices, ['Mario Kart']);
+});
+
 test('getLeaderboard returns a ranked, formatted list of all players', () => {
   const gas = makeContext('right-secret');
   gas.DiscordBridgeService.handleRequest({ parameter: {

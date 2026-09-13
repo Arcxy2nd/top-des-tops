@@ -69,6 +69,7 @@ const DiscordBridgeService = {
         case 'getLeaderboard': return this.getLeaderboard_(e);
         case 'addNote':        return this.addNote_(e);
         case 'getNotes':       return this.getNotes_(e);
+        case 'listTops':       return this.listTops_(e);
         default:               return this.err_("Action inconnue : " + action);
       }
     } catch (err) {
@@ -76,14 +77,37 @@ const DiscordBridgeService = {
     }
   },
 
+  /** Résout un nom de joueur saisi (insensible à la casse) vers son nom canonique exact, ou null. */
+  resolvePlayerByName_(name) {
+    const target = String(name || '').trim().toLowerCase();
+    if (!target) return null;
+    const match = SettingsService.getEntities('Players').find(p => p.name.toLowerCase() === target);
+    return match ? match.name : null;
+  },
+
+  /**
+   * `discordId` résout l'auteur (identité/permission — sert de Saiseur). `player`, s'il est
+   * fourni, résout la cible (à qui les points/la note sont attribués) ; omis, la cible est
+   * l'auteur lui-même. Player et Saiseur sont deux colonnes distinctes de History/Notes —
+   * les confondre aurait empêché quiconque d'agir pour un autre joueur (bug identifié en
+   * session le 2026-09-13, avant tout usage réel).
+   */
   addPoints_(e) {
     const discordId = e.parameter.discordId;
     const top = e.parameter.top;
     const pointsRaw = e.parameter.points;
     const desc = e.parameter.desc || '';
+    const targetRaw = e.parameter.player;
 
-    const player = this.resolvePlayerByDiscordId(discordId);
-    if (!player) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+    const author = this.resolvePlayerByDiscordId(discordId);
+    if (!author) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+
+    let player = author;
+    if (targetRaw && targetRaw.trim()) {
+      const matchedPlayer = this.resolvePlayerByName_(targetRaw);
+      if (!matchedPlayer) return this.err_("Joueur inconnu : '" + targetRaw + "'. Vérifie l'orthographe exacte.");
+      player = matchedPlayer;
+    }
 
     if (!top || !top.trim()) return this.err_("Le paramètre 'top' est obligatoire.");
     const categories = SettingsService.getEntities('Categories').map(c => c.name);
@@ -99,12 +123,13 @@ const DiscordBridgeService = {
       const todayStr = _dayKey(new Date());
       StorageService.appendBulkPlan([{
         date: todayStr,
-        entries: [{ player, category: matchedTop, points, times: 1, description: desc }]
+        entries: [{ player, category: matchedTop, points, times: 1, description: desc, saiseur: author }]
       }]);
       const endRow = history.getLastRow();
       const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 7).getValues() : [];
-      AuditService.log(player, 'Saisie de points', 'History', '', '1 entrée',
-        player + ' +' + points + ' pts · ' + matchedTop + (desc ? ' — "' + desc.slice(0, 40) + '"' : '') + ' (via Discord)',
+      const attribution = (player !== author) ? ' (saisi par ' + author + ')' : '';
+      AuditService.log(author, 'Saisie de points', 'History', '', '1 entrée',
+        player + ' +' + points + ' pts · ' + matchedTop + (desc ? ' — "' + desc.slice(0, 40) + '"' : '') + attribution + ' (via Discord)',
         addedRows.length ? { sheet: 'history', op: 'insertMany', rows: addedRows } : null);
       return this.ok_('✅ ' + player + ' +' + points + ' pts sur ' + matchedTop + (desc ? ' (' + desc + ')' : ''));
     });
@@ -113,14 +138,24 @@ const DiscordBridgeService = {
   addNote_(e) {
     const discordId = e.parameter.discordId;
     const text = e.parameter.text;
-    const player = this.resolvePlayerByDiscordId(discordId);
-    if (!player) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+    const targetRaw = e.parameter.player;
+
+    const author = this.resolvePlayerByDiscordId(discordId);
+    if (!author) return this.err_("Ton compte Discord n'est lié à aucun joueur. Demande à l'admin d'ajouter ton ID Discord dans la colonne 'Discord ID' de la feuille Players.");
+
+    let player = author;
+    if (targetRaw && targetRaw.trim()) {
+      const matchedPlayer = this.resolvePlayerByName_(targetRaw);
+      if (!matchedPlayer) return this.err_("Joueur inconnu : '" + targetRaw + "'. Vérifie l'orthographe exacte.");
+      player = matchedPlayer;
+    }
+
     if (!text || !text.trim()) return this.err_("Le paramètre 'texte' est obligatoire.");
 
     return withLock(() => {
-      const note = NotesService.addNote(player, text, '', player);
+      const note = NotesService.addNote(player, text, '', author);
       const sheet = ConfigService.getSheets().notes;
-      AuditService.log(player, 'Note ajoutée', 'Note: ' + player, '', player + ' : ' + text.trim(),
+      AuditService.log(author, 'Note ajoutée', 'Note: ' + player, '', player + ' : ' + text.trim(),
         'note:' + note.noteId + ' (via Discord)',
         { sheet: 'notes', op: 'insert', rowIndex: note.rowIndex, after: sheet.getRange(note.rowIndex, 1, 1, 7).getValues()[0] });
       return this.ok_('✅ Note ajoutée pour ' + player);
@@ -152,6 +187,18 @@ const DiscordBridgeService = {
       return dateLabel + ' — ' + n.text;
     });
     return this.ok_(lines.join('\n'));
+  },
+
+  /**
+   * Liste les Tops actuels, pour une source dynamique d'autocomplétion côté BotGhost (à
+   * vérifier dans son interface — le contrat exact d'un champ "Autocomplete" n'est pas
+   * documenté dans les sources consultées). Fournit le message formaté ET un tableau brut
+   * `choices`, au cas où seul l'un des deux formats serait exploitable là-bas.
+   */
+  listTops_(e) {
+    const categories = SettingsService.getEntities('Categories').map(c => c.name);
+    if (!categories.length) return this.ok_("Aucun Top enregistré pour l'instant.", { choices: [] });
+    return this.ok_(categories.join('\n'), { choices: categories });
   }
 };
 
