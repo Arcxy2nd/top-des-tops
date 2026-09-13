@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.19] - 2026-09-13
+
+### Modifié
+**Humanisé** : L'interface de l'Historique est désormais plus compacte et équilibrée, avec un en-tête regroupant recherche et actions rapides, des dates Du/Au côte à côte avec raccourcis de période, et une disposition en deux colonnes pour les filtres de Joueurs et Tops.
+**Technique** :
+- `Index.html` :
+  - En-tête `.hist-head` : regroupement du titre `h2` à gauche et de la barre de recherche avec les boutons d'action (`#historyDateClearBtn`, `#histSortBtn`, `#refreshHistoryBtn`, `#histToggleGroupsBtn`, `#histSelectBtn`) à droite.
+  - Filtres de dates `.hist-date-bar` : champs de date début (`#historyDateFrom`) et fin (`#historyDateTo`) placés côte à côte avec libellés compacts et boutons de période (`#histRangeChips`) sur une même ligne horizontale.
+  - Grille d'entités `.hist-entity-filters` : passage en 2 colonnes (`.hist-col-players` pour `#histPlayerChips` à gauche, `.hist-col-tops` pour `#histCategoryChips` et `#histAltCategoryChips` à droite) avec marges et espacements réduits (`gap: 3px`).
+  - Responsivité : adaptation automatique en colonne unique sous les mobiles et petits écrans (`body.mobile-layout` et `body:not(.desktop-layout)`).
+- `tests/history-layout-redesign.test.js` :
+  - 5 tests unitaires automatisés validant la présence et la structure de l'en-tête, des filtres compacts, de la grille 2 colonnes, de la préservation du tableau et des règles CSS (416 tests au vert).
+
 ## [v3.30.18] - 2026-09-13
 
 ### Modifié

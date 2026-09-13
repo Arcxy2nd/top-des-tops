@@ -1038,7 +1038,138 @@
     .entity-meta { font-size: 0.78rem; color: var(--text-muted); width: 100%; word-break: break-all; }
     .add-form { display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.1); padding: 12px; border-radius: 8px; }
 
-    /* ── HISTORIQUE ── */
+    /* ── HISTORIQUE : EN-TÊTE ET ACTIONS ── */
+    .hist-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .hist-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .hist-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .hist-search-input {
+      width: 180px;
+      min-width: 130px;
+      max-width: 220px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      height: 28px;
+      border-radius: 8px;
+    }
+    .hist-action-btn {
+      height: 28px;
+      padding: 3px 9px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── HISTORIQUE : FILTRES DE DATE COMPACTS ── */
+    .hist-date-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      padding: 5px 8px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    body.light .hist-date-bar {
+      background: rgba(0, 0, 0, 0.025);
+    }
+    .hist-date-du-au {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .hist-date-inputs {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hist-date-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .hist-date-field:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .hist-date-tag {
+      font-size: 0.67rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .hist-date-field input[type="date"] {
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      font-size: 0.75rem !important;
+      color: var(--text) !important;
+      outline: none !important;
+      width: 108px;
+      height: 22px;
+      min-height: 22px;
+      line-height: 22px;
+      box-shadow: none !important;
+    }
+    .hist-range-chips {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 3px;
+      flex: 1;
+    }
+
+    /* ── HISTORIQUE : ENTITÉS EN 2 COLONNES DENSES ── */
+    .hist-entity-filters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 6px 16px;
+      align-items: start;
+      margin-bottom: 10px;
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.12);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    body.light .hist-entity-filters {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .hist-entity-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
     .history-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
     .history-filters select { flex: 1; min-width: 140px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
@@ -2784,18 +2915,19 @@
       border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
     }
     .hist-range-btn {
-      padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
-      background: var(--btn-alt); color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 16px; border: 1px solid var(--border);
+      background: var(--btn-alt); color: var(--text-muted); font-size: 0.71rem; font-weight: 600;
       cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap; min-height: 22px; display: inline-flex; align-items: center;
     }
     .hist-range-btn:hover { color: var(--text); border-color: var(--accent); }
     .hist-range-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-    .hist-fchip-row { display: flex; flex-wrap: wrap; gap: 4px; }
-    .hist-fchip { padding: 2px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.74rem; cursor: pointer; transition: all 0.13s; background: transparent; color: var(--text-muted); line-height: 1.5; }
+    .hist-fchip-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+    .hist-fchip { padding: 1px 7px; border-radius: 16px; border: 1px solid var(--border); font-size: 0.72rem; cursor: pointer; transition: all 0.13s; background: transparent; color: var(--text-muted); line-height: 1.4; display: inline-flex; align-items: center; min-height: 22px; }
     .hist-fchip:hover { border-color: var(--text-muted); color: var(--text); }
     .hist-fchip.active { font-weight: 600; background: rgba(255,255,255,0.06); }
     .hist-fchip.tous.active { border-color: var(--text-muted); color: var(--text); }
-    .hist-fchip img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 4px; }
+    .hist-fchip img { width: 15px; height: 15px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 3px; }
 
     /* ── TOAST UNDO (suppression différée) ── */
     .toast.warning { border-color: var(--warn); color: var(--warn); }
@@ -4356,6 +4488,17 @@
   body.mobile-layout .export-buttons { gap: 6px; justify-content: center; width: 100%; }
   body.mobile-layout .export-btn { padding: 8px 12px; font-size: 0.8rem; min-height: var(--tap-min); flex: 1; text-align: center; }
   body.mobile-layout .history-filters { flex-direction: column; align-items: stretch; }
+  body.mobile-layout .hist-head { flex-direction: column; align-items: stretch; gap: 8px; }
+  body.mobile-layout .hist-head-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  body.mobile-layout .hist-search-input { width: 100%; max-width: none; min-height: var(--tap-min); }
+  body.mobile-layout .hist-action-btn { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.8rem; }
+  body.mobile-layout .hist-date-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+  body.mobile-layout .hist-date-du-au { width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+  body.mobile-layout .hist-date-inputs { width: 100%; }
+  body.mobile-layout .hist-date-field { flex: 1; min-height: var(--tap-min); padding: 4px 8px; }
+  body.mobile-layout .hist-date-field input[type="date"] { width: 100%; height: 32px; min-height: 32px; }
+  body.mobile-layout .hist-entity-filters { grid-template-columns: 1fr; gap: 8px; }
+  body.mobile-layout .hist-range-btn { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.8rem; }
   body.mobile-layout .health-grid { grid-template-columns: 1fr 1fr; }
   body.mobile-layout .npb-add { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
   body.mobile-layout .npb-add input[type="text"] { flex: 1 1 100%; width: 100%; min-height: var(--tap-min); order: 1; }
@@ -4554,6 +4697,17 @@
     body:not(.desktop-layout) .export-btn { padding: 8px 12px; font-size: 0.8rem; min-height: var(--tap-min); flex: 1; text-align: center; }
     body:not(.desktop-layout) .export-pill { min-height: 38px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; }
     body:not(.desktop-layout) .history-filters { flex-direction: column; align-items: stretch; }
+    body:not(.desktop-layout) .hist-head { flex-direction: column; align-items: stretch; gap: 8px; }
+    body:not(.desktop-layout) .hist-head-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    body:not(.desktop-layout) .hist-search-input { width: 100%; max-width: none; min-height: var(--tap-min); }
+    body:not(.desktop-layout) .hist-action-btn { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.8rem; }
+    body:not(.desktop-layout) .hist-date-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+    body:not(.desktop-layout) .hist-date-du-au { width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+    body:not(.desktop-layout) .hist-date-inputs { width: 100%; }
+    body:not(.desktop-layout) .hist-date-field { flex: 1; min-height: var(--tap-min); padding: 4px 8px; }
+    body:not(.desktop-layout) .hist-date-field input[type="date"] { width: 100%; height: 32px; min-height: 32px; }
+    body:not(.desktop-layout) .hist-entity-filters { grid-template-columns: 1fr; gap: 8px; }
+    body:not(.desktop-layout) .hist-range-btn { min-height: var(--tap-min); padding: 6px 12px; font-size: 0.8rem; }
     body:not(.desktop-layout) .health-grid { grid-template-columns: 1fr 1fr; }
     body:not(.desktop-layout) .fchip { font-size: 0.82rem; padding: 6px 12px; min-height: var(--tap-min); }
     body:not(.desktop-layout) .chart-type-btn { min-height: var(--tap-min); font-size: 0.84rem; padding: 8px 12px; }
@@ -5380,34 +5534,55 @@
     <!-- ─ Entrées ─ (contenu existant inchangé) -->
     <div id="stab-history-entries" class="history-tab-pane active">
       <div class="card">
-        <h2>📜 Historique des entrées</h2>
-        <div class="history-filters">
-          <input type="text" id="historyTextFilter" placeholder="🔍 Rechercher…" style="flex:1; min-width:140px; max-width:240px;">
-          <input type="date" id="historyDateFrom" title="Depuis">
-          <input type="date" id="historyDateTo"   title="Jusqu'au">
-          <button id="historyDateClearBtn" class="secondary small" title="Effacer la plage de dates">✕</button>
-          <button id="histSortBtn" class="hist-range-btn" title="Ordre par date">↓ Récents</button>
-          <button id="refreshHistoryBtn" class="secondary small">🔄</button>
-          <button id="histToggleGroupsBtn" class="secondary small" title="Déplier / replier tous les lots de la page" style="display:none;">⊞ Déplier lots</button>
-          <button id="histSelectBtn" class="secondary small">☑ Sélectionner</button>
+        <!-- En-tête : Titre à gauche, recherche + boutons d'action à droite -->
+        <div class="hist-head">
+          <h2>📜 Historique des entrées</h2>
+          <div class="hist-head-actions">
+            <input type="text" id="historyTextFilter" placeholder="🔍 Rechercher…" class="hist-search-input">
+            <button id="historyDateClearBtn" class="secondary small hist-action-btn" title="Effacer la plage de dates">✕</button>
+            <button id="histSortBtn" class="hist-range-btn hist-action-btn" title="Ordre par date">↓ Récents</button>
+            <button id="refreshHistoryBtn" class="secondary small hist-action-btn" title="Actualiser l'historique">🔄</button>
+            <button id="histToggleGroupsBtn" class="secondary small hist-action-btn" title="Déplier / replier tous les lots de la page" style="display:none;">⊞ Déplier lots</button>
+            <button id="histSelectBtn" class="secondary small hist-action-btn">☑ Sélectionner</button>
+          </div>
         </div>
-        <div class="hist-filter-section">
-          <div class="hist-filter-row">
+
+        <!-- Filtres de date : Du / Au compacts côte à côte + boutons de période -->
+        <div class="hist-date-bar">
+          <div class="hist-date-du-au">
             <span class="hist-filter-label">Période</span>
-            <!-- Chips générées par setupDateRangeControls (DATE_RANGE_CHIPS) -->
-            <div class="hist-fchip-row" id="histRangeChips"></div>
+            <div class="hist-date-inputs">
+              <label class="hist-date-field" title="Date de début">
+                <span class="hist-date-tag">Du</span>
+                <input type="date" id="historyDateFrom" title="Depuis">
+              </label>
+              <label class="hist-date-field" title="Date de fin">
+                <span class="hist-date-tag">Au</span>
+                <input type="date" id="historyDateTo" title="Jusqu'au">
+              </label>
+            </div>
           </div>
-          <div class="hist-filter-row">
-            <span class="hist-filter-label">Joueurs</span>
-            <div class="hist-fchip-row" id="histPlayerChips"></div>
+          <!-- Chips de période générées par setupDateRangeControls (DATE_RANGE_CHIPS) -->
+          <div class="hist-fchip-row hist-range-chips" id="histRangeChips"></div>
+        </div>
+
+        <!-- Filtres Joueurs / Tops / Tops Alt en 2 colonnes denses -->
+        <div class="hist-entity-filters">
+          <div class="hist-entity-col hist-col-players">
+            <div class="hist-filter-row">
+              <span class="hist-filter-label">Joueurs</span>
+              <div class="hist-fchip-row" id="histPlayerChips"></div>
+            </div>
           </div>
-          <div class="hist-filter-row">
-            <span class="hist-filter-label">Tops</span>
-            <div class="hist-fchip-row" id="histCategoryChips"></div>
-          </div>
-          <div class="hist-filter-row">
-            <span class="hist-filter-label">Tops Alt</span>
-            <div class="hist-fchip-row" id="histAltCategoryChips"></div>
+          <div class="hist-entity-col hist-col-tops">
+            <div class="hist-filter-row">
+              <span class="hist-filter-label">Tops</span>
+              <div class="hist-fchip-row" id="histCategoryChips"></div>
+            </div>
+            <div class="hist-filter-row">
+              <span class="hist-filter-label">Tops Alt</span>
+              <div class="hist-fchip-row" id="histAltCategoryChips"></div>
+            </div>
           </div>
         </div>
         <div class="table-wrap">

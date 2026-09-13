@@ -1,12 +1,19 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.18** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Demande proactive de mot de passe ou incitation au changement d'utilisateur lors d'une action protégée non authentifiée.
-- Suite de tests : **411 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.19** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Refonte ergonomique et compacte de la section « Historique des entrées » (en-tête groupé, dates Du/Au compactes avec raccourcis de période, filtres Joueurs et Tops en 2 colonnes).
+- Suite de tests : **416 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Refonte ergonomique et compacte de l'Historique des entrées (`v3.30.19`)** :
+  - *En-tête unifié* : regroupement sur une seule ligne du titre « Historique des entrées » à gauche et de la barre de recherche avec les boutons d'action (`#historyDateClearBtn` ✕, `#histSortBtn` ↓ Récents, `#refreshHistoryBtn` 🔄, `#histToggleGroupsBtn` ⊞ Déplier lots, `#histSelectBtn` ☑ Sélectionner) à droite.
+  - *Filtres de date compacts* : les champs de date début (« Du ») et fin (« Au ») sont disposés côte à côte de façon compacte dans un conteneur dédié, avec les boutons de période rapide (`#histRangeChips`, incluant « Tout » en accent rose/rouge) immédiatement alignés à côté sur la même ligne (avec retour à la ligne responsive si nécessaire).
+  - *Filtres Joueurs & Tops en 2 colonnes* : réorganisation des filtres d'entités en une grille dense à deux colonnes (Joueurs à gauche, Tops et Tops Alt à droite), marges entre chips réduites (`gap: 3px`) et styles compacts éliminant tout vide horizontal et divisant par deux la hauteur occupée.
+  - *Pleine largeur et préservation* : le tableau conserve ses 5 colonnes (Date, Joueur, Top, Pts, Saisseur) et son extensibilité pleine largeur.
+  - *Responsivité* : adaptation automatique en colonne unique sous les mobiles et écrans tactiles (`body.mobile-layout` et `body:not(.desktop-layout)`).
+  - *Tests* : 5 nouveaux tests unitaires dans `tests/history-layout-redesign.test.js` (`416/416` tests au vert).
 - **Mise à jour des règles du projet via /learn (`context.md`)** :
   - Synchronisation complète de `context.md` avec les leçons et revirements d'architecture du `CHANGELOG.md` : obligation de `SpreadsheetApp.flush()` avant lecture REST Sheets API v4, désérialisation des dates via `_parseDateCell` (garde anti-1970), interdiction formelle des déploiements `clasp deploy -i`, protection contre la fermeture de modale au clic backdrop, reparentage DOM déterministe par `appendChild`, mode de calcul de période `distribute` par défaut, raccourcis rétrospectifs et interception proactive d'identité avec déconnexion.
 - **Confirmation de mot de passe & changement d'utilisateur (`v3.30.18`)** :

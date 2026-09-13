@@ -52,6 +52,13 @@ L'application servant à enregistrer des activités et scores réels, tous les r
 2. **Sémantique des libellés** : Utiliser des libellés explicites orientés passé (`-3 j`, `-7 j`, `-14 j`, `-1 mois` ou `X derniers jours`), jamais d'ajouts prospectifs (`+3 j`, `+7 j`) dans le futur pour l'enregistrement de scores réels.
 3. **Application universelle** : Cette règle s'applique à la saisie par lot, aux filtres de dates de l'historique, aux notes et aux Tops Alternatifs.
 
+## RÈGLE ERGONOMIQUE — COMPACITÉ HORIZONTALE & DENSITÉ DES FILTRES
+
+Les sections de consultation et d'administration (Historique, Journal, Notes) doivent optimiser l'espace horizontal sur écran large :
+1. **En-tête unifié** : Titre à gauche, recherche et boutons d'actions groupés sur la même ligne à droite.
+2. **Filtres temporels compacts** : Champs de dates « Du » et « Au » côte à côte avec raccourcis de période immédiatement alignés sur la même ligne horizontale.
+3. **Organisation multi-colonnes des filtres d'entités** : Répartir les groupes de puces/chips (joueurs, catégories) en colonnes équilibrées (ex: joueurs à gauche, catégories à droite) avec marges resserrées afin de réduire la hauteur verticale et combler le vide à droite.
+
 ---
 
 ## §0 — RITUEL D'INITIALISATION
