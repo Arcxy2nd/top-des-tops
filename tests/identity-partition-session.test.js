@@ -82,6 +82,10 @@ function createTestSandbox(opts = {}) {
     'getIdentityPwdStorageKey',
     'getSettingsCacheKey',
     'getAppSettingsCacheKey',
+    'getDashboardCacheKey',
+    'getPhraseSettingsKey',
+    'getPhraseSettings',
+    'savePhraseSettings',
     'getIdentityPassword',
     'setIdentityPassword',
     'syncIdentityFromStorage',
@@ -95,6 +99,10 @@ function createTestSandbox(opts = {}) {
     var _whoAmI = null;
     var _identityPassword = '';
     var WHO_AM_I_KEY = 'tdt_who_am_i';
+    var SETTINGS_CACHE_KEY = 'tdt_cache_settings';
+    var APP_SETTINGS_CACHE_KEY = 'tdt_cache_appsettings';
+    var DASHBOARD_CACHE_KEY = 'tdt_dashboard_cache';
+    var PHRASE_SETTINGS_KEY = 'tdt_phrase_settings';
     var _MUTATING_APIS = new Set(['apiMutatingTest', 'apiManageEntity', 'apiSaveAppSettings']);
     var _identityPwdTarget = null;
     var _identityPwdOnVerified = null;
@@ -297,4 +305,39 @@ test('requireIdentity queues and executes callback upon password verification', 
   env._identityPwdOnVerified();
   assert.strictEqual(actionExecuted, true, 'Queued action callback must be executed after verification');
 });
+
+test('dashboard and phrase cache keys partition by instance and migrate smoothly', () => {
+  const sandboxA = createTestSandbox({
+    appInstanceId: 'instAlpha',
+    localStorage: {
+      'tdt_dashboard_cache': JSON.stringify({ chartData: { labels: ['A'] } }),
+      'tdt_phrase_settings': JSON.stringify({ enabled: false, count: 5 })
+    }
+  });
+
+  const { getDashboardCacheKey, getPhraseSettingsKey, getPhraseSettings, savePhraseSettings, env: envA } = sandboxA;
+  assert.strictEqual(getDashboardCacheKey(), 'tdt_instAlpha_dashboard_cache');
+  assert.strictEqual(getPhraseSettingsKey(), 'tdt_instAlpha_phrase_settings');
+
+  // Fallback to legacy unpartitioned key
+  const phraseA = getPhraseSettings();
+  assert.strictEqual(phraseA.count, 5);
+  assert.strictEqual(phraseA.enabled, false);
+
+  // Saving updates partitioned key
+  savePhraseSettings({ count: 7 });
+  assert.strictEqual(JSON.parse(envA.localStorage.getItem('tdt_instAlpha_phrase_settings')).count, 7);
+  // Legacy key untouched
+  assert.strictEqual(JSON.parse(envA.localStorage.getItem('tdt_phrase_settings')).count, 5);
+
+  const sandboxB = createTestSandbox({
+    appInstanceId: 'instBeta'
+  });
+  const { getDashboardCacheKey: getDashB, getPhraseSettingsKey: getPhraseB, getPhraseSettings: getPhraseSettingsB } = sandboxB;
+  assert.strictEqual(getDashB(), 'tdt_instBeta_dashboard_cache');
+  assert.strictEqual(getPhraseB(), 'tdt_instBeta_phrase_settings');
+  // Sandbox B defaults
+  assert.strictEqual(getPhraseSettingsB().count, 3);
+});
+
 

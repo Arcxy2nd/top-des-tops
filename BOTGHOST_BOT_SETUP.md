@@ -26,21 +26,21 @@ Réponse JSON  →  Cloudflare Worker  →  BotGhost  →  message Discord
 
 ---
 
-## 2. Déjà fait côté projet (rien à faire ici)
+## 2. Environnements disponibles (Test vs Production)
 
-- Le backend (`DiscordBridge.gs`) est écrit, testé et déployé sur une copie de test Google Apps Script.
-- Le Sheet de test est peuplé avec de vrais joueurs (Discord ID déjà lié pour au moins un joueur de test).
-- L'autorisation du script et les Script Properties (`SPREADSHEET_ID`, `DISCORD_BRIDGE_SECRET`) sont configurées.
-- Lien fixe actuel (ne change pas entre deux mises à jour du code) :
-  ```
-  https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec
-  ```
-- Secret partagé (à utiliser tel quel dans les paramètres, jamais affiché aux joueurs) :
-  ```
-  7a791f74704bd965e36907975bf3377fad8408be
-  ```
+Le code du bridge Discord (`DiscordBridge.gs` branché sur `doGet`) est désormais déployé sur tous les environnements. Tu peux connecter ton bot soit à la copie de test, soit directement au **site en production** (« Site tops » ou « Tops RDS ») :
 
-**Ce qui reste à faire (ce guide) : créer le relais Cloudflare Worker, puis configurer les 6 commandes BotGhost pour qu'elles passent par ce relais.**
+### Option A — Site en production (« Site tops », recommandé pour l'usage réel)
+- **Cible Cloudflare Worker** : `https://c55zvj.s.gy/tops-des-tops` (lien court permanent mis à jour automatiquement par CI à chaque déploiement — ne change jamais)
+- **Prérequis uniques en production** :
+  1. Dans le Google Sheet de production, onglet **Players** : ajouter l'en-tête `Discord ID` en colonne F (à côté d'Ordre) et renseigner les identifiants numériques Discord des joueurs.
+  2. Dans script.google.com (projet « Site tops ») → Paramètres du projet (icône engrenage) → Propriétés du script : ajouter `DISCORD_BRIDGE_SECRET` avec la valeur de ton choix (ex. `7a791f74704bd965e36907975bf3377fad8408be`).
+
+*(Pour « Tops RDS », la cible correspondante est `https://c55zvj.s.gy/top-RDS`)*
+
+### Option B — Copie de test (pour tester sans toucher au vrai classement)
+- **Cible Cloudflare Worker** : `https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec`
+- **Secret de test** : `7a791f74704bd965e36907975bf3377fad8408be`
 
 ---
 
@@ -52,13 +52,16 @@ Réponse JSON  →  Cloudflare Worker  →  BotGhost  →  message Discord
 4. Donne-lui un nom, par exemple `top-des-tops-bridge` (le nom devient une partie de l'URL finale, pas de caractère spécial).
 5. Clique sur **Deploy** — Cloudflare crée un Worker par défaut ("Hello World"), c'est normal.
 6. Clique sur **Edit code** (ou **Configure Worker** puis l'éditeur de code).
-7. Supprime tout le contenu existant et colle exactement ce code :
+7. Supprime tout le contenu existant et colle exactement ce code (en choisissant l'URL cible selon ton choix de section 2) :
 
 ```js
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const target = 'https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec' + url.search;
+    // Pour la production (Site tops) : 'https://c55zvj.s.gy/tops-des-tops'
+    // Pour la copie de test : 'https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec'
+    const TARGET_BASE = 'https://c55zvj.s.gy/tops-des-tops';
+    const target = TARGET_BASE + url.search;
     const resp = await fetch(target, { redirect: 'follow' });
     const body = await resp.text();
     return new Response(body, {
@@ -80,7 +83,7 @@ export default {
     ```
     https://top-des-tops-bridge.<ton-sous-domaine>.workers.dev/?bgAction=getLeaderboard&secret=7a791f74704bd965e36907975bf3377fad8408be
     ```
-    Tu dois voir une réponse du type `{"ok":true,"message":"🥇 ..."}`. Si tu vois autre chose (page vide, erreur), le Worker n'est pas encore bien déployé — recommence l'étape 7-8.
+    Tu dois voir une réponse du type `{"ok":true,"message":"🥇 ..."}` (ou le message d'erreur d'autorisation si le secret n'est pas encore posé sur le Sheet ciblé). Si tu vois une erreur de réseau Cloudflare, recommence l'étape 7-8.
 
 ---
 

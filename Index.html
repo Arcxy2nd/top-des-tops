@@ -6262,6 +6262,14 @@
     return getAppInstancePrefix() + 'cache_appsettings';
   }
 
+  function getDashboardCacheKey() {
+    return getAppInstancePrefix() + 'dashboard_cache';
+  }
+
+  function getPhraseSettingsKey() {
+    return getAppInstancePrefix() + 'phrase_settings';
+  }
+
   let WHO_AM_I_KEY = getWhoAmIStorageKey();
   let _whoAmI = null;
   let _identityPassword = '';
@@ -6307,6 +6315,16 @@
       const storedPwd = sessionStorage.getItem(getIdentityPwdStorageKey());
       _identityPassword = storedPwd || '';
     } catch (_) {}
+
+    if (typeof getSettingsCacheKey === 'function') {
+      SETTINGS_CACHE_KEY = getSettingsCacheKey();
+    }
+    if (typeof getAppSettingsCacheKey === 'function') {
+      APP_SETTINGS_CACHE_KEY = getAppSettingsCacheKey();
+    }
+    if (typeof getDashboardCacheKey === 'function') {
+      DASHBOARD_CACHE_KEY = getDashboardCacheKey();
+    }
   }
   window.syncIdentityFromStorage = syncIdentityFromStorage;
   syncIdentityFromStorage();
@@ -6349,7 +6367,9 @@
 
   function getPhraseSettings() {
     try {
-      const raw = localStorage.getItem(PHRASE_SETTINGS_KEY);
+      const key = (typeof getPhraseSettingsKey === 'function') ? getPhraseSettingsKey() : PHRASE_SETTINGS_KEY;
+      let raw = localStorage.getItem(key);
+      if (!raw && key !== PHRASE_SETTINGS_KEY) raw = localStorage.getItem(PHRASE_SETTINGS_KEY);
       const saved = raw ? JSON.parse(raw) : {};
       return { enabled: true, count: 3, ...saved };
     } catch { return { enabled: true, count: 3 }; }
@@ -6357,7 +6377,8 @@
 
   function savePhraseSettings(patch) {
     try {
-      localStorage.setItem(PHRASE_SETTINGS_KEY, JSON.stringify({ ...getPhraseSettings(), ...patch }));
+      const key = (typeof getPhraseSettingsKey === 'function') ? getPhraseSettingsKey() : PHRASE_SETTINGS_KEY;
+      localStorage.setItem(key, JSON.stringify({ ...getPhraseSettings(), ...patch }));
     } catch {}
   }
 
@@ -11378,14 +11399,18 @@
   }
 
   // Cache dashboard pour affichage instantané (stale-while-revalidate)
-  const DASHBOARD_CACHE_KEY = 'tdt_dashboard_cache';
+  let DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
   let _baseChartData = null;
   let _lastFilterStartDate = null;
   let _lastFilterEndDate = null;
 
   function restoreDashboardFromCache() {
     try {
-      const raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
+      DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
+      let raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
+      if (!raw && DASHBOARD_CACHE_KEY !== 'tdt_dashboard_cache') {
+        raw = localStorage.getItem('tdt_dashboard_cache');
+      }
       if (!raw) return false;
       const cached = JSON.parse(raw);
       if (cached && cached.chartData && cached.chartData.labels && cached.chartData.labels.length) {
@@ -11422,6 +11447,7 @@
 
   function saveDashboardToCache(chartData, quickStats, ranked) {
     try {
+      DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
       localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
         chartData,
         baseChartData: _baseChartData,
@@ -20567,7 +20593,9 @@
     initPhraseSettings();
     const hasCachedDashboard = (() => {
       try {
-        const raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
+        const key = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : DASHBOARD_CACHE_KEY;
+        let raw = localStorage.getItem(key);
+        if (!raw && key !== 'tdt_dashboard_cache') raw = localStorage.getItem('tdt_dashboard_cache');
         if (!raw) return false;
         const c = JSON.parse(raw);
         return !!(c && c.chartData && c.chartData.labels && c.chartData.labels.length);
