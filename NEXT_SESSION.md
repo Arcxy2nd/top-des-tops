@@ -1,12 +1,17 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.15** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction de la disparition du sélecteur de mode (« Un jour » / « Une période ») lors du retour à une date unique dans l'onglet Saisie par lot.
-- Suite de tests : **404 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.16** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Inversion ergonomique des boutons de période de saisie par lot en mode rétrospectif (`-3 j`, `-7 j`, `-14 j`, `-1 mois`), pivot sur la date de fin, et ajout de la règle ergonomique dans `context.md`.
+- Suite de tests : **405 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Inversion rétrospective des raccourcis de période (`v3.30.16`)** :
+  - *Refonte ergonomique* : remplacement des raccourcis prospectifs illogiques (`+3 j`, `+7 j`, `+14 j`, `+1 mois`) par des raccourcis rétrospectifs (`-3 j`, `-7 j`, `-14 j`, `-1 mois`) dans la saisie par lot.
+  - *Logique à rebours* : ancrage sur la date de fin `endInput` (date courante ou saisie) et calcul de la date de début `startInput` en amont (`start = end - (n - 1) jours`), garantissant que la plage couvre exactement $n$ jours pleins jusqu'à la date ciblée.
+  - *Règle context.md (`/learn`)* : formalisation de la « RÈGLE ERGONOMIQUE — SAISIE RÉTROSPECTIVE & DIRECTION TEMPORELLE DES PLAGES » imposant que toute saisie d'activité réelle et de score soit strictement orientée vers le passé.
+  - *Tests* : nouveau test unitaire dans `tests/lot-period.test.js` (`405/405` tests au vert).
 - **Préservation du sélecteur de date lors de la bascule Un jour / Une période (`v3.30.15`)** :
   - *Cause racine identifiée* : dans `setDateMode(range)` (`Index.html`), lors du passage en mode période (`range = true`), `startInput` était reparenté dans `duWrap` via `duWrap.appendChild(startInput)`. Lors du retour en mode un jour (`range = false`), le code tentait `singlePanel.insertBefore(modeSeg, startInput)`. Comme `startInput` n'était plus un enfant direct de `singlePanel`, le navigateur levait un `DOMException: NotFoundError`, interrompant l'exécution de la fonction avant que `modeSeg` ne soit réinséré dans `singlePanel`. `modeSeg` demeurait ainsi dans `periodLeftCol` masqué par `display: none`.
   - *Correction* : remplacement par des appels directs et sécurisés `singlePanel.appendChild(modeSeg)`, `singlePanel.appendChild(startInput)` et `singlePanel.appendChild(startShortcuts)`. L'opération reparente sans risque tous les éléments dans l'ordre attendu.

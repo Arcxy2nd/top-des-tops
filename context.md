@@ -45,6 +45,15 @@ Interdiction formelle et absolue d'interagir avec les données réelles des site
 
 ---
 
+## RÈGLE ERGONOMIQUE — SAISIE RÉTROSPECTIVE & DIRECTION TEMPORELLE DES PLAGES
+
+L'application servant à enregistrer des activités et scores réels, tous les raccourcis et presets temporels de saisie doivent être **strictement orientés vers le passé (rétrospectifs)** :
+1. **Direction du calcul** : Le pivot est la date de fin (par défaut aujourd'hui ou le champ « Au »). Les raccourcis de durée calculent la date de début en remontant dans le passé (`start = end - (n - 1) jours`).
+2. **Sémantique des libellés** : Utiliser des libellés explicites orientés passé (`-3 j`, `-7 j`, `-14 j`, `-1 mois` ou `X derniers jours`), jamais d'ajouts prospectifs (`+3 j`, `+7 j`) dans le futur pour l'enregistrement de scores réels.
+3. **Application universelle** : Cette règle s'applique à la saisie par lot, aux filtres de dates de l'historique, aux notes et aux Tops Alternatifs.
+
+---
+
 ## §0 — RITUEL D'INITIALISATION
 
 Au tout début de chaque session, avant toute action, lire dans cet ordre :

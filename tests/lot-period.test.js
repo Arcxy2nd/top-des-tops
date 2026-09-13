@@ -280,5 +280,78 @@ test('setDateMode toggling between single date and period preserves modeSeg and 
   assert.strictEqual(singlePanel.children[2], startShortcuts);
 });
 
+test('durationShortcuts are retrospective (-3j, -7j, -14j, -1 mois) and calculate start backward from end', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
 
+  // Verify that Index.html has retrospective shortcuts and no forward shortcuts
+  assert.doesNotMatch(html, /'\+3 j'/);
+  assert.match(html, /'-3 j'/);
+  assert.match(html, /'-7 j'/);
+  assert.match(html, /'-14 j'/);
+  assert.match(html, /'-1 mois'/);
 
+  const { makeEnv } = require('./dom-stub.js');
+  const env = makeEnv();
+  const doc = env.document;
+
+  const startInput = doc.createElement('input');
+  const endInput = doc.createElement('input');
+  startInput.value = '2026-09-13';
+  endInput.value = '2026-09-13';
+
+  // Load toDateStr & daysBetweenInclusive from Index.html
+  const { toDateStr, daysBetweenInclusive } = (() => {
+    function extractFunction(source, name) {
+      const start = source.indexOf('function ' + name + '(');
+      assert.notStrictEqual(start, -1, name + ' introuvable dans Index.html');
+      let depth = 0, i = source.indexOf('{', start);
+      const open = i;
+      for (; i < source.length; i++) {
+        if (source[i] === '{') depth++;
+        else if (source[i] === '}') { depth--; if (depth === 0) break; }
+      }
+      return source.slice(start, i + 1);
+    }
+    return {
+      toDateStr: new Function('d', extractFunction(html, 'toDateStr') + '; return toDateStr(d);'),
+      daysBetweenInclusive: new Function('a', 'b', extractFunction(html, 'daysBetweenInclusive') + '; return daysBetweenInclusive(a, b);')
+    };
+  })();
+
+  const shortcuts = [['-3 j', 3], ['-7 j', 7], ['-14 j', 14], ['-1 mois', 30]];
+  const handlers = {};
+
+  shortcuts.forEach(([label, n]) => {
+    handlers[label] = () => {
+      const anchor = endInput.value || startInput.value || '2026-09-13';
+      endInput.value = anchor;
+      const dt = new Date(anchor + 'T12:00:00');
+      dt.setDate(dt.getDate() - (n - 1));
+      startInput.value = toDateStr(dt);
+    };
+  });
+
+  // Test -3 j
+  handlers['-3 j']();
+  assert.strictEqual(endInput.value, '2026-09-13');
+  assert.strictEqual(startInput.value, '2026-09-11');
+  assert.strictEqual(daysBetweenInclusive(startInput.value, endInput.value), 3);
+
+  // Test -7 j
+  handlers['-7 j']();
+  assert.strictEqual(endInput.value, '2026-09-13');
+  assert.strictEqual(startInput.value, '2026-09-07');
+  assert.strictEqual(daysBetweenInclusive(startInput.value, endInput.value), 7);
+
+  // Test -14 j
+  handlers['-14 j']();
+  assert.strictEqual(endInput.value, '2026-09-13');
+  assert.strictEqual(startInput.value, '2026-08-31');
+  assert.strictEqual(daysBetweenInclusive(startInput.value, endInput.value), 14);
+
+  // Test -1 mois (30 jours)
+  handlers['-1 mois']();
+  assert.strictEqual(endInput.value, '2026-09-13');
+  assert.strictEqual(startInput.value, '2026-08-15');
+  assert.strictEqual(daysBetweenInclusive(startInput.value, endInput.value), 30);
+});

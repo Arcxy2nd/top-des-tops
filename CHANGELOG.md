@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.16] - 2026-09-13
+
+### Modifié
+**Humanisé** : Inversion ergonomique des boutons de durée dans la saisie par lot : passage d'ajouts prospectifs illogiques (`+3 j`, `+7 j`...) à des raccourcis rétrospectifs (`-3 j`, `-7 j`, `-14 j`, `-1 mois`). Les boutons calculent désormais la plage à rebours depuis la date de fin (aujourd'hui ou le jour ciblé) vers le passé, ce qui correspond fidèlement à l'enregistrement d'activités réelles.
+**Technique** :
+- `Index.html` :
+  - Remplacement des raccourcis `+3 j`, `+7 j`, `+14 j`, `+1 mois` par `-3 j`, `-7 j`, `-14 j`, `-1 mois`.
+  - La logique ancre la date de fin `endInput` sur la date de référence (date courante ou saisie) et recule la date de début `startInput` de `n - 1` jours pour couvrir exactement $n$ jours pleins jusqu'à la fin de la période.
+- `context.md` :
+  - Ajout de la « RÈGLE ERGONOMIQUE — SAISIE RÉTROSPECTIVE & DIRECTION TEMPORELLE DES PLAGES » garantissant que tous les contrôles temporels de saisie d'activités sont orientés vers le passé.
+- `tests/lot-period.test.js` :
+  - Nouveau test unitaire validant la présence des libellés négatifs et le calcul à rebours rigoureux des dates pour chaque raccourci.
+
 ## [v3.30.15] - 2026-09-13
 
 ### Corrigé

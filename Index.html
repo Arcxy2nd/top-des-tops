@@ -13900,16 +13900,16 @@
 
     const durationShortcuts = document.createElement('div');
     durationShortcuts.className = 'd-period-shortcuts';
-    [['+3 j', 3], ['+7 j', 7], ['+14 j', 14], ['+1 mois', 30]].forEach(([label, n]) => {
+    [['-3 j', 3], ['-7 j', 7], ['-14 j', 14], ['-1 mois', 30]].forEach(([label, n]) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'row-shortcut'; b.textContent = label;
-      b.title = 'Période de ' + n + ' jours à partir du jour de début';
+      b.title = 'Période de ' + n + ' jours jusqu\'au jour de fin';
       b.addEventListener('click', () => {
-        const base = startInput.value || toDateStr(new Date());
-        startInput.value = base;
-        const dt = new Date(base + 'T12:00:00');
-        dt.setDate(dt.getDate() + n - 1);
-        endInput.value = toDateStr(dt);
+        const anchor = endInput.value || startInput.value || toDateStr(new Date());
+        endInput.value = anchor;
+        const dt = new Date(anchor + 'T12:00:00');
+        dt.setDate(dt.getDate() - (n - 1));
+        startInput.value = toDateStr(dt);
         cal.refresh();
         updateDatePreview();
         updateLotSummary();
