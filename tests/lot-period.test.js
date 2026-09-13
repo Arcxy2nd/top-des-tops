@@ -190,4 +190,95 @@ test('Horizontal period selection CSS and DOM structure are properly configured'
   assert.match(html, /\.fill-choice\s*\{[^}]*flex-direction:\s*column/s);
 });
 
+test('setDateMode toggling between single date and period preserves modeSeg and startInput without DOM errors', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  // Verify that Index.html does not call singlePanel.insertBefore(modeSeg, startInput)
+  assert.doesNotMatch(html, /singlePanel\.insertBefore\(modeSeg,\s*startInput\)/);
+  assert.match(html, /singlePanel\.appendChild\(modeSeg\)/);
+
+  // Simulate the exact DOM operations of setDateMode toggling
+  const { makeEnv } = require('./dom-stub.js');
+  const env = makeEnv();
+  const doc = env.document;
+
+  const singlePanel = doc.createElement('div');
+  const periodPanel = doc.createElement('div');
+  const periodLeftCol = doc.createElement('div');
+  const datesRow = doc.createElement('div');
+  const duWrap = doc.createElement('div');
+  const lblDu = doc.createElement('span');
+  duWrap.appendChild(lblDu);
+  datesRow.appendChild(duWrap);
+
+  const durationShortcuts = doc.createElement('div');
+  const calcGroup = doc.createElement('div');
+  const fillPreview = doc.createElement('div');
+
+  const modeSeg = doc.createElement('div');
+  const startInput = doc.createElement('input');
+  const endInput = doc.createElement('input');
+  const startShortcuts = doc.createElement('div');
+
+  // Initial structure before setDateMode(false)
+  singlePanel.appendChild(startInput);
+  singlePanel.appendChild(startShortcuts);
+
+  periodLeftCol.appendChild(modeSeg);
+  periodLeftCol.appendChild(datesRow);
+  periodLeftCol.appendChild(durationShortcuts);
+  periodLeftCol.appendChild(calcGroup);
+  periodLeftCol.appendChild(fillPreview);
+
+  function setDateMode(range) {
+    periodPanel.style.display = range ? 'flex' : 'none';
+    singlePanel.style.display = range ? 'none' : 'flex';
+    if (range) {
+      periodLeftCol.insertBefore(modeSeg, datesRow);
+      duWrap.appendChild(startInput);
+      if (!endInput.value) endInput.value = startInput.value;
+    } else {
+      singlePanel.appendChild(modeSeg);
+      singlePanel.appendChild(startInput);
+      singlePanel.appendChild(startShortcuts);
+      endInput.value = '';
+    }
+  }
+
+  // 1. Initial state: single date
+  setDateMode(false);
+  assert.strictEqual(singlePanel.children[0], modeSeg);
+  assert.strictEqual(singlePanel.children[1], startInput);
+  assert.strictEqual(singlePanel.children[2], startShortcuts);
+  assert.strictEqual(singlePanel.style.display, 'flex');
+  assert.strictEqual(periodPanel.style.display, 'none');
+
+  // 2. Switch to period
+  setDateMode(true);
+  assert.strictEqual(periodLeftCol.children[0], modeSeg);
+  assert.strictEqual(periodLeftCol.children[1], datesRow);
+  assert.strictEqual(duWrap.children[1], startInput);
+  assert.strictEqual(periodPanel.style.display, 'flex');
+  assert.strictEqual(singlePanel.style.display, 'none');
+
+  // 3. Switch BACK to single date (THIS WAS THE BUG: modeSeg disappeared because of insertBefore on detached startInput)
+  assert.doesNotThrow(() => setDateMode(false));
+  assert.strictEqual(singlePanel.children[0], modeSeg);
+  assert.strictEqual(singlePanel.children[1], startInput);
+  assert.strictEqual(singlePanel.children[2], startShortcuts);
+  assert.strictEqual(singlePanel.style.display, 'flex');
+  assert.strictEqual(periodPanel.style.display, 'none');
+
+  // 4. Switch back and forth multiple times to guarantee stability
+  setDateMode(true);
+  assert.strictEqual(periodLeftCol.children[0], modeSeg);
+  assert.strictEqual(duWrap.children[1], startInput);
+
+  setDateMode(false);
+  assert.strictEqual(singlePanel.children[0], modeSeg);
+  assert.strictEqual(singlePanel.children[1], startInput);
+  assert.strictEqual(singlePanel.children[2], startShortcuts);
+});
+
+
 

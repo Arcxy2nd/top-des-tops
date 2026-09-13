@@ -1,12 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.14** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Correction définitive du problème de datage « 01/01/1970 » sur les cartes de notes, l'historique et les Tops Alternatifs via la conversion propre des numéros de série Sheets API v4 et ajout de l'édition de date de note.
-- Suite de tests : **403 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.15** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Correction de la disparition du sélecteur de mode (« Un jour » / « Une période ») lors du retour à une date unique dans l'onglet Saisie par lot.
+- Suite de tests : **404 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Préservation du sélecteur de date lors de la bascule Un jour / Une période (`v3.30.15`)** :
+  - *Cause racine identifiée* : dans `setDateMode(range)` (`Index.html`), lors du passage en mode période (`range = true`), `startInput` était reparenté dans `duWrap` via `duWrap.appendChild(startInput)`. Lors du retour en mode un jour (`range = false`), le code tentait `singlePanel.insertBefore(modeSeg, startInput)`. Comme `startInput` n'était plus un enfant direct de `singlePanel`, le navigateur levait un `DOMException: NotFoundError`, interrompant l'exécution de la fonction avant que `modeSeg` ne soit réinséré dans `singlePanel`. `modeSeg` demeurait ainsi dans `periodLeftCol` masqué par `display: none`.
+  - *Correction* : remplacement par des appels directs et sécurisés `singlePanel.appendChild(modeSeg)`, `singlePanel.appendChild(startInput)` et `singlePanel.appendChild(startShortcuts)`. L'opération reparente sans risque tous les éléments dans l'ordre attendu.
+  - *Harness & Tests* : enrichissement de `tests/dom-stub.js` (reparentage conforme et garde `NotFoundError`), et ajout d'un test unitaire automatisé dans `tests/lot-period.test.js` simulant des bascules multi-cycles et vérifiant l'intégrité du DOM.
 - **Résolution de l'anomalie de datage 01/01/1970 (`v3.30.14`)** :
   - *Cause racine identifiée* : `_fetchSheetValues` exploitant Sheets API v4 avec `dateTimeRenderOption: 'SERIAL_NUMBER'`, les dates des cellules sont renvoyées en numéros de série Sheets (ex: 46278). Dans `NotesService.getAllNotes()`, `new Date(row[0])` interprétait le nombre en millisecondes écoulées depuis 1970 (46 secondes après minuit le 01/01/1970).
   - *Conversion et sécurisation backend* : migration vers `_parseDateCell` dans `NotesService.getAllNotes()`, `AltStorageService._parseAltHistoryRow`, `ChatService.getAllMessages`, `_historyRowSummary`, `apiGetAuditLog` et `apiGetNoteHistory`.

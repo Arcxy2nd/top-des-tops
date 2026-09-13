@@ -13992,8 +13992,9 @@
         cal.refresh();
         updateDatePreview();
       } else {
-        singlePanel.insertBefore(modeSeg, startInput);
-        singlePanel.insertBefore(startInput, startShortcuts);
+        singlePanel.appendChild(modeSeg);
+        singlePanel.appendChild(startInput);
+        singlePanel.appendChild(startShortcuts);
         endInput.value = '';
       }
       updateLotSummary();

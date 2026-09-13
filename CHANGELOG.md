@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.15] - 2026-09-13
+
+### Corrigé
+**Humanisé** : Correction d'une anomalie dans la saisie par lot faisant disparaître le sélecteur de mode (« Un jour » / « Une période ») lors du retour au mode date unique. La bascule entre date unique et période conserve désormais fidèlement tous les contrôles sans interruption.
+**Technique** :
+- `Index.html` :
+  - Dans `setDateMode(range)`, remplacement de `singlePanel.insertBefore(modeSeg, startInput)` par une réinsertion séquentielle propre via `singlePanel.appendChild(modeSeg)`, `singlePanel.appendChild(startInput)` et `singlePanel.appendChild(startShortcuts)`. Lors de la sélection d'une période, `startInput` était déplacé dans `duWrap` ; tenter un `insertBefore` avec ce dernier comme référence levait un `DOMException: NotFoundError` qui interrompait le script et laissait `modeSeg` orphelin dans le panneau masqué.
+- `tests/dom-stub.js` :
+  - Amélioration de l'environnement de test DOM avec gestion conforme du reparentage sur `appendChild` et validation stricte de l'exception `NotFoundError` sur `insertBefore`.
+- `tests/lot-period.test.js` :
+  - Ajout d'un test unitaire automatisé vérifiant l'absence d'`insertBefore(modeSeg, startInput)` et validant la bascule alternée répétée (`single` $\leftrightarrow$ `range`) sans régression.
+
 ## [v3.30.14] - 2026-09-13
 
 ### Corrigé

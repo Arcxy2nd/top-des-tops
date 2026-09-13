@@ -50,7 +50,30 @@ function makeEl(tag, id) {
     const i = arr.indexOf(fn);
     if (i !== -1) arr.splice(i, 1);
   };
-  el.appendChild = child => { child.parentNode = el; el.children.push(child); return child; };
+  el.appendChild = child => {
+    if (child && child.parentNode) {
+      const idx = child.parentNode.children.indexOf(child);
+      if (idx !== -1) child.parentNode.children.splice(idx, 1);
+    }
+    child.parentNode = el;
+    el.children.push(child);
+    return child;
+  };
+  el.insertBefore = (newChild, refChild) => {
+    if (refChild) {
+      const refIdx = el.children.indexOf(refChild);
+      if (refIdx === -1) throw new Error("NotFoundError: The node before which the new node is to be inserted is not a child of this node.");
+      if (newChild && newChild.parentNode) {
+        const idx = newChild.parentNode.children.indexOf(newChild);
+        if (idx !== -1) newChild.parentNode.children.splice(idx, 1);
+      }
+      const actualRefIdx = el.children.indexOf(refChild);
+      newChild.parentNode = el;
+      el.children.splice(actualRefIdx, 0, newChild);
+      return newChild;
+    }
+    return el.appendChild(newChild);
+  };
   el.remove = () => {
     if (!el.parentNode) return;
     const i = el.parentNode.children.indexOf(el);
