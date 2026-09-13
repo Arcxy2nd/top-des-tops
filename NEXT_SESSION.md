@@ -1,12 +1,16 @@
 # NEXT_SESSION — top-des-tops
 
 ## État courant
-- Version livrée : **v3.30.16** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
-- Tâche achevée : Inversion ergonomique des boutons de période de saisie par lot en mode rétrospectif (`-3 j`, `-7 j`, `-14 j`, `-1 mois`), pivot sur la date de fin, et ajout de la règle ergonomique dans `context.md`.
-- Suite de tests : **405 cas verts** (`npm run verify`).
+- Version livrée : **v3.30.17** (2026-09-13) — commitée et poussée sur `main` (déploiement CI validé vers les deux cibles : « Site tops » et « Tops RDS »).
+- Tâche achevée : Mode de calcul de période par défaut basculé sur « Un total à répartir » (`distribute`) dans la saisie par lot.
+- Suite de tests : **406 cas verts** (`npm run verify`).
 - Init recommandé : standard.
 
 ## Dernière session
+- **Mode « Un total à répartir » par défaut (`v3.30.17`)** :
+  - *Par défaut naturel* : le mode de calcul d'une période dans la saisie par lot (`Index.html`) s'initialise désormais sur « Un total à répartir » (`distribute`) au lieu de répéter le score chaque jour (`repeat`).
+  - *Alignement global* : mise à jour de `createFillToggle` (repli sur `distribute`, première option en tête), de l'en-tête du lot (`defaultFillSlot`), des lignes (`addEntryRow`), de `computeRowTotalPoints`, `submitLot` et `applyDateAllBtn`.
+  - *Tests* : assertions dédiées dans `tests/lot-period.test.js` (`406/406` tests au vert).
 - **Inversion rétrospective des raccourcis de période (`v3.30.16`)** :
   - *Refonte ergonomique* : remplacement des raccourcis prospectifs illogiques (`+3 j`, `+7 j`, `+14 j`, `+1 mois`) par des raccourcis rétrospectifs (`-3 j`, `-7 j`, `-14 j`, `-1 mois`) dans la saisie par lot.
   - *Logique à rebours* : ancrage sur la date de fin `endInput` (date courante ou saisie) et calcul de la date de début `startInput` en amont (`start = end - (n - 1) jours`), garantissant que la plage couvre exactement $n$ jours pleins jusqu'à la date ciblée.

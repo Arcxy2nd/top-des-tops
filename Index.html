@@ -13532,10 +13532,10 @@
   function createFillToggle(defaultMode, onChange) {
     const wrap = document.createElement('div');
     wrap.className = 'seg-toggle line-fill fill-choice';
-    wrap.dataset.fill = defaultMode || 'repeat';
+    wrap.dataset.fill = defaultMode || 'distribute';
     [
-      ['repeat',     'Le même score chaque jour'],
-      ['distribute', 'Un total à répartir']
+      ['distribute', 'Un total à répartir'],
+      ['repeat',     'Le même score chaque jour']
     ].forEach(([val, label]) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -13818,7 +13818,7 @@
     const defFillEl  = document.getElementById('defaultFillSlot') && document.getElementById('defaultFillSlot').querySelector('.line-fill');
     const defStart = (defStartEl && defStartEl.value) || toDateStr(new Date());
     const defEnd   = (defEndEl && defEndEl.value) || '';
-    const defFill  = (defFillEl && defFillEl.dataset.fill) || 'repeat';
+    const defFill  = (defFillEl && defFillEl.dataset.fill) || 'distribute';
 
     // Cellule date : « Un jour » (défaut) ou « Une période » via un interrupteur
     // segmenté explicite. Les champs .d-start/.d-end/.range-cb/.line-fill/.day-picker-wrap
@@ -14676,7 +14676,7 @@
     const isRange = !!(rangeCb && rangeCb.checked);
     const dates = lineDates(dStart ? dStart.value : '', isRange && dEnd ? (dEnd.value || (dStart ? dStart.value : '')) : '');
     const n = Math.max(1, dates.length);
-    const fill = fillTg ? fillTg.dataset.fill : 'repeat';
+    const fill = fillTg ? fillTg.dataset.fill : 'distribute';
 
     const perDatePoints = (n === 1 || fill === 'repeat')
       ? new Array(n).fill(points)
@@ -14879,7 +14879,7 @@
 
         const pts = parseInt(ptsEl.value, 10);
         const dates = lineDates(dStart.value, isRange && dEnd ? dEnd.value : '');
-        const fill = fillTg ? fillTg.dataset.fill : 'repeat';
+        const fill = fillTg ? fillTg.dataset.fill : 'distribute';
 
         if (dates.length === 1 || fill === 'repeat') {
           dates.forEach(dk => {
@@ -14960,7 +14960,7 @@
         items.push({
           dateStart:   dStart.value || '',
           dateEnd:     (isRange && dEnd) ? (dEnd.value || dStart.value) : '',
-          fill:        fillTg ? fillTg.dataset.fill : 'repeat',
+          fill:        fillTg ? fillTg.dataset.fill : 'distribute',
           days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
           player:      pSel.value,
           category:    cSel.value,
@@ -18359,7 +18359,7 @@
             customPts: ptsEl ? ptsEl.value : '1',
             date: dStart ? dStart.value : toDateStr(new Date()),
             dateEnd: (rangeCb && rangeCb.checked && dEnd) ? dEnd.value : '',
-            fill: fillTg ? fillTg.dataset.fill : 'repeat',
+            fill: fillTg ? fillTg.dataset.fill : 'distribute',
             days: (rangeCb && rangeCb.checked && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
             subTops: subTops,
             description: descEl ? descEl.value : ''
@@ -18404,7 +18404,7 @@
       const defFillEl  = document.getElementById('defaultFillSlot') && document.getElementById('defaultFillSlot').querySelector('.line-fill');
       const defStart = (defStartEl && defStartEl.value) || toDateStr(new Date());
       const defEnd   = (defEndEl && defEndEl.value) || '';
-      const defFill  = (defFillEl && defFillEl.dataset.fill) || 'repeat';
+      const defFill  = (defFillEl && defFillEl.dataset.fill) || 'distribute';
       const isRange  = !!defEnd;
 
       const rows = document.querySelectorAll('.entry-row');
@@ -20124,7 +20124,7 @@
       const rangeArea  = document.getElementById('defaultRangeArea');
       const fillSlot   = document.getElementById('defaultFillSlot');
       startEl.value = toDateStr(new Date());
-      fillSlot.appendChild(createFillToggle('repeat'));
+      fillSlot.appendChild(createFillToggle('distribute'));
       const setMode = (range) => {
         modeRange.classList.toggle('active', range);
         modeSingle.classList.toggle('active', !range);

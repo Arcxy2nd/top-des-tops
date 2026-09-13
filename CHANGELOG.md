@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.17] - 2026-09-13
+
+### Modifié
+**Humanisé** : Le mode de calcul par défaut d'une période dans la saisie par lot est désormais « Un total à répartir » au lieu de « Le même score chaque jour ». Cela correspond au cas d'usage le plus naturel où un score saisi pour une période est distribué sur la durée.
+**Technique** :
+- `Index.html` :
+  - `createFillToggle(defaultMode, onChange)` : valeur de repli initialisée à `'distribute'` (au lieu de `'repeat'`) et réordonnancement des options plaçant « Un total à répartir » en première position.
+  - Initialisation par défaut dans l'en-tête du lot (`defaultFillSlot`), les lignes (`addEntryRow`), les bascules d'univers et `applyDateAllBtn` alignées sur `'distribute'`.
+  - Repli par défaut dans `computeRowTotalPoints` et `submitLot` aligné sur `'distribute'`.
+- `tests/lot-period.test.js` :
+  - Mise à jour de `makeRow` et ajout d'assertions vérifiant que l'absence de mode fill sélectionne automatiquement `'distribute'` et que le bouton « Un total à répartir » est actif en première position.
+
 ## [v3.30.16] - 2026-09-13
 
 ### Modifié

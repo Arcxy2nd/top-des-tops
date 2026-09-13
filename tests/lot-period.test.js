@@ -86,7 +86,7 @@ test('computeRowTotalPoints computes points correctly for single date and period
       '.d-start':       { value: start },
       '.d-end':         { value: end },
       '.range-cb':      { checked: !!isRange },
-      '.line-fill':     { dataset: { fill: fill || 'repeat' } }
+      '.line-fill':     { dataset: { fill: fill || 'distribute' } }
     };
     const subTopEls = (subTops || []).map(stPts => ({
       querySelector: (sel) => sel === '.sub-pts-input' ? { value: stPts != null ? String(stPts) : '' } : null
@@ -102,11 +102,15 @@ test('computeRowTotalPoints computes points correctly for single date and period
   const r1 = makeRow(10, false, '2026-08-01', '', 'repeat');
   assert.strictEqual(computeRowTotalPoints(r1), 10);
 
-  // 5 jours, repeat : 10 pts/jour * 5 jours = 50 pts
+  // 5 jours, défaut (distribute) : 10 pts au total répartis
+  const rDef = makeRow(10, true, '2026-08-01', '2026-08-05');
+  assert.strictEqual(computeRowTotalPoints(rDef), 10);
+
+  // 5 jours, repeat explicite : 10 pts/jour * 5 jours = 50 pts
   const r2 = makeRow(10, true, '2026-08-01', '2026-08-05', 'repeat');
   assert.strictEqual(computeRowTotalPoints(r2), 50);
 
-  // 5 jours, distribute : 10 pts au total répartis
+  // 5 jours, distribute explicite : 10 pts au total répartis
   const r3 = makeRow(10, true, '2026-08-01', '2026-08-05', 'distribute');
   assert.strictEqual(computeRowTotalPoints(r3), 10);
 
@@ -354,4 +358,43 @@ test('durationShortcuts are retrospective (-3j, -7j, -14j, -1 mois) and calculat
   assert.strictEqual(endInput.value, '2026-09-13');
   assert.strictEqual(startInput.value, '2026-08-15');
   assert.strictEqual(daysBetweenInclusive(startInput.value, endInput.value), 30);
+});
+
+test('createFillToggle defaults to distribute and places "Un total à répartir" as first option', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  // Verify createFillToggle source in Index.html
+  assert.match(html, /wrap\.dataset\.fill = defaultMode \|\| 'distribute'/);
+  assert.match(html, /\[\s*'distribute',\s*'Un total à répartir'\s*\]/);
+
+  const { makeEnv } = require('./dom-stub.js');
+  const env = makeEnv();
+  const doc = env.document;
+
+  function createFillToggle(defaultMode) {
+    const wrap = doc.createElement('div');
+    wrap.className = 'seg-toggle line-fill fill-choice';
+    wrap.dataset.fill = defaultMode || 'distribute';
+    [
+      ['distribute', 'Un total à répartir'],
+      ['repeat',     'Le même score chaque jour']
+    ].forEach(([val, label]) => {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.className = 'seg-btn fill-opt' + (val === wrap.dataset.fill ? ' active' : '');
+      b.dataset.fill = val;
+      b.textContent = label;
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  const toggle = createFillToggle();
+  assert.strictEqual(toggle.dataset.fill, 'distribute');
+  assert.strictEqual(toggle.children.length, 2);
+  assert.strictEqual(toggle.children[0].dataset.fill, 'distribute');
+  assert.strictEqual(toggle.children[0].textContent, 'Un total à répartir');
+  assert.ok(toggle.children[0].className.includes('active'));
+  assert.strictEqual(toggle.children[1].dataset.fill, 'repeat');
+  assert.ok(!toggle.children[1].className.includes('active'));
 });
