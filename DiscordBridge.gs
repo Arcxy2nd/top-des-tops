@@ -70,6 +70,7 @@ const DiscordBridgeService = {
         case 'addNote':        return this.addNote_(e);
         case 'getNotes':       return this.getNotes_(e);
         case 'listTops':       return this.listTops_(e);
+        case 'listBareme':     return this.listBareme_(e);
         default:               return this.err_("Action inconnue : " + action);
       }
     } catch (err) {
@@ -187,12 +188,37 @@ const DiscordBridgeService = {
    * Liste les Tops actuels, pour une source dynamique d'autocomplétion côté BotGhost (à
    * vérifier dans son interface — le contrat exact d'un champ "Autocomplete" n'est pas
    * documenté dans les sources consultées). Fournit le message formaté ET un tableau brut
-   * `choices`, au cas où seul l'un des deux formats serait exploitable là-bas.
+   * `choices` ({name, value}, comme le format de choix Discord natif), au cas où seul l'un
+   * des deux serait exploitable là-bas. `value` reste le nom exact du Top (celui attendu par
+   * `top` dans addPoints), `name` ajoute l'emoji pour l'affichage.
    */
   listTops_(e) {
-    const categories = SettingsService.getEntities('Categories').map(c => c.name);
+    const categories = SettingsService.getEntities('Categories');
     if (!categories.length) return this.ok_("Aucun Top enregistré pour l'instant.", { choices: [] });
-    return this.ok_(categories.join('\n'), { choices: categories });
+    const choices = categories.map(c => ({ name: (c.icon ? c.icon + ' ' : '') + c.name, value: c.name }));
+    const lines = categories.map(c => (c.icon ? c.icon + ' ' : '') + c.name);
+    return this.ok_(lines.join('\n'), { choices });
+  },
+
+  /**
+   * Liste les règles de barème (Action → Points) — de tous les Tops, ou d'un seul via le
+   * paramètre optionnel `top`. Même besoin que listTops : côté Discord, deviner/taper le
+   * nombre de points à la main revient à ignorer une donnée que le Sheet connaît déjà
+   * (§5 context.md — le barème sert justement de raccourci de saisie dans l'app). `value`
+   * est le nombre de points lui-même : une autocomplétion Discord native sur l'option
+   * `points` peut donc alimenter directement addPoints sans aucun changement de son côté.
+   */
+  listBareme_(e) {
+    const topFilter = e.parameter.top;
+    let entries = BaremeService.getEntries();
+    if (topFilter && topFilter.trim()) {
+      const target = topFilter.trim().toLowerCase();
+      entries = entries.filter(en => en.top.toLowerCase() === target);
+    }
+    if (!entries.length) return this.ok_("Aucune règle de barème pour ce Top.", { choices: [] });
+    const choices = entries.map(en => ({ name: en.action + ' (' + (en.pts >= 0 ? '+' : '') + en.pts + ' pts)', value: en.pts }));
+    const lines = entries.map(en => en.top + ' · ' + en.action + ' : ' + (en.pts >= 0 ? '+' : '') + en.pts + ' pts');
+    return this.ok_(lines.join('\n'), { choices });
   }
 };
 

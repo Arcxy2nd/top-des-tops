@@ -29,7 +29,12 @@ function makeContext(secret) {
   const notes = makeSheet([['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']]);
   const auditLog = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe']]);
   const settings = makeSheet([['Key', 'Value']]);
-  injectSheets(gas, { players, categories, history, notes, auditLog, settings });
+  const bareme = makeSheet([
+    ['Top', 'Action', 'Points'],
+    ['Mario Kart', 'Victoire', '5'],
+    ['Mario Kart', 'Défaite', '1']
+  ]);
+  injectSheets(gas, { players, categories, history, notes, auditLog, settings, bareme });
   return gas;
 }
 
@@ -191,12 +196,39 @@ test('addNote credits an explicit target player, distinct from the author', () =
   assert.strictEqual(noteRows[1][4], 'Alex');  // CrééPar column: the author
 });
 
-test('listTops returns the current categories', () => {
+test('listTops returns the current categories as Discord-style {name, value} choices', () => {
   const gas = makeContext('right-secret');
   const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'listTops', secret: 'right-secret' } });
   const body = JSON.parse(out._text);
   assert.strictEqual(body.ok, true);
-  assert.deepStrictEqual(body.choices, ['Mario Kart']);
+  assert.deepStrictEqual(body.choices, [{ name: '🏎️ Mario Kart', value: 'Mario Kart' }]);
+});
+
+test('listBareme returns the point rules for a given Top', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'listBareme', secret: 'right-secret', top: 'Mario Kart' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.deepStrictEqual(body.choices, [
+    { name: 'Défaite (+1 pts)', value: 1 },
+    { name: 'Victoire (+5 pts)', value: 5 }
+  ]);
+});
+
+test('listBareme without a top filter returns rules for every Top', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'listBareme', secret: 'right-secret' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.strictEqual(body.choices.length, 2);
+});
+
+test('listBareme reports no rules for an unknown Top', () => {
+  const gas = makeContext('right-secret');
+  const out = gas.DiscordBridgeService.handleRequest({ parameter: { bgAction: 'listBareme', secret: 'right-secret', top: 'Inexistant' } });
+  const body = JSON.parse(out._text);
+  assert.strictEqual(body.ok, true);
+  assert.deepStrictEqual(body.choices, []);
 });
 
 test('getLeaderboard returns a ranked, formatted list of all players', () => {
