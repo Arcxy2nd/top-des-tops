@@ -43,6 +43,12 @@ Ne pas rappeler une dette non sollicitée (fix pas fait, push pas fait) sauf si 
 
 Interdiction formelle et absolue d'interagir avec les données réelles des sites déployés (« Site tops » & « Tops RDS ») ou leurs Google Sheets — que ce soit pour tester, corriger, nettoyer, déboguer ou vérifier une hypothèse. Toute manipulation de données (lecture destructive, écriture, suppression, script one-off) se fait exclusivement contre le harness local (`tests/frontend/serve.js` + fixtures). Un joueur a déjà été perdu suite à une intervention sur les vraies données — voir §7 « Identité obligatoire » et la note d'incident associée. Vérifier explicitement l'URL/le contexte avant toute action qui touche à des données ; en cas de doute, s'arrêter et demander.
 
+## RÈGLE IMPÉRATIVE — INTERDICTION DE L'INTERFACE OPTIMISTE (PAS D'OPTIMISTIC UI)
+
+Toute opération modifiant des données (ajout de points, édition d'historique, modification de note, création ou suppression de joueur/catégorie) doit **obligatoirement attendre la confirmation synchrone du serveur Apps Script** (`google.script.run`) avant de refléter le changement dans le DOM ou de notifier l'utilisateur.
+- **Motif / Retour d'expérience** : Une tentative d'interface optimiste fin juillet 2026 a provoqué des incohérences visuelles graves, des fusions erronées de lots et des désynchronisations avec Google Sheets en cas d'erreur réseau masquée. L'utilisateur a formellement rejeté et interdit l'Optimistic UI.
+- **Consigne** : Le cache client `localStorage` (`tdt_*_dashboard_cache`) est réservé exclusivement à la réhydratation instantanée en lecture au démarrage (pattern *stale-while-revalidate*). Ne jamais insérer de ligne préemptivement dans le DOM sans accusé de réception formel du serveur.
+
 ---
 
 ## RÈGLE ERGONOMIQUE — SAISIE RÉTROSPECTIVE & DIRECTION TEMPORELLE DES PLAGES
@@ -58,6 +64,12 @@ Les sections de consultation et d'administration (Historique, Journal, Notes) do
 1. **En-tête unifié** : Titre à gauche, recherche et boutons d'actions groupés sur la même ligne à droite.
 2. **Filtres temporels compacts** : Champs de dates « Du » et « Au » côte à côte avec raccourcis de période immédiatement alignés sur la même ligne horizontale.
 3. **Organisation multi-colonnes des filtres d'entités** : Répartir les groupes de puces/chips (joueurs, catégories) en colonnes équilibrées (ex: joueurs à gauche, catégories à droite) avec marges resserrées afin de réduire la hauteur verticale et combler le vide à droite.
+
+## RÈGLE ERGONOMIQUE — RÉORDONNANCEMENT EXCLUSIF PAR BOUTONS ▲/▼ (PAS DE DRAG & DROP)
+
+Le réordonnancement manuel des listes ordonnables (Joueurs et Catégories dans Paramètres, phrases de commentaires personnalisées) s'effectue **exclusivement via des boutons d'incrément/décrément unitaire ▲ et ▼**, sans composant de glisser-déposer (Drag & Drop).
+- **Motif / Retour d'expérience** : Une tentative d'implémenter un glisser-déposer universel tactile/souris mi-août 2026 s'est heurtée à des conflits majeurs sur mobile (interférence avec le défilement vertical tactile) et sur desktop (blocage involontaire de la sélection de texte dans les champs). L'utilisateur a exigé l'abandon du drag & drop au profit de boutons flèches.
+- **Consigne** : Le tri par la colonne `Ordre` doit être strictement partitionné par groupe/catégorie (ne jamais trier toute la feuille en bloc). Le DOM doit être rafraîchi directement à partir de la réponse fraîche du serveur sans réinjecter d'état transitoire de cache local pour éviter tout flash d'inversion d'ordre. Pour le Barème, rappel : tout réordonnancement manuel a été supprimé au profit d'un tri strict par points croissants (§5).
 
 ---
 
@@ -107,6 +119,8 @@ Hébergée sur **Google Apps Script** — pas de serveur, pas de base de donnée
 
 Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seule librairie d'affichage est chargée depuis un CDN dans `<head>` (Chart.js 4.5.1 ; GSAP et Lenis ont été retirés en v2.2.0 et v3.28.0 au profit de l'API Web Animations native pour alléger le bundle et fluidifier le rendu) et trois bibliothèques sont chargées à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
 
+**Dérogation d'infrastructure documentée (Bridge Discord)** : Le principe « zéro serveur externe » admet une unique exception : le relai **Cloudflare Worker** (`top-des-tops-bridge`) pour le bridge Discord / BotGhost. Google Apps Script impose une redirection HTTP 302 vers `script.googleusercontent.com` que BotGhost ne suit pas. Le Worker relaie les requêtes entrantes, suit la redirection 302 et renvoie la réponse synchrone au bot Discord.
+
 ---
 
 ## §3 — DONNÉES (Google Sheets)
@@ -115,7 +129,7 @@ Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seul
 
 ```
 History       : Date | Player | Category | Points | Description | [GroupId] | [Saiseur]
-Players       : Name | Avatar URL | Hex color | Password (optionnel, jamais affiché dans l'UI) | [Ordre]
+Players       : Name | Avatar URL | Hex color | Password (optionnel, jamais affiché dans l'UI) | [Ordre] | [Discord ID]
 Categories    : Name | Description | Emoji | Hex color | [Ordre]
 Notes         : Date | Player | Note text | [NoteId] | [CrééPar] | [ModifiéPar] | [ModifiéLe]
 Bareme        : Top | Action (text) | Points  (pas de colonne Ordre, tri strict par points croissants)
@@ -131,6 +145,12 @@ Aggregates    : Vue matérialisée persistante (totaux, métriques par joueur/ca
 
 Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
 
+### Traçabilité & Stockage physique de l'état courant (Notes)
+
+Les métadonnées décrivant l'état courant d'une entité (`NoteId`, `CrééPar`, `ModifiéPar`, `ModifiéLe` pour les notes) sont **obligatoirement stockées dans les colonnes physiques de la feuille correspondante**.
+- **Retour d'expérience** : Une tentative de dériver dynamiquement les auteurs et dates de modification à la volée depuis l'historique du Journal d'audit fin juillet 2026 a provoqué des latences inacceptables, des échecs d'affichage et des désynchronisations lors des suppressions de lignes.
+- **Règle** : L'AuditLog est réservé à la traçabilité chronologique et aux annulations (rollback). Ne jamais utiliser l'AuditLog comme substitut à des colonnes de données dans les feuilles principales.
+
 ### Ligne 1 : en-tête non garanti
 
 `History`, `Players` et `Categories` ne sont **jamais** créées par l'app (elle refuse de démarrer sans elles) : elles ont été faites à la main et, dans les deux instances réelles, **pouvaient ne pas avoir de ligne de titres** (la ligne 1 contenait une vraie donnée). Depuis la v3.23.0, l'application assure la génération transparente des en-têtes officiels en ligne 1 (`CANONICAL_SHEET_HEADERS` et `_ensureSheetHeaders()`).
@@ -138,7 +158,7 @@ Néanmoins, pour garantir une résilience totale et éviter de masquer le premie
 
 ---
 
-## §4 — BACKEND (`Code.gs` & `AutoPoints.gs`)
+## §4 — BACKEND (`Code.gs`, `AutoPoints.gs` & `DiscordBridge.gs`)
 
 Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern : service → fonctions `api*` exposées à l'appel GAS via `callServer()`.
 
@@ -158,6 +178,7 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `AutoRulesService` | Gestion et exécution automatique des règles récurrentes de points |
 | `AggregatesService` | Maintien incrémental de la vue matérialisée (totaux, métriques, lastEvent, globalBest) avec cache multi-niveaux |
 | `BackupService` | Création de copies complètes / instantanés (snapshots) sur Google Drive |
+| `DiscordBridge` (`DiscordBridge.gs`) | Pont HTTP GET pour les commandes Discord / BotGhost, validation du token partagé `DISCORD_BRIDGE_SECRET` |
 
 ---
 
@@ -309,9 +330,13 @@ Chaque joueur et chaque catégorie a une couleur hex définie dans le Sheet. Ces
 
 Dès qu'un nom de joueur apparaît dans l'UI (liste, tableau, graphique, filtre, commentaire, note, classement, saisie…), son avatar doit être affiché à côté. Aucune exception.
 
-### Adaptabilité mobile (Index.html unique)
+### Adaptabilité mobile & Unification mono-fichier stricte (Interdiction de Mobile.html)
 
-L'application utilise un fichier HTML unique (`Index.html`) entièrement responsive. Toute mise à jour (nouvel écran, nouveau composant, style modifié) doit s'adapter proprement aux petits écrans via CSS media queries. L'onglet **Notes** (ajout rapide depuis mobile) exige une attention particulière sur écran tactile.
+L'application utilise un fichier HTML unique (`Index.html`) entièrement responsive.
+- **Retour d'expérience (abandon de `Mobile.html`)** : Un fichier dédié `Mobile.html` avait été introduit début juillet 2026 pour séparer l'affichage mobile. Cette approche par fichiers multiples a provoqué des désynchronisations constantes de logique, des régressions de déploiement et une surcharge de maintenance. `Mobile.html` a été définitivement supprimé en v2.1.0 (29/07/2026).
+- **Règle absolue** : Interdiction formelle de recréer un fichier HTML séparé pour le mobile. Toute l'interface (desktop et mobile) réside obligatoirement dans `Index.html`.
+- **Navigation mobile** : La barre de navigation basse (`#mobileBottomNav`) doit être ancrée directement à la racine de `<body>` (jamais dans un conteneur enfant avec filtre CSS ou `backdrop-filter`, ce qui détruit le positionnement fixe sur Safari/iOS).
+- Toute mise à jour (nouvel écran, nouveau composant, style modifié) doit s'adapter proprement aux petits écrans via CSS media queries. L'onglet **Notes** (ajout rapide depuis mobile) exige une attention particulière sur écran tactile.
 
 ### Identité obligatoire pour toute édition
 
@@ -380,6 +405,7 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 - **Synchronisation synchrone Sheets API v4 (`SpreadsheetApp.flush()`)** : Depuis v3.30.0, la lecture rapide passe par Sheets API v4 REST (`_fetchSheetValues`). Les écritures `SpreadsheetApp` (`setValues()`, `appendRow()`) restent dans le cache d'écriture local de GAS et sont invisibles pour l'API REST v4 sans synchronisation explicite. Tout bloc d'écriture de données doit **obligatoirement appeler `SpreadsheetApp.flush()`** avant toute relecture immédiate via l'API REST (incident résolu en v3.30.8).
 - **Gestion des dates de cellules Sheets API v4 (`_parseDateCell`)** : Sheets API v4 avec `SERIAL_NUMBER` retourne les dates en numéros de série (jours depuis le 30/12/1899). Interdiction absolue de faire `new Date(val)` direct sur une cellule lue via `_fetchSheetValues`, ce qui génère l'anomalie « 01/01/1970 » (valeur interprétée en millisecondes). Passer systématiquement par `_parseDateCell()` (backend) et `_parseLocalDateWithNow()` / garde `'—'` (frontend) (résolu en v3.30.14).
 - **Reparentage DOM déterministe (`appendChild` vs `insertBefore`)** : Dans les interfaces dynamiques où des éléments changent de conteneur (ex. `setDateMode` basculant entre jour unique et période), proscrire `insertBefore` ciblant un élément potentiellement reparenté ailleurs, ce qui lève une `DOMException: NotFoundError` fatale sous les navigateurs stricts. Utiliser des séquences directes d'`appendChild` pour réinsérer les éléments dans l'ordre attendu (résolu en v3.30.15).
+- **Ordre d'initialisation frontend & Prévention TDZ (`ReferenceError`)** : Dans `Index.html`, toutes les constantes globales, préfixes d'instance (`window.__APP_INSTANCE_ID__`) et clés de stockage/cache (`SETTINGS_CACHE_KEY`, `APP_SETTINGS_CACHE_KEY`, `DASHBOARD_CACHE_KEY`, `PHRASES_STORAGE_KEY`) doivent être **impérativement déclarées tout en haut du bloc script**, avant tout appel à `syncIdentityFromStorage()` ou au bootstrap composite. Tout appel prématuré à une fonction accédant à ces variables avant leur déclaration déclenche une erreur fatale `ReferenceError` TDZ bloquant l'initialisation du DOM (incident résolu en v3.30.21).
 
 ### Changelog
 
@@ -388,6 +414,8 @@ Chaque écran, formulaire ou composant ajouté ou modifié doit être :
 Maintenir un `CHANGELOG.md` au format [Keep a Changelog](https://keepachangelog.com) avec **deux voix par entrée** :
 
 - **Numérotation SemVer stricte** : Incrémenter la version mineure (`x.Y.0`) pour tout jalon fonctionnel, nouvelle fonctionnalité ou refonte significative. Réserver les patchs (`x.y.Z`) aux correctifs de bugs ou ajustements mineurs. Ne jamais créer des dizaines de micro-patchs artificiels pour des features majeures.
+- **Intégrité absolue de l'historique (Interdiction de condenser ou tronquer)** : Lors des passes de nettoyage, de restructuration ou d'audit, **interdiction formelle de supprimer, résumer ou fusionner des puces existantes du `CHANGELOG.md`**. Chaque entrée publiée est contractuelle et définitive.
+- **Étanchéité stricte des versions majeures** : Interdiction de renuméroter ou de faire glisser des modifications entre versions majeures distinctes (respect strict de la frontière v2.x vs v3.x).
 - **Humanisé** — **Ultra-concis, direct et percutant**. Strictement **1 seule phrase courte** (2 maximum absolu si multi-sujet), zéro jargon, zéro bavardage, zéro narration/storytelling de contexte ("auparavant...", "un joueur pouvait..."). Décrire uniquement le gain/changement concret immédiat pour l'utilisateur.
 - **Technique** — ce qui a changé dans le code (fichier, fonction, comportement).
 
@@ -447,12 +475,18 @@ Web App GAS — exécutée en tant que le propriétaire, accessible à tout comp
 
 Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` déclenche un workflow GitHub Actions (`.github/workflows/deploy-gas.yml`) qui, pour chaque copie listée dans `deploy-targets.json` : pousse le code via `clasp`, archive l'ancien déploiement, en crée un nouveau (nouvelle URL `/exec`), puis repointe le lien short.io correspondant vers cette nouvelle URL. Plus de déploiement manuel dans l'éditeur GAS.
 
-**Interdiction absolue des déploiements in-place (`clasp deploy -i`)** : Abandonné en v3.3.0 suite à des pannes récurrentes de cache CDN Google servant d'anciennes versions d'assets sans possibilité d'invalidation. Tout déploiement doit être strictement immuable (`clasp deploy --description`), avec archivage/suppression de l'ancien (`clasp undeploy`) et mise à jour dynamique du pointeur court short.io.
+**Interdiction des déploiements in-place en production (`clasp deploy -i`) vs copies de test** :
+- **En production (« Site tops » et « Tops RDS »)** : Interdiction absolue de `clasp deploy -i`. Abandonné en v3.3.0 suite à des pannes récurrentes de cache CDN Google servant d'anciennes versions d'assets sans possibilité d'invalidation. Tout déploiement de production doit être strictement immuable (`clasp deploy --description`), avec archivage/suppression de l'ancien (`clasp undeploy`) et mise à jour dynamique du pointeur court short.io via le workflow GitHub Actions.
+- **Sur copie de test dédiée fixe (ex: bot Discord test)** : `clasp deploy -i <deploymentId>` est au contraire explicitement requis après un `clasp push` afin de maintenir l'URL `/exec` fixe déclarée dans les services tiers (BotGhost) sans rupture de webhook.
 
 Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
 
 ---
 
+
+## RÈGLE — GITIGNORE DOCUMENTS PRIVÉS
+
+Tout document de travail non destiné aux gens qui téléchargeront le repo (plans structurés `plans/*.md`, audits, brouillons, notes de session, fichiers de mémoire outil machine-spécifiques) doit être listé dans `.gitignore` dès sa création — ne pas attendre une passe de nettoyage. Vérifier avant tout premier commit/push d'un dossier de plans/audits.
 
 ## RÈGLE — PAS DE RAPPEL DE RÉVOCATION DE SECRETS
 
