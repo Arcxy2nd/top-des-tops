@@ -2131,6 +2131,12 @@
     .detect-lot-head label { display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; }
     .detect-lot-head input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
     .detect-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+    .bm-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .bm-controls input[type="range"] { flex: 1 1 160px; min-height: var(--tap-min); accent-color: var(--accent); }
+    .bm-row { display: flex; align-items: center; gap: 8px; min-height: var(--tap-min); padding: 4px 8px; border-bottom: 1px solid var(--border); font-size: 0.85rem; cursor: pointer; }
+    .bm-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .bm-score { margin-left: auto; font-weight: 700; color: var(--text-muted); font-size: 0.78rem; }
+    body.mobile-layout .bm-row { flex-wrap: wrap; }
     /* ── DIFF UNIVERSEL (Style GitHub) ── */
     .diff-del, .audit-before {
       color: var(--error);
@@ -5255,6 +5261,7 @@
       <!-- Sommaire des outils : un clic déplie l'outil visé et y descend. -->
       <div class="tools-quick-nav" id="toolsQuickNav">
         <button data-target="toolHealthCard">🔧 Santé</button>
+        <button data-target="toolBaremeMatchCard">📏 Barème</button>
         <button data-target="toolLotsCard">🔗 Lots répartis</button>
         <button data-target="toolLegacyCard">⚠️ Groupes hérités</button>
         <button data-target="toolDuplicatesCard">🧬 Doublons</button>
@@ -5327,6 +5334,19 @@
           <button id="groupSimilarEntriesBtn" class="secondary small">🔗 Regrouper les entrées identiques en lot</button>
         </div>
         <div id="detectResults" class="detect-results"></div>
+      </div>
+
+      <div class="card card-collapsible" id="toolBaremeMatchCard">
+        <div class="card-collapse-header"><h2>📏 Classer l'historique par règle du barème</h2></div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Propose une règle du barème pour les entrées qui n'en ont pas, quand leur description ressemble au nom d'une règle du même Top. Rien n'est modifié sans ta validation.
+        </p>
+        <div class="bm-controls">
+          <label for="bmThreshold">Ressemblance minimale : <strong id="bmThresholdValue">60 %</strong></label>
+          <input type="range" id="bmThreshold" min="30" max="100" step="5" value="60">
+          <button id="bmScanBtn" class="primary small">🔍 Chercher</button>
+        </div>
+        <div id="bmResults" class="detect-results"></div>
       </div>
 
       <div class="card card-collapsible" id="toolLegacyCard">
@@ -7433,7 +7453,7 @@
         const target = btn.dataset.stab;
         document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
-        if (target === 'stab-tools') { loadDataHealth(); }
+        if (target === 'stab-tools') { loadDataHealth(); loadBaremeMatchThreshold(); }
         if (target === 'stab-automations') { loadAutoRules(); }
         if (target === 'stab-identity') populateAppSettingsForm();
         if (target === 'stab-changelog') loadChangelog();
@@ -9929,7 +9949,8 @@
     'apiAddPhrase', 'apiSavePhrasesBatch', 'apiUpdatePhrase', 'apiDeletePhrase',
     'apiDeletePreset', 'apiRenamePreset', 'apiSetActivePhrasePreset',
     'apiAddAutoRule', 'apiUpdateAutoRule', 'apiDeleteAutoRule', 'apiSetAutoTrigger',
-    'apiRunAutoRulesNow', 'apiRebuildAggregates'
+    'apiRunAutoRulesNow', 'apiRebuildAggregates',
+    'apiApplyBaremeSuggestions', 'apiSaveBaremeMatchThreshold'
   ]);
 
   function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
@@ -19405,10 +19426,152 @@
     // ── Detection tool ──
     document.getElementById('detectLotsBtn').addEventListener('click', scanDistributedLots);
     document.getElementById('detectLegacyGroupsBtn').addEventListener('click', scanLegacyGroups);
+    initBaremeMatchTool();
   }
 
+  // ── CLASSEMENT BARÈME (OUTILS) ─────────────────────────────────────────
+  let _baremeMatchThresholdLoaded = false;
+  function loadBaremeMatchThreshold() {
+    if (_baremeMatchThresholdLoaded) return;
+    _baremeMatchThresholdLoaded = true;
+    callServer('apiGetBaremeSuggestions', [null], res => {
+      const range = document.getElementById('bmThreshold');
+      const valueEl = document.getElementById('bmThresholdValue');
+      if (range && valueEl && res && res.threshold) {
+        range.value = Math.round(res.threshold * 100);
+        valueEl.textContent = range.value + ' %';
+      }
+    }, 'Seuil de ressemblance', null, true);
+  }
 
+  function initBaremeMatchTool() {
+    const range = document.getElementById('bmThreshold');
+    const valueEl = document.getElementById('bmThresholdValue');
+    const results = document.getElementById('bmResults');
+    if (!range || !valueEl || !results) return;
+    let saveTimer = null;
+    let lastSuggestions = [];
 
+    range.addEventListener('input', () => { valueEl.textContent = range.value + ' %'; });
+    range.addEventListener('change', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const doSave = () => {
+          callServer('apiSaveBaremeMatchThreshold', [Number(range.value) / 100, _whoAmI || ''], res => {
+            if (res && res.threshold) {
+              range.value = Math.round(res.threshold * 100);
+              valueEl.textContent = range.value + ' %';
+            }
+          }, 'Seuil de ressemblance');
+        };
+        if (!requireIdentity(doSave)) return;
+        doSave();
+      }, 400);
+    });
+
+    function renderSuggestions() {
+      results.innerHTML = '';
+      if (!lastSuggestions.length) {
+        results.innerHTML = '<div class="hq-empty">Aucune entrée à classer avec ce seuil.</div>';
+        return;
+      }
+      const groups = {};
+      lastSuggestions.forEach(s => { (groups[s.baremeId] = groups[s.baremeId] || []).push(s); });
+      const frag = document.createDocumentFragment();
+      Object.keys(groups).forEach(id => {
+        const list = groups[id];
+        const head = document.createElement('div');
+        head.className = 'detect-lot-head';
+        const all = document.createElement('input');
+        all.type = 'checkbox';
+        all.checked = true;
+        all.setAttribute('aria-label', 'Tout cocher pour ' + list[0].action);
+        const title = document.createElement('span');
+        title.textContent = '📏 ' + list[0].category + ' · ' + list[0].action + ' (' + list.length + ')';
+        head.appendChild(all);
+        head.appendChild(title);
+        frag.appendChild(head);
+        const boxes = [];
+        list.forEach(s => {
+          const row = document.createElement('label');
+          row.className = 'bm-row';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = true;
+          cb.className = 'bm-cb';
+          cb._suggestion = s;
+          boxes.push(cb);
+          const p = (cachedPlayers || []).find(x => x.name === s.player);
+          const img = document.createElement('img');
+          img.className = 'bm-avatar';
+          img.alt = '';
+          img.src = getAvatarUrl(s.player, p ? p.meta : '');
+          img.onerror = () => { img.src = getAvatarUrl(s.player, ''); };
+          const text = document.createElement('span');
+          text.textContent = toDateStr(new Date(s.timestamp)) + ' · ' + s.player + ' · ' + s.points + ' pts · « ' + s.description + ' »';
+          const score = document.createElement('span');
+          score.className = 'bm-score';
+          score.textContent = Math.round(s.score * 100) + ' %';
+          row.appendChild(cb); row.appendChild(img); row.appendChild(text); row.appendChild(score);
+          frag.appendChild(row);
+        });
+        all.addEventListener('change', () => boxes.forEach(b => { b.checked = all.checked; }));
+      });
+      const applyBtn = document.createElement('button');
+      applyBtn.className = 'primary small';
+      applyBtn.textContent = '✅ Appliquer la sélection';
+      applyBtn.addEventListener('click', () => {
+        const items = Array.from(results.querySelectorAll('.bm-cb:checked')).map(cb => ({
+          rowIndex: cb._suggestion.rowIndex, baremeId: cb._suggestion.baremeId, expectedDescription: cb._suggestion.description
+        }));
+        if (!items.length) { showToast('Aucune entrée cochée.', 'info'); return; }
+        const doApply = () => {
+          applyBtn.disabled = true;
+          callServer('apiApplyBaremeSuggestions', [items, _whoAmI || ''], res => {
+            applyBtn.disabled = false;
+            const skippedCount = (res.skipped || []).length;
+            const msg = res.applied + ' entrée(s) classée(s)' + (skippedCount ? ' · ' + skippedCount + ' ignorée(s) (modifiées entre-temps)' : '');
+            if (res.auditRowId) {
+              showActionToast(msg, 'Annuler', () => {
+                const doUndo = () => {
+                  callServer('apiUndoAuditEntry', [res.auditRowId, _whoAmI || ''], undoRes => {
+                    if (undoRes && undoRes.success) {
+                      showToast('Classement annulé.', 'info');
+                      scan();
+                    } else {
+                      showToast('Impossible d\'annuler : ' + ((undoRes && undoRes.error) || 'erreur'), 'error');
+                    }
+                  }, 'Annulation');
+                };
+                if (!requireIdentity(doUndo)) return;
+                doUndo();
+              });
+            } else {
+              showToast(msg, 'info');
+            }
+            scan();
+          }, 'Classement barème', () => { applyBtn.disabled = false; });
+        };
+        if (!requireIdentity(doApply)) return;
+        doApply();
+      });
+      frag.appendChild(applyBtn);
+      results.appendChild(frag);
+    }
+
+    function scan() {
+      showSkeleton(results, { rows: 3, height: 40 });
+      callServer('apiGetBaremeSuggestions', [Number(range.value) / 100], res => {
+        lastSuggestions = res.suggestions || [];
+        renderSuggestions();
+      }, 'Recherche de règles', () => {
+        results.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
+      });
+    }
+
+    const scanBtn = document.getElementById('bmScanBtn');
+    if (scanBtn) scanBtn.addEventListener('click', scan);
+  }
 
   // ── DETECTION LOTS RÉPARTIS ─────────────────────────────────────────
   const DISMISSED_LOTS_KEY = 'tdt_dismissed_lots';
@@ -20884,6 +21047,7 @@
     makeCollapsible(document.getElementById('statsHubCard'),  'tdt_collapsed_stats_hub');
     makeCollapsible(document.getElementById('toolHealthCard'), 'tdt_collapsed_tool_health');
     makeCollapsible(document.getElementById('toolLotsCard'),   'tdt_collapsed_tool_lots');
+    makeCollapsible(document.getElementById('toolBaremeMatchCard'), 'tdt_collapsed_tool_bareme_match');
     makeCollapsible(document.getElementById('toolLegacyCard'),     'tdt_collapsed_tool_legacy');
     makeCollapsible(document.getElementById('toolDuplicatesCard'), 'tdt_collapsed_tool_duplicates');
     makeCollapsible(document.getElementById('toolOutliersCard'),   'tdt_collapsed_tool_outliers');

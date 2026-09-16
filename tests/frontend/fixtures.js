@@ -32,12 +32,15 @@ function historyRows() {
     for (let k = 0; k < 3; k++) {
       const month = ['06', '07', '08'][k];
       const bId = (d === 28 && k === 2) ? 'R_FIX1' : ((d === 28 && k === 1) ? 'R_SUPPRIMEE' : '');
+      let desc = 'Entrée de test @' + players[(d + 1) % players.length] + ' #' + cats[k % cats.length];
+      if (d === 27 && k === 0) desc = 'Mauvais perdant contre Safir';
+      if (d === 27 && k === 1) desc = 'Tacle par derriere violent';
       rows.push([
         '2026-' + month + '-' + String(d).padStart(2, '0'),
         players[(d + k) % players.length],
         cats[(d + k * 2) % cats.length],
         1 + ((d * 7 + k) % 25),
-        'Entrée de test @' + players[(d + 1) % players.length] + ' #' + cats[k % cats.length],
+        desc,
         '',
         '',
         bId

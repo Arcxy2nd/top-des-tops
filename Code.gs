@@ -3503,6 +3503,149 @@ function apiGetBaremeUsage() {
   } catch (e) { return fail(e); }
 }
 
+// ─── BAREME MATCHER ───────────────────────────────────────────────────────────
+// Ressemblance description ↔ règle : coefficient de Dice sur bigrammes de lettres
+// (tolère fautes de frappe et ordre), calculé sur toute la description ET sur chaque
+// fenêtre de mots de même longueur que la règle (« Victoire écrasante » contient « Victoire »).
+const BAREME_MATCH_SETTING = 'bareme_match_threshold';
+const BAREME_MATCH_DEFAULT = 0.6;
+const BAREME_MATCH_MIN     = 0.3;
+const BAREME_MATCH_MAX     = 1;
+
+const BaremeMatcher = {
+  normalize(s) {
+    return (s == null ? '' : s.toString())
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  },
+
+  _bigrams(s) {
+    const t = s.replace(/ /g, '');
+    const out = [];
+    for (let i = 0; i < t.length - 1; i++) out.push(t.slice(i, i + 2));
+    return out;
+  },
+
+  dice(a, b) {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const A = this._bigrams(a), B = this._bigrams(b);
+    if (!A.length || !B.length) return 0;
+    const counts = {};
+    A.forEach(g => { counts[g] = (counts[g] || 0) + 1; });
+    let inter = 0;
+    B.forEach(g => { if (counts[g] > 0) { inter++; counts[g]--; } });
+    return (2 * inter) / (A.length + B.length);
+  },
+
+  score(description, action) {
+    const d = this.normalize(description), a = this.normalize(action);
+    if (!d || !a) return 0;
+    let best = this.dice(d, a);
+    const size = a.split(' ').length;
+    const words = d.split(' ');
+    for (let i = 0; i + size <= words.length && best < 1; i++) {
+      best = Math.max(best, this.dice(words.slice(i, i + size).join(' '), a));
+    }
+    return Math.round(best * 100) / 100;
+  }
+};
+
+function _clampBaremeThreshold(value) {
+  const n = Number(value);
+  if (isNaN(n)) return BAREME_MATCH_DEFAULT;
+  return Math.round(Math.min(BAREME_MATCH_MAX, Math.max(BAREME_MATCH_MIN, n)) * 100) / 100;
+}
+
+function apiGetBaremeSuggestions(threshold) {
+  try {
+    const stored = SettingsSheetService.getAll()[BAREME_MATCH_SETTING];
+    const t = _clampBaremeThreshold(threshold != null && threshold !== '' ? threshold : (stored || BAREME_MATCH_DEFAULT));
+    const rulesByTop = {};
+    BaremeService.getEntries().forEach(e => {
+      if (!e.id) return;
+      (rulesByTop[e.top] = rulesByTop[e.top] || []).push(e);
+    });
+    const suggestions = [];
+    StorageService.getFullHistoryRowsCached().forEach(rec => {
+      if (rec.baremeId || !rec.description) return;
+      const rules = rulesByTop[rec.category];
+      if (!rules) return;
+      let best = null;
+      rules.forEach(rule => {
+        const s = BaremeMatcher.score(rec.description, rule.action);
+        if (!best || s > best.score) best = { rule, score: s };
+      });
+      if (!best || best.score < t) return;
+      suggestions.push({
+        rowIndex: rec.rowIndex, timestamp: rec.date.toISOString(), player: rec.player,
+        category: rec.category, points: rec.points, description: rec.description,
+        baremeId: best.rule.id, action: best.rule.action, score: best.score
+      });
+    });
+    suggestions.sort((a, b) => (b.score - a.score) || (a.timestamp < b.timestamp ? 1 : -1));
+    return { success: true, threshold: t, suggestions };
+  } catch (e) { return fail(e); }
+}
+
+function apiSaveBaremeMatchThreshold(value, author, password) {
+  try {
+    requireAuthor(author, password);
+    const t = _clampBaremeThreshold(value);
+    return withLock(() => {
+      const before = SettingsSheetService.getAll()[BAREME_MATCH_SETTING] || String(BAREME_MATCH_DEFAULT);
+      SettingsSheetService.setValue(BAREME_MATCH_SETTING, String(t));
+      AuditService.log(author, 'Réglage modifié', 'Settings', before, String(t),
+        'Seuil de ressemblance du barème : ' + Math.round(Number(before) * 100) + ' % → ' + Math.round(t * 100) + ' %');
+      return { success: true, threshold: t };
+    });
+  } catch (e) { return fail(e); }
+}
+
+function apiApplyBaremeSuggestions(items, author, password) {
+  try {
+    requireAuthor(author, password);
+    if (!items || !items.length) throw new Error("Aucune suggestion sélectionnée.");
+    return withLock(() => {
+      const history  = ConfigService.getSheets().history;
+      const startRow = _firstDataRow('history', history);
+      const lastRow  = history.getLastRow();
+      if (lastRow < startRow) return { success: true, applied: 0, skipped: items.map(i => i.rowIndex), auditRowId: null };
+      const width   = 8;
+      const allData = history.getRange(startRow, 1, lastRow - startRow + 1, width).getValues();
+      const skipped = [];
+      const undoRows = [];
+      const labels = {};
+      items.forEach(item => {
+        const idx  = parseInt(item.rowIndex, 10);
+        const rowI = idx - startRow;
+        const row  = allData[rowI];
+        const rule = BaremeService.findById(item.baremeId);
+        // Contrôle de concurrence : la ligne doit être celle que l'utilisateur a vue.
+        if (!row || !rule
+            || (row[4] || '').toString() !== (item.expectedDescription || '')
+            || (row[7] || '').toString().trim()
+            || (row[2] || '').toString() !== rule.top) { skipped.push(idx); return; }
+        const beforeRow = row.slice();
+        row[7] = rule.id;
+        undoRows.push({ rowIndex: idx, before: beforeRow, after: row.slice() });
+        labels[rule.action] = (labels[rule.action] || 0) + 1;
+      });
+      let auditRowId = null;
+      if (undoRows.length) {
+        history.getRange(startRow, 1, allData.length, width).setValues(allData);
+        _ensureHeaderLabel('history', history, 8);
+        const summary = Object.keys(labels).map(a => a + ' ×' + labels[a]).join(', ');
+        auditRowId = AuditService.log(author, 'Classement barème', 'History', '', undoRows.length + ' entrée(s)',
+          undoRows.length + ' entrée(s) rattachée(s) : ' + summary,
+          { sheet: 'history', op: 'updateMany', rows: undoRows });
+      }
+      ConfigService.clearCache();
+      return { success: true, applied: undoRows.length, skipped, auditRowId };
+    });
+  } catch (e) { return fail(e); }
+}
+
 function apiSetColor(type, rowIndex, expectedName, color, author, password) {
   try {
     requireAuthor(author, password);

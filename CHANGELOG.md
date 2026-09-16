@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.31.0] - 2026-09-16
+
+### Ajouté
+**Humanisé** : Chaque ajout de points peut être classé sous une règle du barème, visible et filtrable dans l'Historique.
+**Technique** : Colonnes `Bareme.Id` et `History.BaremeId`, `BaremeService.ensureIds/findById`, `_assertBaremeForCategory`, `apiGetBaremeUsage`, argument de filtrage `filterBaremeId` dans `apiGetHistoryPage`, composant `baremePill`, sélecteur `buildBaremeSelect`, tuile de surveillance Santé « Règle du barème introuvable ». Les entrées créées par Discord, AutoRules et Tops Alternatifs restent sans règle rattachée par conception.
+
+### Ajouté
+**Humanisé** : Un outil propose de classer l'historique existant selon la ressemblance des descriptions, avec un seuil réglable.
+**Technique** : Objet `BaremeMatcher` (coefficient de Dice sur bigrammes de lettres + fenêtre glissante de mots), endpoints `apiGetBaremeSuggestions`, `apiSaveBaremeMatchThreshold` (clé `bareme_match_threshold` dans la feuille Settings), et `apiApplyBaremeSuggestions` avec instantané d'audit `updateMany` réversible.
+
+### Modifié
+**Humanisé** : Cliquer une règle en saisie ne remplace plus une description déjà écrite.
+**Technique** : Dans la saisie de lot, `applyBaremeEntry` ne renseigne automatiquement l'action de la règle dans le champ description que si celui-ci est vide.
+
 ## [v3.30.22] - 2026-09-16
 
 ### Corrigé

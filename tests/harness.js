@@ -255,7 +255,7 @@ function gasMocks() {
 // automatically by buildEpilogue, so a new endpoint never has to be listed here.
 const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
-  'NotesService', 'AnalyticsService', 'BaremeService', 'PhrasesService', 'SettingsSheetService',
+  'NotesService', 'AnalyticsService', 'BaremeService', 'BaremeMatcher', 'PhrasesService', 'SettingsSheetService',
   'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService', 'AggregatesService',
   'DiscordBridgeService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor', 'runAutoPoints',

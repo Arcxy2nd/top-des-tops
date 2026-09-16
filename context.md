@@ -128,11 +128,11 @@ Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seul
 ### Structure des feuilles
 
 ```
-History       : Date | Player | Category | Points | Description | [GroupId] | [Saiseur]
+History       : Date | Player | Category | Points | Description | [GroupId] | [Saiseur] | [BaremeId]
 Players       : Name | Avatar URL | Hex color | Password (optionnel, jamais affiché dans l'UI) | [Ordre] | [Discord ID]
 Categories    : Name | Description | Emoji | Hex color | [Ordre]
 Notes         : Date | Player | Note text | [NoteId] | [CrééPar] | [ModifiéPar] | [ModifiéLe]
-Bareme        : Top | Action (text) | Points  (pas de colonne Ordre, tri strict par points croissants)
+Bareme        : Top | Action (text) | Points | [Id]  (pas de colonne Ordre, tri strict par points croissants)
 Phrases       : Preset | Pool | Phrase | [Ordre]
 Chat          : Id | Date | Author | Text | ReplyToId
 AuditLog      : Timestamp | Auteur | Action | Entité | Avant | Après | Détail | [Snapshot] | [AnnuléLe]
@@ -170,6 +170,7 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `NotesService` | CRUD notes par joueur, auto-création de la feuille |
 | `AnalyticsService` | Agrégation des scores filtrés (joueurs, catégories, période), données pour graphiques, santé des données |
 | `BaremeService` | CRUD règles de points (barème), tri croissant automatique par points, auto-création de la feuille |
+| `BaremeMatcher` | Détection de correspondances entre descriptions d'entrées et règles du barème (Dice bigrammes + fenêtres de mots) |
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
 | `ChatService` | Messages du tchat flottant (lecture, envoi, suppression de ses propres messages), résolution du message cité par une réponse, auto-création de la feuille |
 | `AuditService` | Journalisation des opérations, annulation d'écritures, snapshots, auto-création de la feuille |
@@ -197,7 +198,7 @@ Fichier HTML/CSS/JS monofichier.
 | 📜 Historique | Tableau paginé des entrées, sélection groupée in-memory avec case maîtresse de lot, filtres, édition description/lot, suppression, sous-onglet 🔍 Journal d'audit (avec annulation 1-clic) |
 | ❓ Guide | Documentation inline thématique et recherche dynamique |
 
-`🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé (avec efficacité du cache et détection d'homonymes), nettoyage (zéros/orphelins/doublons ; les outils "scores aberrants" et "joueurs inactifs" ont été retirés en v3.15.1), détection/regroupement de lots répartis, groupes hérités, points automatiques, recalcul des agrégats et création d'instantanés (snapshots Google Drive).
+`🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé (avec efficacité du cache, tuile règle du barème introuvable et détection d'homonymes), nettoyage (zéros/orphelins/doublons ; les outils "scores aberrants" et "joueurs inactifs" ont été retirés en v3.15.1), classement par règle du barème par ressemblance avec seuil réglable (`bareme_match_threshold`), détection/regroupement de lots répartis, groupes hérités, points automatiques, recalcul des agrégats et création d'instantanés (snapshots Google Drive).
 
 ### Tchat flottant
 
@@ -228,6 +229,8 @@ Widget indépendant des graphiques, toujours visible dans le Dashboard. Affiche 
 
 - **Tri strict par points croissants** : Les règles du barème sont systématiquement affichées par ordre croissant de points (`pts` croissant : négatifs en premier, zéro, puis positifs) au sein de chaque Top, sans notion d'ordre manuel ni boutons de réordonnancement / drag-and-drop.
 - **Accès universel** : Accessible en consultation rapide (tiroir `?` / bouton navbar `#baremeBtn`), en raccourcis sur chaque ligne de saisie de lot, et en gestion complète dans l'onglet Paramètres.
+- **Rattachement par Id & conservation de la description** : Chaque règle possède un identifiant pérenne (`Bareme.Id`). Lors de la saisie (Saisir un Lot) ou de l'édition d'une entrée, le clic sur une règle pré-remplit les points et lie la règle (`History.BaremeId`) tout en conservant la description si elle est déjà renseignée.
+- **Affichage & filtrage dans l'Historique** : Une pastille `📏 <action>` s'affiche sur chaque entrée classée. Un filtre dédié (`#histBaremeFilter`) permet de filtrer l'Historique par règle ou de lister les entrées sans règle. Si une règle liée a été supprimée, la pastille n'est plus affichée et l'entrée est comptabilisée dans la tuile « Règle du barème introuvable » du panneau Santé.
 - **Préservation physique** : Le `rowIndex` réel de la feuille Google Sheets est préservé pour que la mise à jour et la suppression de règles ciblent toujours la bonne ligne sans décalage.
 
 ### Saisie de lot & Mode Période

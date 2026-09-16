@@ -2,33 +2,26 @@
 
 ## État courant
 - Branche active : `main` (fusionnée et déployée).
-- **Plan A livré (v3.30.22)** : normalisation des cellules mot de passe (`_normalizeSecretCell`, suppression des caractères invisibles U+200B..U+FEFF), sonde serveur sans mot de passe à la sélection d'un joueur (`unlockOrPrompt` / `apiVerifyIdentity`), suppression de la relecture des caches non préfixés (`tdt_dashboard_cache`, `tdt_cache_settings`), instrumentation d'observabilité du cache navigateur (`describeDashboardCache`, `_bootCacheStatus`, tuile « Cache navigateur » dans Santé) et banc local fidèle à `doGet`. Suite complète : **459/459 verts** (`npm run verify`).
+- **v3.31.0 livrée** : Plan A (`docs/superpowers/plans/2026-09-16-identity-cache-fixes.md`) et Plan B (`docs/superpowers/plans/2026-09-16-bareme-classification.md`) entièrement exécutés avec TDD strict. Suite complète : **477/477 tests verts** (`npm run verify`).
 - Porte de décision cache : tuile demandée à l'utilisateur lors du déploiement A4 ; correction du cache à appliquer dès transmission de la valeur de la tuile.
-- **En cours** : Exécution du plan B `docs/superpowers/plans/2026-09-16-bareme-classification.md` (rattachement entrée → règle du barème + outil de détection par ressemblance, v3.31.0).
 - Bridge Discord/BotGhost : code complet et testé (`DiscordBridge.gs` + branche `doGet` + `tests/discord-bridge.test.js`, 15 cas), déployé en production (« Site tops » et « Tops RDS ») et sur la copie de test.
 
 ## Dernière session
+- **Plan B — Classement des entrées par règle du barème & Outil de ressemblance (v3.31.0)** :
+  - *Identifiants pérennes de règles* : colonne `Id` dans `Bareme`, auto-générée (`R<timestamp>_<rand>`) et migrée à la volée (`BaremeService.ensureIds/findById`). Comptage d'utilisation par règle (`apiGetBaremeUsage`).
+  - *Lien physique dans l'Historique* : colonne `BaremeId` (colonne H) dans `History`, supportée dans le CRUD unitaire et groupé (`apiAddBulkPlan`, `apiUpdateHistoryEntry`, `apiUpdateBulkEntries`), avec contrôle de concordance règle/Top.
+  - *Saisie & Édition* : `applyBaremeEntry` remplit les points et lie la règle sans écraser une description déjà saisie (`setRowBareme`). Sélecteur `buildBaremeSelect` dans les modales d'édition simple et groupée.
+  - *Affichage & Filtre Historique* : pastille `📏 <action>` dans l'Historique (`baremePill`), filtre dédié `#histBaremeFilter` sous les Tops, tuile de surveillance Santé « Règle du barème introuvable » (`baremeOrphans`), confirmation avant suppression d'une règle utilisée dans Paramètres.
+  - *Outil de classement par ressemblance* : module `BaremeMatcher` basé sur le coefficient de Dice sur bigrammes de lettres et fenêtres de mots, endpoints `apiGetBaremeSuggestions`, `apiSaveBaremeMatchThreshold` (persistance du seuil dans `Settings`), et `apiApplyBaremeSuggestions` avec instantané d'audit `updateMany` annulable en 1 clic. Carte UI `#toolBaremeMatchCard` dans Outils.
 - **Plan A — Mot de passe fantôme & cache du tableau de bord (v3.30.22)** :
   - *Cellule mot de passe sans faille* : `_normalizeSecretCell` filtre les caractères de largeur nulle et blancs insécables dans `Code.gs`, empêchant qu'un copier-coller dans Google Sheets verrouille un joueur sans mot de passe.
   - *Sonde à la sélection* : `unlockOrPrompt` interroge le serveur en tâche de fond (`apiVerifyIdentity(name, '')`). Si le joueur n'a pas de mot de passe, l'identité est appliquée sans ouvrir de modale, le cache client est actualisé et le cache serveur invalidé sans journaliser d'échec de sécurité.
   - *Étanchéité des caches* : suppression de toute relecture des clés historiques partagées non préfixées (`tdt_dashboard_cache`, `tdt_cache_settings`).
   - *Observabilité du cache* : `describeDashboardCache` et tuile « Cache navigateur » dans le panneau Santé (Outils) indiquant si le cache a été restauré au démarrage, avec clé et hôte. Banc local (`serve.js`) aligné sur l'injection de `__APP_INSTANCE_ID__`.
 
-  - *Cloisonnement inter-liens* : injection de `window.__APP_INSTANCE_ID__` via `HtmlOutput.append()` dans `doGet` ; toutes les clés de stockage (`localStorage`, `sessionStorage`, cache dashboard, cache appsettings, cache settings, phrase settings) sont préfixées, empêchant toute collision entre « Site tops » et « Tops RDS » avec migration automatique transparente.
-  - *Boucle de mot de passe résolue* : argument `rowIndex` manquant rétabli avec `null` pour l'ajout de joueurs et de tops dans `Index.html` afin que le mot de passe ne soit plus injecté au mauvais paramètre dans `apiManageEntity` ; normalisation des `.trim()` et conversion en chaîne des cellules Sheets dans `SettingsService.verifyIdentity` et `getEntities` (support des mots de passe `'0'`).
-  - *Persistance mobile* : `sessionStorage` mémorise le mot de passe de session actif, protégeant contre l'amnésie lors des mises en veille et rafraîchissements sans écriture sur disque permanent.
-  - *Reprise d'action* : `requireIdentity(onVerified)` mémorise et ré-exécute automatiquement l'action cliquée après saisie du mot de passe.
-  - *Sécurisation modales & profil* : les modales complexes ne ferment plus avant la vérification d'identité ; le renommage de son propre compte met à jour l'identité locale sans déconnexion ; exclusion de `apiVerifyIdentity` des intercepteurs automatiques d'erreur.
-  - *Tests* : 17 nouveaux tests dans `tests/identity.test.js` et `tests/identity-partition-session.test.js`, suite complète à **448/448 verts**.
-- **Bridge BotGhost pour les commandes Discord** :
-  - *Nouveau fichier `DiscordBridge.gs`* : pont HTTP GET entre BotGhost et l'app, branché sur une seule ligne ajoutée en tête de `doGet(e)`.
-  - *6 actions* : `addPoints`, `getLeaderboard`, `addNote`, `getNotes`, `listTops`, `listBareme`. Chacune journalisée dans `AuditService`.
-  - *Sécurité* : secret partagé (`DISCORD_BRIDGE_SECRET`, Script Property) avec refus par défaut si absent.
-  - *Déploiement production & test* : support multi-cibles via Cloudflare Worker relay.
-
 ## Écarts
-- `CHANGELOG.md` s'arrête à v3.30.19 alors que v3.30.20/v3.30.21 sont citées ici et dans `context.md` — entrées manquantes, à signaler, ne pas inventer.
-- Plan B : pont Discord (`addPoints`) et points automatiques n'attribuent pas de règle du barème (décision de périmètre, rattrapage via l'outil de détection).
+- Pont Discord (`addPoints`), points automatiques et Tops Alternatifs n'attribuent pas de règle du barème par conception (rattrapage via l'outil de détection).
+- Porte de décision cache du Plan A : en attente du retour utilisateur sur la valeur de la tuile « Cache navigateur » dans le panneau Santé pour acter le correctif.
 - Notification sortante (l'app prévient Discord d'un ajout de points fait depuis le site) validée en brainstorming mais volontairement laissée hors de ce plan — sujet à un plan séparé une fois ces 4 commandes entrantes éprouvées (voir `docs/superpowers/plans/2026-09-13-discord-bridge-commands.md`, section "Écart documenté").
 
 ## Rappels actifs + Backlog
