@@ -3235,23 +3235,66 @@ const BaremeService = {
     _bumpBaremeVersion();
   },
 
-  /** Donne un Id aux règles qui n'en ont pas (règles antérieures à la v3.31.0). Appelant sous withLock. */
+  /**
+   * La colonne D portait l'ancienne colonne « Ordre » (numérotée par Top) : un nombre
+   * ou une valeur partagée par plusieurs lignes n'identifie pas une règle.
+   */
+  _isUsableId(id, counts) {
+    return !!id && !/^-?\d+(\.\d+)?$/.test(id) && counts[id] === 1;
+  },
+
+  needsIdRepair(entries) {
+    const counts = {};
+    entries.forEach(e => { if (e.id) counts[e.id] = (counts[e.id] || 0) + 1; });
+    return entries.some(e => !this._isUsableId(e.id, counts));
+  },
+
+  /** Donne un Id unique aux règles qui n'en ont pas un valide, et y rattache les liens de l'Historique. Appelant sous withLock. */
   ensureIds() {
     const sheet = ConfigService.getSheets().bareme;
     if (!sheet) return 0;
     const { values, startRow } = _readDataRows('bareme', sheet, 4);
+    const idOf = r => (r[3] == null ? '' : r[3]).toString().trim();
+    const counts = {};
+    values.forEach(r => { const id = idOf(r); if (id) counts[id] = (counts[id] || 0) + 1; });
+    const remap = {};
     let created = 0;
     values.forEach((r, i) => {
       if (!(r[0] || '').toString().trim()) return;
-      if ((r[3] || '').toString().trim()) return;
-      sheet.getRange(startRow + i, 4).setValue(_generateBaremeId());
+      const oldId = idOf(r);
+      if (this._isUsableId(oldId, counts)) return;
+      const newId = _generateBaremeId();
+      sheet.getRange(startRow + i, 4).setValue(newId);
+      if (oldId) {
+        // Même ancien numéro deux fois dans un Top : lien ambigu, laissé tel quel (tuile Santé).
+        const key = r[0].toString() + ' ' + oldId;
+        remap[key] = key in remap ? null : newId;
+      }
       created++;
     });
-    if (created) {
-      _ensureHeaderLabel('bareme', sheet, 4);
-      _bumpBaremeVersion();
-    }
+    if (!created) return 0;
+    if (startRow > 1 && /^ordre$/i.test((sheet.getRange(1, 4).getValue() || '').toString().trim())) sheet.getRange(1, 4).setValue('Id');
+    _ensureHeaderLabel('bareme', sheet, 4);
+    _bumpBaremeVersion();
+    const relinked = this._remapHistoryLinks(remap);
+    AuditService.log('Système', 'Migration barème', 'Bareme', '', created + ' identifiant(s)',
+      created + ' identifiant(s) de règle attribué(s), ' + relinked + ' lien(s) de l\'Historique rattaché(s)');
     return created;
+  },
+
+  _remapHistoryLinks(remap) {
+    if (!Object.keys(remap).length) return 0;
+    const history = ConfigService.getSheets().history;
+    const { values, startRow } = _readDataRows('history', history, 8);
+    let changed = 0;
+    const column = values.map(r => {
+      const cur = r[7] == null ? '' : r[7];
+      const next = cur === '' ? null : remap[(r[2] == null ? '' : r[2]).toString() + ' ' + cur.toString().trim()];
+      if (next) { changed++; return [next]; }
+      return [cur];
+    });
+    if (changed) history.getRange(startRow, 8, column.length, 1).setValues(column);
+    return changed;
   },
 
   findById(id) {
@@ -3427,10 +3470,13 @@ const PhrasesService = {
   }
 };
 
+function _repairBaremeIdsIfNeeded() {
+  if (BaremeService.needsIdRepair(BaremeService.getEntries())) withLock(() => BaremeService.ensureIds());
+}
+
 function apiGetBareme() {
   try {
-    const needsIds = BaremeService.getEntries().some(e => !e.id);
-    if (needsIds) withLock(() => BaremeService.ensureIds());
+    _repairBaremeIdsIfNeeded();
     return { success: true, entries: BaremeService.getEntries() };
   } catch(e) { return fail(e); }
 }
@@ -3490,6 +3536,7 @@ function apiDeleteBaremeEntry(rowIndex, author, password) {
 
 function apiGetBaremeUsage() {
   try {
+    _repairBaremeIdsIfNeeded();
     const known = {};
     BaremeService.getEntries().forEach(e => { if (e.id) known[e.id] = true; });
     const counts = {};
@@ -3561,6 +3608,7 @@ function apiGetBaremeSuggestions(threshold) {
   try {
     const stored = SettingsSheetService.getAll()[BAREME_MATCH_SETTING];
     const t = _clampBaremeThreshold(threshold != null && threshold !== '' ? threshold : (stored || BAREME_MATCH_DEFAULT));
+    _repairBaremeIdsIfNeeded();
     const rulesByTop = {};
     BaremeService.getEntries().forEach(e => {
       if (!e.id) return;

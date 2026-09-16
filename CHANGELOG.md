@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.31.1] - 2026-09-17
+
+### Corrigé
+**Humanisé** : L'outil de classement par règle du barème ne mélange plus des entrées sans rapport sous une même règle.
+**Technique** : `BaremeService.ensureIds` considérait les numéros de l'ancienne colonne `Ordre` (colonne D, numérotée par Top) comme des `Id` : plusieurs règles partageaient « 1 », « 2 »… Un `Id` numérique ou dupliqué est désormais remplacé (`_isUsableId`, `needsIdRepair`), les liens `History.BaremeId` sont rattachés à la nouvelle règle par couple (Top, ancien Id) via `_remapHistoryLinks`, l'en-tête `Ordre` devient `Id`, et la migration est journalisée (`Migration barème`). Déclenchée par `_repairBaremeIdsIfNeeded` dans `apiGetBareme`, `apiGetBaremeSuggestions` et `apiGetBaremeUsage`.
+
 ## [v3.31.0] - 2026-09-16
 
 ### Ajouté

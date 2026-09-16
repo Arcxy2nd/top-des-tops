@@ -2,7 +2,8 @@
 
 ## État courant
 - Branche active : `main` (fusionnée et déployée).
-- **v3.31.0 livrée** : Plan A (`docs/superpowers/plans/2026-09-16-identity-cache-fixes.md`) et Plan B (`docs/superpowers/plans/2026-09-16-bareme-classification.md`) entièrement exécutés avec TDD strict. Suite complète : **477/477 tests verts** (`npm run verify`).
+- **v3.31.1 livrée** (2026-09-17) : correctif outil de ressemblance barème — les anciens numéros `Ordre` (colonne D de `Bareme`) servaient d'`Id` partagés entre Tops ; migration auto au premier chargement du barème (Id régénérés + liens Historique rattachés, journalisée « Migration barème »). À vérifier en prod : relancer l'outil, groupes cohérents. 478/478.
+- **v3.31.0** : Plan A (`docs/superpowers/plans/2026-09-16-identity-cache-fixes.md`) et Plan B (`docs/superpowers/plans/2026-09-16-bareme-classification.md`) entièrement exécutés avec TDD strict. Suite complète : **477/477 tests verts** (`npm run verify`).
 - Porte de décision cache : tuile demandée à l'utilisateur lors du déploiement A4 ; correction du cache à appliquer dès transmission de la valeur de la tuile.
 - Bridge Discord/BotGhost : code complet et testé (`DiscordBridge.gs` + branche `doGet` + `tests/discord-bridge.test.js`, 15 cas), déployé en production (« Site tops » et « Tops RDS ») et sur la copie de test.
 
