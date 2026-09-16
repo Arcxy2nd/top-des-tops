@@ -31,13 +31,16 @@ function historyRows() {
   for (let d = 1; d <= 28; d++) {
     for (let k = 0; k < 3; k++) {
       const month = ['06', '07', '08'][k];
+      const bId = (d === 28 && k === 2) ? 'R_FIX1' : ((d === 28 && k === 1) ? 'R_SUPPRIMEE' : '');
       rows.push([
         '2026-' + month + '-' + String(d).padStart(2, '0'),
         players[(d + k) % players.length],
         cats[(d + k * 2) % cats.length],
         1 + ((d * 7 + k) % 25),
         'Entrée de test @' + players[(d + 1) % players.length] + ' #' + cats[k % cats.length],
-        ''
+        '',
+        '',
+        bId
       ]);
     }
   }
@@ -60,7 +63,7 @@ function buildSheets() {
   const sheets = {
     players:    makeSheet([['Name', 'Avatar URL', 'Hex color', 'Password'], ...PLAYERS]),
     categories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ...CATEGORIES]),
-    history:    makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId'], ...historyRows()]),
+    history:    makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur', 'BaremeId'], ...historyRows()]),
     notes:      makeSheet([['Date', 'Player', 'Note text'], ['2026-08-01', 'Alik', 'Note de test']]),
     bareme:     makeSheet([['Top', 'Action', 'Points', 'Id'], ['Mauvais', 'Insulter la mère', 204, 'R_FIX1'], ['Mauvais', 'Mauvais perdant', 10, 'R_FIX2'], ['Méchant', 'Tacle par derrière', 15, 'R_FIX3']]),
     phrases:    makeSheet([['Preset', 'Pool', 'Phrase'], ['__default__', 'first', '👑 {player} règne avec {pts} pts.']]),

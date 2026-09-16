@@ -1670,15 +1670,14 @@ const StorageService = {
       Object.keys(counts).forEach(name => { if (counts[name] > 1) duplicateNames.push(label + ' « ' + name + ' » (' + counts[name] + ')'); });
     };
     flagDuplicates(playersList, 'Joueur');
-    flagDuplicates(categoriesList, 'Top');
-
-    const { values: data, startRow } = _readDataRows('history', sheet, 4);
-    if (!data.length) return { zeros: 0, orphans: 0, total: 0, duplicateNames };
+    const { values: data, startRow } = _readDataRows('history', sheet, 8);
+    if (!data.length) return { zeros: 0, orphans: 0, baremeOrphans: 0, total: 0, duplicateNames };
 
     const players    = new Set(playersList.map(p => p.name));
     const categories = new Set(categoriesList.map(c => c.name));
+    const ruleIds    = new Set(BaremeService.getEntries().map(e => e.id).filter(Boolean));
 
-    let zeros = 0, orphans = 0;
+    let zeros = 0, orphans = 0, baremeOrphans = 0;
 
     data.forEach((row, idx) => {
       const rec = this._parseHistoryRow(row, idx, startRow);
@@ -1686,12 +1685,14 @@ const StorageService = {
       if (!rec.pointsValid) zeros++;
       if (rec.player && !players.has(rec.player))         orphans++;
       else if (rec.category && !categories.has(rec.category)) orphans++;
+      if (rec.baremeId && !ruleIds.has(rec.baremeId))     baremeOrphans++;
     });
 
     return {
       total:  data.length,
       zeros,
       orphans,
+      baremeOrphans,
       duplicateNames
     };
   },

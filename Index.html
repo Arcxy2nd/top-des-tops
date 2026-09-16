@@ -1195,6 +1195,8 @@
       color: var(--text);
     }
     .hist-pill .pill-emoji { font-size: 1rem; line-height: 1; }
+    .hist-bareme-pill { margin-left: 4px; --pill-bg: var(--btn-alt); --pill-bd: var(--border); }
+    .hist-bareme-filter { width: 100%; margin-top: 3px; }
     .hist-pts {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 34px; padding: 4px 10px; border-radius: 8px;
@@ -5583,6 +5585,7 @@
             <div class="hist-filter-row">
               <span class="hist-filter-label">Tops</span>
               <div class="hist-fchip-row" id="histCategoryChips"></div>
+              <select id="histBaremeFilter" class="hist-bareme-filter" aria-label="Filtrer par règle du barème"></select>
             </div>
             <div class="hist-filter-row">
               <span class="hist-filter-label">Tops Alt</span>
@@ -5839,6 +5842,7 @@
             <ul class="guide-feature-list">
               <li class="guide-feature-item"><span class="guide-feature-icon">📋</span><div class="guide-feature-body"><strong>Panneau flottant</strong><span>Le bouton ⚖️ en bas à gauche liste toutes les règles définies dans Paramètres → Barème.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">⌨️</span><div class="guide-feature-body"><strong>Raccourci clavier</strong><span>Appuie sur <kbd>?</kbd> depuis n'importe quel onglet pour ouvrir/fermer le panneau Barème.</span></div></li>
+              <li class="guide-feature-item"><span class="guide-feature-icon">📏</span><div class="guide-feature-body"><strong>Classer une entrée par règle</strong><span>Cliquer sur une règle en saisie de lot remplit les points et rattache la règle ; la description saisie est conservée. Une pastille 📏 s'affiche dans l'Historique, qui permet aussi de filtrer par règle. L'outil de suggestion (Outils) aide à classer les entrées existantes.</span></div></li>
             </ul>
           </div>
 
@@ -6052,8 +6056,8 @@
   // Vider la Map ne rappelle pas une requête déjà partie : sa réponse écrirait
   // dans le cache fraîchement vidé. La génération permet de la jeter à l'arrivée.
   let _histPrefetchGeneration = 0;
-  function histPrefetchKey(page, players, cats, text, dateFrom, dateTo, altFilter) {
-    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '') + '|' + _histSortDir + '|' + (altFilter || '');
+  function histPrefetchKey(page, players, cats, text, dateFrom, dateTo, altFilter, baremeFilter) {
+    return page + '|' + players.join(',') + '|' + cats.join(',') + '|' + (text || '') + '|' + (dateFrom || '') + '|' + (dateTo || '') + '|' + _histSortDir + '|' + (altFilter || '') + '|' + (baremeFilter || '');
   }
   function clearHistPrefetchCache() { histPrefetchCache.clear(); _histPrefetchGeneration++; }
   const PTS_VALUES = [1, 3, 5, 7, 10, 25, 50, 100];
@@ -8511,6 +8515,17 @@
     const ic = catIcon(name);
     if (ic) { const em = document.createElement('span'); em.className = 'pill-emoji'; em.textContent = ic; pill.appendChild(em); }
     pill.appendChild(document.createTextNode(name));
+    return pill;
+  }
+
+  function baremePill(baremeId) {
+    if (!baremeId) return null;
+    const rule = (baremeEntries || []).find(e => e.id === baremeId);
+    if (!rule) return null; // règle supprimée : signalée dans Santé, jamais affichée comme valide
+    const pill = document.createElement('span');
+    pill.className = 'hist-pill hist-bareme-pill';
+    pill.title = 'Règle du barème : ' + rule.action + ' (' + (rule.pts > 0 ? '+' : '') + rule.pts + ' pts)';
+    pill.textContent = '📏 ' + rule.action;
     return pill;
   }
 
@@ -15969,6 +15984,58 @@
 
   function updateHistoryFilters() {
     renderHistoryFilterChips();
+    renderHistBaremeFilter();
+  }
+
+  function renderHistBaremeFilter() {
+    const sel = document.getElementById('histBaremeFilter');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '';
+
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = '— Toutes les règles —';
+    sel.appendChild(allOpt);
+
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '__NONE__';
+    noneOpt.textContent = '— Sans règle —';
+    sel.appendChild(noneOpt);
+
+    const entries = baremeEntries || [];
+    const byTop = {};
+    entries.forEach(e => {
+      if (!e.top || !e.id) return;
+      (byTop[e.top] = byTop[e.top] || []).push(e);
+    });
+
+    Object.keys(byTop).sort().forEach(top => {
+      const grp = document.createElement('optgroup');
+      grp.label = top;
+      byTop[top].sort((a, b) => a.pts - b.pts).forEach(e => {
+        const o = document.createElement('option');
+        o.value = e.id;
+        o.textContent = e.action + ' (' + (e.pts > 0 ? '+' : '') + e.pts + ' pts)';
+        grp.appendChild(o);
+      });
+      sel.appendChild(grp);
+    });
+
+    if (current && Array.from(sel.options).some(o => o.value === current)) {
+      sel.value = current;
+    } else {
+      sel.value = '';
+    }
+
+    if (!sel._bound) {
+      sel._bound = true;
+      sel.addEventListener('change', () => {
+        currentHistoryPage = 1;
+        clearHistPrefetchCache();
+        loadHistoryPage(1);
+      });
+    }
   }
 
   function flushPendingDeletions(callback) {
@@ -16213,6 +16280,8 @@
           catCell.appendChild(mixedPill);
         } else {
           catCell.appendChild(categoryPill(first.category));
+          const bp = baremePill(first.baremeId);
+          if (bp) catCell.appendChild(bp);
         }
         if (!isMultiCategory && first.description) {
           const SHORT_LIMIT = 55;
@@ -16378,20 +16447,21 @@
     // Chips are single-select (each handler clears the set before adding), so the
     // server's scalar filterAltCategory is enough.
     const altFilter = selectedHistAltCategories.size ? Array.from(selectedHistAltCategories)[0] : null;
-    const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter);
+    const baremeFilter = (document.getElementById('histBaremeFilter') || {}).value || null;
+    const key = histPrefetchKey(page, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter, baremeFilter);
 
     const prefetched = histPrefetchCache.get(key);
     if (prefetched) {
       histPrefetchCache.delete(key);
       _renderHistoryPage(page, prefetched);
-      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter, baremeFilter);
       return;
     }
 
     showTableSkeleton(document.getElementById('historyTableBody'), histSelectMode ? 7 : 6, PAGE_SIZE);
-    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter], res => {
+    callServer('apiGetHistoryPage', [page, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter, baremeFilter], res => {
       _renderHistoryPage(page, res);
-      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter);
+      _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter, baremeFilter);
     }, 'Chargement historique', () => {
       const tbody = document.getElementById('historyTableBody');
       if (!tbody) return;
@@ -16405,12 +16475,12 @@
   // Précharge silencieusement la page suivante (pas de skeleton, pas de toast d'erreur
   // visible) pour que le clic "suivant" soit instantané. N'écrase pas une entrée déjà
   // présente dans le cache (évite de reprécharger en boucle si l'utilisateur va-et-vient).
-  function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter) {
+  function _prefetchNextHistoryPage(page, filterPlayers, filterCats, textFilter, dateFrom, dateTo, altFilter, baremeFilter) {
     const nextPage = page + 1;
-    const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter);
+    const key = histPrefetchKey(nextPage, filterPlayers, filterCats, textFilter.trim(), dateFrom, dateTo, altFilter, baremeFilter);
     if (histPrefetchCache.has(key)) return;
     const generation = _histPrefetchGeneration;
-    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter],
+    callServer('apiGetHistoryPage', [nextPage, PAGE_SIZE, filterPlayers, filterCats, textFilter.trim() || null, dateFrom || null, dateTo || null, _histSortDir, altFilter, baremeFilter],
       res => { if (generation === _histPrefetchGeneration) histPrefetchCache.set(key, res); },
       null,
       // Pas de toast (échec silencieux pour l'utilisateur : la page suivante sera
@@ -16492,6 +16562,8 @@
     const catCell = tr.insertCell();
     catCell.setAttribute('data-label', 'Top');
     catCell.appendChild(categoryPill(log.category));
+    const bp = baremePill(log.baremeId);
+    if (bp) catCell.appendChild(bp);
 
     const altList = cachedAltMap[log.rowIndex ? log.rowIndex.toString() : ''] || [];
     if (altList.length) {
@@ -17874,6 +17946,10 @@
           <div class="stat-value">${h.orphans}</div>
           <div class="stat-label">Orphelines</div>
         </div>
+        <div class="health-stat ${h.baremeOrphans > 0 ? 'warn' : 'ok'}">
+          <div class="stat-value">${h.baremeOrphans || 0}</div>
+          <div class="stat-label">Règle du barème introuvable</div>
+        </div>
         <div class="health-stat ${dupes.length > 0 ? 'bad' : 'ok'}">
           <div class="stat-value">${dupes.length}</div>
           <div class="stat-label">Noms en double</div>
@@ -18662,7 +18738,18 @@
     if (tabId === 'tab-dashboard') {
       if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
     }
-    if (tabId === 'tab-history'  && !_histLoadedOnce) { loadHistoryPage(1); }
+    if (tabId === 'tab-history') {
+      if (!_histLoadedOnce) { loadHistoryPage(1); }
+      if (baremeEntries === null) {
+        callServer('apiGetBareme', [], res => {
+          baremeEntries = res.entries;
+          renderHistBaremeFilter();
+          if (_lastHistPageRes) _renderHistoryPage(_lastHistPageNum, _lastHistPageRes);
+        }, 'Barème', null, true);
+      } else {
+        renderHistBaremeFilter();
+      }
+    }
     if (tabId === 'tab-notes'    && !_notesLoadedOnce) { loadNotes(); }
     if (tabId === 'tab-settings') {
       if (baremeEntries === null) loadBaremeSettings();
@@ -19130,6 +19217,13 @@
       defaultKey:     'all',
       onChange:       reloadHistFromDateChange
     });
+    const histDateClearBtn = document.getElementById('historyDateClearBtn');
+    if (histDateClearBtn) {
+      histDateClearBtn.addEventListener('click', () => {
+        const sel = document.getElementById('histBaremeFilter');
+        if (sel) sel.value = '';
+      });
+    }
     setupDateSortToggle(document.getElementById('histSortBtn'),
       () => _histSortDir,
       dir => { _histSortDir = dir; reloadHistFromDateChange(); });
@@ -21133,9 +21227,12 @@
     });
   }
 
+  let _baremeUsageCounts = {};
+
   function renderBaremeSettings(entries) {
     const container = document.getElementById('baremeSettingsList');
     if (!container) return;
+    renderHistBaremeFilter();
     container.innerHTML = '';
     cachedCategories.forEach(cat => {
       const catEntries = (entries || []).filter(e => e.top === cat.name).sort((a, b) => (a.pts - b.pts) || (a.rowIndex - b.rowIndex));
@@ -21171,6 +21268,23 @@
       block.appendChild(buildBsectAddForm(cat.name, entries));
       container.appendChild(block);
     });
+
+    callServer('apiGetBaremeUsage', [], res => {
+      _baremeUsageCounts = res.counts || {};
+      container.querySelectorAll('.bsect-entry').forEach(row => {
+        const ruleId = row.dataset.ruleId;
+        const cnt = _baremeUsageCounts[ruleId] || 0;
+        let usageSpan = row.querySelector('.bareme-usage');
+        if (!usageSpan) {
+          usageSpan = document.createElement('span');
+          usageSpan.className = 'bareme-usage';
+          usageSpan.style.cssText = 'color:var(--text-muted);font-size:0.75rem;margin-left:4px;';
+          const actEl = row.querySelector('.bsect-action');
+          if (actEl) actEl.appendChild(usageSpan);
+        }
+        usageSpan.textContent = ' · ' + cnt + ' entrée' + (cnt > 1 ? 's' : '');
+      });
+    }, 'Usage barème', null, true);
   }
 
   function buildBsectRow(entry, entriesCont, allEntries) {
@@ -21178,6 +21292,7 @@
     const row = document.createElement('div');
     row.className = 'bsect-entry';
     row.dataset.rowIndex = entry.rowIndex;
+    if (entry.id) row.dataset.ruleId = entry.id;
     row.style.borderLeft = '3px solid ' + tint(col, 0.5);
     row.style.background = tint(col, 0.05);
 
@@ -21188,6 +21303,12 @@
 
     const action = document.createElement('span');
     action.className = 'bsect-action'; action.textContent = entry.action;
+    const cnt = _baremeUsageCounts[entry.id] || 0;
+    const usageSpan = document.createElement('span');
+    usageSpan.className = 'bareme-usage';
+    usageSpan.style.cssText = 'color:var(--text-muted);font-size:0.75rem;margin-left:4px;';
+    usageSpan.textContent = ' · ' + cnt + ' entrée' + (cnt > 1 ? 's' : '');
+    action.appendChild(usageSpan);
 
     const btns = document.createElement('div');
     btns.className = 'bsect-btns';
@@ -21237,7 +21358,12 @@
         }, 'Suppr. barème', () => restore());
       };
       if (!requireIdentity(doDelete)) return;
-      doDelete();
+      const count = _baremeUsageCounts[entry.id] || 0;
+      if (count > 0) {
+        openConfirmModal('Cette règle classe ' + count + ' entrée(s). Elles resteront dans l\'historique mais apparaîtront comme « règle introuvable ». Supprimer ?', doDelete);
+      } else {
+        doDelete();
+      }
     });
 
     btns.appendChild(editBtn); btns.appendChild(delBtn);
