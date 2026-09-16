@@ -372,5 +372,18 @@ test('Index.html inline script executes completely without TDZ or initialization
   }, 'Index.html script must execute without throwing top-level errors (such as TDZ ReferenceErrors)');
 });
 
+test('les caches joueurs et tableau de bord ne relisent jamais la clé non préfixée', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  for (const name of ['restoreDashboardFromCache', 'bootDataLoad']) {
+    const body = extractFunction(html, name);
+    assert.ok(!/getItem\('tdt_dashboard_cache'\)/.test(body), name + ' relit tdt_dashboard_cache');
+    assert.ok(!/getItem\('tdt_cache_settings'\)/.test(body), name + ' relit tdt_cache_settings');
+  }
+  const onloadStart = html.indexOf('const hasCachedDashboard');
+  assert.notStrictEqual(onloadStart, -1);
+  const snippet = html.slice(onloadStart, onloadStart + 600);
+  assert.ok(!/getItem\('tdt_dashboard_cache'\)/.test(snippet), 'hasCachedDashboard relit tdt_dashboard_cache');
+});
+
 
 

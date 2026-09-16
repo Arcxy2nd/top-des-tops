@@ -10851,10 +10851,7 @@
     let paintedFromCache = false;
     try {
       SETTINGS_CACHE_KEY = getSettingsCacheKey();
-      let raw = localStorage.getItem(SETTINGS_CACHE_KEY);
-      if (!raw && SETTINGS_CACHE_KEY !== 'tdt_cache_settings') {
-        raw = localStorage.getItem('tdt_cache_settings');
-      }
+      const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
       const cached = JSON.parse(raw || 'null');
       if (cached && cached.players && cached.categories) {
         cachedPlayers    = cached.players;
@@ -11427,11 +11424,10 @@
 
   function restoreDashboardFromCache() {
     try {
-      DASHBOARD_CACHE_KEY = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : 'tdt_dashboard_cache';
-      let raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
-      if (!raw && DASHBOARD_CACHE_KEY !== 'tdt_dashboard_cache') {
-        raw = localStorage.getItem('tdt_dashboard_cache');
-      }
+      DASHBOARD_CACHE_KEY = getDashboardCacheKey();
+      // Pas de repli sur 'tdt_dashboard_cache' : avant le cloisonnement, cette clé était
+      // partagée par les deux instances et peut contenir le classement de l'autre site.
+      const raw = localStorage.getItem(DASHBOARD_CACHE_KEY);
       if (!raw) return false;
       const cached = JSON.parse(raw);
       if (cached && cached.chartData && cached.chartData.labels && cached.chartData.labels.length) {
@@ -20614,9 +20610,7 @@
     initPhraseSettings();
     const hasCachedDashboard = (() => {
       try {
-        const key = (typeof getDashboardCacheKey === 'function') ? getDashboardCacheKey() : DASHBOARD_CACHE_KEY;
-        let raw = localStorage.getItem(key);
-        if (!raw && key !== 'tdt_dashboard_cache') raw = localStorage.getItem('tdt_dashboard_cache');
+        const raw = localStorage.getItem(getDashboardCacheKey());
         if (!raw) return false;
         const c = JSON.parse(raw);
         return !!(c && c.chartData && c.chartData.labels && c.chartData.labels.length);
@@ -20802,10 +20796,7 @@
     // Pré-remplissage des entités depuis le cache pour affichage instantané
     try {
       SETTINGS_CACHE_KEY = getSettingsCacheKey();
-      let raw = localStorage.getItem(SETTINGS_CACHE_KEY);
-      if (!raw && SETTINGS_CACHE_KEY !== 'tdt_cache_settings') {
-        raw = localStorage.getItem('tdt_cache_settings');
-      }
+      const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
       const cachedSettings = JSON.parse(raw || 'null');
       if (cachedSettings && cachedSettings.players && cachedSettings.categories) {
         cachedPlayers    = cachedSettings.players;
