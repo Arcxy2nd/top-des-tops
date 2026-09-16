@@ -29,7 +29,7 @@ function fetchJson(url) {
   });
 }
 
-async function runScenario({ name, scriptFn, outputFile, mobile, width = 1280, height = 800 }) {
+async function runScenario({ name, scriptFn, outputFile, mobile, reloadFirst = false, width = 1280, height = 800 }) {
   const server = await startServer(0);
   const port = server.port;
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "top-bench-"));
@@ -98,6 +98,11 @@ async function runScenario({ name, scriptFn, outputFile, mobile, width = 1280, h
   await send("Runtime.enable");
 
   // Attendre le chargement initial
+  if (reloadFirst) {
+    await new Promise(r => setTimeout(r, 1200));
+    await send("Page.reload");
+    await new Promise(r => setTimeout(r, 1200));
+  }
   await new Promise(r => setTimeout(r, 1200));
 
   if (mobile) {

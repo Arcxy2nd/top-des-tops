@@ -2,20 +2,18 @@
 
 ## État courant
 - Branche active : `main` (fusionnée et déployée).
-- Système d'identité & session refondu : cloisonnement multi-instances (`window.__APP_INSTANCE_ID__`), persistance de mot de passe en `sessionStorage`, partitionnement du cache dashboard (`tdt_${instanceId}_dashboard_cache`) et des préférences de phrases, alignement strict des arguments `apiManageEntity`, normalisation trim/mots de passe numériques Sheets et reprise automatique d'action (`onVerified`). Correction de l'ordonnancement des déclarations de clés de cache dans `Index.html` (élimination d'un ReferenceError TDZ au chargement initial). Suite complète : **449/449 verts** (`npm run verify`).
+- **Plan A livré (v3.30.22)** : normalisation des cellules mot de passe (`_normalizeSecretCell`, suppression des caractères invisibles U+200B..U+FEFF), sonde serveur sans mot de passe à la sélection d'un joueur (`unlockOrPrompt` / `apiVerifyIdentity`), suppression de la relecture des caches non préfixés (`tdt_dashboard_cache`, `tdt_cache_settings`), instrumentation d'observabilité du cache navigateur (`describeDashboardCache`, `_bootCacheStatus`, tuile « Cache navigateur » dans Santé) et banc local fidèle à `doGet`. Suite complète : **459/459 verts** (`npm run verify`).
+- Porte de décision cache : tuile demandée à l'utilisateur lors du déploiement A4 ; correction du cache à appliquer dès transmission de la valeur de la tuile.
+- **En cours** : Exécution du plan B `docs/superpowers/plans/2026-09-16-bareme-classification.md` (rattachement entrée → règle du barème + outil de détection par ressemblance, v3.31.0).
 - Bridge Discord/BotGhost : code complet et testé (`DiscordBridge.gs` + branche `doGet` + `tests/discord-bridge.test.js`, 15 cas), déployé en production (« Site tops » et « Tops RDS ») et sur la copie de test.
-- Guide BotGhost complété (`BOTGHOST_BOT_SETUP.md`) : documentation claire pour cibler soit la production (`https://c55zvj.s.gy/tops-des-tops`), soit la copie de test.
-- Poussé sur la copie de test (scriptId `1fiBPQDpb9KGmdjtHzamK9JNmqypsgpXgzQpVztDp3IDYH4Cd_WAgqsdd`) et déployé sur un lien fixe : `https://script.google.com/macros/s/AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e/exec` (deploymentId `AKfycbxCweaDEZScvtGltvt3jtOhXgbRqfe5Gh_i3xKp6vIbLhi2A75grQW2OeUGtger5N9e` — redéployer en place avec `clasp deploy -i <id>` après chaque `clasp push`, jamais un nouveau lien).
-- **Actions requises selon l'environnement ciblé par le bot Discord** :
-  - **En production (« Site tops »)** : poser `DISCORD_BRIDGE_SECRET` dans les Script Properties de `Site tops` et ajouter la colonne `Discord ID` (colonne F) dans l'onglet `Players` du Sheet de production.
-  - **Sur la copie de test** : autoriser le script une fois dans script.google.com (consentement OAuth), poser `SPREADSHEET_ID` et `DISCORD_BRIDGE_SECRET` dans les Script Properties.
-- **Prochaine tâche prioritaire (2026-09-16)** : exécuter le plan A `docs/superpowers/plans/2026-09-16-identity-cache-fixes.md` (mot de passe demandé à tort à la sélection + cache dashboard non utilisé, v3.30.22), puis le plan B `docs/superpowers/plans/2026-09-16-bareme-classification.md` (rattachement entrée → règle du barème + outil de détection par ressemblance, v3.31.0). Plans rédigés et gitignorés, aucun code touché.
-- Diagnostic cache déjà fait : non reproductible sur le banc local (cache écrit et restauré correctement avec l'injection d'instance simulée) → plan A tâche A4 ajoute une tuile « Cache navigateur » dans Santé puis porte de décision (lecture par l'utilisateur sur le vrai site).
-- Tâche secondaire : vérifier une requête réelle depuis BotGhost.
-- Init recommandé : full (Opus, effort élevé pour le plan B).
 
 ## Dernière session
-- **Fiabilisation & Refonte du Système d'Identité / Authentification (v3.30.20)** :
+- **Plan A — Mot de passe fantôme & cache du tableau de bord (v3.30.22)** :
+  - *Cellule mot de passe sans faille* : `_normalizeSecretCell` filtre les caractères de largeur nulle et blancs insécables dans `Code.gs`, empêchant qu'un copier-coller dans Google Sheets verrouille un joueur sans mot de passe.
+  - *Sonde à la sélection* : `unlockOrPrompt` interroge le serveur en tâche de fond (`apiVerifyIdentity(name, '')`). Si le joueur n'a pas de mot de passe, l'identité est appliquée sans ouvrir de modale, le cache client est actualisé et le cache serveur invalidé sans journaliser d'échec de sécurité.
+  - *Étanchéité des caches* : suppression de toute relecture des clés historiques partagées non préfixées (`tdt_dashboard_cache`, `tdt_cache_settings`).
+  - *Observabilité du cache* : `describeDashboardCache` et tuile « Cache navigateur » dans le panneau Santé (Outils) indiquant si le cache a été restauré au démarrage, avec clé et hôte. Banc local (`serve.js`) aligné sur l'injection de `__APP_INSTANCE_ID__`.
+
   - *Cloisonnement inter-liens* : injection de `window.__APP_INSTANCE_ID__` via `HtmlOutput.append()` dans `doGet` ; toutes les clés de stockage (`localStorage`, `sessionStorage`, cache dashboard, cache appsettings, cache settings, phrase settings) sont préfixées, empêchant toute collision entre « Site tops » et « Tops RDS » avec migration automatique transparente.
   - *Boucle de mot de passe résolue* : argument `rowIndex` manquant rétabli avec `null` pour l'ajout de joueurs et de tops dans `Index.html` afin que le mot de passe ne soit plus injecté au mauvais paramètre dans `apiManageEntity` ; normalisation des `.trim()` et conversion en chaîne des cellules Sheets dans `SettingsService.verifyIdentity` et `getEntities` (support des mots de passe `'0'`).
   - *Persistance mobile* : `sessionStorage` mémorise le mot de passe de session actif, protégeant contre l'amnésie lors des mises en veille et rafraîchissements sans écriture sur disque permanent.

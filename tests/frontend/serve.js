@@ -23,9 +23,10 @@ function servePage(res) {
   // The preamble must precede every script on the page: Index.html calls
   // google.script.run from window.onload, but also during parsing.
   const injected = html.replace('<head>', '<head>\n<script>\n' + stub + '\n</script>');
-  if (injected === html) throw new Error('Index.html: balise <head> introuvable, injection impossible');
+  // Même injection que doGet() : sans elle, le banc ne testait jamais le cloisonnement par instance.
+  const instanceScript = '<script>window.__APP_INSTANCE_ID__ = "harness"; if (window.syncIdentityFromStorage) window.syncIdentityFromStorage();</script>';
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(injected);
+  res.end(injected + instanceScript);
 }
 
 function handleCall(gas, body, res) {

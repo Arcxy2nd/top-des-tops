@@ -11421,6 +11421,18 @@
   let _baseChartData = null;
   let _lastFilterStartDate = null;
   let _lastFilterEndDate = null;
+  let _bootCacheStatus = null;
+
+  function describeDashboardCache() {
+    const key = getDashboardCacheKey();
+    let present = false, savedAt = null;
+    try {
+      const c = JSON.parse(localStorage.getItem(key) || 'null');
+      present = !!(c && c.chartData && c.chartData.labels && c.chartData.labels.length);
+      savedAt = (c && c.savedAt) || null;
+    } catch (_) { /* cache illisible = absent */ }
+    return { key, present, savedAt, host: location.host };
+  }
 
   function restoreDashboardFromCache() {
     try {
@@ -11458,7 +11470,7 @@
         }
         return true;
       }
-    } catch (e) { /* ignore cache read error */ }
+    } catch (e) { console.error('restoreDashboardFromCache', e); }
     return false;
   }
 
@@ -17783,6 +17795,17 @@
             <div class="stat-label">Cache (${stats.hits}/${stats.hits + stats.misses}, 6h)</div>
           </div>
         `);
+        if (_bootCacheStatus) {
+          const s = _bootCacheStatus;
+          const label = s.restored ? 'restauré au démarrage' : (s.present ? 'présent mais non restauré' : 'absent au démarrage');
+          const age = s.savedAt ? ' · enregistré ' + timeAgo(new Date(s.savedAt)) : '';
+          grid.insertAdjacentHTML('beforeend', `
+            <div class="health-stat ${s.restored ? 'ok' : 'warn'}">
+              <div class="stat-value">${s.restored ? '✓' : '✗'}</div>
+              <div class="stat-label">Cache navigateur : ${escapeHtml(label + age)}<br><small>${escapeHtml(s.key)} · ${escapeHtml(s.host)}</small></div>
+            </div>
+          `);
+        }
       }, null, null, true);
     }, 'Chargement santé', () => {
       grid.innerHTML = '<div class="hq-empty">Erreur de chargement.</div>';
@@ -20806,7 +20829,7 @@
     } catch (e) {}
 
     // Restauration immédiate du dashboard sans skeleton
-    restoreDashboardFromCache();
+    _bootCacheStatus = Object.assign(describeDashboardCache(), { restored: restoreDashboardFromCache() });
 
     callServer('apiGetBootstrapData', [], res => {
       if (!res || !res.success) {

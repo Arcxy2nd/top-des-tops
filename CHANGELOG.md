@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.30.22] - 2026-09-16
+
+### Corrigé
+**Humanisé** : Choisir un joueur sans mot de passe ne réclame plus de mot de passe.
+**Technique** : `_normalizeSecretCell` dans `Code.gs` élimine les caractères invisibles des cellules mot de passe, sonde serveur `unlockOrPrompt` interrogeant `apiVerifyIdentity(name, '')` avant d'ouvrir la modale sans journal d'échec et avec `_bumpSettingsVersion()`, abandon définitif de la relecture des caches non préfixés (`tdt_dashboard_cache`, `tdt_cache_settings`).
+
+### Ajouté
+**Humanisé** : Le panneau Santé indique si le cache du navigateur a servi au démarrage.
+**Technique** : Fonctions `describeDashboardCache`, mémorisation `_bootCacheStatus`, tuile « Cache navigateur » dans `loadDataHealth`, et banc `tests/frontend/serve.js` aligné sur l'injection `window.__APP_INSTANCE_ID__` de `doGet`.
+
 ## [v3.30.19] - 2026-09-13
 
 ### Modifié
