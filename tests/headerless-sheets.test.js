@@ -147,7 +147,7 @@ test('the first score of a headerless History sheet is counted and headers inser
   const logs = gas.StorageService._readLogsFromSheet();
   assert.strictEqual(logs.length, 2, 'les 2 scores doivent être lus');
   assert.strictEqual(logs[0].player, 'Ilker');
-  assert.deepStrictEqual(histSheet._grid[0], ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']);
+  assert.deepStrictEqual(histSheet._grid[0], ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur', 'BaremeId']);
 });
 
 test('the header row of a History sheet is still skipped', () => {
@@ -179,7 +179,7 @@ test('getEntries reads the very first row of a headerless Bareme sheet and inser
   const entries = gas.BaremeService.getEntries();
   assert.deepStrictEqual(Array.from(entries.map(e => e.action)), ['Râler', 'Bouder']);
   assert.strictEqual(entries[0].rowIndex, 2);
-  assert.deepStrictEqual(baremeSheet._grid[0], ['Top', 'Action', 'Points']);
+  assert.deepStrictEqual(baremeSheet._grid[0], ['Top', 'Action', 'Points', 'Id']);
 });
 
 // ── Phrases ──────────────────────────────────────────────────────────────────

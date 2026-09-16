@@ -203,7 +203,8 @@ test('BaremeService.addEntry appends [top, action, pts] without Ordre column', (
   assert.strictEqual(row[0], 'Jeux');
   assert.strictEqual(row[1], 'Perd');
   assert.strictEqual(row[2], -2);
-  assert.strictEqual(row.length, 3);
+  assert.strictEqual(row.length, 4);
+  assert.match(row[3], /^R/);
 });
 
 test('PhrasesService.getAll sorts by Ordre within preset+pool and keeps rowIndex accurate', () => {

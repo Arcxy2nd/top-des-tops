@@ -55,6 +55,7 @@ function _parseLocalDateWithNow(dateStr) {
 
 /** Generates a short, collision-resistant id used to tag/group a batch of rows. */
 function _generateGroupId() { return 'G' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
+function _generateBaremeId() { return 'R' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6); }
 
 // ─── NAVIGATION REGISTRY ───────────────────────────────────────────────────────
 // Single source of truth for "which tabs exist, in what order, with which icon".
@@ -235,9 +236,9 @@ function _getCacheStats() {
 const SHEET_HEADERS = {
   players:       ['name', 'avatar url', 'hex color', 'password', 'ordre'],
   categories:    ['name', 'description', 'emoji', 'hex color', 'ordre'],
-  history:       ['date', 'player', 'category', 'points', 'description', 'groupid', 'saiseur'],
+  history:       ['date', 'player', 'category', 'points', 'description', 'groupid', 'saiseur', 'baremeid'],
   notes:         ['date', 'joueur', 'note', 'noteid', 'créépar', 'modifiépar', 'modifiéle'],
-  bareme:        ['top', 'action', 'points'],
+  bareme:        ['top', 'action', 'points', 'id'],
   phrases:       ['preset', 'pool', 'phrase', 'ordre'],
   chat:          ['id', 'date', 'auteur', 'texte', 'réponseà'],
   auditLog:      ['timestamp', 'auteur', 'action', 'entité', 'avant', 'après', 'détail', 'snapshot', 'annuléle'],
@@ -252,9 +253,9 @@ const SHEET_HEADERS = {
 const CANONICAL_SHEET_HEADERS = {
   players:       ['Name', 'Avatar URL', 'Hex color', 'Password', 'Ordre'],
   categories:    ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
-  history:       ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'],
+  history:       ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur', 'BaremeId'],
   notes:         ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
-  bareme:        ['Top', 'Action', 'Points'],
+  bareme:        ['Top', 'Action', 'Points', 'Id'],
   phrases:       ['Preset', 'Pool', 'Phrase', 'Ordre'],
   chat:          ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
   auditLog:      ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe'],
@@ -455,6 +456,17 @@ function _ensureSheetHeaders(sheetKey, sheet, values) {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
   _headerOffsetMemo[sheetKey] = 1;
+}
+
+// Colonne ajoutée après coup (ex. BaremeId) : la ligne d'en-tête existante n'a pas
+// encore son libellé — on l'écrit sans jamais toucher à une ligne de données.
+function _ensureHeaderLabel(sheetKey, sheet, col) {
+  if (!sheet || sheet.getLastRow() < 1) return;
+  const label = (CANONICAL_SHEET_HEADERS[sheetKey] || [])[col - 1];
+  if (!label) return;
+  const row1 = sheet.getRange(1, 1, 1, Math.max(col, 3)).getValues()[0];
+  if (!_isHeaderRow(sheetKey, row1)) return;
+  if (!(row1[col - 1] || '').toString().trim()) sheet.getRange(1, col).setValue(label);
 }
 
 function _ensureAllSheetHeaders() {
@@ -3148,7 +3160,7 @@ const BaremeService = {
     const cache = ConfigService.getSheets();
     if (cache.bareme) return cache.bareme;
     const sheet = cache.spreadsheet.insertSheet('Bareme');
-    sheet.appendRow(['Top', 'Action', 'Points']);
+    sheet.appendRow(['Top', 'Action', 'Points', 'Id']);
     ConfigService.clearCache();
     return ConfigService.getSheets().bareme;
   },
@@ -3165,20 +3177,15 @@ const BaremeService = {
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const data = _fetchSheetValues('bareme', sheet);
-    if (!data.length) return [];
-    let rowsData = data;
-    if (!_isHeaderRow('bareme', data[0])) {
-      _ensureSheetHeaders('bareme', sheet, data);
-    } else {
-      rowsData = data.slice(1);
-    }
-    let rows = rowsData
+    const { values, startRow } = _readDataRows('bareme', sheet, 4);
+    if (!values.length) return [];
+    let rows = values
       .map((r, i) => ({
-        rowIndex: i + 2,
+        rowIndex: startRow + i,
         top:      r[0] !== undefined && r[0] !== null ? r[0].toString() : "",
         action:   r[1] ? r[1].toString() : "",
-        pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0
+        pts:      r[2] !== "" && r[2] !== undefined ? Number(r[2]) : 0,
+        id:       r[3] ? r[3].toString().trim() : ""
       }))
       .filter(x => x.top !== "");
     const groups = {};
@@ -3202,8 +3209,33 @@ const BaremeService = {
     if (!top   || !top.trim())    throw new Error("Top manquant.");
     if (!action || !action.trim()) throw new Error("Action vide.");
     const sheet = this._getOrCreateSheet();
-    sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0]);
+    _ensureHeaderLabel('bareme', sheet, 4);
+    sheet.appendRow([top.trim(), action.trim(), Number(pts) || 0, _generateBaremeId()]);
     _bumpBaremeVersion();
+  },
+
+  /** Donne un Id aux règles qui n'en ont pas (règles antérieures à la v3.31.0). Appelant sous withLock. */
+  ensureIds() {
+    const sheet = ConfigService.getSheets().bareme;
+    if (!sheet) return 0;
+    const { values, startRow } = _readDataRows('bareme', sheet, 4);
+    let created = 0;
+    values.forEach((r, i) => {
+      if (!(r[0] || '').toString().trim()) return;
+      if ((r[3] || '').toString().trim()) return;
+      sheet.getRange(startRow + i, 4).setValue(_generateBaremeId());
+      created++;
+    });
+    if (created) {
+      _ensureHeaderLabel('bareme', sheet, 4);
+      _bumpBaremeVersion();
+    }
+    return created;
+  },
+
+  findById(id) {
+    if (!id) return null;
+    return this.getEntries().find(e => e.id === id) || null;
   },
 
   updateEntry(rowIndex, action, pts) {
@@ -3376,6 +3408,8 @@ const PhrasesService = {
 
 function apiGetBareme() {
   try {
+    const needsIds = BaremeService.getEntries().some(e => !e.id);
+    if (needsIds) withLock(() => BaremeService.ensureIds());
     return { success: true, entries: BaremeService.getEntries() };
   } catch(e) { return fail(e); }
 }
@@ -3390,7 +3424,7 @@ function apiAddBaremeEntry(top, action, pts, author, password) {
       AuditService.log(author, 'Règle ajoutée', 'Barème', '', after,
         'Règle ajoutée : ' + top + ' · ' + action + ' (+' + pts + ' pts)',
         { sheet: 'bareme', op: 'insert', rowIndex: sheet.getLastRow(),
-          after: sheet.getRange(sheet.getLastRow(), 1, 1, 3).getValues()[0] });
+          after: sheet.getRange(sheet.getLastRow(), 1, 1, 4).getValues()[0] });
       ConfigService.clearCache();
       return { success: true, entries: BaremeService.getEntries() };
     });
@@ -3403,10 +3437,10 @@ function apiUpdateBaremeEntry(rowIndex, action, pts, author, password) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       BaremeService.updateEntry(rowIndex, action, pts);
       const after = (action || '') + ' | ' + String(Number(pts) || 0) + ' pts';
-      const afterRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+      const afterRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       AuditService.log(author, 'Règle modifiée', 'Barème', before, after,
         'Ligne #' + rowIndex + ' : ' + before + ' → ' + after,
         { sheet: 'bareme', op: 'update', rowIndex, before: beforeRow, after: afterRow });
@@ -3422,7 +3456,7 @@ function apiDeleteBaremeEntry(rowIndex, author, password) {
     return withLock(() => {
       const sheet = ConfigService.getSheets().bareme;
       const before = _baremeRowSummary(rowIndex);
-      const beforeRow = sheet.getRange(rowIndex, 1, 1, 3).getValues()[0];
+      const beforeRow = sheet.getRange(rowIndex, 1, 1, 4).getValues()[0];
       BaremeService.deleteEntry(rowIndex);
       AuditService.log(author, 'Règle supprimée', 'Barème', before, 'Supprimé',
         'Règle supprimée (ligne #' + rowIndex + ') : ' + before,
@@ -3431,6 +3465,21 @@ function apiDeleteBaremeEntry(rowIndex, author, password) {
       return { success: true, entries: BaremeService.getEntries() };
     });
   } catch(e) { return fail(e); }
+}
+
+function apiGetBaremeUsage() {
+  try {
+    const known = {};
+    BaremeService.getEntries().forEach(e => { if (e.id) known[e.id] = true; });
+    const counts = {};
+    let orphans = 0;
+    StorageService.getFullHistoryRowsCached().forEach(rec => {
+      if (!rec.baremeId) return;
+      if (known[rec.baremeId]) counts[rec.baremeId] = (counts[rec.baremeId] || 0) + 1;
+      else orphans++;
+    });
+    return { success: true, counts, orphans };
+  } catch (e) { return fail(e); }
 }
 
 function apiSetColor(type, rowIndex, expectedName, color, author, password) {
