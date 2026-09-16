@@ -143,6 +143,7 @@ function loadIdentityEnv(opts = {}) {
     'requireIdentity',
     'openIdentityPwdModal',
     'closeIdentityPwdModal',
+    'unlockOrPrompt',
     'wordDiffHtml',
     'auditDiffValue',
     'escapeHtml'
@@ -307,5 +308,22 @@ test('Le bouton Changer d\'utilisateur ferme la modale mot de passe, déconnecte
   assert.strictEqual(env._identityPassword, '', '_identityPassword doit être vidé');
   const wrap = env.document.getElementById('whoAmIWrap');
   assert.ok(wrap.classList.contains('open'), 'Le sélecteur Qui suis-je doit être ouvert');
+});
+
+test('cliquer sur un joueur protégé sans mot de passe serveur le déverrouille via unlockOrPrompt', () => {
+  const { env, renderWhoAmI } = loadIdentityEnv({ initialUser: null });
+  env.callServer = (fn, params, ok) => ok({ success: true, granted: true });
+  env.setIdentityPassword = () => {};
+  env.SETTINGS_CACHE_KEY = 'k';
+  env.cachedCategories = [];
+
+  renderWhoAmI();
+  const dropdown = env.document.getElementById('whoAmIDropdown');
+  const bobOpt = dropdown.children.find(opt => opt.children && opt.children.some(c => c.textContent === 'Bob'));
+  assert.ok(bobOpt, 'Option Bob trouvée');
+  bobOpt._listeners.click.forEach(fn => fn());
+
+  assert.strictEqual(env._whoAmI, 'Bob');
+  assert.strictEqual(env._identityPwdTarget, null);
 });
 

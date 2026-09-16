@@ -3694,7 +3694,13 @@ function _entityColorSummary(type, name) {
 function apiVerifyIdentity(name, password) {
   try {
     const granted = SettingsService.verifyIdentity(name, password);
-    if (!granted) {
+    const isProbe = _normalizeSecretCell(password) === '';
+    if (granted && isProbe) {
+      // Sonde de la page : le client croyait ce joueur protégé (cache périmé,
+      // mot de passe retiré à la main dans la feuille) — on invalide le cache des joueurs.
+      try { _bumpSettingsVersion(); } catch (_) {}
+    }
+    if (!granted && !isProbe) {
       try {
         AuditService.log(name || 'Inconnu', 'Échec authentification', 'Sécurité', '', '',
           'Mot de passe invalide pour ' + (name || 'inconnu'));

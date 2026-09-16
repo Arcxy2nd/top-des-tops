@@ -10964,6 +10964,24 @@
     }, 'Vérification identité', () => { btn.disabled = false; });
   }
 
+  // Le drapeau hasPassword vient de caches (localStorage + cache serveur) qui peuvent
+  // être périmés : le serveur relit la feuille avant qu'on réclame un mot de passe.
+  function unlockOrPrompt(player, onUnlocked) {
+    callServer('apiVerifyIdentity', [player.name, ''], res => {
+      if (!(res && res.granted)) {
+        openIdentityPwdModal(player, onUnlocked);
+        return;
+      }
+      player.hasPassword = false;
+      setIdentityPassword('');
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+      } catch (_) { /* cache best-effort */ }
+      applyIdentity(player.name);
+      if (typeof onUnlocked === 'function') onUnlocked();
+    }, 'Vérification identité', () => openIdentityPwdModal(player, onUnlocked), true);
+  }
+
   // Le menu est en position:fixed : sans recalage il reste figé à l'écran
   // quand la page défile, décroché de son bouton. Défini ici (portée
   // module, pas dans window.onload) pour que applyIdentity()/renderWhoAmI()
@@ -11112,7 +11130,7 @@
         if (p.name === _whoAmI) {
           if (p.hasPassword && !hasPwd()) {
             closeWhoAmIDropdown();
-            openIdentityPwdModal(p);
+            unlockOrPrompt(p);
             return;
           }
           closeWhoAmIDropdown();
@@ -11120,7 +11138,7 @@
         }
         if (p.hasPassword) {
           closeWhoAmIDropdown();
-          openIdentityPwdModal(p);
+          unlockOrPrompt(p);
         } else {
           _identityPassword = '';
           if (typeof setIdentityPassword === 'function') setIdentityPassword('');
