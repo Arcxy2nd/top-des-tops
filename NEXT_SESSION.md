@@ -9,8 +9,10 @@
 - **Actions requises selon l'environnement ciblé par le bot Discord** :
   - **En production (« Site tops »)** : poser `DISCORD_BRIDGE_SECRET` dans les Script Properties de `Site tops` et ajouter la colonne `Discord ID` (colonne F) dans l'onglet `Players` du Sheet de production.
   - **Sur la copie de test** : autoriser le script une fois dans script.google.com (consentement OAuth), poser `SPREADSHEET_ID` et `DISCORD_BRIDGE_SECRET` dans les Script Properties.
-- Prochaine tâche prioritaire : vérifier une requête réelle depuis BotGhost.
-- Init recommandé : standard.
+- **Prochaine tâche prioritaire (2026-09-16)** : exécuter le plan A `docs/superpowers/plans/2026-09-16-identity-cache-fixes.md` (mot de passe demandé à tort à la sélection + cache dashboard non utilisé, v3.30.22), puis le plan B `docs/superpowers/plans/2026-09-16-bareme-classification.md` (rattachement entrée → règle du barème + outil de détection par ressemblance, v3.31.0). Plans rédigés et gitignorés, aucun code touché.
+- Diagnostic cache déjà fait : non reproductible sur le banc local (cache écrit et restauré correctement avec l'injection d'instance simulée) → plan A tâche A4 ajoute une tuile « Cache navigateur » dans Santé puis porte de décision (lecture par l'utilisateur sur le vrai site).
+- Tâche secondaire : vérifier une requête réelle depuis BotGhost.
+- Init recommandé : full (Opus, effort élevé pour le plan B).
 
 ## Dernière session
 - **Fiabilisation & Refonte du Système d'Identité / Authentification (v3.30.20)** :
@@ -27,6 +29,8 @@
   - *Déploiement production & test* : support multi-cibles via Cloudflare Worker relay.
 
 ## Écarts
+- `CHANGELOG.md` s'arrête à v3.30.19 alors que v3.30.20/v3.30.21 sont citées ici et dans `context.md` — entrées manquantes, à signaler, ne pas inventer.
+- Plan B : pont Discord (`addPoints`) et points automatiques n'attribuent pas de règle du barème (décision de périmètre, rattrapage via l'outil de détection).
 - Notification sortante (l'app prévient Discord d'un ajout de points fait depuis le site) validée en brainstorming mais volontairement laissée hors de ce plan — sujet à un plan séparé une fois ces 4 commandes entrantes éprouvées (voir `docs/superpowers/plans/2026-09-13-discord-bridge-commands.md`, section "Écart documenté").
 
 ## Rappels actifs + Backlog
