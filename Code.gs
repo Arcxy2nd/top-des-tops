@@ -1264,6 +1264,13 @@ const SettingsService = {
   }
 };
 
+/** Fail fast : une règle rattachée doit exister et appartenir au Top de l'entrée. */
+function _assertBaremeForCategory(baremeId, category) {
+  if (!baremeId) return;
+  const rule = BaremeService.findById(baremeId);
+  if (!rule || rule.top !== category) throw new Error("Règle du barème introuvable pour ce Top.");
+}
+
 // ─── STORAGE SERVICE ───────────────────────────────────────────────────────────
 const StorageService = {
 
@@ -1289,6 +1296,7 @@ const StorageService = {
       description: row[4] ? row[4].toString() : '',
       groupId:     row[5] ? row[5].toString() : '',
       saiseur:     row[6] ? row[6].toString() : '',
+      baremeId:    row[7] ? row[7].toString().trim() : '',
       hasEntities: !!(player && category),
       pointsValid: !(isNaN(points) || points <= 0)
     };
@@ -1330,8 +1338,9 @@ const StorageService = {
           realGroupId = _generateGroupId();
         }
 
+        _assertBaremeForCategory(e.baremeId || '', e.category);
         const totalPts = pts * tms;
-        rows.push([targetDate, e.player, e.category, totalPts, e.description || '', realGroupId, e.saiseur || '']);
+        rows.push([targetDate, e.player, e.category, totalPts, e.description || '', realGroupId, e.saiseur || '', e.baremeId || '']);
         addedEntriesForAggregates.push({ date: targetDate, player: e.player, category: e.category, points: totalPts });
         const mainRowIndex = initialLastRow + rows.length;
 
@@ -1341,7 +1350,7 @@ const StorageService = {
             if (!st.category) return;
             const stPts = parseInt(st.points, 10);
             const validStPts = (isNaN(stPts) || stPts < 1) ? totalPts : stPts;
-            rows.push([targetDate, e.player, st.category, validStPts, e.description || '', realGroupId, e.saiseur || '']);
+            rows.push([targetDate, e.player, st.category, validStPts, e.description || '', realGroupId, e.saiseur || '', '']);
             addedEntriesForAggregates.push({ date: targetDate, player: e.player, category: st.category, points: validStPts });
           });
         }
@@ -1367,7 +1376,8 @@ const StorageService = {
 
     if (!rows.length) throw new Error("Aucune donnée à injecter.");
 
-    history.getRange(initialLastRow + 1, 1, rows.length, 7).setValues(rows);
+    history.getRange(initialLastRow + 1, 1, rows.length, 8).setValues(rows);
+    if (rows.some(r => r[7])) _ensureHeaderLabel('history', history, 8);
     if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.flush === 'function') {
       SpreadsheetApp.flush();
     }
@@ -1397,14 +1407,14 @@ const StorageService = {
   },
 
   /**
-   * Reads every valid History row with all 7 columns (unlike _readLogsFromSheet,
+   * Reads every valid History row with all 8 columns (unlike _readLogsFromSheet,
    * which only keeps 4 fields for the lighter getAllLogs cache). Used by
    * getHistoryPage, which still applies its own filters/pagination on top —
    * only the sheet read itself is shared/cached.
    */
   _readFullHistoryRows() {
     const sheet   = ConfigService.getSheets().history;
-    const { values, startRow } = _readDataRows('history', sheet, 7);
+    const { values, startRow } = _readDataRows('history', sheet, 8);
     return values
       .map((row, i) => {
         const rec = this._parseHistoryRow(row, i, startRow);
@@ -1412,6 +1422,7 @@ const StorageService = {
         return {
           date: rec.date, player: rec.player, category: rec.category, points: rec.points,
           description: rec.description, groupId: rec.groupId, saiseur: rec.saiseur,
+          baremeId: rec.baremeId,
           rowIndex: rec.rowIndex
         };
       })
@@ -1498,7 +1509,7 @@ const StorageService = {
     });
   },
 
-  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory) {
+  getHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory, filterBaremeId) {
     const rows = this.getFullHistoryRowsCached();
     const hasPlayerFilter   = filterPlayers   && filterPlayers.length   > 0;
     const hasCategoryFilter = filterCategories && filterCategories.length > 0;
@@ -1518,6 +1529,8 @@ const StorageService = {
         if (filterAltCategory === '__NONE__' && altCats.length > 0) continue;
         if (filterAltCategory !== '__ANY__' && filterAltCategory !== '__NONE__' && !altCats.includes(filterAltCategory)) continue;
       }
+      if (filterBaremeId === '__NONE__' && rec.baremeId) continue;
+      if (filterBaremeId && filterBaremeId !== '__NONE__' && rec.baremeId !== filterBaremeId) continue;
       if (start && rec.date < start) continue;
       if (end   && rec.date > end)   continue;
       if (filterText) {
@@ -1534,6 +1547,7 @@ const StorageService = {
         description: rec.description,
         groupId:     rec.groupId,
         saiseur:     rec.saiseur,
+        baremeId:    rec.baremeId,
         rowIndex:    rec.rowIndex
       });
     }
@@ -1600,10 +1614,16 @@ const StorageService = {
     const oldPlayer = oldRow[1] ? oldRow[1].toString() : '';
     const oldCat = oldRow[2] ? oldRow[2].toString() : '';
     const oldPts = parseInt(oldRow[3], 10);
+    const oldBaremeId = (sheet.getRange(idx, 8).getValue() || '').toString();
+    let baremeId = ('baremeId' in fields) ? (fields.baremeId || '') : oldBaremeId;
+    if (!('baremeId' in fields) && fields.category !== oldCat) baremeId = '';
+    _assertBaremeForCategory(baremeId, fields.category);
 
     sheet.getRange(idx, 1, 1, 5)
       .setValues([[targetDate, fields.player, fields.category, pts, fields.description || '']]);
     sheet.getRange(idx, 7).setValue(fields.saiseur || '');
+    sheet.getRange(idx, 8).setValue(baremeId);
+    if (baremeId) _ensureHeaderLabel('history', sheet, 8);
 
     try {
       if (typeof AggregatesService !== 'undefined') {
@@ -3602,7 +3622,7 @@ function apiAddBulkPlan(plan, author, password) {
       const startRow = history.getLastRow() + 1;
       StorageService.appendBulkPlan(plan);
       const endRow = history.getLastRow();
-      const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 7).getValues() : [];
+      const addedRows = endRow >= startRow ? history.getRange(startRow, 1, endRow - startRow + 1, 8).getValues() : [];
       const totalEntries = plan.reduce(function(s, d) { return s + (d.entries || []).length; }, 0);
       let totalPts = 0;
       const playerSet = {};
@@ -3664,11 +3684,11 @@ function apiGetFilteredLogs(players, categories, startDate, endDate) {
   } catch (e) { return fail(e); }
 }
 
-function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory) {
+function apiGetHistoryPage(page, pageSize, filterPlayers, filterCategories, filterText, startDate, endDate, sortDir, filterAltCategory, filterBaremeId) {
   try {
     const players    = (filterPlayers    && filterPlayers.length)    ? filterPlayers    : null;
     const categories = (filterCategories && filterCategories.length) ? filterCategories : null;
-    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null, sortDir || null, filterAltCategory || null);
+    const result = StorageService.getHistoryPage(page, pageSize, players, categories, filterText || null, startDate || null, endDate || null, sortDir || null, filterAltCategory || null, filterBaremeId || null);
     return { success: true, logs: result.logs, total: result.total, totalEntries: result.totalEntries };
   } catch(e) { return fail(e); }
 }
@@ -4385,9 +4405,9 @@ function apiUpdateHistoryEntry(rowIndex, fields, author, password) {
     return withLock(() => {
       const { history } = ConfigService.getSheets();
       const before = _historyRowSummary(rowIndex);
-      const beforeRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      const beforeRow = history.getRange(rowIndex, 1, 1, 8).getValues()[0];
       StorageService.updateHistoryEntry(rowIndex, fields);
-      const afterRow = history.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      const afterRow = history.getRange(rowIndex, 1, 1, 8).getValues()[0];
       // fields.date arrives as 'YYYY-MM-DD' from the edit form; reformatted to
       // 'DD/MM/YYYY' so it matches _historyRowSummary()'s "before" format instead
       // of showing two different date formats side by side in the audit diff.
@@ -4571,7 +4591,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
       var startRow = _firstDataRow('history', history);
       if (lastRow < startRow) return { success: true, skipped: [] };
 
-      var allData  = history.getRange(startRow, 1, lastRow - startRow + 1, 7).getValues();
+      var allData  = history.getRange(startRow, 1, lastRow - startRow + 1, 8).getValues();
       var indexSet = new Set(rowIndexes.map(function(ri) { return parseInt(ri, 10); }));
       var skipped  = [];
 
@@ -4581,6 +4601,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
       var hasPts    = 'points'      in partialFields;
       var hasDesc   = 'description' in partialFields;
       var hasSais   = 'saiseur'     in partialFields;
+      var hasBareme = 'baremeId'    in partialFields;
 
       var undoRows = [];
       indexSet.forEach(function(idx) {
@@ -4594,6 +4615,13 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
         var desc     = hasDesc   ? (partialFields.description || '') : (row[4] ? row[4].toString() : '');
         var saiseur  = hasSais   ? (partialFields.saiseur  || '') : (row[6] ? row[6].toString() : '');
 
+        var baremeId = hasBareme ? (partialFields.baremeId || '') : (row[7] ? row[7].toString() : '');
+        if (!hasBareme && hasCat && category !== (row[2] ? row[2].toString() : '')) baremeId = '';
+        if (baremeId) {
+          var rule = BaremeService.findById(baremeId);
+          if (!rule || rule.top !== category) { skipped.push(idx); return; }
+        }
+
         if (!player || !category || isNaN(pts) || pts < 1) { skipped.push(idx); return; }
 
         var targetDate;
@@ -4606,11 +4634,13 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
 
         row[0] = targetDate; row[1] = player; row[2] = category; row[3] = pts; row[4] = desc;
         if (hasSais) row[6] = saiseur;
+        row[7] = baremeId;
         undoRows.push({ rowIndex: idx, before: beforeRow, after: row.slice() });
       });
 
       if (undoRows.length) {
-        history.getRange(startRow, 1, lastRow - startRow + 1, 7).setValues(allData);
+        history.getRange(startRow, 1, lastRow - startRow + 1, 8).setValues(allData);
+        _ensureHeaderLabel('history', history, 8);
         try {
           if (typeof AggregatesService !== 'undefined') {
             AggregatesService.rebuild();
@@ -4625,6 +4655,7 @@ function apiUpdateBulkEntries(rowIndexes, partialFields, author, password) {
       if (hasPts)    fieldSummaries.push('Points → ' + partialFields.points + ' pts');
       if (hasDesc)   fieldSummaries.push('Description → ' + (partialFields.description ? '"' + partialFields.description.slice(0, 30) + '"' : '(vide)'));
       if (hasSais)   fieldSummaries.push('Saiseur → ' + (partialFields.saiseur || '(aucun)'));
+      if (hasBareme) fieldSummaries.push('Règle → ' + (partialFields.baremeId ? (BaremeService.findById(partialFields.baremeId) || {}).action || partialFields.baremeId : '(aucune)'));
 
       const affectedCount = rowIndexes.length - skipped.length;
       const changedSummary = fieldSummaries.join(', ');
