@@ -571,6 +571,14 @@ function withLock(operation) {
   }
 }
 
+// trim() ne retire pas les caractères de largeur nulle (U+200B–U+200D, U+FEFF)
+// qu'un copier-coller dans Google Sheets peut laisser dans une cellule « vide » :
+// le joueur passait alors pour protégé sans qu'aucun mot de passe ne puisse l'ouvrir.
+function _normalizeSecretCell(value) {
+  if (value === null || value === undefined) return '';
+  return value.toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+}
+
 /**
  * Logs an error to the Apps Script execution log (the logging that was missing
  * across the backend) and returns the standard failure envelope the frontend
@@ -986,7 +994,7 @@ const SettingsService = {
           meta:  r[1] ? r[1].toString() : "",
           icon:  "",
           color: r[2] ? r[2].toString() : "",
-          hasPassword: !!(r[3] != null && r[3].toString().trim())
+          hasPassword: _normalizeSecretCell(r[3]) !== ''
         };
       } else {
         // Categories : [0] Name | [1] Description | [2] Emoji icon | [3] Hex color | [4] Ordre
@@ -1198,9 +1206,9 @@ const SettingsService = {
     for (let i = off; i < data.length; i++) {
       const cellName = (data[i][0] != null ? data[i][0].toString().trim() : '');
       if (cellName === targetName) {
-        const stored = (data[i][3] != null ? data[i][3].toString().trim() : '');
+        const stored = _normalizeSecretCell(data[i][3]);
         if (!stored) return true; // no password configured → free access
-        return stored === (password || '').toString().trim();
+        return stored === _normalizeSecretCell(password);
       }
     }
     throw new Error(`Joueur "${name}" introuvable.`);
