@@ -62,7 +62,7 @@ function buildSheets() {
     categories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ...CATEGORIES]),
     history:    makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId'], ...historyRows()]),
     notes:      makeSheet([['Date', 'Player', 'Note text'], ['2026-08-01', 'Alik', 'Note de test']]),
-    bareme:     makeSheet([['Action', 'Points'], ['Insulter la mère', 204]]),
+    bareme:     makeSheet([['Top', 'Action', 'Points', 'Id'], ['Mauvais', 'Insulter la mère', 204, 'R_FIX1'], ['Mauvais', 'Mauvais perdant', 10, 'R_FIX2'], ['Méchant', 'Tacle par derrière', 15, 'R_FIX3']]),
     phrases:    makeSheet([['Preset', 'Pool', 'Phrase'], ['__default__', 'first', '👑 {player} règne avec {pts} pts.']]),
     chat:       makeSheet([['Id', 'Date', 'Author', 'Text', 'ReplyToId'], ['1', '2026-08-01', 'Ilker', 'Salut @Safir', '']]),
     altHistory: makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Author'],

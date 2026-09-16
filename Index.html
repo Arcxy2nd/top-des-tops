@@ -3657,6 +3657,11 @@
       background: rgba(128,128,128,0.15); border-radius: 6px;
       padding: 2px 7px; color: var(--accent);
     }
+    .bq-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 2px 4px 2px 10px;
+      border: 1px solid var(--border); border-radius: 20px; background: var(--btn-alt); color: var(--text); font-size: 0.78rem; font-weight: 600; }
+    .bq-chip-clear { min-width: var(--tap-min); min-height: var(--tap-min); background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; }
+    .bq-chip-clear:hover { color: var(--accent); }
+    .bareme-rule-select { width: 100%; }
 
     /* ── HISTORIQUE RAPIDE PAR JOUEUR+TOP ── */
     .hist-quick-row {
@@ -14675,6 +14680,7 @@
       fill:        fillToggle.dataset.fill,
       days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
       description: descInput.value,
+      baremeId:    div.dataset.baremeId || '',
       altCategory: (altCb && altCb.checked && altCatSel && altCatSel.value) ? altCatSel.value : '',
       subTops: Array.from(subTopsList.querySelectorAll('.sub-top-item')).map(st => ({
         category: st.querySelector('.sub-cat-select').value,
@@ -14806,14 +14812,38 @@
     baremeRow.appendChild(bqHeader);
     baremeRow.appendChild(bqBtns);
 
-    function applyBaremePts(pts, action) {
-      customPtsInput.value = pts;
+    const bqChip = document.createElement('span');
+    bqChip.className = 'bq-chip';
+    bqChip.hidden = true;
+    baremeRow.appendChild(bqChip);
+
+    function setRowBareme(entry) {
+      div.dataset.baremeId = entry ? entry.id : '';
+      bqChip.hidden = !entry;
+      bqChip.innerHTML = '';
+      if (!entry) return;
+      const label = document.createElement('span');
+      label.textContent = '📏 ' + entry.action;
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'bq-chip-clear';
+      clear.title = 'Retirer la règle';
+      clear.setAttribute('aria-label', 'Retirer la règle');
+      clear.textContent = '×';
+      clear.addEventListener('click', () => setRowBareme(null));
+      bqChip.appendChild(label);
+      bqChip.appendChild(clear);
+    }
+
+    function applyBaremeEntry(entry) {
+      customPtsInput.value = entry.pts;
       ptsToggle.querySelectorAll('.pts-btn').forEach(b => {
-        const match = parseInt(b.dataset.val, 10) === pts;
+        const match = parseInt(b.dataset.val, 10) === entry.pts;
         b.classList.toggle('active', match);
         if (match) { b.classList.add('pts-pop'); setTimeout(() => b.classList.remove('pts-pop'), 220); }
       });
-      if (action) descInput.value = action;
+      if (!descInput.value.trim()) descInput.value = entry.action;
+      setRowBareme(entry.id ? entry : null);
       updateLotSummary();
       updateDatePreview();
     }
@@ -14831,7 +14861,7 @@
         btn.className = 'bq-btn';
         btn.title = entry.action + ' : ' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts';
         btn.innerHTML = '<span class="bq-action">' + escapeHtml(entry.action || '—') + '</span><span class="bq-pts">' + (entry.pts > 0 ? '+' : '') + entry.pts + ' pts</span>';
-        btn.addEventListener('click', () => applyBaremePts(entry.pts, entry.action));
+        btn.addEventListener('click', () => applyBaremeEntry(entry));
         bqBtns.appendChild(btn);
       });
     }
@@ -15082,7 +15112,10 @@
       onChange: function(v) {
         cSel.value = v || '';
         applyRowCategoryVisuals(div, v || '', isAltRow);
-        if (!isAltRow) refreshBaremeForTop(v || '');
+        if (!isAltRow) {
+          setRowBareme(null);
+          refreshBaremeForTop(v || '');
+        }
         if (isAltRow) div.dataset.altUniverseCategory = v || '';
         else          div.dataset.mainCategory        = v || '';
         refreshHistVisibility();
@@ -15095,6 +15128,9 @@
     applyRowAvatar(initPlayer);
     applyRowCategoryVisuals(div, initCatValue, isAltRow);
     if (!isAltRow) refreshBaremeForTop(initCatValue);
+    if (!isAltRow && preset && preset.baremeId) {
+      setRowBareme((baremeEntries || []).find(e => e.id === preset.baremeId && e.top === initCatValue) || null);
+    }
     if (preset && (preset.altCategory || preset.isAlt)) {
       altCb.checked = true;
       populateAltSelect();
@@ -15419,6 +15455,7 @@
           times:       1,
           description: descEl ? descEl.value.trim() : '',
           groupTag:    lotGroupMap.get(r.id) || '',
+          baremeId:    r.dataset.baremeId || '',
           subTops:     subTops,
           altCategory: altCategory
         });
@@ -15454,6 +15491,7 @@
           (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: it.points, times: it.times,
             description: it.description, groupTag: effectiveGroupTag,
+            baremeId: it.baremeId || '',
             subTops: it.subTops, altCategory: it.altCategory
           });
         });
@@ -15465,6 +15503,7 @@
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
             player: it.player, category: it.category, points: val, times: 1,
             description: it.description, groupTag: effectiveGroupTag,
+            baremeId: it.baremeId || '',
             subTops: it.subTops, altCategory: it.altCategory
           });
         });
@@ -15501,6 +15540,7 @@
         times:       e.times,
         description: e.description,
         groupTag:    e.groupTag || '',
+        baremeId:    e.baremeId || '',
         subTops:     e.subTops || [],
         altCategory: e.altCategory || '',
         saiseur:     _whoAmI || ''
@@ -17230,6 +17270,21 @@
           '<div id="mbSaiseurRS" style="opacity:0.5; pointer-events:none;"></div>' +
         '</div>' +
       '</div>' +
+      (!aCat.mixed && aCat.value ? (
+        '<div class="modal-grid single">' +
+          '<div class="modal-field">' +
+            '<label class="mb-field-toggle"><input type="checkbox" id="mbToggleBareme"> Modifier la Règle du barème</label>' +
+            '<div id="mbBaremeSlot" style="opacity:0.5; pointer-events:none;"></div>' +
+          '</div>' +
+        '</div>'
+      ) : (
+        '<div class="modal-grid single">' +
+          '<div class="modal-field">' +
+            '<label>Règle du barème</label>' +
+            '<div class="hq-empty" style="padding:6px 0; font-size:0.8rem;">Règle du barème : sélectionne des entrées d\'un même Top.</div>' +
+          '</div>' +
+        '</div>'
+      )) +
       '<div class="modal-actions">' +
         '<button id="mbSave" class="primary">Enregistrer (' + n + ')</button>' +
         '<button id="mbCancel" class="secondary">Annuler</button>' +
@@ -17245,8 +17300,29 @@
     document.getElementById('mbSaiseurRS').appendChild(saiseurRS);
     document.getElementById('mbDescEditor').appendChild(descEditor);
 
+    if (!aCat.mixed && aCat.value) {
+      const aBareme = analyze(function(l) { return l.baremeId || ''; });
+      const mountBulkBareme = (entries) => {
+        const slot = document.getElementById('mbBaremeSlot');
+        if (!slot) return;
+        slot.innerHTML = '';
+        const sel = buildBaremeSelect(aCat.value, aBareme.mixed ? '__KEEP__' : (aBareme.value || ''));
+        if (aBareme.mixed) {
+          const keepOpt = document.createElement('option');
+          keepOpt.value = '__KEEP__';
+          keepOpt.textContent = '(inchangée)';
+          sel.insertBefore(keepOpt, sel.firstChild);
+          sel.value = '__KEEP__';
+        }
+        slot.appendChild(sel);
+      };
+      if (baremeEntries) mountBulkBareme(baremeEntries);
+      else callServer('apiGetBareme', [], res => { baremeEntries = res.entries; mountBulkBareme(res.entries); }, 'Barème');
+    }
+
     function wireBulkToggle(toggleId, containerId, inputId) {
       const tg = document.getElementById(toggleId);
+      if (!tg) return;
       tg.addEventListener('change', function() {
         if (inputId) {
           const inp = document.getElementById(inputId);
@@ -17268,6 +17344,7 @@
     wireBulkToggle('mbToggleCategory', 'mbCategoryRS',  null);
     wireBulkToggle('mbToggleDesc',     'mbDescEditor',  null);
     wireBulkToggle('mbToggleSaiseur',  'mbSaiseurRS',   null);
+    if (!aCat.mixed && aCat.value) wireBulkToggle('mbToggleBareme', 'mbBaremeSlot', null);
 
     document.getElementById('mbSave').onclick = function() {
       const rowIndexes = Array.from(histSelected);
@@ -17298,6 +17375,13 @@
       }
       if (document.getElementById('mbToggleSaiseur').checked) {
         fields.saiseur = saiseurRS._getValue() || '';
+      }
+      const mbToggleBareme = document.getElementById('mbToggleBareme');
+      if (mbToggleBareme && mbToggleBareme.checked) {
+        const sel = document.querySelector('#mbBaremeSlot select');
+        if (sel && sel.value !== '__KEEP__') {
+          fields.baremeId = sel.value;
+        }
       }
 
       if (!Object.keys(fields).length) {
@@ -17563,6 +17647,10 @@
           '<div id="mEditCategoryRS"></div></div>' +
       '</div>' +
       '<div class="modal-grid single">' +
+        '<div class="modal-field"><label>Règle du barème</label>' +
+          '<div id="mEditBaremeSlot"></div></div>' +
+      '</div>' +
+      '<div class="modal-grid single">' +
         '<div class="modal-field"><label>Description (optionnelle)</label>' +
           '<div id="mEditDescEditor"></div></div>' +
       '</div>' +
@@ -17577,7 +17665,7 @@
       '</div>';
 
     const playerRS   = buildRichSelect({ type: 'player',   value: log.player,        onChange: function() {} });
-    const categoryRS = buildRichSelect({ type: 'category', value: log.category,       onChange: function() {} });
+    const categoryRS = buildRichSelect({ type: 'category', value: log.category,       onChange: function(v) { mountBareme(v || '', ''); } });
     const saiseurRS  = buildRichSelect({ type: 'saiseur',  value: log.saiseur || null, onChange: function() {}, nullable: true });
     const descEditor = buildTextEditor({ value: log.description || '', rows: 3, placeholder: 'Description…' });
 
@@ -17585,6 +17673,14 @@
     document.getElementById('mEditCategoryRS').appendChild(categoryRS);
     document.getElementById('mEditSaiseurRS').appendChild(saiseurRS);
     document.getElementById('mEditDescEditor').appendChild(descEditor);
+
+    const baremeSlot = document.getElementById('mEditBaremeSlot');
+    const mountBareme = (cat, selected) => {
+      baremeSlot.innerHTML = '';
+      baremeSlot.appendChild(buildBaremeSelect(cat, selected));
+    };
+    if (baremeEntries) mountBareme(log.category, log.baremeId);
+    else callServer('apiGetBareme', [], res => { baremeEntries = res.entries; mountBareme(categoryRS._getValue(), log.baremeId); }, 'Barème');
 
     if (hasPrev) {
       document.getElementById('mEditPrev').onclick = function() {
@@ -17605,6 +17701,8 @@
         const category = categoryRS._getValue();
         const desc     = descEditor._getValue().trim();
         const saiseur  = saiseurRS._getValue() || '';
+        const baremeSel = baremeSlot.querySelector('select');
+        const baremeId  = baremeSel ? baremeSel.value : '';
 
         if (!date)                 { showToast('Date requise.', 'error'); return; }
         if (isNaN(pts) || pts < 1) { showToast('Points invalides (min 1).', 'error'); return; }
@@ -17612,13 +17710,13 @@
         if (!category)             { showToast('Top requis.', 'error'); return; }
 
         if (!nextAfterSave) closeModal();
-        callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur }, _whoAmI || ''],
+        callServer('apiUpdateHistoryEntry', [log.rowIndex, { date, player, category, points: pts, description: desc, saiseur, baremeId }, _whoAmI || ''],
           function(res) {
             if (res && res.success === false) {
               showToast('Erreur : ' + (res.error || 'Mise à jour impossible.'), 'error');
             } else {
               showToast('Entrée modifiée.', 'success');
-              log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur;
+              log.points = pts; log.player = player; log.category = category; log.description = desc; log.saiseur = saiseur; log.baremeId = baremeId;
               _baseChartData = null;
               if (typeof loadQuickStats === 'function') loadQuickStats(activeDashboardUniverse);
               loadHistoryPage(currentHistoryPage);
@@ -21206,6 +21304,26 @@
     document.getElementById('baremeDrawer').classList.remove('open');
     document.getElementById('baremeBackdrop').classList.remove('open');
     document.getElementById('baremeBtn').setAttribute('aria-expanded', 'false');
+  }
+
+  function buildBaremeSelect(category, selectedId) {
+    const sel = document.createElement('select');
+    sel.className = 'bareme-rule-select';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = '— Aucune règle —';
+    sel.appendChild(none);
+    (baremeEntries || [])
+      .filter(e => e.top === category && e.id)
+      .sort((a, b) => a.pts - b.pts)
+      .forEach(e => {
+        const o = document.createElement('option');
+        o.value = e.id;
+        o.textContent = e.action + ' · ' + (e.pts > 0 ? '+' : '') + e.pts + ' pts';
+        sel.appendChild(o);
+      });
+    sel.value = selectedId && (baremeEntries || []).some(e => e.id === selectedId && e.top === category) ? selectedId : '';
+    return sel;
   }
 
   function loadBareme() {
