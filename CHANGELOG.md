@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.32.0] - 2026-09-17
+
+### Ajouté
+**Humanisé** : En mode « Un total à répartir », tu peux fixer un minimum de points par jour — l'app calcule elle-même sur combien de jours répartir.
+**Technique** : Champ `.d-min-per-day` dans `addEntryRow()` (`Index.html`), fonctions pures `computeMinDayCount()`/`clampStartForMinDays()` ajustant `Du` en gardant `Au` fixe (règle rétrospective), propagé par « Dupliquer cette ligne ».
+
 ## [v3.31.1] - 2026-09-17
 
 ### Modifié
