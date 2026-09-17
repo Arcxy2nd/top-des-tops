@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.32.1] - 2026-09-17
+
+### Corrigé
+**Humanisé** : Le champ minimum/jour reste correctement affiché ou masqué même après « Appliquer à toutes les lignes », et se manipule mieux sur mobile.
+**Technique** : `syncMinPerDayVisibility()` appelée aussi depuis `__applyDate` (`Index.html`) — `setLineFill()` ne déclenchait pas le `onChange` du sélecteur de mode, désynchronisant l'affichage du champ. Ajout d'une taille mobile dédiée (`min-height: var(--tap-min)`), de `inputmode="numeric"` et d'un `title`. Tests `computeMinDayCount` comparés par `deepStrictEqual` sur objet étalé plutôt que par `JSON.stringify`.
+
 ## [v3.32.0] - 2026-09-17
 
 ### Ajouté
