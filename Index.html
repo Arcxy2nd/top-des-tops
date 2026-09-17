@@ -1662,8 +1662,13 @@
     .d-mode-seg .d-mode-btn:hover { color: var(--text); }
     .d-mode-seg .d-mode-btn.active { background: var(--accent); color: var(--on-accent); }
 
-    /* Champs de dates canoniques */
-    .d-start, .d-end {
+    /* Champs de dates canoniques. Sélecteur `input.d-start` (pas juste
+       `.d-start`) : la règle générique `input[type="date"]` (ligne ~578) a
+       une spécificité (0,1,1) — un simple sélecteur de classe (0,1,0) ne la
+       bat jamais, même placé après dans le fichier (même piège que
+       `.d-min-per-day`, v3.32.0). `input.d-start` = (0,1,1), gagne le
+       départage à spécificité égale car déclaré après. */
+    input.d-start, input.d-end {
       padding: 3px 6px; font-size: 0.78rem; border-radius: 6px; border: 1px solid var(--border);
       background: var(--bg); color: var(--text); font-weight: 600; width: 116px; box-sizing: border-box;
     }

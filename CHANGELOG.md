@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.32.2] - 2026-09-17
+
+### Corrigé
+**Humanisé** : Les champs de date « Du » et « Au » du mode Période ont enfin leur taille et leurs couleurs compactes prévues, au lieu du style générique trop grand.
+**Technique** : `.d-start, .d-end` (`Index.html`) était un simple sélecteur de classe battu par la règle générique `input[type="date"]`, quel que soit l'ordre dans le fichier (même piège que `.d-min-per-day` en v3.32.0). Renommé en `input.d-start, input.d-end` pour égaliser puis gagner la spécificité.
+
 ## [v3.32.1] - 2026-09-17
 
 ### Corrigé
