@@ -32,23 +32,7 @@ function loadLotFns(names, envOpts) {
               '\n' + names.map(n => 'this.__' + n + ' = ' + n + ';').join('\n');
   vm.runInContext(src, env);
   const out = { env };
-  names.forEach(n => {
-    const vmFn = env['__' + n];
-    // Wrap VM functions to convert returned objects to main context
-    out[n] = function(...args) {
-      const result = vmFn(...args);
-      // Serialize and deserialize objects to move them to the main context
-      if (typeof result === 'object' && result !== null && !Array.isArray(result) &&
-          !(result instanceof Date)) {
-        try {
-          return JSON.parse(JSON.stringify(result));
-        } catch (e) {
-          return result;
-        }
-      }
-      return result;
-    };
-  });
+  names.forEach(n => { out[n] = env['__' + n]; });
   return out;
 }
 
@@ -417,22 +401,22 @@ test('createFillToggle defaults to distribute and places "Un total à répartir"
 
 test('computeMinDayCount returns n=null when the constraint is inactive', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.deepStrictEqual(computeMinDayCount(100, 0), { n: null, reachable: true });
-  assert.deepStrictEqual(computeMinDayCount(100, ''), { n: null, reachable: true });
-  assert.deepStrictEqual(computeMinDayCount(0, 20), { n: null, reachable: true });
+  assert.strictEqual(JSON.stringify(computeMinDayCount(100, 0)), JSON.stringify({ n: null, reachable: true }));
+  assert.strictEqual(JSON.stringify(computeMinDayCount(100, '')), JSON.stringify({ n: null, reachable: true }));
+  assert.strictEqual(JSON.stringify(computeMinDayCount(0, 20)), JSON.stringify({ n: null, reachable: true }));
 });
 
 test('computeMinDayCount computes the max day count keeping each day >= minimum', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.deepStrictEqual(computeMinDayCount(100, 20), { n: 5, reachable: true });
-  assert.deepStrictEqual(computeMinDayCount(95, 20), { n: 4, reachable: true });
-  assert.deepStrictEqual(computeMinDayCount(21, 20), { n: 1, reachable: true });
-  assert.deepStrictEqual(computeMinDayCount(40, 20), { n: 2, reachable: true });
+  assert.strictEqual(JSON.stringify(computeMinDayCount(100, 20)), JSON.stringify({ n: 5, reachable: true }));
+  assert.strictEqual(JSON.stringify(computeMinDayCount(95, 20)), JSON.stringify({ n: 4, reachable: true }));
+  assert.strictEqual(JSON.stringify(computeMinDayCount(21, 20)), JSON.stringify({ n: 1, reachable: true }));
+  assert.strictEqual(JSON.stringify(computeMinDayCount(40, 20)), JSON.stringify({ n: 2, reachable: true }));
 });
 
 test('computeMinDayCount flags the minimum as unreachable when total < minimum', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.deepStrictEqual(computeMinDayCount(15, 20), { n: 1, reachable: false });
+  assert.strictEqual(JSON.stringify(computeMinDayCount(15, 20)), JSON.stringify({ n: 1, reachable: false }));
 });
 
 test('clampStartForMinDays leaves startStr untouched when the constraint is inactive', () => {
