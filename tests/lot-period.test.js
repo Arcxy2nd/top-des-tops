@@ -32,7 +32,23 @@ function loadLotFns(names, envOpts) {
               '\n' + names.map(n => 'this.__' + n + ' = ' + n + ';').join('\n');
   vm.runInContext(src, env);
   const out = { env };
-  names.forEach(n => { out[n] = env['__' + n]; });
+  names.forEach(n => {
+    const vmFn = env['__' + n];
+    // Wrap VM functions to convert returned objects to main context
+    out[n] = function(...args) {
+      const result = vmFn(...args);
+      // Serialize and deserialize objects to move them to the main context
+      if (typeof result === 'object' && result !== null && !Array.isArray(result) &&
+          !(result instanceof Date)) {
+        try {
+          return JSON.parse(JSON.stringify(result));
+        } catch (e) {
+          return result;
+        }
+      }
+      return result;
+    };
+  });
   return out;
 }
 
@@ -397,4 +413,43 @@ test('createFillToggle defaults to distribute and places "Un total à répartir"
   assert.ok(toggle.children[0].className.includes('active'));
   assert.strictEqual(toggle.children[1].dataset.fill, 'repeat');
   assert.ok(!toggle.children[1].className.includes('active'));
+});
+
+test('computeMinDayCount returns n=null when the constraint is inactive', () => {
+  const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
+  assert.deepStrictEqual(computeMinDayCount(100, 0), { n: null, reachable: true });
+  assert.deepStrictEqual(computeMinDayCount(100, ''), { n: null, reachable: true });
+  assert.deepStrictEqual(computeMinDayCount(0, 20), { n: null, reachable: true });
+});
+
+test('computeMinDayCount computes the max day count keeping each day >= minimum', () => {
+  const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
+  assert.deepStrictEqual(computeMinDayCount(100, 20), { n: 5, reachable: true });
+  assert.deepStrictEqual(computeMinDayCount(95, 20), { n: 4, reachable: true });
+  assert.deepStrictEqual(computeMinDayCount(21, 20), { n: 1, reachable: true });
+  assert.deepStrictEqual(computeMinDayCount(40, 20), { n: 2, reachable: true });
+});
+
+test('computeMinDayCount flags the minimum as unreachable when total < minimum', () => {
+  const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
+  assert.deepStrictEqual(computeMinDayCount(15, 20), { n: 1, reachable: false });
+});
+
+test('clampStartForMinDays leaves startStr untouched when the constraint is inactive', () => {
+  const { clampStartForMinDays } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
+  assert.strictEqual(clampStartForMinDays('2026-08-01', '2026-08-10', null), '2026-08-01');
+});
+
+test('clampStartForMinDays leaves startStr untouched when the range already fits within n days', () => {
+  const { clampStartForMinDays } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
+  // 2026-08-01 -> 2026-08-03 = 3 jours, n=5 : rien à resserrer
+  assert.strictEqual(clampStartForMinDays('2026-08-01', '2026-08-03', 5), '2026-08-01');
+});
+
+test('clampStartForMinDays shrinks startStr keeping endStr fixed when the range exceeds n days', () => {
+  const { clampStartForMinDays, daysBetweenInclusive } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
+  // 2026-08-01 -> 2026-08-10 = 10 jours, n=5 : Du doit reculer à 2026-08-06 (Au fixe)
+  const newStart = clampStartForMinDays('2026-08-01', '2026-08-10', 5);
+  assert.strictEqual(newStart, '2026-08-06');
+  assert.strictEqual(daysBetweenInclusive(newStart, '2026-08-10'), 5);
 });

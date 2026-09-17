@@ -9489,6 +9489,36 @@
   }
 
   /**
+   * Nombre de jours max tel que chaque jour reçoive au moins `minPerDay` pts
+   * en répartissant `total` (floor(total/min), jamais 0 : au pire 1 seul
+   * jour reçoit tout le total, quitte à ne pas atteindre le minimum).
+   * n:null quand la contrainte est inactive (minPerDay vide/0/total nul).
+   */
+  function computeMinDayCount(total, minPerDay) {
+    const t = parseInt(total, 10) || 0;
+    const m = parseInt(minPerDay, 10) || 0;
+    if (m <= 0 || t <= 0) return { n: null, reachable: true };
+    const n = Math.max(1, Math.floor(t / m));
+    const base = Math.floor(t / n);
+    return { n, reachable: base >= m };
+  }
+
+  /**
+   * Resserre startStr pour que la période ne dépasse plus n jours, endStr
+   * (le "Au") restant fixe — règle rétrospective du projet. Ne touche rien
+   * si la période actuelle tient déjà dans n jours ou si n est null.
+   */
+  function clampStartForMinDays(startStr, endStr, n) {
+    if (n === null) return startStr;
+    const actual = daysBetweenInclusive(startStr, endStr);
+    if (actual <= n) return startStr;
+    const anchor = endStr || startStr;
+    const dt = new Date(anchor + 'T12:00:00');
+    dt.setDate(dt.getDate() - (n - 1));
+    return toDateStr(dt);
+  }
+
+  /**
    * Mini-calendrier de sélection d'une période continue. Clic 1er jour → début ;
    * clic suivant → fin (échange si antérieur). Écrit dans startInput/endInput
    * (classes .d-start/.d-end conservées comme hooks) et appelle onChange après chaque
