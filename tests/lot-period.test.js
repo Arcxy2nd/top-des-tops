@@ -401,22 +401,28 @@ test('createFillToggle defaults to distribute and places "Un total à répartir"
 
 test('computeMinDayCount returns n=null when the constraint is inactive', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.strictEqual(JSON.stringify(computeMinDayCount(100, 0)), JSON.stringify({ n: null, reachable: true }));
-  assert.strictEqual(JSON.stringify(computeMinDayCount(100, '')), JSON.stringify({ n: null, reachable: true }));
-  assert.strictEqual(JSON.stringify(computeMinDayCount(0, 20)), JSON.stringify({ n: null, reachable: true }));
+  // Spread dans un objet littéral du contexte principal avant comparaison :
+  // computeMinDayCount() tourne dans le VM realm du harness, dont le
+  // Object.prototype diffère de celui du contexte principal — un
+  // deepStrictEqual direct échoue sur cette identité de prototype cross-realm
+  // même à structure égale. Le spread recrée un objet plain avec le
+  // prototype du contexte principal et restaure une vraie égalité structurelle.
+  assert.deepStrictEqual({ ...computeMinDayCount(100, 0) }, { n: null, reachable: true });
+  assert.deepStrictEqual({ ...computeMinDayCount(100, '') }, { n: null, reachable: true });
+  assert.deepStrictEqual({ ...computeMinDayCount(0, 20) }, { n: null, reachable: true });
 });
 
 test('computeMinDayCount computes the max day count keeping each day >= minimum', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.strictEqual(JSON.stringify(computeMinDayCount(100, 20)), JSON.stringify({ n: 5, reachable: true }));
-  assert.strictEqual(JSON.stringify(computeMinDayCount(95, 20)), JSON.stringify({ n: 4, reachable: true }));
-  assert.strictEqual(JSON.stringify(computeMinDayCount(21, 20)), JSON.stringify({ n: 1, reachable: true }));
-  assert.strictEqual(JSON.stringify(computeMinDayCount(40, 20)), JSON.stringify({ n: 2, reachable: true }));
+  assert.deepStrictEqual({ ...computeMinDayCount(100, 20) }, { n: 5, reachable: true });
+  assert.deepStrictEqual({ ...computeMinDayCount(95, 20) }, { n: 4, reachable: true });
+  assert.deepStrictEqual({ ...computeMinDayCount(21, 20) }, { n: 1, reachable: true });
+  assert.deepStrictEqual({ ...computeMinDayCount(40, 20) }, { n: 2, reachable: true });
 });
 
 test('computeMinDayCount flags the minimum as unreachable when total < minimum', () => {
   const { computeMinDayCount } = loadLotFns(['computeMinDayCount']);
-  assert.strictEqual(JSON.stringify(computeMinDayCount(15, 20)), JSON.stringify({ n: 1, reachable: false }));
+  assert.deepStrictEqual({ ...computeMinDayCount(15, 20) }, { n: 1, reachable: false });
 });
 
 test('clampStartForMinDays leaves startStr untouched when the constraint is inactive', () => {
@@ -445,8 +451,15 @@ test('Minimum per day field exists, is wired to computeMinDayCount/clampStartFor
   assert.match(html, /minPerDayWrap\.className\s*=\s*'d-min-per-day-wrap'/);
   assert.match(html, /minPerDayInput\.className\s*=\s*'d-min-per-day'/);
 
-  // Le champ n'est visible qu'en mode distribute (init + bascule dans l'onChange du fillToggle)
-  assert.match(html, /minPerDayWrap\.style\.display\s*=\s*fillToggle\.dataset\.fill === 'distribute' \? 'flex' : 'none'/);
+  // Le champ n'est visible qu'en mode distribute : un helper centralise le calcul
+  // (évite le désync repéré en revue finale entre bascule manuelle et __applyDate groupé)
+  assert.match(html, /function syncMinPerDayVisibility\(\)\s*\{\s*\n\s*minPerDayWrap\.style\.display\s*=\s*fillToggle\.dataset\.fill === 'distribute' \? 'flex' : 'none';\s*\n\s*\}/);
+  // Appelé à la construction initiale
+  assert.match(html, /\}\);\s*\n\s*syncMinPerDayVisibility\(\);\s*\n\s*minPerDayInput\.addEventListener/);
+  // Appelé dans l'onChange du fillToggle
+  assert.match(html, /createFillToggle\(\(preset && preset\.fill\) \|\| defFill, \(\) => \{\s*\n\s*syncMinPerDayVisibility\(\);/);
+  // Appelé dans __applyDate (bascule groupée "Appliquer à toutes les lignes")
+  assert.match(html, /div\.__applyDate = \(start, end, fill\) => \{[\s\S]*?setLineFill\(fillToggle, fill\);\s*\n\s*syncMinPerDayVisibility\(\);/);
 
   // updateDatePreview() consulte bien les deux nouvelles fonctions pures
   assert.match(html, /computeMinDayCount\(pts,\s*minPerDayInput\.value\)/);

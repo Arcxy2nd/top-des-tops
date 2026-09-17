@@ -4725,6 +4725,11 @@
     body:not(.desktop-layout) .row-main-top-col { flex: 1 1 100%; width: 100%; }
     body:not(.desktop-layout) .pts-box-group { flex: 1 1 100%; width: 100%; }
     body:not(.desktop-layout) .pts-box-group .custom-pts-in { min-height: var(--tap-min); }
+    /* Même sélecteur composé que la règle desktop (voir ~1733) pour battre
+       le input[type="number"] générique ci-dessous ; largeur élargie car le
+       texte 16px (anti-zoom iOS) + la molette du spinner ne tiennent pas
+       dans les 60px desktop. */
+    body:not(.desktop-layout) .d-min-per-day-wrap .d-min-per-day { flex: 0 0 76px; width: 76px; min-height: var(--tap-min); }
     body:not(.desktop-layout) .export-buttons { gap: 6px; justify-content: center; width: 100%; }
     body:not(.desktop-layout) .export-btn { padding: 8px 12px; font-size: 0.8rem; min-height: var(--tap-min); flex: 1; text-align: center; }
     body:not(.desktop-layout) .export-pill { min-height: 38px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; }
@@ -14481,16 +14486,25 @@
     minPerDayInput.min = '0';
     minPerDayInput.className = 'd-min-per-day';
     minPerDayInput.placeholder = '—';
+    minPerDayInput.setAttribute('inputmode', 'numeric');
+    minPerDayInput.title = 'Points minimum par jour — ajuste automatiquement le nombre de jours';
     minPerDayInput.value = (preset && preset.minPerDay) ? String(preset.minPerDay) : '';
     minPerDayWrap.appendChild(minPerDayLbl);
     minPerDayWrap.appendChild(minPerDayInput);
 
-    const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => {
+    // Visibilité du champ Min/j : à synchroniser partout où fillToggle.dataset.fill
+    // change (init, onChange du toggle, __applyDate groupé) — un désync a été
+    // repéré en revue finale quand seul l'onChange appelait ce calcul.
+    function syncMinPerDayVisibility() {
       minPerDayWrap.style.display = fillToggle.dataset.fill === 'distribute' ? 'flex' : 'none';
+    }
+
+    const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => {
+      syncMinPerDayVisibility();
       updateDatePreview();
       updateLotSummary();
     });
-    minPerDayWrap.style.display = fillToggle.dataset.fill === 'distribute' ? 'flex' : 'none';
+    syncMinPerDayVisibility();
     minPerDayInput.addEventListener('input', () => { updateDatePreview(); updateLotSummary(); });
 
     calcGroup.appendChild(fillTitle);
@@ -14604,6 +14618,7 @@
       startInput.value = start;
       endInput.value = end || '';
       setLineFill(fillToggle, fill);
+      syncMinPerDayVisibility();
       setDateMode(!!end);
       cal.refresh();
       updateDatePreview();
