@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.33.0] - 2026-09-18
+
+### Corrigé
+**Humanisé** : Le minimum de points/jour ne resserre plus ta période à quelques jours d'affilée — il répartit les entrées dans toute la plage que tu as choisie.
+**Technique** : `clampStartForMinDays()` (qui resserrait `Du`) supprimé. Nouvelles fonctions `pickSpreadDates()`/`applyMinPerDaySpread()` (`Index.html`) : en mode distribute avec minimum actif, seules `computeMinDayCount(pts, min).n` dates sont retenues, réparties dans toute la plage `[Du, Au]` (premier et dernier jour inclus) au lieu d'une entrée par jour sur une plage resserrée. Appliqué de façon cohérente dans `computeRowTotalPoints()`, le résumé du lot, et les deux chemins de soumission (Tops Principaux et Tops Alternatifs).
+
 ## [v3.32.2] - 2026-09-17
 
 ### Corrigé

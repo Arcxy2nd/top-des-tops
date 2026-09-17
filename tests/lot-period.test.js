@@ -78,7 +78,7 @@ test('daysBetweenInclusive matches lineDates length across all range shapes', ()
 });
 
 test('computeRowTotalPoints computes points correctly for single date and period with repeat / distribute', () => {
-  const { computeRowTotalPoints } = loadLotFns(['daysBetweenInclusive', 'lineDates', 'computeRowTotalPoints']);
+  const { computeRowTotalPoints } = loadLotFns(['daysBetweenInclusive', 'lineDates', 'computeMinDayCount', 'pickSpreadDates', 'applyMinPerDaySpread', 'computeRowTotalPoints']);
 
   const makeRow = (pts, isRange, start, end, fill, subTops) => {
     const map = {
@@ -425,26 +425,50 @@ test('computeMinDayCount flags the minimum as unreachable when total < minimum',
   assert.deepStrictEqual({ ...computeMinDayCount(15, 20) }, { n: 1, reachable: false });
 });
 
-test('clampStartForMinDays leaves startStr untouched when the constraint is inactive', () => {
-  const { clampStartForMinDays } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
-  assert.strictEqual(clampStartForMinDays('2026-08-01', '2026-08-10', null), '2026-08-01');
+test('pickSpreadDates returns the full array unchanged when n covers every day', () => {
+  const { pickSpreadDates, lineDates } = loadLotFns(['pickSpreadDates', 'lineDates']);
+  const dates = Array.from(lineDates('2026-08-01', '2026-08-05'));
+  assert.deepStrictEqual(Array.from(pickSpreadDates(dates, 5)), dates);
+  assert.deepStrictEqual(Array.from(pickSpreadDates(dates, 9)), dates);
 });
 
-test('clampStartForMinDays leaves startStr untouched when the range already fits within n days', () => {
-  const { clampStartForMinDays } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
-  // 2026-08-01 -> 2026-08-03 = 3 jours, n=5 : rien à resserrer
-  assert.strictEqual(clampStartForMinDays('2026-08-01', '2026-08-03', 5), '2026-08-01');
+test('pickSpreadDates with n=1 returns the last date (Au, the retrospective pivot), not the first', () => {
+  const { pickSpreadDates, lineDates } = loadLotFns(['pickSpreadDates', 'lineDates']);
+  const dates = Array.from(lineDates('2026-08-01', '2026-08-05'));
+  assert.deepStrictEqual(Array.from(pickSpreadDates(dates, 1)), ['2026-08-05']);
 });
 
-test('clampStartForMinDays shrinks startStr keeping endStr fixed when the range exceeds n days', () => {
-  const { clampStartForMinDays, daysBetweenInclusive } = loadLotFns(['daysBetweenInclusive', 'clampStartForMinDays']);
-  // 2026-08-01 -> 2026-08-10 = 10 jours, n=5 : Du doit reculer à 2026-08-06 (Au fixe)
-  const newStart = clampStartForMinDays('2026-08-01', '2026-08-10', 5);
-  assert.strictEqual(newStart, '2026-08-06');
-  assert.strictEqual(daysBetweenInclusive(newStart, '2026-08-10'), 5);
+test('pickSpreadDates spreads n dates across the full range instead of clustering at the start', () => {
+  const { pickSpreadDates, lineDates } = loadLotFns(['pickSpreadDates', 'lineDates']);
+  // 90 jours (2026-01-01 -> 2026-03-31), 3 entrées : premier jour, milieu, dernier jour —
+  // jamais 3 jours consécutifs au début ou à la fin de la plage.
+  const dates = Array.from(lineDates('2026-01-01', '2026-03-31'));
+  assert.strictEqual(dates.length, 90);
+  const picked = Array.from(pickSpreadDates(dates, 3));
+  assert.deepStrictEqual(picked, ['2026-01-01', '2026-02-15', '2026-03-31']);
 });
 
-test('Minimum per day field exists, is wired to computeMinDayCount/clampStartForMinDays, and propagates on row duplication', () => {
+test('applyMinPerDaySpread leaves dates untouched outside distribute mode, on a single day, or with no minimum set', () => {
+  const { applyMinPerDaySpread, lineDates } = loadLotFns(['applyMinPerDaySpread', 'computeMinDayCount', 'pickSpreadDates', 'lineDates']);
+  const dates = Array.from(lineDates('2026-01-01', '2026-03-31'));
+  assert.deepStrictEqual(Array.from(applyMinPerDaySpread(dates, 'repeat', 30, 10)), dates);
+  assert.deepStrictEqual(Array.from(applyMinPerDaySpread(['2026-01-01'], 'distribute', 30, 10)), ['2026-01-01']);
+  assert.deepStrictEqual(Array.from(applyMinPerDaySpread(dates, 'distribute', 30, 0)), dates);
+  assert.deepStrictEqual(Array.from(applyMinPerDaySpread(dates, 'distribute', 30, '')), dates);
+});
+
+test('applyMinPerDaySpread reproduces the reported bug fix: 30 pts, min 10, 3-month range spreads 3 entries instead of clamping to 3 consecutive days', () => {
+  const { applyMinPerDaySpread, lineDates, daysBetweenInclusive } = loadLotFns(['applyMinPerDaySpread', 'computeMinDayCount', 'pickSpreadDates', 'lineDates', 'daysBetweenInclusive']);
+  const dates = Array.from(lineDates('2026-01-01', '2026-03-31'));
+  const picked = Array.from(applyMinPerDaySpread(dates, 'distribute', 30, 10));
+  assert.strictEqual(picked.length, 3);
+  assert.deepStrictEqual(picked, ['2026-01-01', '2026-02-15', '2026-03-31']);
+  // Du/Au eux-mêmes ne bougent pas : la plage entière reste sélectionnée, seules
+  // les entrées effectivement créées sont réparties dedans.
+  assert.strictEqual(daysBetweenInclusive('2026-01-01', '2026-03-31'), 90);
+});
+
+test('Minimum per day field exists, is wired to computeMinDayCount/applyMinPerDaySpread, and propagates on row duplication', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
 
   // Le wrapper et l'input existent avec les bonnes classes
@@ -461,13 +485,21 @@ test('Minimum per day field exists, is wired to computeMinDayCount/clampStartFor
   // Appelé dans __applyDate (bascule groupée "Appliquer à toutes les lignes")
   assert.match(html, /div\.__applyDate = \(start, end, fill\) => \{[\s\S]*?setLineFill\(fillToggle, fill\);\s*\n\s*syncMinPerDayVisibility\(\);/);
 
-  // updateDatePreview() consulte bien les deux nouvelles fonctions pures
+  // updateDatePreview() consulte computeMinDayCount() ; Du/Au ne sont plus resserrés
   assert.match(html, /computeMinDayCount\(pts,\s*minPerDayInput\.value\)/);
-  assert.match(html, /clampStartForMinDays\(startInput\.value,\s*endInput\.value,\s*minInfo\.n\)/);
+  assert.doesNotMatch(html, /clampStartForMinDays/);
+
+  // La soumission applique le même minimum/jour que l'aperçu, sur les 3 chemins
+  // d'expansion date→points (résumé de ligne, lot principal, Tops Alternatifs)
+  assert.match(html, /applyMinPerDaySpread\(rawDates, fill, points, minPerDayEl \? minPerDayEl\.value : ''\)/);
+  assert.match(html, /applyMinPerDaySpread\(rawDates, fill, pts, minPerDayEl \? minPerDayEl\.value : ''\)/);
+  assert.match(html, /applyMinPerDaySpread\(dates, it\.fill, itTotal, it\.minPerDay\)/);
 
   // La duplication de ligne propage le minimum comme elle propage fill/dateEnd
   assert.match(html, /minPerDay:\s*minPerDayInput\.value/);
   assert.match(html, /minPerDayInput\.value\s*=\s*\(preset && preset\.minPerDay\)\s*\?\s*String\(preset\.minPerDay\)\s*:\s*''/);
+  // ... et jusqu'à la soumission du lot principal (items.push)
+  assert.match(html, /minPerDay:\s*minPerDayEl \? minPerDayEl\.value : ''/);
 
   // CSS de l'avertissement "minimum non atteint"
   assert.match(html, /\.d-fill-preview\.warn\s*\{/);

@@ -9533,21 +9533,6 @@
   }
 
   /**
-   * Resserre startStr pour que la période ne dépasse plus n jours, endStr
-   * (le "Au") restant fixe — règle rétrospective du projet. Ne touche rien
-   * si la période actuelle tient déjà dans n jours ou si n est null.
-   */
-  function clampStartForMinDays(startStr, endStr, n) {
-    if (n === null) return startStr;
-    const actual = daysBetweenInclusive(startStr, endStr);
-    if (actual <= n) return startStr;
-    const anchor = endStr || startStr;
-    const dt = new Date(anchor + 'T12:00:00');
-    dt.setDate(dt.getDate() - (n - 1));
-    return toDateStr(dt);
-  }
-
-  /**
    * Mini-calendrier de sélection d'une période continue. Clic 1er jour → début ;
    * clic suivant → fin (échange si antérieur). Écrit dans startInput/endInput
    * (classes .d-start/.d-end conservées comme hooks) et appelle onChange après chaque
@@ -14540,29 +14525,32 @@
     function updateDatePreview() {
       const pts = parseInt(customPtsInput.value, 10) || 0;
       const fill = fillToggle.dataset.fill;
-
-      // Minimum/jour (distribute uniquement) : resserre Du pour que le nombre
-      // de jours ne dépasse plus ce que le total peut couvrir en respectant
-      // le minimum. Au reste le pivot fixe (règle rétrospective du projet).
-      let minWarn = false;
-      if (fill === 'distribute') {
-        const minInfo = computeMinDayCount(pts, minPerDayInput.value);
-        if (minInfo.n !== null) {
-          const clamped = clampStartForMinDays(startInput.value, endInput.value, minInfo.n);
-          if (clamped !== startInput.value) {
-            startInput.value = clamped;
-            cal.refresh();
-          }
-          minWarn = !minInfo.reachable;
-        }
-      }
-
       const n = daysBetweenInclusive(startInput.value, endInput.value);
       const jour = ' jour' + (n > 1 ? 's' : '');
       const pt = pts + ' pt' + (pts > 1 ? 's' : '');
+
+      // Minimum/jour (distribute uniquement) : au lieu d'une entrée par jour
+      // de [Du, Au], seules computeMinDayCount(pts, min).n entrées sont
+      // créées, réparties dans toute la plage (pickSpreadDates) — Du/Au ne
+      // sont jamais resserrés, la plage choisie par l'utilisateur reste intacte.
+      let minWarn = false;
+      let entries = n;
       if (fill === 'distribute') {
-        const base = n ? Math.floor(pts / n) : pts, rem = n ? pts % n : 0;
-        if (n <= 1) {
+        const minInfo = computeMinDayCount(pts, minPerDayInput.value);
+        if (minInfo.n !== null) {
+          minWarn = !minInfo.reachable;
+          entries = Math.min(minInfo.n, n);
+        }
+      }
+
+      if (fill === 'distribute') {
+        const base = entries ? Math.floor(pts / entries) : pts, rem = entries ? pts % entries : 0;
+        if (entries < n) {
+          const entryWord = ' entrée' + (entries > 1 ? 's' : '');
+          const repartieWord = 'répartie' + (entries > 1 ? 's' : '');
+          const detail = rem === 0 ? (base + ' pt/entrée') : ((base + 1) + ' pts sur ' + rem + ', ' + base + ' sur ' + (entries - rem));
+          fillPreview.textContent = pt + ' → ' + entries + entryWord + ' (' + detail + ') ' + repartieWord + ' sur ' + n + jour;
+        } else if (n <= 1) {
           fillPreview.textContent = pt + ' sur 1 seul jour';
         } else if (base === 0) {
           fillPreview.textContent = pt + ' ÷ ' + n + jour + ' → 1 pt sur ' + rem + ' j';
@@ -15308,10 +15296,12 @@
     const dEnd    = row.querySelector('.d-end');
     const rangeCb = row.querySelector('.range-cb');
     const fillTg  = row.querySelector('.line-fill');
+    const minPerDayEl = row.querySelector('.d-min-per-day');
     const isRange = !!(rangeCb && rangeCb.checked);
-    const dates = lineDates(dStart ? dStart.value : '', isRange && dEnd ? (dEnd.value || (dStart ? dStart.value : '')) : '');
-    const n = Math.max(1, dates.length);
     const fill = fillTg ? fillTg.dataset.fill : 'distribute';
+    const rawDates = lineDates(dStart ? dStart.value : '', isRange && dEnd ? (dEnd.value || (dStart ? dStart.value : '')) : '');
+    const dates = applyMinPerDaySpread(rawDates, fill, points, minPerDayEl ? minPerDayEl.value : '');
+    const n = Math.max(1, dates.length);
 
     const perDatePoints = (n === 1 || fill === 'repeat')
       ? new Array(n).fill(points)
@@ -15473,6 +15463,35 @@
   }
 
   /**
+   * Sélectionne n dates réparties dans tout l'éventail de `dates` (déjà triées,
+   * sortie de lineDates()) plutôt que de se limiter aux n premiers jours — la
+   * plage choisie par l'utilisateur ([Du, Au]) n'est jamais resserrée. Premier
+   * et dernier jour de la plage toujours inclus dès que n ≥ 2. n = 1 retient le
+   * dernier jour (Au, le pivot rétrospectif du projet), pas le premier.
+   */
+  function pickSpreadDates(dates, n) {
+    if (n >= dates.length) return dates;
+    if (n <= 1) return [dates[dates.length - 1]];
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      out.push(dates[Math.round(i * (dates.length - 1) / (n - 1))]);
+    }
+    return out;
+  }
+
+  /**
+   * En mode distribute avec un minimum/jour actif, ne retient que les
+   * computeMinDayCount(points, minPerDay).n dates nécessaires (réparties via
+   * pickSpreadDates) au lieu d'une entrée par jour de la plage. Inchangé en
+   * mode repeat, sur un jour unique, ou si le minimum est inactif/vide.
+   */
+  function applyMinPerDaySpread(dates, fill, points, minPerDay) {
+    if (fill !== 'distribute' || dates.length <= 1) return dates;
+    const minInfo = computeMinDayCount(points, minPerDay);
+    return minInfo.n === null ? dates : pickSpreadDates(dates, minInfo.n);
+  }
+
+  /**
    * Single client-side write path for native Alt entries. The quick-add modal and
    * the Alt branch of the lot builder both go through it so the server call, the
    * toast and the post-write refresh cannot drift apart between the two surfaces.
@@ -15508,13 +15527,15 @@
         const dEnd   = r.querySelector('.d-end');
         const rangeCb = r.querySelector('.range-cb');
         const fillTg  = r.querySelector('.line-fill');
+        const minPerDayEl = r.querySelector('.d-min-per-day');
         const descEl  = r.querySelector('.desc-in');
         const isRange = rangeCb && rangeCb.checked;
         if (!pSel || !cSel || !ptsEl || !dStart) return;
 
         const pts = parseInt(ptsEl.value, 10);
-        const dates = lineDates(dStart.value, isRange && dEnd ? dEnd.value : '');
         const fill = fillTg ? fillTg.dataset.fill : 'distribute';
+        const rawDates = lineDates(dStart.value, isRange && dEnd ? dEnd.value : '');
+        const dates = applyMinPerDaySpread(rawDates, fill, pts, minPerDayEl ? minPerDayEl.value : '');
 
         if (dates.length === 1 || fill === 'repeat') {
           dates.forEach(dk => {
@@ -15577,6 +15598,7 @@
       const rangeCb      = r.querySelector('.range-cb');
       const fillTg       = r.querySelector('.line-fill');
       const dayPickerWr  = r.querySelector('.day-picker-wrap');
+      const minPerDayEl  = r.querySelector('.d-min-per-day');
       const descEl       = r.querySelector('.desc-in');
       const isRange      = rangeCb && rangeCb.checked;
       if (pSel && cSel && customPtsEl && dStart) {
@@ -15597,6 +15619,7 @@
           dateEnd:     (isRange && dEnd) ? (dEnd.value || dStart.value) : '',
           fill:        fillTg ? fillTg.dataset.fill : 'distribute',
           days:        (isRange && dayPickerWr) ? JSON.parse(dayPickerWr.dataset.days || '[]') : [],
+          minPerDay:   minPerDayEl ? minPerDayEl.value : '',
           player:      pSel.value,
           category:    cSel.value,
           points:      parseInt(customPtsEl.value || '1', 10),
@@ -15628,6 +15651,9 @@
       }
       if (!dates.length) return;
 
+      const itTotal = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
+      dates = applyMinPerDaySpread(dates, it.fill, itTotal, it.minPerDay);
+
       if (dates.length > 1) hasRange = true;
 
       const effectiveGroupTag = it.groupTag || (dates.length > 1
@@ -15644,8 +15670,7 @@
           });
         });
       } else {
-        const total = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
-        const n = dates.length, base = Math.floor(total / n), rem = total % n;
+        const n = dates.length, base = Math.floor(itTotal / n), rem = itTotal % n;
         dates.forEach((dk, k) => {
           const val = base + (k < rem ? 1 : 0);
           if (val > 0) (byDate[dk] = byDate[dk] || []).push({
