@@ -1723,6 +1723,16 @@
     .fill-opt.active::before { content: '● '; }
     .fill-opt.active { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
 
+    .d-min-per-day-wrap {
+      display: flex; align-items: center; gap: 5px; margin-top: 2px;
+    }
+    .d-min-per-day {
+      flex: 0 0 60px; width: 60px; min-width: 0;
+      padding: 3px 6px; font-size: 0.74rem; border-radius: 5px;
+      background: var(--btn-alt); border: 1px solid var(--border); color: var(--text);
+      font-family: inherit; box-sizing: border-box;
+    }
+
     /* Aperçu chiffré live en bas de colonne gauche */
     .d-fill-preview {
       font-size: 0.72rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums;
@@ -1732,6 +1742,11 @@
       margin-top: 1px;
     }
     .d-fill-preview:empty { display: none; }
+    .d-fill-preview.warn {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 10%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+    }
 
     /* Colonne 2 (Droite, environ 50-55%) : Calendrier occupant toute la hauteur disponible */
     .d-period-right-col {
@@ -14450,13 +14465,33 @@
     fillTitle.className = 'd-period-right-title';
     fillTitle.textContent = 'Mode de calcul :';
 
+    // ── Minimum / jour : actif seulement en mode "distribute" (calcule Du
+    // pour garantir ce plancher par jour, voir updateDatePreview()) ──────
+    const minPerDayWrap = document.createElement('div');
+    minPerDayWrap.className = 'd-min-per-day-wrap';
+    const minPerDayLbl = document.createElement('span');
+    minPerDayLbl.className = 'd-period-lbl';
+    minPerDayLbl.textContent = 'Min/j :';
+    const minPerDayInput = document.createElement('input');
+    minPerDayInput.type = 'number';
+    minPerDayInput.min = '0';
+    minPerDayInput.className = 'd-min-per-day';
+    minPerDayInput.placeholder = '—';
+    minPerDayInput.value = (preset && preset.minPerDay) ? String(preset.minPerDay) : '';
+    minPerDayWrap.appendChild(minPerDayLbl);
+    minPerDayWrap.appendChild(minPerDayInput);
+
     const fillToggle = createFillToggle((preset && preset.fill) || defFill, () => {
+      minPerDayWrap.style.display = fillToggle.dataset.fill === 'distribute' ? 'flex' : 'none';
       updateDatePreview();
       updateLotSummary();
     });
+    minPerDayWrap.style.display = fillToggle.dataset.fill === 'distribute' ? 'flex' : 'none';
+    minPerDayInput.addEventListener('input', () => { updateDatePreview(); updateLotSummary(); });
 
     calcGroup.appendChild(fillTitle);
     calcGroup.appendChild(fillToggle);
+    calcGroup.appendChild(minPerDayWrap);
 
     const fillPreview = document.createElement('div');
     fillPreview.className = 'd-fill-preview';
@@ -14481,10 +14516,28 @@
     // Aperçu chiffré live : points de la ligne × période, selon le mode fill.
     function updateDatePreview() {
       const pts = parseInt(customPtsInput.value, 10) || 0;
+      const fill = fillToggle.dataset.fill;
+
+      // Minimum/jour (distribute uniquement) : resserre Du pour que le nombre
+      // de jours ne dépasse plus ce que le total peut couvrir en respectant
+      // le minimum. Au reste le pivot fixe (règle rétrospective du projet).
+      let minWarn = false;
+      if (fill === 'distribute') {
+        const minInfo = computeMinDayCount(pts, minPerDayInput.value);
+        if (minInfo.n !== null) {
+          const clamped = clampStartForMinDays(startInput.value, endInput.value, minInfo.n);
+          if (clamped !== startInput.value) {
+            startInput.value = clamped;
+            cal.refresh();
+          }
+          minWarn = !minInfo.reachable;
+        }
+      }
+
       const n = daysBetweenInclusive(startInput.value, endInput.value);
       const jour = ' jour' + (n > 1 ? 's' : '');
       const pt = pts + ' pt' + (pts > 1 ? 's' : '');
-      if (fillToggle.dataset.fill === 'distribute') {
+      if (fill === 'distribute') {
         const base = n ? Math.floor(pts / n) : pts, rem = n ? pts % n : 0;
         if (n <= 1) {
           fillPreview.textContent = pt + ' sur 1 seul jour';
@@ -14495,9 +14548,13 @@
         } else {
           fillPreview.textContent = pt + ' ÷ ' + n + jour + ' = ' + (base + 1) + ' pts sur ' + rem + ' j, ' + base + ' sur ' + (n - rem) + ' j';
         }
+        if (minWarn) {
+          fillPreview.textContent += ' ⚠️ minimum non atteint (total < minimum)';
+        }
       } else {
         fillPreview.textContent = pt + '/j × ' + n + jour + ' = ' + (pts * n) + ' total';
       }
+      fillPreview.classList.toggle('warn', minWarn);
     }
 
     // Bascule de mode : synchronise range-cb + panneaux + aperçu + total lot.
@@ -14744,6 +14801,7 @@
       date:        startInput.value,
       dateEnd:     rangeCb.checked ? endInput.value : '',
       fill:        fillToggle.dataset.fill,
+      minPerDay:   minPerDayInput.value,
       days:        JSON.parse(dayPickerWrap.dataset.days || '[]'),
       description: descInput.value,
       baremeId:    div.dataset.baremeId || '',

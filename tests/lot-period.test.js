@@ -437,3 +437,25 @@ test('clampStartForMinDays shrinks startStr keeping endStr fixed when the range 
   assert.strictEqual(newStart, '2026-08-06');
   assert.strictEqual(daysBetweenInclusive(newStart, '2026-08-10'), 5);
 });
+
+test('Minimum per day field exists, is wired to computeMinDayCount/clampStartForMinDays, and propagates on row duplication', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  // Le wrapper et l'input existent avec les bonnes classes
+  assert.match(html, /minPerDayWrap\.className\s*=\s*'d-min-per-day-wrap'/);
+  assert.match(html, /minPerDayInput\.className\s*=\s*'d-min-per-day'/);
+
+  // Le champ n'est visible qu'en mode distribute (init + bascule dans l'onChange du fillToggle)
+  assert.match(html, /minPerDayWrap\.style\.display\s*=\s*fillToggle\.dataset\.fill === 'distribute' \? 'flex' : 'none'/);
+
+  // updateDatePreview() consulte bien les deux nouvelles fonctions pures
+  assert.match(html, /computeMinDayCount\(pts,\s*minPerDayInput\.value\)/);
+  assert.match(html, /clampStartForMinDays\(startInput\.value,\s*endInput\.value,\s*minInfo\.n\)/);
+
+  // La duplication de ligne propage le minimum comme elle propage fill/dateEnd
+  assert.match(html, /minPerDay:\s*minPerDayInput\.value/);
+  assert.match(html, /minPerDayInput\.value\s*=\s*\(preset && preset\.minPerDay\)\s*\?\s*String\(preset\.minPerDay\)\s*:\s*''/);
+
+  // CSS de l'avertissement "minimum non atteint"
+  assert.match(html, /\.d-fill-preview\.warn\s*\{/);
+});
