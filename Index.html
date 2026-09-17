@@ -1726,7 +1726,11 @@
     .d-min-per-day-wrap {
       display: flex; align-items: center; gap: 5px; margin-top: 2px;
     }
-    .d-min-per-day {
+    /* Sélecteur composé (pas juste .d-min-per-day) : la règle générique
+       `input[type="number"]` (ligne ~578) a une spécificité (0,1,1) — un
+       simple sélecteur de classe (0,1,0) ne la bat jamais, même placé après
+       dans le fichier. `.d-min-per-day-wrap .d-min-per-day` = (0,2,0) gagne. */
+    .d-min-per-day-wrap .d-min-per-day {
       flex: 0 0 60px; width: 60px; min-width: 0;
       padding: 3px 6px; font-size: 0.74rem; border-radius: 5px;
       background: var(--btn-alt); border: 1px solid var(--border); color: var(--text);
