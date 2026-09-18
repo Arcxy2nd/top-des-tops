@@ -3072,6 +3072,20 @@
     .custom-pts-in.pts-val-anim {
       animation: ptsValBump 0.3s ease-out forwards;
     }
+    /* Flash de la ligne qui vient d'être ajoutée/dupliquée : le scrollIntoView
+       seul ne suffit pas à signaler QUELLE ligne vient d'apparaître parmi
+       plusieurs — sans ce flash, "+ Ligne" ou "Dupliquer" semblaient ne rien
+       faire dès que la liste dépassait l'écran (la ligne s'ajoutait hors vue,
+       sans scroll ni repère visuel — voir addEntryRow()). Réaffirme rowSlideIn
+       en plus de rowAddedFlash : `animation` est un raccourci, une classe plus
+       spécifique remplace toute la valeur, pas seulement la partie qui change. */
+    @keyframes rowAddedFlash {
+      0%   { box-shadow: 0 0 0 3px rgba(46,213,115,0.35); }
+      100% { box-shadow: none; }
+    }
+    .entry-row.row-added-anim {
+      animation: rowSlideIn 0.22s cubic-bezier(0.34,1.56,0.64,1), rowAddedFlash 0.7s ease-out forwards;
+    }
     @keyframes totalFlash {
       0%   { color: var(--success); transform: scale(1.22); }
       100% { color: var(--accent);  transform: scale(1); }
@@ -15276,7 +15290,15 @@
 
     refreshHistVisibility();
     updateLotSummary();
-    if (animateFromBtn) floatPointsBadge(animateFromBtn, defaultPts);
+    if (animateFromBtn) {
+      floatPointsBadge(animateFromBtn, defaultPts);
+      // container.appendChild(div) plus haut ajoute toujours en fin de liste :
+      // sans ça, "+ Ligne"/"Dupliquer" au-delà d'un écran plein semblait ne
+      // rien faire (la nouvelle ligne apparaissait hors vue, sans scroll).
+      div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      div.classList.add('row-added-anim');
+      setTimeout(() => div.classList.remove('row-added-anim'), 700);
+    }
   }
 
   /**

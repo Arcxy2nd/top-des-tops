@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.33.1] - 2026-09-18
+
+### Corrigé
+**Humanisé** : « + Ligne » et « Dupliquer cette ligne » ne semblent plus ne rien faire une fois la liste plus grande que l'écran — la nouvelle ligne défile automatiquement à l'écran et s'illumine brièvement.
+**Technique** : `addEntryRow()` ajoute toujours la ligne en fin de liste (`container.appendChild`) sans jamais la faire défiler à l'écran ; seul un badge `+N pts` flottant près du bouton (`floatPointsBadge`) signalait l'action, invisible dès que la liste dépassait la hauteur visible. Ajout de `div.scrollIntoView({behavior:'smooth', block:'center'})` + classe `.row-added-anim` (flash `box-shadow`) sur les deux chemins déclenchés par un vrai clic utilisateur (`animateFromBtn` fourni : "+ Ligne", "Dupliquer cette ligne"), sans toucher aux appels programmatiques (restauration d'un lot, etc.).
+
 ## [v3.33.0] - 2026-09-18
 
 ### Corrigé
