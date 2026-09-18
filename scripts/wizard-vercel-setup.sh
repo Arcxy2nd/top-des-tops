@@ -197,10 +197,25 @@ if ! command -v vercel >/dev/null 2>&1; then
 else
   note "CLI Vercel déjà installée ($(vercel --version))."
 fi
-step "Connexion à ton compte Vercel (vercel login) — suis les instructions à l'écran."
-vercel login
-step "Lien de ce dossier à un projet Vercel (vercel link) — si on te demande un nom de nouveau projet, propose : top-des-tops-vercel."
-vercel link
+if vercel whoami >/dev/null 2>&1; then
+  note "Déjà connecté à Vercel en tant que $(vercel whoami)."
+else
+  step "Connexion à ton compte Vercel (vercel login) — suis les instructions à l'écran."
+  if ! vercel login; then
+    warn "vercel login a échoué (sous Windows : terminal Git Bash parfois non interactif)."
+    warn "Ouvre PowerShell dans ce dossier, lance 'vercel login' puis 'vercel link', puis relance ce wizard."
+    exit 1
+  fi
+fi
+if [[ -f .vercel/project.json ]]; then
+  note "Dossier déjà lié à un projet Vercel (.vercel/project.json)."
+else
+  step "Lien de ce dossier à un projet Vercel (vercel link) — si on te demande un nom de nouveau projet, propose : top-des-tops-vercel."
+  if ! vercel link; then
+    warn "vercel link a échoué. Ouvre PowerShell dans ce dossier, lance 'vercel link', puis relance ce wizard."
+    exit 1
+  fi
+fi
 
 # ── Stage 2: Projet Google Cloud + compte de service ───────────────────────
 stage "Google Cloud : projet + compte de service"
@@ -215,7 +230,13 @@ open_url "https://console.cloud.google.com/iam-admin/serviceaccounts/create?proj
 step "Crée un compte de service (nom libre, ex: top-des-tops-sheets-reader). Pas besoin de rôle IAM au niveau du projet — l'accès au Sheet se fait par partage direct (étape suivante)."
 step "Une fois créé, ouvre-le dans la liste > onglet 'Clés' (Keys) > Ajouter une clé > Créer une clé > format JSON. Le fichier se télécharge automatiquement."
 ask GCP_SA_EMAIL "Colle l'adresse email du compte de service (finit par .iam.gserviceaccount.com) :"
+note "Astuce Windows : dans l'Explorateur, Maj + clic droit sur le fichier > 'Copier en tant que chemin', puis colle ici (les guillemets sont gérés)."
 ask GCP_SA_KEY_PATH "Chemin complet vers le fichier JSON téléchargé :"
+GCP_SA_KEY_PATH="${GCP_SA_KEY_PATH%\"}"
+GCP_SA_KEY_PATH="${GCP_SA_KEY_PATH#\"}"
+if command -v cygpath >/dev/null 2>&1 && [[ "$GCP_SA_KEY_PATH" == [A-Za-z]:* ]]; then
+  GCP_SA_KEY_PATH=$(cygpath -u "$GCP_SA_KEY_PATH")
+fi
 write_env GCP_PROJECT_ID "$GCP_PROJECT_ID"
 write_env GCP_SA_EMAIL "$GCP_SA_EMAIL"
 note "Le chemin de la clé n'est pas écrit dans .env (il pointe vers un fichier secret) — retenu seulement pour cette session."
@@ -233,7 +254,7 @@ confirm "Le Sheet est bien partagé avec ${GCP_SA_EMAIL} en rôle Lecteur ?" || 
 stage "Variable d'environnement Vercel : GOOGLE_SERVICE_ACCOUNT_KEY"
 say "On envoie le contenu du fichier JSON (une seule ligne) comme variable d'environnement Vercel — jamais commitée dans le repo."
 if [[ -f "$GCP_SA_KEY_PATH" ]]; then
-  SA_KEY_CONTENT=$(tr -d '\n' < "$GCP_SA_KEY_PATH")
+  SA_KEY_CONTENT=$(tr -d '\r\n' < "$GCP_SA_KEY_PATH")
   step "Envoi vers Vercel (vercel env add GOOGLE_SERVICE_ACCOUNT_KEY production)..."
   printf '%s' "$SA_KEY_CONTENT" | vercel env add GOOGLE_SERVICE_ACCOUNT_KEY production
   note "✓ Variable envoyée. Le contenu de la clé n'a été écrit dans aucun fichier de ce repo."
