@@ -16,3 +16,6 @@ docs/superpowers/plans/2026-09-17-lot-min-per-day-distribution.md
 docs/superpowers/plans/2026-09-18-vercel-migration-foundation.md
 screenshots/
 .superpowers/sdd/
+.env.local
+.env*.local
+node_modules/
