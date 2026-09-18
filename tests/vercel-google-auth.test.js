@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
-const { getAccessToken, _buildAssertion, _resetTokenCacheForTests } = require('../lib/google-auth');
+const { getAccessToken, _buildAssertion, _resetTokenCacheForTests, _setCachedTokenForTests } = require('../lib/google-auth');
 
 function _makeKeyPair() {
   return crypto.generateKeyPairSync('rsa', {
@@ -58,6 +58,25 @@ test('getAccessToken échange l\'assertion contre un token et le met en cache', 
   const token2 = await getAccessToken(serviceAccount, fakeFetch);
   assert.strictEqual(token2, 'fake-token-123');
   assert.strictEqual(callCount, 1, 'le second appel doit réutiliser le cache, pas re-fetcher');
+});
+
+test('getAccessToken refetch quand le token en cache a expiré', async () => {
+  _resetTokenCacheForTests();
+  const { privateKey } = _makeKeyPair();
+  const serviceAccount = { client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey };
+  const now = Math.floor(Date.now() / 1000);
+  _setCachedTokenForTests('stale-token', now - 10);
+  let callCount = 0;
+  const fakeFetch = async (url, opts) => {
+    callCount++;
+    assert.strictEqual(url, 'https://oauth2.googleapis.com/token');
+    assert.strictEqual(opts.method, 'POST');
+    return { ok: true, json: async () => ({ access_token: 'fresh-token-456', expires_in: 3600 }) };
+  };
+
+  const token = await getAccessToken(serviceAccount, fakeFetch);
+  assert.strictEqual(token, 'fresh-token-456', 'doit retourner le token frais, pas l\'ancien expiré');
+  assert.strictEqual(callCount, 1, 'doit avoir refetch car le cache avait expiré');
 });
 
 test('getAccessToken lève une erreur explicite si Google refuse', async () => {
