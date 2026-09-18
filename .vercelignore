@@ -1,5 +1,5 @@
-**/**
-!api/**
-!lib/**
+/*
+!api
+!lib
 !tenants.json
 !package.json

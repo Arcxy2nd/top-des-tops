@@ -79,8 +79,9 @@ test('runHealthCheck retourne 500 avec un message générique (pas le détail br
   });
   assert.strictEqual(result.status, 500);
   assert.strictEqual(result.body.ok, false);
-  assert.doesNotMatch(result.body.message, /403/, 'le détail brut Google ne doit pas fuiter dans la réponse publique');
+  assert.match(result.body.message, /\(403\)/, 'le code de statut seul doit rester diagnosticable (wizard Task 5)');
   assert.match(result.body.message, /Échec de la vérification de connectivité/);
+  assert.ok(!result.body.message.includes('permission refusée'), 'le détail brut Google ne doit pas fuiter dans la réponse publique');
 });
 
 test('runHealthCheck retourne 500 quand l\'endpoint OAuth Google lui-même refuse la requête', async () => {
