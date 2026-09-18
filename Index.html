@@ -11042,6 +11042,12 @@
       btn.disabled = false;
       if (_identityPwdTarget !== player) return; // modal was cancelled before this response arrived
       if (res && res.granted) {
+        if (!pwd || !pwd.trim()) {
+          player.hasPassword = false;
+          try {
+            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
+          } catch (_) { /* cache best-effort */ }
+        }
         setIdentityPassword(pwd);
         applyIdentity(player.name);
         const cb = _identityPwdOnVerified;
@@ -11058,24 +11064,6 @@
         document.getElementById('identityPwdInput').select();
       }
     }, 'Vérification identité', () => { btn.disabled = false; });
-  }
-
-  // Le drapeau hasPassword vient de caches (localStorage + cache serveur) qui peuvent
-  // être périmés : le serveur relit la feuille avant qu'on réclame un mot de passe.
-  function unlockOrPrompt(player, onUnlocked) {
-    callServer('apiVerifyIdentity', [player.name, ''], res => {
-      if (!(res && res.granted)) {
-        openIdentityPwdModal(player, onUnlocked);
-        return;
-      }
-      player.hasPassword = false;
-      setIdentityPassword('');
-      try {
-        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ players: cachedPlayers, categories: cachedCategories }));
-      } catch (_) { /* cache best-effort */ }
-      applyIdentity(player.name);
-      if (typeof onUnlocked === 'function') onUnlocked();
-    }, 'Vérification identité', () => openIdentityPwdModal(player, onUnlocked), true);
   }
 
   // Le menu est en position:fixed : sans recalage il reste figé à l'écran
@@ -11226,7 +11214,7 @@
         if (p.name === _whoAmI) {
           if (p.hasPassword && !hasPwd()) {
             closeWhoAmIDropdown();
-            unlockOrPrompt(p);
+            openIdentityPwdModal(p);
             return;
           }
           closeWhoAmIDropdown();
@@ -11234,7 +11222,7 @@
         }
         if (p.hasPassword) {
           closeWhoAmIDropdown();
-          unlockOrPrompt(p);
+          openIdentityPwdModal(p);
         } else {
           _identityPassword = '';
           if (typeof setIdentityPassword === 'function') setIdentityPassword('');
