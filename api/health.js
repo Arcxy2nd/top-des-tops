@@ -1,6 +1,10 @@
 'use strict';
 
-const { loadTenants } = require('../lib/tenants');
+// require() direct (et non lib/tenants.js#loadTenants, qui lit via
+// fs.readFileSync(filePath || TENANTS_FILE) — indirection non traçable
+// statiquement par le Node File Trace de Vercel) pour garantir que
+// tenants.json est bien inclus dans le bundle déployé.
+const tenants = require('../tenants.json');
 const { runHealthCheck } = require('../lib/health-check');
 
 /** Parse GOOGLE_SERVICE_ACCOUNT_KEY (JSON stringifié) depuis l'environnement Vercel. */
@@ -15,8 +19,12 @@ function _parseServiceAccount() {
 // tests/vercel-health-check.test.js. Vérifiée en conditions réelles par le
 // curl de fin de wizard (Task 5).
 module.exports = async function handler(req, res) {
-  const tenants = loadTenants();
-  const serviceAccount = _parseServiceAccount();
-  const result = await runHealthCheck({ hostHeader: req.headers.host, tenants, serviceAccount });
-  res.status(result.status).json(result.body);
+  try {
+    const serviceAccount = _parseServiceAccount();
+    const result = await runHealthCheck({ hostHeader: req.headers.host, tenants, serviceAccount });
+    res.status(result.status).json(result.body);
+  } catch (e) {
+    console.error('api/health setup failure:', e);
+    res.status(500).json({ ok: false, message: 'Échec de l\'initialisation du endpoint de santé. Voir les logs serveur pour le détail.' });
+  }
 };

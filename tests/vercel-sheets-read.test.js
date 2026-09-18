@@ -120,9 +120,10 @@ test('readDataRows garde la ligne 1 quand ce n\'est pas un en-tête (résilience
       ['Zelda', 'Aventure', '🗡️', '#00ff00', '2']
     ] })
   });
-  const { values } = await readDataRows('token-abc', 'SHEET_ID_1', 'categories', undefined, fakeFetch);
+  const { values, startRow } = await readDataRows('token-abc', 'SHEET_ID_1', 'categories', undefined, fakeFetch);
   assert.strictEqual(values.length, 2);
   assert.strictEqual(values[0][0], 'Mario Kart');
+  assert.strictEqual(startRow, 1, 'pas d\'écriture d\'en-tête ici (lecture seule) : la ligne 1 reste la ligne réelle 1');
 });
 
 test('readDataRows retourne un tableau vide pour une feuille vide', async () => {

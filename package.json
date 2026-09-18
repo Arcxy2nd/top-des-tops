@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "description": "Suite de tests de la logique métier du backend Google Apps Script (Code.gs) et des fonctions serverless Vercel.",
   "scripts": {

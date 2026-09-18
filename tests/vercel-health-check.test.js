@@ -69,7 +69,7 @@ test('runHealthCheck retourne 200 avec le nombre de lignes lues sur le tenant r�
   assert.ok(result.body.checkedAt);
 });
 
-test('runHealthCheck retourne 500 avec le message d\'erreur si Sheets API refuse (ex: Sheet non partagé)', async () => {
+test('runHealthCheck retourne 500 avec un message générique (pas le détail brut) si Sheets API refuse (ex: Sheet non partagé)', async () => {
   _resetTokenCacheForTests();
   const result = await runHealthCheck({
     hostHeader: 'test.example.com',
@@ -79,5 +79,18 @@ test('runHealthCheck retourne 500 avec le message d\'erreur si Sheets API refuse
   });
   assert.strictEqual(result.status, 500);
   assert.strictEqual(result.body.ok, false);
-  assert.match(result.body.message, /403/);
+  assert.doesNotMatch(result.body.message, /403/, 'le détail brut Google ne doit pas fuiter dans la réponse publique');
+  assert.match(result.body.message, /Échec de la vérification de connectivité/);
+});
+
+test('runHealthCheck retourne 500 quand l\'endpoint OAuth Google lui-même refuse la requête', async () => {
+  _resetTokenCacheForTests();
+  const result = await runHealthCheck({
+    hostHeader: 'test.example.com',
+    tenants: { 'test.example.com': { spreadsheetId: 'SHEET_A' } },
+    serviceAccount: _makeServiceAccount(),
+    fetchImpl: _makeFetch({ tokenOk: false })
+  });
+  assert.strictEqual(result.status, 500);
+  assert.strictEqual(result.body.ok, false);
 });

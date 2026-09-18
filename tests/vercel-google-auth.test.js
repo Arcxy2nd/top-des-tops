@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
-const { getAccessToken, _buildAssertion, _resetTokenCacheForTests, _setCachedTokenForTests } = require('../lib/google-auth');
+const { getAccessToken, _buildAssertion, _resetTokenCacheForTests } = require('../lib/google-auth');
 
 function _makeKeyPair() {
   return crypto.generateKeyPairSync('rsa', {
@@ -27,7 +27,7 @@ test('_buildAssertion produit un JWT RS256 avec les bonnes revendications, signa
   assert.strictEqual(header.alg, 'RS256');
   assert.strictEqual(header.typ, 'JWT');
   assert.strictEqual(claims.iss, 'svc@test.iam.gserviceaccount.com');
-  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets');
+  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets.readonly');
   assert.strictEqual(claims.aud, 'https://oauth2.googleapis.com/token');
   assert.strictEqual(claims.iat, now);
   assert.strictEqual(claims.exp, now + 3600);
@@ -64,18 +64,26 @@ test('getAccessToken refetch quand le token en cache a expiré', async () => {
   _resetTokenCacheForTests();
   const { privateKey } = _makeKeyPair();
   const serviceAccount = { client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey };
-  const now = Math.floor(Date.now() / 1000);
-  _setCachedTokenForTests('stale-token', now - 10);
+
+  // Premier appel : le token retourné a une durée de vie de 1s. La marge de
+  // sécurité de getAccessToken est de 60s (expiresAt > now + 60), donc ce
+  // token est déjà considéré expiré dès l'appel suivant, sans avoir besoin
+  // d'attendre ni de forcer le cache via un backdoor de test.
+  const firstFetch = async () => ({ ok: true, json: async () => ({ access_token: 'stale-token', expires_in: 1 }) });
+  const token1 = await getAccessToken(serviceAccount, firstFetch);
+  assert.strictEqual(token1, 'stale-token');
+
   let callCount = 0;
-  const fakeFetch = async (url, opts) => {
+  const secondFetch = async (url, opts) => {
     callCount++;
     assert.strictEqual(url, 'https://oauth2.googleapis.com/token');
     assert.strictEqual(opts.method, 'POST');
     return { ok: true, json: async () => ({ access_token: 'fresh-token-456', expires_in: 3600 }) };
   };
 
-  const token = await getAccessToken(serviceAccount, fakeFetch);
-  assert.strictEqual(token, 'fresh-token-456', 'doit retourner le token frais, pas l\'ancien expiré');
+  const token2 = await getAccessToken(serviceAccount, secondFetch);
+  assert.strictEqual(token2, 'fresh-token-456', 'doit retourner le token frais, pas l\'ancien expiré');
+  assert.notStrictEqual(token2, token1, 'preuve d\'un vrai refetch : le token a changé');
   assert.strictEqual(callCount, 1, 'doit avoir refetch car le cache avait expiré');
 });
 
