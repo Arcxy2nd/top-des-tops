@@ -21,7 +21,8 @@ function _parseServiceAccount() {
 module.exports = async function handler(req, res) {
   try {
     const serviceAccount = _parseServiceAccount();
-    const result = await runHealthCheck({ hostHeader: req.headers.host, tenants, serviceAccount });
+    const result = await runHealthCheck({ method: req.method, hostHeader: req.headers.host, tenants, serviceAccount });
+    if (result.status === 405) res.setHeader('Allow', 'GET, HEAD');
     res.status(result.status).json(result.body);
   } catch (e) {
     console.error('api/health setup failure:', e);

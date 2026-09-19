@@ -26,7 +26,7 @@ function _makeFetch({ tokenOk = true, sheetsOk = true, sheetsValues = [] } = {})
   };
 }
 
-test('runHealthCheck retourne 404 pour un hôte inconnu (défaut-refus)', async () => {
+test('runHealthCheck retourne 404 pour un hôte inconnu, sans refléter le header Host', async () => {
   const result = await runHealthCheck({
     hostHeader: 'inconnu.example.com',
     tenants: { 'test.example.com': { spreadsheetId: 'SHEET_A' } },
@@ -35,7 +35,8 @@ test('runHealthCheck retourne 404 pour un hôte inconnu (défaut-refus)', async 
   });
   assert.strictEqual(result.status, 404);
   assert.strictEqual(result.body.ok, false);
-  assert.match(result.body.message, /inconnu\.example\.com/);
+  assert.strictEqual(result.body.message, 'Tenant inconnu pour cet hôte.');
+  assert.doesNotMatch(result.body.message, /inconnu\.example\.com/);
 });
 
 test('runHealthCheck retourne 500 quand le compte de service est absent', async () => {
@@ -93,5 +94,17 @@ test('runHealthCheck retourne 500 quand l\'endpoint OAuth Google lui-même refus
     fetchImpl: _makeFetch({ tokenOk: false })
   });
   assert.strictEqual(result.status, 500);
+  assert.strictEqual(result.body.ok, false);
+});
+
+test('runHealthCheck refuse toute méthode autre que GET/HEAD (405)', async () => {
+  const result = await runHealthCheck({
+    method: 'POST',
+    hostHeader: 'test.example.com',
+    tenants: { 'test.example.com': { spreadsheetId: 'SHEET_A' } },
+    serviceAccount: _makeServiceAccount(),
+    fetchImpl: _makeFetch()
+  });
+  assert.strictEqual(result.status, 405);
   assert.strictEqual(result.body.ok, false);
 });

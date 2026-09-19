@@ -98,3 +98,22 @@ test('getAccessToken lève une erreur explicite si Google refuse', async () => {
     /Échec de l.authentification Google \(401\)/
   );
 });
+
+test('getAccessToken garde un token distinct par compte de service (pas de fuite inter-tenants)', async () => {
+  _resetTokenCacheForTests();
+  const { privateKey } = _makeKeyPair();
+  const saA = { client_email: 'a@test.iam.gserviceaccount.com', private_key: privateKey };
+  const saB = { client_email: 'b@test.iam.gserviceaccount.com', private_key: privateKey };
+  let callCount = 0;
+  const fakeFetch = async (url, opts) => {
+    callCount++;
+    const iss = JSON.parse(Buffer.from(new URLSearchParams(opts.body).get('assertion').split('.')[1], 'base64url').toString('utf8')).iss;
+    return { ok: true, json: async () => ({ access_token: 'token-' + iss, expires_in: 3600 }) };
+  };
+
+  assert.strictEqual(await getAccessToken(saA, fakeFetch), 'token-a@test.iam.gserviceaccount.com');
+  assert.strictEqual(await getAccessToken(saB, fakeFetch), 'token-b@test.iam.gserviceaccount.com');
+  assert.strictEqual(callCount, 2, 'le second compte ne doit pas recevoir le token du premier');
+  assert.strictEqual(await getAccessToken(saA, fakeFetch), 'token-a@test.iam.gserviceaccount.com');
+  assert.strictEqual(callCount, 2, 'chaque compte réutilise son propre cache');
+});
