@@ -138,3 +138,26 @@ test('Values.get sur un onglet vide omet values ; refuse un autre classeur ou d\
   assert.throws(() => sheets.Spreadsheets.Values.get('AUTRE', '\'Vide\'', opts), /hors tenant/);
   assert.throws(() => sheets.Spreadsheets.Values.get('SHEET_A', '\'Vide\'', {}), /non supportées/);
 });
+
+test('un onglet supprimé lance sur tout accès ultérieur aux données', () => {
+  const { spreadsheet, journal } = build([{ sheetId: 1, title: 'Temp', grid: [['x']] }]);
+  const sheet = spreadsheet.getSheetByName('Temp');
+  spreadsheet.deleteSheet(sheet);
+  assert.throws(() => sheet.appendRow(['y']), /supprimé/);
+  assert.throws(() => sheet.getRange(1, 1).getValues(), /supprimé/);
+  assert.strictEqual(journal.length, 1, 'pas d\'entrée après deleteSheet');
+  assert.deepStrictEqual(journal[0], { op: 'deleteSheet', sheetId: 1 });
+});
+
+test('copyTo choisit un titre libre en cas de collision', () => {
+  const { spreadsheet, journal } = build([{ sheetId: 1, title: 'History', grid: [['a']] }]);
+  const original = spreadsheet.getSheetByName('History');
+  const copy1 = original.copyTo(spreadsheet);
+  const copy2 = original.copyTo(spreadsheet);
+  assert.strictEqual(copy1.getName(), 'Copy of History');
+  assert.strictEqual(copy2.getName(), 'Copy of History 2');
+  assert.deepStrictEqual(journal, [
+    { op: 'duplicateSheet', sourceSheetId: 1, sheetId: 2, title: 'Copy of History' },
+    { op: 'duplicateSheet', sourceSheetId: 1, sheetId: 3, title: 'Copy of History 2' }
+  ]);
+});
