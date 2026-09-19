@@ -21,9 +21,9 @@ function Ok($t)   { Write-Host "  OK $t" -ForegroundColor Green }
 function Fail($t) { Write-Host "  X $t" -ForegroundColor Red; exit 1 }
 
 function Stage($name) {
-  Clear-Host
   $script:StageIndex++
   Write-Host ""
+  Write-Host ("=" * 72) -ForegroundColor DarkGray
   Write-Host "> Etape $($script:StageIndex)/$TotalStages - $name" -ForegroundColor Blue
 }
 
@@ -158,8 +158,13 @@ Say "On deploie en production pour obtenir une vraie URL Vercel."
 $deployLines = @()
 & vercel --prod 2>&1 | ForEach-Object { $t = "$_"; Write-Host "  $t"; $deployLines += $t }
 if ($LASTEXITCODE -ne 0) { Fail "vercel --prod a echoue. Lis l'erreur ci-dessus, corrige, puis relance le wizard." }
-$urlMatches = [regex]::Matches(($deployLines -join "`n"), 'https://[a-zA-Z0-9.-]+\.vercel\.app')
-if ($urlMatches.Count -gt 0) {
+$deployText = ($deployLines -join "`n")
+$aliasMatch = [regex]::Match($deployText, 'Aliased:\s*(https://[a-zA-Z0-9.-]+\.vercel\.app)')
+$urlMatches = [regex]::Matches($deployText, 'https://[a-zA-Z0-9.-]+\.vercel\.app')
+if ($aliasMatch.Success) {
+  $DeployUrl = $aliasMatch.Groups[1].Value
+  Note "Alias stable detecte : $DeployUrl"
+} elseif ($urlMatches.Count -gt 0) {
   $DeployUrl = $urlMatches[$urlMatches.Count - 1].Value
   Note "URL detectee : $DeployUrl"
 } else {
@@ -189,12 +194,19 @@ if ($LASTEXITCODE -ne 0) { Fail "vercel --prod a echoue. Lis l'erreur ci-dessus,
 Stage "Verification /api/health"
 Say "On verifie que toute la chaine (tenant -> authentification Google -> lecture Sheets) fonctionne reellement."
 Step "Requete sur https://$DeployHost/api/health :"
-$healthResponse = (& curl.exe -s "https://$DeployHost/api/health") -join ''
+$healthResponse = ''
+for ($i = 1; $i -le 3; $i++) {
+  $healthResponse = (& curl.exe -s --max-time 30 "https://$DeployHost/api/health") -join ''
+  if ($healthResponse -match '"ok"\s*:\s*true') { break }
+  if ($i -lt 3) { Note "Essai $i/3 sans succes, nouvel essai dans 8 s..."; Start-Sleep -Seconds 8 }
+}
 Say $healthResponse
 if ($healthResponse -match '"ok"\s*:\s*true') {
   Ok "ok:true - la chaine fonctionne, le Sheet de test a bien ete lu."
 } elseif ($healthResponse -match '\(403\)') {
   Warn "ok:false avec (403) - le Sheet de test n'est probablement pas partage avec $GcpSaEmail (voir etape 3)."
+} elseif ($healthResponse -match 'Authentication Required|vercel\.com/sso|<html') {
+  Warn "Reponse HTML : Vercel Authentication protege peut-etre cette URL (Vercel > Project Settings > Deployment Protection)."
 } else {
   Warn "Reponse inattendue - relis le message ci-dessus pour diagnostiquer."
 }
@@ -206,7 +218,9 @@ $codeTargets = (& curl.exe -s -o NUL -w "%{http_code}" "https://$DeployHost/depl
 $codeContext = (& curl.exe -s -o NUL -w "%{http_code}" "https://$DeployHost/context.md")
 Note "deploy-targets.json -> $codeTargets (doit etre 404)"
 Note "context.md -> $codeContext (doit etre 404)"
-if ($codeTargets -ne '404' -or $codeContext -ne '404') {
+if ($codeTargets -eq '401' -or $codeContext -eq '401') {
+  Warn "Code 401 : Vercel Authentication protege tout le site, test non concluant (desactive-la pour ce projet, puis relance)."
+} elseif ($codeTargets -ne '404' -or $codeContext -ne '404') {
   Warn "ALERTE : un fichier prive repond avec un code different de 404 - il est expose publiquement !"
   Warn "Ne continue PAS avant d'avoir corrige .vercelignore et redeploye (vercel --prod)."
 } else {
