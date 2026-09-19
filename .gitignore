@@ -21,3 +21,6 @@ screenshots/
 .env
 .vercel/
 node_modules/
+.vercel
+.env*
+/trois-487801-*.json
