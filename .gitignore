@@ -24,3 +24,4 @@ node_modules/
 .vercel
 .env*
 /trois-487801-*.json
+docs/superpowers/plans/2026-09-19-vercel-gas-runtime-read.md
