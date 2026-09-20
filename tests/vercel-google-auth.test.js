@@ -27,7 +27,7 @@ test('_buildAssertion produit un JWT RS256 avec les bonnes revendications, signa
   assert.strictEqual(header.alg, 'RS256');
   assert.strictEqual(header.typ, 'JWT');
   assert.strictEqual(claims.iss, 'svc@test.iam.gserviceaccount.com');
-  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets.readonly');
+  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets');
   assert.strictEqual(claims.aud, 'https://oauth2.googleapis.com/token');
   assert.strictEqual(claims.iat, now);
   assert.strictEqual(claims.exp, now + 3600);
@@ -116,4 +116,11 @@ test('getAccessToken garde un token distinct par compte de service (pas de fuite
   assert.strictEqual(callCount, 2, 'le second compte ne doit pas recevoir le token du premier');
   assert.strictEqual(await getAccessToken(saA, fakeFetch), 'token-a@test.iam.gserviceaccount.com');
   assert.strictEqual(callCount, 2, 'chaque compte réutilise son propre cache');
+});
+
+test('le scope demandé autorise l\'écriture (chemin d\'écriture du Plan 3)', () => {
+  const { privateKey } = _makeKeyPair();
+  const assertion = _buildAssertion({ client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey }, 1000);
+  const claims = JSON.parse(Buffer.from(assertion.split('.')[1], 'base64url').toString('utf8'));
+  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets');
 });
