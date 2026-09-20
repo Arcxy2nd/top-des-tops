@@ -42,12 +42,25 @@ test('clé absente : null (Code.gs retombe alors sur sa valeur par défaut)', ()
 test('onglet absent : store vide, aucune erreur', () => {
   const { store } = makeStore(null);
   assert.strictEqual(store.getProperty('logs_version'), null);
-  assert.deepStrictEqual(store.getProperties(), { SPREADSHEET_ID: 'S' });
+  assert.deepStrictEqual(store.getProperties(), {});
 });
 
-test('getProperties fusionne la feuille et les valeurs injectées', () => {
+test('getProperties ne rend que la feuille, jamais la graine injectée', () => {
   const { store } = makeStore([PROPERTIES_HEADERS, ['notes_version', '3']]);
-  assert.deepStrictEqual(store.getProperties(), { SPREADSHEET_ID: 'S', notes_version: '3' });
+  // La graine (SPREADSHEET_ID, et DISCORD_BRIDGE_SECRET sur le chemin du pont)
+  // reste accessible clé par clé, mais ne part pas dans un objet complet qu'un
+  // appelant pourrait journaliser ou renvoyer tel quel.
+  assert.deepStrictEqual(store.getProperties(), { notes_version: '3' });
+  assert.strictEqual(store.getProperty('SPREADSHEET_ID'), 'S');
+});
+
+test('un secret injecté ne ressort jamais de getProperties', () => {
+  const { store } = makeStore([PROPERTIES_HEADERS, ['notes_version', '3']], { SPREADSHEET_ID: 'S', DISCORD_BRIDGE_SECRET: 'tres-secret' });
+  const all = store.getProperties();
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(all, 'DISCORD_BRIDGE_SECRET'), false);
+  assert.strictEqual(JSON.stringify(all).includes('tres-secret'), false);
+  // DiscordBridge.gs lit le secret clé par clé : ce chemin doit rester intact.
+  assert.strictEqual(store.getProperty('DISCORD_BRIDGE_SECRET'), 'tres-secret');
 });
 
 test('setProperty met à jour la ligne existante (une seule écriture de cellule)', () => {

@@ -145,7 +145,7 @@ test('createUrlFetchApp : refuse toute méthode différente de GET, sans jamais 
   const urlFetchApp = createUrlFetchApp(spy);
   assert.throws(
     () => urlFetchApp.fetch('https://example.com', { method: 'post' }),
-    /UrlFetchApp : seules les requêtes GET sont autorisées sur ce backend en lecture seule\./
+    /UrlFetchApp : seules les requêtes GET sont autorisées depuis ce backend\./
   );
   assert.strictEqual(called, false, 'syncFetch ne doit jamais être appelé pour une requête non-GET');
 });

@@ -51,7 +51,12 @@ module.exports = async function handler(req, res) {
     res.status(200).send(out.body);
   } catch (e) {
     console.error('api/discord failure:', e);
-    const reply = bridgeReply(new Error('Erreur interne du pont.'));
+    // TDT_READ_ONLY n'est pas une panne : c'est un interrupteur volontaire.
+    // Le masquer derrière « Erreur interne » envoyait l'utilisateur Discord
+    // (et nous) chercher un bug inexistant.
+    const reply = e && e.code === 'WRITE_DISABLED'
+      ? bridgeReply(new Error('Le site est en lecture seule pour le moment : aucune écriture n\'est possible.'))
+      : bridgeReply(new Error('Erreur interne du pont.'));
     res.status(reply.status).send(reply.body);
   }
 };
