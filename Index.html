@@ -8614,7 +8614,16 @@
   const CHAT_PANEL_OPEN_KEY = 'tdt_chat_panel_open';
   let _chatVersion = 0;
   let _chatIdleCount = 0;
-  const CHAT_OPEN_BACKOFF = [4000, 6000, 8000, 10000, 12000];
+  // Le tchat est, de loin, le premier consommateur du quota Sheets : chaque
+  // sondage coûte 2 requêtes, et le quota Google est de 60 lectures/minute PAR
+  // COMPTE DE SERVICE — toutes instances confondues. Avec un palier haut à 12 s
+  // (10 requêtes/min par visiteur), six personnes panneau ouvert saturaient le
+  // quota à elles seules. À 30 s, un visiteur inactif coûte 4 requêtes/min, soit
+  // une quinzaine de personnes tenables. Le palier bas reste à 4 s et le
+  // compteur repart à zéro dès qu'un message arrive (resetChatBackoff) : une
+  // conversation vivante garde exactement la même réactivité qu'avant, seule
+  // une fenêtre laissée ouverte sans rien dire ralentit.
+  const CHAT_OPEN_BACKOFF = [4000, 6000, 9000, 14000, 20000, 30000];
   const CHAT_CLOSED_BACKOFF = [20000, 30000, 45000, 60000];
 
   function getChatPollDelay() {
@@ -8878,7 +8887,7 @@
   }
 
   // Sondage adaptatif différentiel & pause quand l'onglet est inactif :
-  // - Panneau ouvert : 4s -> 6s -> 8s -> 10s -> 12s
+  // - Panneau ouvert : 4s -> 6s -> 9s -> 14s -> 20s -> 30s
   // - Panneau fermé : 20s -> 30s -> 45s -> 60s
   // - Onglet masqué/arrière-plan : Pause complète (sauvegarde quota GAS)
   function scheduleChatPoll() {
