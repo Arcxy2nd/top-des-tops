@@ -10014,15 +10014,28 @@
   // Transport à double voie : sous Google Apps Script on garde google.script.run,
   // servi par Vercel le même contrat passe par POST /api/rpc ({ok, value|error}).
   // Les deux hébergements restent utilisables tant que la bascule n'est pas faite.
-  function _rpcTransport(fn, args, onValue, onFailure) {
+  // Identifiant unique d'un geste mutant. crypto.randomUUID() n'existe pas sur
+  // les contextes non sécurisés (http://) : repli sur une valeur suffisamment
+  // improbable — une collision ferait ignorer une écriture légitime.
+  function _newIdempotencyKey() {
+    if (typeof crypto !== 'undefined' && crypto && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+  }
+
+  function _rpcTransport(fn, args, onValue, onFailure, idempotencyKey) {
     if (typeof google !== 'undefined' && google && google.script && google.script.run) {
+      // Apps Script : pas de clé à transmettre, google.script.run ne rejoue rien.
       google.script.run.withSuccessHandler(onValue).withFailureHandler(onFailure)[fn](...args);
       return;
     }
+    const payload = { fn: fn, args: args };
+    if (idempotencyKey) payload.idempotencyKey = idempotencyKey;
     fetch('/api/rpc', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fn: fn, args: args })
+      body: JSON.stringify(payload)
     })
       .then(response => response.json().then(body => ({ status: response.status, body: body })))
       .then(reply => {
@@ -10036,7 +10049,14 @@
       .catch(err => onFailure(err instanceof Error ? err : new Error(String(err))));
   }
 
-  function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
+  // `idempotencyKey` n'est jamais fourni par un appelant métier : callServer la
+  // fabrique au premier essai d'un geste mutant et se la repasse à lui-même
+  // pour tout RENVOI du même geste (modale de mot de passe, « Réessayer »).
+  // Un envoi qui atteint Google mais dont la réponse se perd ne peut donc plus
+  // être appliqué deux fois. Un nouveau clic délibéré fabrique une clé neuve :
+  // deux saisies identiques voulues restent deux lignes.
+  function callServer(fn, params, onSuccess, errorLabel, onError, silent, idempotencyKey) {
+    const idemKey = _MUTATING_APIS.has(fn) ? (idempotencyKey || _newIdempotencyKey()) : null;
     const handleAuthError = (errMessage) => {
       _identityPassword = '';
       if (typeof setIdentityPassword === 'function') setIdentityPassword('');
@@ -10045,7 +10065,9 @@
       const p = players ? players.find(x => x.name === currentWho) : null;
       if (p && p.hasPassword && typeof openIdentityPwdModal === 'function') {
         openIdentityPwdModal(p, () => {
-          callServer(fn, params, onSuccess, errorLabel, onError, silent);
+          // Même geste, donc même clé : si le premier essai avait malgré tout
+          // écrit avant de buter sur l'identité, ce renvoi ne doublera rien.
+          callServer(fn, params, onSuccess, errorLabel, onError, silent, idemKey);
         });
         const errEl = (typeof document !== 'undefined' && document.getElementById) ? document.getElementById('identityPwdError') : null;
         if (errEl) {
@@ -10093,7 +10115,18 @@
         handleAuthError(errStr);
         return;
       }
-      if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + ((err && err.message) || err), 'error');
+      const message = (errorLabel || 'Erreur serveur') + ' : ' + ((err && err.message) || err);
+      // Sur un geste mutant, l'erreur peut être un simple délai réseau alors
+      // que le serveur a déjà écrit. Le renvoi proposé ici réutilise la clé :
+      // il aboutit sans rien dupliquer, au lieu de laisser l'utilisateur
+      // recliquer le bouton — ce qui, lui, repart sur une clé neuve.
+      if (!silent && idemKey && typeof showActionToast === 'function') {
+        showActionToast(message, 'Réessayer', () => {
+          callServer(fn, params, onSuccess, errorLabel, onError, silent, idemKey);
+        }, 10000, 'error');
+      } else if (!silent) {
+        showToast(message, 'error');
+      }
       if (onError) onError(err);
     };
     const pwd = (typeof getIdentityPassword === 'function')
@@ -10102,7 +10135,7 @@
     const actualParams = _MUTATING_APIS.has(fn)
       ? [...params, pwd]
       : params;
-    _rpcTransport(fn, actualParams, onValue, onFailure);
+    _rpcTransport(fn, actualParams, onValue, onFailure, idemKey);
   }
 
   // ── REORDER (boutons monter/descendre) ───────────────────────────────────

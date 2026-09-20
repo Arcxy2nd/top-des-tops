@@ -45,13 +45,22 @@ function loadCallServer(options) {
   };
   // google absent = hébergement Vercel ; présent = hébergement GAS.
   if (!opts.noGoogle) sandbox.google = { script: { run: null } };
+  // showActionToast est optionnel dans callServer : absent par défaut ici, pour
+  // que les tests historiques continuent de mesurer le repli showToast. Les
+  // tests du renvoi idempotent l'injectent explicitement.
+  const actionToasts = [];
+  if (opts.withActionToast) {
+    sandbox.showActionToast = (msg, label, cb, delay, kind) =>
+      actionToasts.push({ msg: String(msg), label: label, run: cb, kind: kind });
+  }
   vm.createContext(sandbox);
   vm.runInContext(
+    extractFunction(html, '_newIdempotencyKey') + '\n' +
     extractFunction(html, '_rpcTransport') + '\n' +
     extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;',
     sandbox
   );
-  return { callServer: sandbox.__callServer, toasts, errors, fetchCalls, sandbox };
+  return { callServer: sandbox.__callServer, toasts, errors, fetchCalls, actionToasts, sandbox };
 }
 
 /** Laisse la micro-file des promesses se vider (le transport fetch est asynchrone). */
@@ -400,4 +409,63 @@ test('avec google.script.run présent, aucun fetch n\'est émis (hébergement GA
   await flush();
   assert.strictEqual(fetchCalls.length, 0);
   assert.strictEqual(got.value, 42);
+});
+
+// ── Clé d'idempotence côté client (constat 2 de la revue finale) ────────────
+
+test('transport fetch : une clé d\'idempotence accompagne les seules fonctions mutantes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  await flush();
+  const mutating = JSON.parse(fetchCalls[0].init.body);
+  assert.strictEqual(typeof mutating.idempotencyKey, 'string');
+  assert.ok(mutating.idempotencyKey.length > 8, 'une clé devinable ne protège rien');
+
+  callServer('apiReadTest', ['Alice'], () => {});
+  await flush();
+  const read = JSON.parse(fetchCalls[1].init.body);
+  assert.strictEqual(read.idempotencyKey, undefined, 'une lecture n\'a rien à dédupliquer');
+});
+
+test('deux gestes distincts reçoivent deux clés distinctes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  await flush();
+  const first = JSON.parse(fetchCalls[0].init.body).idempotencyKey;
+  const second = JSON.parse(fetchCalls[1].init.body).idempotencyKey;
+  assert.notStrictEqual(first, second,
+    'deux saisies identiques voulues doivent rester deux écritures');
+});
+
+test('« Réessayer » après une panne réseau renvoie la MÊME clé', async () => {
+  const { callServer, fetchCalls, actionToasts } = loadCallServer({
+    noGoogle: true, withActionToast: true, status: 500, reply: { ok: false, error: 'Délai dépassé' }
+  });
+
+  callServer('apiMutatingTest', ['Alice'], () => {}, 'Ajout');
+  await flush();
+  const sent = JSON.parse(fetchCalls[0].init.body).idempotencyKey;
+
+  assert.strictEqual(actionToasts.length, 1, 'un geste mutant en échec doit proposer un renvoi');
+  assert.strictEqual(actionToasts[0].label, 'Réessayer');
+  assert.strictEqual(actionToasts[0].kind, 'error');
+
+  actionToasts[0].run();
+  await flush();
+  const retried = JSON.parse(fetchCalls[1].init.body).idempotencyKey;
+  // Le cœur du correctif : si le premier envoi avait été appliqué malgré le
+  // délai, ce renvoi tombe sur la clé déjà enregistrée et n'écrit rien.
+  assert.strictEqual(retried, sent);
+});
+
+test('une lecture en échec garde le toast simple, sans bouton de renvoi', async () => {
+  const { callServer, toasts, actionToasts } = loadCallServer({
+    noGoogle: true, withActionToast: true, status: 500, reply: { ok: false, error: 'Délai dépassé' }
+  });
+  callServer('apiReadTest', ['Alice'], () => {}, 'Chargement');
+  await flush();
+  assert.strictEqual(actionToasts.length, 0, 'rien à dédupliquer sur une lecture');
+  assert.strictEqual(toasts.length, 1);
 });

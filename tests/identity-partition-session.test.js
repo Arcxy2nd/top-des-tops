@@ -92,6 +92,7 @@ function createTestSandbox(opts = {}) {
     'applyIdentity',
     'logoutIdentity',
     'requireIdentity',
+    '_newIdempotencyKey',
     '_rpcTransport',
     'callServer'
   ];
