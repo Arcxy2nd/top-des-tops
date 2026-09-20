@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/rpc.js": {
+      "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}"
+    }
+  }
+}

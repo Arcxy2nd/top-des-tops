@@ -4,3 +4,8 @@
 !tenants.json
 !package.json
 !public
+!Code.gs
+!AutoPoints.gs
+!DiscordBridge.gs
+!appsscript.json
+!vercel.json
