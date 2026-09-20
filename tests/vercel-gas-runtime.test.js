@@ -111,10 +111,10 @@ test('ScriptApp.getProjectTriggers absent : message clair, jamais l\'erreur JS b
   assert.ok(serialized.indexOf('is not a function') === -1, 'l\'erreur JS brute ne doit jamais fuiter : ' + serialized);
 });
 
-test('apiGetChatMessages([0]) : compteur de version factice, jamais "non modifié"', () => {
-  const { result } = runOnGrids(fixtureGrids(buildSheets()), 'apiGetChatMessages', [0]);
+test('apiGetChatMessages : un client dont la version diffère reçoit les messages', () => {
+  const { result } = runOnGrids(fixtureGrids(buildSheets()), 'apiGetChatMessages', ['inconnue']);
   assert.strictEqual(result.value.success, true);
-  assert.notStrictEqual(result.value.notModified, true, 'sinceVersion=0 ne doit jamais matcher le compteur amorcé aléatoirement');
+  assert.notStrictEqual(result.value.notModified, true, 'une version cliente qui diffère du compteur ne peut pas donner "non modifié"');
   assert.ok(
     result.value.messages.some(m => m.author === 'Ilker' && m.text === 'Salut @Safir'),
     'le message de la fixture Chat doit être renvoyé'
@@ -209,4 +209,19 @@ PARITY_CASES.forEach(([fnName, args]) => {
     const { result } = runOnGrids(fixtureGrids(buildSheets()), fnName, args);
     assert.deepStrictEqual(stripVolatile(result.value), expected);
   });
+});
+
+test('les compteurs de version viennent de la feuille, plus d\'un tirage aléatoire', () => {
+  const grids = fixtureGrids(buildSheets());
+  grids.ScriptProperties = [['Key', 'Value'], ['chat_version', '12']];
+  const first = runOnGrids(grids, 'apiGetChatMessages', [0]);
+  const second = runOnGrids(grids, 'apiGetChatMessages', [0]);
+  assert.strictEqual(first.result.value.version, '12');
+  assert.strictEqual(second.result.value.version, '12', 'deux appels identiques donnent la même version');
+});
+
+test('compteur absent de la feuille : Code.gs retombe sur sa valeur par défaut', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result } = runOnGrids(grids, 'apiGetChatMessages', [0]);
+  assert.strictEqual(result.value.version, '0');
 });
