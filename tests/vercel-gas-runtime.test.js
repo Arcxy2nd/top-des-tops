@@ -1,6 +1,6 @@
 'use strict';
 
-const { runApi, API_FUNCTIONS, SCRIPT_TIME_ZONE, LAZY_SHEETS, createUrlFetchApp } = require('../lib/gas-runtime/runtime');
+const { runApi, API_FUNCTIONS, SCRIPT_TIME_ZONE, createUrlFetchApp } = require('../lib/gas-runtime/runtime');
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -51,16 +51,21 @@ test('les fonctions d\'écriture détectées côté serveur = _MUTATING_APIS de 
   assert.deepStrictEqual(backend, frontend);
 });
 
-test('lecture : 2 requêtes Sheets (métadonnées + un lot), AuditLog exclu du lot', () => {
+// Remplace l'ancien test « 2 requêtes (métadonnées + un lot eager) » : avec le
+// chargement paresseux (Step 3), apiGetSettings ne touche que Players et
+// Categories, chacun sous PREFETCH_AFTER_MISSES → deux requêtes unitaires,
+// jamais de lot. AuditLog, lui, n'est jamais sollicité par cet appel.
+test('lecture : apiGetSettings ne télécharge que Players et Categories, jamais AuditLog', () => {
   const grids = fixtureGrids(buildSheets());
   grids.AuditLog = [['Timestamp', 'Auteur', 'Action']];
   const { result, calls } = runOnGrids(grids, 'apiGetSettings');
   assert.strictEqual(result.value.success, true);
   assert.ok(result.value.players.some(p => p.name === 'Safir'));
-  assert.strictEqual(calls.length, 2);
-  const ranges = new URL(calls[1].url).searchParams.getAll('ranges');
-  LAZY_SHEETS.forEach(t => assert.ok(!ranges.includes('\'' + t + '\''), t + ' ne doit pas être dans le lot initial'));
-  assert.ok(ranges.includes('\'Players\''));
+  assert.strictEqual(calls.length, 3, 'métadonnées + Players + Categories, une requête unitaire chacune');
+  const titles = calls.slice(1).reduce((acc, c) => acc.concat(new URL(c.url).searchParams.getAll('ranges')), []);
+  assert.ok(!titles.includes('\'AuditLog\''), 'AuditLog ne doit jamais être sollicité par apiGetSettings');
+  assert.ok(titles.includes('\'Players\''));
+  assert.ok(titles.includes('\'Categories\''));
 });
 
 test('contexte neuf à chaque appel : aucun état de Code.gs ne survit entre deux requêtes', () => {
@@ -140,17 +145,44 @@ test('createUrlFetchApp : refuse toute méthode différente de GET, sans jamais 
   assert.strictEqual(called, false, 'syncFetch ne doit jamais être appelé pour une requête non-GET');
 });
 
-test('lazy-load : apiGetAuditLog déclenche exactement 3 requêtes Sheets, la 3e ciblant uniquement AuditLog', () => {
+function gridRequests(api) {
+  return api.calls.filter(c => /includeGridData=true/.test(c.url));
+}
+
+function requestedTitles(call) {
+  return new URL(call.url).searchParams.getAll('ranges').map(r => r.replace(/^'|'$/g, '').replace(/''/g, '\''));
+}
+
+test('un sondage de tchat ne télécharge que les onglets qu\'il touche', () => {
   const grids = fixtureGrids(buildSheets());
-  grids.AuditLog = [
-    ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail'],
-    ['2026-08-01 10:00:00', 'Safir', 'ADD', '', '', '', '']
-  ];
-  const { result, calls } = runOnGrids(grids, 'apiGetAuditLog', [1, 20]);
+  const { api } = runWrite(grids, 'apiGetChatMessages', ['version-inconnue']);
+  const titles = gridRequests(api).reduce((acc, c) => acc.concat(requestedTitles(c)), []);
+  assert.ok(titles.indexOf('Chat') !== -1, 'le tchat doit être lu');
+  assert.strictEqual(titles.indexOf('History'), -1, 'l\'historique complet ne doit jamais être téléchargé pour un sondage');
+  assert.ok(gridRequests(api).length <= 3, 'au plus 3 requêtes de grille, reçu ' + gridRequests(api).length);
+});
+
+test('un appel lourd bascule en un seul lot après deux onglets', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { api } = runWrite(grids, 'apiGetBootstrapData');
+  const reqs = gridRequests(api);
+  assert.ok(reqs.length <= 3, 'deux requêtes unitaires puis un lot, reçu ' + reqs.length);
+  const last = requestedTitles(reqs[reqs.length - 1]);
+  assert.ok(last.length > 1, 'la dernière requête doit être le lot groupé');
+});
+
+test('un onglet déjà chargé n\'est jamais retéléchargé', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { api } = runWrite(grids, 'apiGetBootstrapData');
+  const seen = [];
+  gridRequests(api).forEach(c => requestedTitles(c).forEach(t => seen.push(t)));
+  assert.strictEqual(seen.length, new Set(seen).size, 'doublons : ' + seen.join(', '));
+});
+
+test('un onglet absent du classeur rend une grille vide sans requête supplémentaire', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result } = runWrite(grids, 'apiGetSettings');
   assert.strictEqual(result.value.success, true);
-  assert.strictEqual(calls.length, 3);
-  const ranges = new URL(calls[2].url).searchParams.getAll('ranges');
-  assert.deepStrictEqual(ranges, ['\'AuditLog\'']);
 });
 
 // Preuve de fidélité : même Code.gs, mêmes données, deux « moteurs » — le
