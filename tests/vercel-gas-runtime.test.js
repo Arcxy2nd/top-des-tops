@@ -42,15 +42,6 @@ test('fonction inconnue : UNKNOWN_FUNCTION, aucune requête réseau', () => {
   assert.strictEqual(api.calls.length, 0);
 });
 
-test('fonction d\'écriture : WRITE_DISABLED avant toute requête réseau', () => {
-  const api = makeFakeSheetsApi({});
-  assert.throws(
-    () => runApi({ fnName: 'apiAddNote', args: ['Safir', 'x', '', 'Safir', ''], spreadsheetId: 'S', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch: api.syncFetch }),
-    err => err.code === 'WRITE_DISABLED'
-  );
-  assert.strictEqual(api.calls.length, 0);
-});
-
 test('les fonctions d\'écriture détectées côté serveur = _MUTATING_APIS de Index.html', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
   const block = /_MUTATING_APIS\s*=\s*new Set\(\[([\s\S]*?)\]\)/.exec(html);
@@ -105,7 +96,7 @@ test('ScriptApp.getProjectTriggers absent : message clair, jamais l\'erreur JS b
   const { result } = runOnGrids(fixtureGrids(buildSheets()), 'apiGetAutoRules');
   const serialized = JSON.stringify(result.value);
   assert.ok(
-    serialized.indexOf('Déclencheurs automatiques indisponibles sur ce backend (Vercel) : prévu au Plan 5.') !== -1,
+    serialized.indexOf('indisponibles sur ce backend (Vercel) : prévu au Plan 5.') !== -1,
     'message métier attendu, reçu : ' + serialized
   );
   assert.ok(serialized.indexOf('is not a function') === -1, 'l\'erreur JS brute ne doit jamais fuiter : ' + serialized);
@@ -224,4 +215,92 @@ test('compteur absent de la feuille : Code.gs retombe sur sa valeur par défaut'
   const grids = fixtureGrids(buildSheets());
   const { result } = runOnGrids(grids, 'apiGetChatMessages', [0]);
   assert.strictEqual(result.value.version, '0');
+});
+
+function runWrite(grids, fnName, args) {
+  const api = makeFakeSheetsApi(grids);
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...a) => warnings.push(a.join(' '));
+  let result, error = null;
+  try {
+    result = runApi({ fnName, args: args || [], spreadsheetId: 'SHEET_TEST', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch: api.syncFetch });
+  } catch (e) {
+    error = e;
+  } finally {
+    console.warn = originalWarn;
+  }
+  return { result, error, api, warnings };
+}
+
+test('une fonction d\'écriture prend le verrou AVANT de lire l\'instantané', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { api } = runWrite(grids, 'apiAddNote', ['Safir', 'Note de test', '', 'Safir', '']);
+  const lockIndex = api.calls.findIndex(c => /\/values\//.test(c.url));
+  const gridIndex = api.calls.findIndex(c => /includeGridData=true/.test(c.url));
+  assert.ok(lockIndex >= 0 && gridIndex >= 0);
+  assert.ok(lockIndex < gridIndex, 'un rowIndex lu hors verrou peut être périmé au moment de l\'écriture');
+});
+
+test('une fonction d\'écriture envoie UN seul batchUpdate contenant sa ligne', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result, api } = runWrite(grids, 'apiAddNote', ['Safir', 'Note de test', '', 'Safir', '']);
+  assert.strictEqual(result.value.success, true);
+  assert.strictEqual(api.batches.length, 1);
+  assert.ok(result.appliedWrites > 0);
+  assert.match(JSON.stringify(api.lastBatch()), /Note de test/);
+});
+
+test('le verrou est relâché après une écriture réussie', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { api } = runWrite(grids, 'apiAddNote', ['Safir', 'Note de test', '', 'Safir', '']);
+  const puts = api.calls.filter(c => c.init && c.init.method === 'PUT');
+  assert.strictEqual(JSON.parse(puts[puts.length - 1].init.body).values[0][0], '');
+});
+
+test('échec en cours de route : aucune écriture de données, verrou relâché', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result, api } = runWrite(grids, 'apiAddNote', ['JoueurInconnu', 'NE DOIT PAS APPARAITRE', '', 'JoueurInconnu', 'mauvais']);
+  assert.strictEqual(result.value.success, false, 'requireAuthor doit refuser un joueur inconnu');
+  const dataBatches = api.batches.filter(reqs => JSON.stringify(reqs).indexOf('NE DOIT PAS APPARAITRE') >= 0);
+  assert.strictEqual(dataBatches.length, 0);
+  const puts = api.calls.filter(c => c.init && c.init.method === 'PUT');
+  assert.strictEqual(JSON.parse(puts[puts.length - 1].init.body).values[0][0], '');
+});
+
+test('échec d\'authentification : la trace d\'audit survit au rejet du journal', () => {
+  const grids = fixtureGrids(buildSheets());
+  grids.AuditLog = [['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']];
+  // Les joueurs des fixtures n'ont pas de mot de passe : sans ça, requireAuthor accorde.
+  grids.Players = grids.Players.map(r => (r[0] === 'Safir' ? [r[0], r[1], r[2], 'secret'] : r));
+  const { result, api } = runWrite(grids, 'apiAddNote', ['Safir', 'NE DOIT PAS APPARAITRE', '', 'Safir', 'mauvais-mot-de-passe']);
+  assert.strictEqual(result.value.success, false);
+  const audit = api.batches.filter(reqs => JSON.stringify(reqs).indexOf('Échec authentification') >= 0);
+  assert.strictEqual(audit.length, 1, 'un lot ne contenant que la trace d\'échec doit partir');
+  assert.strictEqual(JSON.stringify(api.batches).indexOf('NE DOIT PAS APPARAITRE'), -1, 'aucune donnée métier ne doit être écrite');
+});
+
+test('un appel de lecture ne rejoue rien, même quand il répare un en-tête', () => {
+  const grids = fixtureGrids(buildSheets());
+  grids.Players = grids.Players.slice(1); // ligne 1 = vraie donnée → _ensureSheetHeaders journalise
+  const { api, warnings } = runWrite(grids, 'apiGetSettings');
+  assert.strictEqual(api.batches.length, 0);
+  assert.ok(warnings.some(w => /appel de lecture/.test(w)));
+});
+
+test('readOnly : une fonction d\'écriture est refusée avant toute requête', () => {
+  const api = makeFakeSheetsApi({});
+  assert.throws(
+    () => runApi({ fnName: 'apiAddNote', args: [], spreadsheetId: 'S', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch: api.syncFetch, readOnly: true }),
+    err => err.code === 'WRITE_DISABLED'
+  );
+  assert.strictEqual(api.calls.length, 0);
+});
+
+test('les services non portés échouent avec un message explicite, pas un ReferenceError', () => {
+  const grids = fixtureGrids(buildSheets());
+  const snapshot = runWrite(grids, 'apiCreateSnapshot', ['Safir', '']);
+  assert.match(JSON.stringify(snapshot.result ? snapshot.result.value : snapshot.error.message), /Plan 5/);
+  const trigger = runWrite(grids, 'apiSetAutoTrigger', [true, 'Safir', '']);
+  assert.match(JSON.stringify(trigger.result ? trigger.result.value : trigger.error.message), /Plan 5/);
 });

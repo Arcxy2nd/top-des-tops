@@ -72,11 +72,16 @@ test('500 générique si l\'auth Google échoue, sans détail amont', async () =
   assert.doesNotMatch(r.body.error, /invalid_grant|svc@test/);
 });
 
-test('404 fonction inconnue, 403 fonction d\'écriture', async () => {
+test('404 fonction inconnue', async () => {
   assert.strictEqual((await call({ body: { fn: 'apiNExistePas' } })).status, 404);
-  const w = await call({ body: { fn: 'apiAddNote', args: [] } });
-  assert.strictEqual(w.status, 403);
-  assert.strictEqual(w.body.ok, false);
+});
+
+test('403 sur une fonction d\'écriture seulement quand readOnly est armé', async () => {
+  const blocked = await call({ body: { fn: 'apiAddNote', args: [] }, readOnly: true });
+  assert.strictEqual(blocked.status, 403);
+  const allowed = await call({ body: { fn: 'apiAddNote', args: ['Safir', 'Note RPC', '', 'Safir', ''] } });
+  assert.strictEqual(allowed.status, 200);
+  assert.strictEqual(allowed.body.ok, true);
 });
 
 test('exception de Code.gs : 200 + ok:false avec son message (contrat google.script.run)', async () => {

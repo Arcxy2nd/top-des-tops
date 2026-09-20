@@ -28,7 +28,10 @@ module.exports = async function handler(req, res) {
       body,
       tenants,
       serviceAccount: _parseServiceAccount(),
-      syncFetch: getSharedSyncFetch()
+      syncFetch: getSharedSyncFetch(),
+      // Interrupteur d'arrêt d'urgence : poser TDT_READ_ONLY=1 dans les
+      // variables Vercel referme le backend en lecture seule sans redéployer.
+      readOnly: process.env.TDT_READ_ONLY === '1'
     });
     if (result.status === 405) res.setHeader('Allow', 'POST');
     res.status(result.status).json(result.body);
