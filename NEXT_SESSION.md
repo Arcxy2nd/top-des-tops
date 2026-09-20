@@ -23,6 +23,15 @@
 - Notification sortante (l'app prévient Discord d'un ajout de points fait depuis le site) : plan séparé, une fois les 4 commandes entrantes éprouvées.
 
 ## Rappels actifs + Backlog
+- **Revue finale de branche (Plans 3-5), 2026-09-20 — constats à traiter avant la bascule du Plan 6** :
+  1. *(bloquant, correctif en cours)* Le verrou du classeur pouvait laisser **deux écrivains se croire gagnants** : rien n'attendait entre l'écriture du jeton et sa relecture, donc une écriture concurrente plus lente passait après. Conséquence : deux lots visant la même ligne, le second écrasant le premier — perte silencieuse d'une saisie. Correctif : pause de confirmation + jitter de ré-tentative.
+  2. Écriture « au moins une fois » : si l'envoi du lot dépasse le délai réseau alors que Google l'a appliqué, l'utilisateur voit une erreur et peut rejouer — points ajoutés deux fois, sans détection possible. Une clé d'idempotence serait nécessaire.
+  3. `apiVerifyIdentity` écrit (trace d'échec d'authentification, compteur de version) mais n'a pas de paramètre `author`, donc le runtime la classe en lecture et jette ses écritures : **un essai de mot de passe raté ne laisse aucune trace dans le journal d'audit**. Aggravé par une URL de backend devinable et l'absence de limitation de débit.
+  4. Les instantanés Drive sortent du lot atomique : 5 à 6 appels Drive irréversibles partent avant l'écriture dans le classeur. Un échec après coup laisse une copie orpheline, invisible depuis l'application.
+  5. Le jeton OAuth couvre désormais **tout Drive** : `DriveApp.getFileById` n'a pas le garde-fou de tenant que porte `SpreadsheetApp.openById`.
+  6. Le faux Sheets des tests n'applique jamais les lots aux grilles en mémoire : aucun test ne vérifie un aller-retour écriture → relecture (un décalage d'index passerait inaperçu).
+  7. Le cron quotidien décale la date des points automatiques : une règle due à 23h30 est datée du lendemain (`runDue` date avec l'heure d'exécution). L'hôte du tenant est aussi codé en dur dans le chemin du cron.
+  8. Mineurs notés : `getProperties()` renvoie la graine injectée (secret du pont sur ce chemin) ; une date écrite impose son format ; les lectures ne prennent pas de verrou (lecture déchirée possible) ; le cache est purement par requête donc `apiGetChangelog` refrappe GitHub à chaque appel ; commentaires périmés « prévu au Plan 3 » dans `runtime.js` ; sous `TDT_READ_ONLY`, le pont Discord répond « Erreur interne » au lieu du vrai motif.
 - **Actions manuelles requises avant que le Plan 5 soit pleinement opérationnel** :
   1. **Activer l'API Google Drive** dans le projet Google Cloud `927886168395` (console Google Cloud → API et services → activer « Google Drive API »). Sans ça, tout instantané échoue avec « Drive API has not been used in project … before or it is disabled ». Constaté le 2026-09-20 par sonde directe.
   2. Recopier la valeur de la variable Vercel `DISCORD_BRIDGE_SECRET` dans les 6 blocs BotGhost et y remplacer l'URL de base par `https://tops-des-tops-vercel.vercel.app/api/discord`, avec le paramètre `tenant` (voir `BOTGHOST_BOT_SETUP.md`). Le Worker Cloudflare peut rester en place, inutilisé.
