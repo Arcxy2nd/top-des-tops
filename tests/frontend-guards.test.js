@@ -23,20 +23,40 @@ function extractFunction(source, name) {
   return source.slice(start, i + 1);
 }
 
-function loadCallServer() {
+function loadCallServer(options) {
+  const opts = options || {};
   const html = fs.readFileSync(INDEX, 'utf8');
   const toasts = [];
   const errors = [];
+  const fetchCalls = [];
   const sandbox = {
     showToast: (msg, kind) => toasts.push({ msg: String(msg), kind: kind }),
     console: { error: (...a) => errors.push(a.map(String).join(' ')), warn() {}, log() {} },
-    google: { script: { run: null } },
     _MUTATING_APIS: new Set(['apiMutatingTest']),
-    _identityPassword: 'my-secret-pwd'
+    _identityPassword: 'my-secret-pwd',
+    fetch: (url, init) => {
+      fetchCalls.push({ url, init });
+      const reply = opts.reply || { ok: true, value: { success: true } };
+      return Promise.resolve({
+        status: opts.status || 200,
+        json: () => Promise.resolve(reply)
+      });
+    }
   };
+  // google absent = hébergement Vercel ; présent = hébergement GAS.
+  if (!opts.noGoogle) sandbox.google = { script: { run: null } };
   vm.createContext(sandbox);
-  vm.runInContext(extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;', sandbox);
-  return { callServer: sandbox.__callServer, toasts, errors, sandbox };
+  vm.runInContext(
+    extractFunction(html, '_rpcTransport') + '\n' +
+    extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;',
+    sandbox
+  );
+  return { callServer: sandbox.__callServer, toasts, errors, fetchCalls, sandbox };
+}
+
+/** Laisse la micro-file des promesses se vider (le transport fetch est asynchrone). */
+function flush() {
+  return new Promise(resolve => setImmediate(resolve));
 }
 
 // Mirrors the google.script.run contract: handlers are attached by chaining,
@@ -316,4 +336,68 @@ test('the harness exposes every server function Index.html calls', () => {
     // calls it renders an error state that has nothing to do with the app.
     'fonctions appelées par Index.html mais absentes du harness : ' + missing.join(', ')
   );
+});
+
+test('sans google.script.run, callServer poste sur /api/rpc et rend la valeur', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true, reply: { ok: true, value: { success: true, n: 7 } } });
+  let got = null;
+  callServer('apiAnything', [1, 2], res => { got = res; }, 'Chargement test');
+  await flush();
+  assert.strictEqual(fetchCalls.length, 1);
+  assert.strictEqual(fetchCalls[0].url, '/api/rpc');
+  assert.strictEqual(fetchCalls[0].init.method, 'POST');
+  assert.strictEqual(fetchCalls[0].init.headers['Content-Type'], 'application/json');
+  assert.deepStrictEqual(JSON.parse(fetchCalls[0].init.body), { fn: 'apiAnything', args: [1, 2] });
+  assert.deepStrictEqual(got, { success: true, n: 7 });
+});
+
+test('transport fetch : le mot de passe est ajouté aux seules fonctions mutantes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+  callServer('apiMutatingTest', ['a'], () => {}, 'Test');
+  callServer('apiAnything', ['a'], () => {}, 'Test');
+  await flush();
+  assert.deepStrictEqual(JSON.parse(fetchCalls[0].init.body).args, ['a', 'my-secret-pwd']);
+  assert.deepStrictEqual(JSON.parse(fetchCalls[1].init.body).args, ['a']);
+});
+
+test('transport fetch : ok:false devient une erreur, avec toast et onError', async () => {
+  const { callServer, toasts } = loadCallServer({ noGoogle: true, reply: { ok: false, error: 'Tenant inconnu pour cet hôte.' } });
+  const seen = [];
+  callServer('apiAnything', [], () => { throw new Error('ne doit pas être appelé'); }, 'Chargement test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1);
+  assert.match(String(seen[0].message || seen[0]), /Tenant inconnu/);
+  assert.strictEqual(toasts.length, 1);
+  assert.strictEqual(toasts[0].kind, 'error');
+});
+
+test('transport fetch : une réponse illisible ne laisse pas l\'appel en suspens', async () => {
+  const { callServer, sandbox } = loadCallServer({ noGoogle: true });
+  sandbox.fetch = () => Promise.resolve({ status: 502, json: () => Promise.reject(new Error('Unexpected token <')) });
+  const seen = [];
+  callServer('apiAnything', [], () => {}, 'Chargement test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1, 'onError doit être appelé même si le corps n\'est pas du JSON');
+});
+
+test('transport fetch : un refus d\'identité passe par la reprise de mot de passe', async () => {
+  const { callServer, toasts } = loadCallServer({
+    noGoogle: true,
+    reply: { ok: true, value: { success: false, error: 'Mot de passe invalide ou requis pour agir en tant que Safir' } }
+  });
+  const seen = [];
+  callServer('apiMutatingTest', [], () => {}, 'Test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1, 'onError doit être appelé après le traitement du refus');
+  assert.ok(toasts.length <= 1, 'pas de double notification');
+});
+
+test('avec google.script.run présent, aucun fetch n\'est émis (hébergement GAS inchangé)', async () => {
+  const { callServer, fetchCalls, sandbox } = loadCallServer();
+  sandbox.google.script.run = fakeRunner({ success: true, value: 42 });
+  let got = null;
+  callServer('apiAnything', [], res => { got = res; }, 'Chargement test');
+  await flush();
+  assert.strictEqual(fetchCalls.length, 0);
+  assert.strictEqual(got.value, 42);
 });

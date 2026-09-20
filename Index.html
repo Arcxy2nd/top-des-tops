@@ -10011,6 +10011,31 @@
     'apiApplyBaremeSuggestions', 'apiSaveBaremeMatchThreshold'
   ]);
 
+  // Transport à double voie : sous Google Apps Script on garde google.script.run,
+  // servi par Vercel le même contrat passe par POST /api/rpc ({ok, value|error}).
+  // Les deux hébergements restent utilisables tant que la bascule n'est pas faite.
+  function _rpcTransport(fn, args, onValue, onFailure) {
+    if (typeof google !== 'undefined' && google && google.script && google.script.run) {
+      google.script.run.withSuccessHandler(onValue).withFailureHandler(onFailure)[fn](...args);
+      return;
+    }
+    fetch('/api/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fn: fn, args: args })
+    })
+      .then(response => response.json().then(body => ({ status: response.status, body: body })))
+      .then(reply => {
+        if (reply.body && reply.body.ok) {
+          onValue(reply.body.value);
+          return;
+        }
+        const message = (reply.body && reply.body.error) || ('Erreur HTTP ' + reply.status);
+        onFailure(new Error(message));
+      })
+      .catch(err => onFailure(err instanceof Error ? err : new Error(String(err))));
+  }
+
   function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
     const handleAuthError = (errMessage) => {
       _identityPassword = '';
@@ -10039,46 +10064,45 @@
       if (onError) onError(errMessage);
     };
 
-    let runner = google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.success === false) {
-          const errStr = String(res.error || '');
-          if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
-            handleAuthError(res.error);
-            return;
-          }
-          if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
-          if (onError) onError(res.error);
-          return;
-        }
-        if (!onSuccess) return;
-        // google.script.run swallows any exception thrown here: without this try,
-        // a broken handler leaves the skeleton spinning forever, with no toast,
-        // no error state, and no trace — this was the Dashboard outage.
-        try {
-          onSuccess(res);
-        } catch (err) {
-          console.error('callServer/' + fn, err);
-          if (!silent) showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
-          if (onError) onError(err);
-        }
-      })
-      .withFailureHandler(err => {
-        const errStr = String((err && err.message) || err || '');
+    const onValue = res => {
+      if (res && res.success === false) {
+        const errStr = String(res.error || '');
         if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
-          handleAuthError(errStr);
+          handleAuthError(res.error);
           return;
         }
-        if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
+        if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
+        if (onError) onError(res.error);
+        return;
+      }
+      if (!onSuccess) return;
+      // google.script.run swallows any exception thrown here: without this try,
+      // a broken handler leaves the skeleton spinning forever, with no toast,
+      // no error state, and no trace — this was the Dashboard outage.
+      try {
+        onSuccess(res);
+      } catch (err) {
+        console.error('callServer/' + fn, err);
+        if (!silent) showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
         if (onError) onError(err);
-      });
+      }
+    };
+    const onFailure = err => {
+      const errStr = String((err && err.message) || err || '');
+      if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
+        handleAuthError(errStr);
+        return;
+      }
+      if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + ((err && err.message) || err), 'error');
+      if (onError) onError(err);
+    };
     const pwd = (typeof getIdentityPassword === 'function')
       ? getIdentityPassword()
       : (_identityPassword || '');
     const actualParams = _MUTATING_APIS.has(fn)
       ? [...params, pwd]
       : params;
-    runner[fn](...actualParams);
+    _rpcTransport(fn, actualParams, onValue, onFailure);
   }
 
   // ── REORDER (boutons monter/descendre) ───────────────────────────────────

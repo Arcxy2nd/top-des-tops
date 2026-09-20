@@ -63,7 +63,7 @@ function startServer(port) {
       servePage(res);
       return;
     }
-    if (req.method === 'POST' && req.url === '/call') {
+    if (req.method === 'POST' && (req.url === '/call' || req.url === '/api/rpc')) {
       let body = '';
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => handleCall(gas, body, res));
