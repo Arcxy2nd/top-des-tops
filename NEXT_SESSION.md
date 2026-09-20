@@ -23,6 +23,11 @@
 - Notification sortante (l'app prévient Discord d'un ajout de points fait depuis le site) : plan séparé, une fois les 4 commandes entrantes éprouvées.
 
 ## Rappels actifs + Backlog
+- **Décision utilisateur du 2026-09-20 sur le tchat** : face au quota Sheets, l'utilisateur a dit « on retirera le tchat alors, tant pis ». À confirmer avant exécution, car deux leviers moins coûteux existent :
+  1. Ralentir le sondage (60 s au lieu de 12 s panneau ouvert) : une seule constante à changer, ramène le tchat à 2 requêtes/minute par visiteur (~30 visiteurs tenables) ; le prix est un message vu avec jusqu'à une minute de retard.
+  2. Donner **un compte de service par instance** : le quota de 60 requêtes/minute est compté par compte de service, pas par classeur. Aujourd'hui « Site tops » et « Tops RDS » partageraient le même seau une fois tous deux sur Vercel — deux comptes distincts doublent le plafond et isolent les instances. À intégrer au Plan 6 si retenu.
+  3. Demander une augmentation de quota Sheets à Google Cloud (gratuit, formulaire standard).
+  Si le retrait du tchat est confirmé : il touche `Index.html` (widget, sondage, mentions), `ChatService` dans `Code.gs`, l'onglet `Chat` et les tests associés — donc un plan à part entière, à ne pas glisser dans la migration.
 - **Limites mesurées du backend Vercel (sonde du 2026-09-20, chiffres réels, pas des estimations)** :
   - Coût en requêtes Sheets par appel : `apiGetChatMessages` 2, `apiGetHistoryPage` 2, `apiGetAllNotes` 2, `apiGetSettings` 3, `apiGetBootstrapData` 4, `runAutoPoints` 7, `apiAddNote` 9, `apiAddBulkPlan` 10. Les appels mutants paient 5 requêtes de verrou (lire / écrire / relire après pause / relire à la libération / vider) + 1 `batchUpdate`.
   - **Le coût d'un ajout ne dépend pas du nombre de lignes** : 1 ligne et 2000 lignes coûtent toutes deux 10 requêtes et un seul lot. Seule la charge utile grandit (~350 octets par ligne, mesuré : 16 Ko pour 1 ligne, 706 Ko pour 2000).
