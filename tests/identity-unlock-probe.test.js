@@ -21,42 +21,84 @@ function extractFunction(source, name) {
   return source.slice(start, i + 1);
 }
 
-function sandbox(granted) {
+function loadSubmitEnv(granted) {
   const env = makeEnv({});
+  const input = env.makeEl('input');
+  input.value = '';
+  input.select = () => {};
+  env.register('identityPwdInput', input);
+
+  const btn = env.makeEl('button');
+  env.register('identityPwdSubmit', btn);
+
+  const err = env.makeEl('p');
+  env.register('identityPwdError', err);
+
+  const modal = env.makeEl('div');
+  const box = env.makeEl('div');
+  box.className = 'identity-pwd-box';
+  modal.appendChild(box);
+  env.register('identityPwdModal', modal);
+  env.document.querySelector = sel => {
+    if (sel && sel.includes('.identity-pwd-box')) return box;
+    return null;
+  };
+
   vm.createContext(env);
   const store = new Map();
-  env.localStorage = { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  env.localStorage = {
+    getItem: k => store.has(k) ? store.get(k) : null,
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: k => store.delete(k)
+  };
   env.SETTINGS_CACHE_KEY = 'tdt_x_cache_settings';
   env.cachedPlayers = [{ name: 'Bob', hasPassword: true }];
   env.cachedCategories = [];
+  env._identityPwdTarget = env.cachedPlayers[0];
+  env._identityPwdOnVerified = null;
   env.calls = [];
   env.applied = null;
-  env.modalFor = null;
-  env.callServer = (fn, params, ok) => { env.calls.push([fn, params]); ok({ success: true, granted }); };
+  env.savedPwd = null;
+  env.closedModal = false;
+  env.showToast = () => {};
+  env.callServer = (fn, params, ok) => {
+    env.calls.push([fn, params]);
+    ok({ success: true, granted });
+  };
   env.applyIdentity = n => { env.applied = n; };
-  env.setIdentityPassword = () => {};
-  env.openIdentityPwdModal = p => { env.modalFor = p.name; };
-  vm.runInContext(extractFunction(html, 'unlockOrPrompt') + '\nthis.__u = unlockOrPrompt;', env);
+  env.setIdentityPassword = p => { env.savedPwd = p; };
+  env.closeIdentityPwdModal = () => { env.closedModal = true; };
+
+  const src = extractFunction(html, 'submitIdentityPwd') + '\nthis.__submit = submitIdentityPwd;';
+  vm.runInContext(src, env);
   return env;
 }
 
-test('joueur marqué protégé mais sans mot de passe côté serveur : identité appliquée, pas de modale', () => {
-  const env = sandbox(true);
-  let resumed = false;
-  env.__u(env.cachedPlayers[0], () => { resumed = true; });
+test('joueur marqué protégé dont le mot de passe a été retiré sur le serveur : soumission vide déverrouille et efface hasPassword', () => {
+  const env = loadSubmitEnv(true);
+  env.document.getElementById('identityPwdInput').value = '';
+
+  env.__submit();
+
   assert.deepStrictEqual(JSON.parse(JSON.stringify(env.calls)), [['apiVerifyIdentity', ['Bob', '']]]);
   assert.strictEqual(env.applied, 'Bob');
-  assert.strictEqual(env.modalFor, null);
+  assert.strictEqual(env.savedPwd, '');
+  assert.strictEqual(env.closedModal, true);
   assert.strictEqual(env.cachedPlayers[0].hasPassword, false);
-  assert.strictEqual(JSON.parse(env.localStorage.getItem('tdt_x_cache_settings')).players[0].hasPassword, false);
-  assert.strictEqual(resumed, true);
+  const cachedSettings = JSON.parse(env.localStorage.getItem('tdt_x_cache_settings'));
+  assert.strictEqual(cachedSettings.players[0].hasPassword, false);
 });
 
-test('joueur réellement protégé : modale ouverte, identité non appliquée', () => {
-  const env = sandbox(false);
-  env.__u(env.cachedPlayers[0]);
-  assert.strictEqual(env.modalFor, 'Bob');
+test('joueur protégé avec mot de passe incorrect : erreur affichée, pas de déverrouillage', () => {
+  const env = loadSubmitEnv(false);
+  env.document.getElementById('identityPwdInput').value = 'wrong';
+
+  env.__submit();
+
   assert.strictEqual(env.applied, null);
+  assert.strictEqual(env.closedModal, false);
+  assert.strictEqual(env.cachedPlayers[0].hasPassword, true);
+  assert.strictEqual(env.document.getElementById('identityPwdError').style.display, 'block');
 });
 
 test('sonde serveur sans mot de passe : aucune ligne « Échec authentification »', () => {

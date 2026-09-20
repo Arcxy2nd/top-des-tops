@@ -143,7 +143,6 @@ function loadIdentityEnv(opts = {}) {
     'requireIdentity',
     'openIdentityPwdModal',
     'closeIdentityPwdModal',
-    'unlockOrPrompt',
     'wordDiffHtml',
     'auditDiffValue',
     'escapeHtml'
@@ -310,9 +309,10 @@ test('Le bouton Changer d\'utilisateur ferme la modale mot de passe, déconnecte
   assert.ok(wrap.classList.contains('open'), 'Le sélecteur Qui suis-je doit être ouvert');
 });
 
-test('cliquer sur un joueur protégé sans mot de passe serveur le déverrouille via unlockOrPrompt', () => {
+test('cliquer sur un joueur protégé ouvre immédiatement la modale de mot de passe sans requête serveur préalable', () => {
   const { env, renderWhoAmI } = loadIdentityEnv({ initialUser: null });
-  env.callServer = (fn, params, ok) => ok({ success: true, granted: true });
+  let serverCalled = false;
+  env.callServer = () => { serverCalled = true; };
   env.setIdentityPassword = () => {};
   env.SETTINGS_CACHE_KEY = 'k';
   env.cachedCategories = [];
@@ -323,7 +323,10 @@ test('cliquer sur un joueur protégé sans mot de passe serveur le déverrouille
   assert.ok(bobOpt, 'Option Bob trouvée');
   bobOpt._listeners.click.forEach(fn => fn());
 
-  assert.strictEqual(env._whoAmI, 'Bob');
-  assert.strictEqual(env._identityPwdTarget, null);
+  assert.strictEqual(serverCalled, false, 'Aucun appel réseau préalable ne doit bloquer le clic');
+  assert.strictEqual(env._whoAmI, null, 'L\'identité ne doit pas encore être appliquée');
+  assert.strictEqual(env._identityPwdTarget.name, 'Bob', 'La modale cible Bob');
+  const modal = env.document.getElementById('identityPwdModal');
+  assert.strictEqual(modal.style.display, 'block', 'La modale mot de passe s\'ouvre immédiatement');
 });
 

@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.33.2] - 2026-09-19
+
+### Corrigé
+**Humanisé** : Cliquer sur un joueur dans « Qui suis-je ? » réagit de nouveau instantanément, sans délai ni freeze de plusieurs secondes.
+**Technique** : Suppression de la sonde réseau préalable `unlockOrPrompt` (`Index.html`) qui envoyait une requête bloquante à `apiVerifyIdentity` avant d'afficher la modale ; rétablissement de l'ouverture immédiate (0 ms) via `openIdentityPwdModal(p)`. Si le mot de passe a été retiré dans la feuille Google Sheets, la validation (même vide) dans `submitIdentityPwd` reçoit `granted: true`, efface `player.hasPassword` et met à jour le cache local.
+
 ## [v3.33.1] - 2026-09-18
 
 ### Corrigé
