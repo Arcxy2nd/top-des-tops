@@ -47,7 +47,10 @@ test('les fonctions d\'écriture détectées côté serveur = _MUTATING_APIS de 
   const block = /_MUTATING_APIS\s*=\s*new Set\(\[([\s\S]*?)\]\)/.exec(html);
   assert.ok(block, '_MUTATING_APIS introuvable dans Index.html');
   const frontend = [...block[1].matchAll(/['"](api[A-Za-z0-9_]*)['"]/g)].map(m => m[1]).sort();
-  const backend = Object.keys(API_FUNCTIONS).filter(n => API_FUNCTIONS[n].mutating).sort();
+  // runAutoPoints (EXTRA_ENTRY_POINTS) n'est pas une fonction api* : jamais
+  // appelée depuis le frontend, seulement par le cron Vercel — exclue de la
+  // comparaison de parité frontend/backend.
+  const backend = Object.keys(API_FUNCTIONS).filter(n => n.startsWith('api') && API_FUNCTIONS[n].mutating).sort();
   assert.deepStrictEqual(backend, frontend);
 });
 
@@ -97,14 +100,15 @@ test('onglet sans en-tête : aucun joueur perdu, écritures de réparation non p
   assert.ok(warnings.some(w => w.indexOf('non persistée') !== -1), 'un avertissement doit mentionner les écritures non persistées');
 });
 
-test('ScriptApp.getProjectTriggers absent : message clair, jamais l\'erreur JS brute', () => {
+// Remplace l'ancien test « ScriptApp.getProjectTriggers absent » : depuis le
+// drapeau persisté (trigger-flag.js), ScriptApp.getProjectTriggers() ne lève
+// plus jamais — apiGetAutoRules doit voir un état par défaut propre (aucun
+// déclencheur installé, aucune erreur), pas une erreur JS brute.
+test('apiGetAutoRules : aucun déclencheur installé par défaut, aucune erreur', () => {
   const { result } = runOnGrids(fixtureGrids(buildSheets()), 'apiGetAutoRules');
-  const serialized = JSON.stringify(result.value);
-  assert.ok(
-    serialized.indexOf('indisponibles sur ce backend (Vercel) : prévu au Plan 5.') !== -1,
-    'message métier attendu, reçu : ' + serialized
-  );
-  assert.ok(serialized.indexOf('is not a function') === -1, 'l\'erreur JS brute ne doit jamais fuiter : ' + serialized);
+  assert.strictEqual(result.value.success, true);
+  assert.strictEqual(result.value.triggerInstalled, false);
+  assert.strictEqual(result.value.triggerError, '');
 });
 
 test('apiGetChatMessages : un client dont la version diffère reçoit les messages', () => {
@@ -329,10 +333,41 @@ test('readOnly : une fonction d\'écriture est refusée avant toute requête', (
   assert.strictEqual(api.calls.length, 0);
 });
 
-test('les services non portés échouent avec un message explicite, pas un ReferenceError', () => {
+// apiSetAutoTrigger est désormais porté (drapeau persisté, voir plus bas) :
+// seul DriveApp (sauvegardes) reste non porté à ce stade du Plan 5.
+test('le service non porté (Drive) échoue avec un message explicite, pas un ReferenceError', () => {
   const grids = fixtureGrids(buildSheets());
   const snapshot = runWrite(grids, 'apiCreateSnapshot', ['Safir', '']);
   assert.match(JSON.stringify(snapshot.result ? snapshot.result.value : snapshot.error.message), /Plan 5/);
-  const trigger = runWrite(grids, 'apiSetAutoTrigger', [true, 'Safir', '']);
-  assert.match(JSON.stringify(trigger.result ? trigger.result.value : trigger.error.message), /Plan 5/);
+});
+
+test('apiSetAutoTrigger persiste le drapeau au lieu de lever', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result, api } = runWrite(grids, 'apiSetAutoTrigger', [true, 'Safir', '']);
+  assert.strictEqual(result.value.success, true);
+  assert.strictEqual(result.value.installed, true);
+  assert.match(JSON.stringify(api.batches), /auto_trigger_installed/);
+});
+
+test('apiGetAutoRules voit le déclencheur installé quand le drapeau est posé', () => {
+  const grids = fixtureGrids(buildSheets());
+  grids.ScriptProperties = [['Key', 'Value'], ['auto_trigger_installed', '1']];
+  const { result } = runWrite(grids, 'apiGetAutoRules');
+  assert.strictEqual(result.value.triggerInstalled, true);
+  assert.ok(!result.value.triggerError, 'plus aucune erreur de déclencheur : ' + result.value.triggerError);
+});
+
+test('runAutoPoints est une entrée exécutable et mutante du runtime', () => {
+  const grids = fixtureGrids(buildSheets());
+  const { result, error } = runWrite(grids, 'runAutoPoints');
+  assert.ok(!error, 'runAutoPoints ne doit pas lever : ' + (error && error.message));
+  assert.ok(result, 'un résultat est attendu');
+});
+
+test('runAutoPoints est refusé quand readOnly est armé', () => {
+  const api = makeFakeSheetsApi({});
+  assert.throws(
+    () => runApi({ fnName: 'runAutoPoints', args: [], spreadsheetId: 'S', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch: api.syncFetch, readOnly: true }),
+    err => err.code === 'WRITE_DISABLED'
+  );
 });
