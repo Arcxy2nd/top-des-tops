@@ -121,6 +121,8 @@ Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seul
 
 **Dérogation d'infrastructure documentée (Bridge Discord)** : Le principe « zéro serveur externe » admet une unique exception : le relai **Cloudflare Worker** (`top-des-tops-bridge`) pour le bridge Discord / BotGhost. Google Apps Script impose une redirection HTTP 302 vers `script.googleusercontent.com` que BotGhost ne suit pas. Le Worker relaie les requêtes entrantes, suit la redirection 302 et renvoie la réponse synchrone au bot Discord.
 
+**Migration Vercel en cours (branche `feature/vercel-migration-foundation`, non déployée en production)** : les fonctions Vercel `api/*` exécutent le vrai `Code.gs` (+ `AutoPoints.gs`, `DiscordBridge.gs`) **sans modification**, dans un contexte `vm` neuf par requête, en lui fournissant sous Node les services Google qu'il appelle (`lib/gas-runtime/`, même principe que `tests/harness.js`). Conséquence : toute évolution backend continue de se faire dans `Code.gs`, jamais dans une copie Node. Une fonction `api*` est considérée comme une écriture si elle a un paramètre `author` (règle vérifiée contre `_MUTATING_APIS` par test) ; les écritures sont refusées en 403 tant que le Plan 3 n'a pas livré le chemin d'écriture.
+
 ---
 
 ## §3 — DONNÉES (Google Sheets)
