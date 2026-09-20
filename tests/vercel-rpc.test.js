@@ -101,3 +101,13 @@ test('runApi reçoit le tenant, le jeton et un scriptId stable', async () => {
   assert.match(received.scriptId, /^[0-9a-f]{32}$/);
   assert.notStrictEqual(scriptIdForTenant('SHEET_A').slice(0, 10), scriptIdForTenant('SHEET_B').slice(0, 10));
 });
+
+test('une erreur de transport ne divulgue jamais l\'URL appelée (identifiant du classeur)', async () => {
+  const r = await call({
+    runApiImpl: () => { throw new Error('Délai réseau dépassé (30000 ms) : https://sheets.googleapis.com/v4/spreadsheets/SHEET_A?fields=x'); }
+  });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.ok, false);
+  assert.doesNotMatch(r.body.error, /SHEET_A|sheets\.googleapis\.com/);
+  assert.match(r.body.error, /Délai réseau dépassé \(30000 ms\) : \[URL masquée\]/);
+});
