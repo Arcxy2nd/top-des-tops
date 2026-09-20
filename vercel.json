@@ -10,6 +10,10 @@
     "api/cron/auto-points.js": {
       "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}",
       "maxDuration": 60
+    },
+    "api/discord.js": {
+      "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}",
+      "maxDuration": 60
     }
   },
   "rewrites": [
