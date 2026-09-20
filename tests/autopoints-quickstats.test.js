@@ -19,9 +19,13 @@ test('apiRunAutoRulesNow immediately updates apiGetQuickStats (leader, gap, mont
   const now = new Date();
   const yesterday = new Date(Date.now() - 86400000).toISOString();
 
+  // Bob deux jours en arrière : les points auto d'Alice sont datés du jour où
+  // sa règle était DUE (hier), pas du jour de l'exécution. Avec Bob daté d'hier
+  // lui aussi, « dernier événement » deviendrait une égalité de dates et ce
+  // test mesurerait l'ordre des lignes au lieu de la fraîcheur des stats.
   const historySheet = makeSheet([
     HISTORY_HEADER,
-    [new Date(Date.now() - 86400000), 'Bob', 'Mario Kart', 10, 'Initial points', '', 'Bob']
+    [new Date(Date.now() - 2 * 86400000), 'Bob', 'Mario Kart', 10, 'Initial points', '', 'Bob']
   ], 'History');
 
   const aggregatesSheet = makeSheet([AGGREGATES_HEADER], 'Aggregates');

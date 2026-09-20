@@ -18,28 +18,61 @@ module.exports = async function handler(req, res) {
       res.status(401).json({ ok: false, error: 'Appel de tâche planifiée non autorisé.' });
       return;
     }
-    const host = (req.query && req.query.tenant) || '';
-    const tenant = resolveTenant(host, tenants);
-    if (!tenant) {
-      res.status(404).json({ ok: false, error: 'Tenant inconnu.' });
+    // Sans `?tenant=`, la tâche couvre TOUS les tenants déclarés. Avec l'hôte
+    // en dur dans vercel.json, ajouter une instance revenait à priver
+    // silencieusement celle-ci de ses points automatiques — et l'oubli ne se
+    // voyait nulle part. Le paramètre reste accepté pour rejouer un tenant
+    // précis à la main.
+    const requested = (req.query && req.query.tenant) || '';
+    let targets;
+    if (requested) {
+      const one = resolveTenant(requested, tenants);
+      if (!one) {
+        res.status(404).json({ ok: false, error: 'Tenant inconnu.' });
+        return;
+      }
+      targets = [one];
+    } else {
+      targets = Object.keys(tenants).map(h => resolveTenant(h, tenants)).filter(Boolean);
+    }
+    if (!targets.length) {
+      res.status(500).json({ ok: false, error: 'Aucun tenant configuré.' });
       return;
     }
+
     const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
     if (!raw) {
       res.status(500).json({ ok: false, error: 'Compte de service Google non configuré.' });
       return;
     }
     const accessToken = await getAccessToken(JSON.parse(raw));
-    const { value } = runApi({
-      fnName: 'runAutoPoints',
-      args: [],
-      spreadsheetId: tenant.spreadsheetId,
-      accessToken,
-      scriptId: scriptIdForTenant(tenant.spreadsheetId),
-      syncFetch: getSharedSyncFetch(),
-      readOnly: process.env.TDT_READ_ONLY === '1'
-    });
-    res.status(200).json({ ok: true, value: value });
+
+    // Séquentiel volontairement : deux tenants en parallèle doubleraient la
+    // pointe de requêtes Sheets sur le même compte de service (quota 60/min).
+    // Un tenant en échec ne doit pas empêcher les suivants de tourner.
+    const results = [];
+    let failures = 0;
+    for (const tenant of targets) {
+      try {
+        const { value } = runApi({
+          fnName: 'runAutoPoints',
+          args: [],
+          spreadsheetId: tenant.spreadsheetId,
+          accessToken,
+          scriptId: scriptIdForTenant(tenant.spreadsheetId),
+          syncFetch: getSharedSyncFetch(),
+          readOnly: process.env.TDT_READ_ONLY === '1'
+        });
+        results.push({ tenant: tenant.host, ok: true, value: value });
+      } catch (e) {
+        failures++;
+        console.error('api/cron/auto-points failure for ' + tenant.host + ':', e);
+        results.push({ tenant: tenant.host, ok: false, error: 'Échec. Voir les logs serveur.' });
+      }
+    }
+    // Tous en échec = la tâche a échoué (Vercel la marque en erreur) ; un échec
+    // partiel reste un 200 pour ne pas masquer les tenants qui ont réussi.
+    res.status(failures === targets.length ? 500 : 200).json({ ok: failures === 0, results: results });
   } catch (e) {
     console.error('api/cron/auto-points failure:', e);
     res.status(500).json({ ok: false, error: 'Échec de la tâche planifiée. Voir les logs serveur.' });

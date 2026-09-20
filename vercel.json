@@ -20,6 +20,6 @@
     { "source": "/", "destination": "/api/app" }
   ],
   "crons": [
-    { "path": "/api/cron/auto-points?tenant=tops-des-tops-vercel.vercel.app", "schedule": "0 2 * * *" }
+    { "path": "/api/cron/auto-points", "schedule": "0 2 * * *" }
   ]
 }
