@@ -403,3 +403,42 @@ test('runAutoPoints est refusé quand readOnly est armé', () => {
     err => err.code === 'WRITE_DISABLED'
   );
 });
+
+// ── Aller-retour écriture → relecture (constat 6 de la revue finale) ─────────
+// Le faux Sheets applique désormais les batchUpdate à ses grilles : une
+// écriture peut être relue par un appel suivant, exactement comme sur le vrai
+// classeur. Sans ça, un décalage d'index dans le rejeu du journal passait
+// inaperçu — le lot était inspecté, jamais appliqué.
+
+test('aller-retour : une note écrite est relue par l\'appel suivant', () => {
+  const grids = fixtureGrids(buildSheets());
+  const before = runOnGrids(grids, 'apiGetAllNotes').result.value.notes.length;
+
+  const { result } = runWrite(grids, 'apiAddNote', ['Safir', 'Note aller-retour', '', 'Safir', '']);
+  assert.strictEqual(result.value.success, true);
+
+  const after = runOnGrids(grids, 'apiGetAllNotes').result.value.notes;
+  assert.strictEqual(after.length, before + 1);
+  const written = after.find(n => n.text === 'Note aller-retour');
+  assert.ok(written, 'la note écrite doit être relue depuis la grille');
+  assert.strictEqual(written.player, 'Safir');
+});
+
+test('aller-retour : supprimer une note retire LA bonne ligne', () => {
+  const grids = fixtureGrids(buildSheets());
+  runWrite(grids, 'apiAddNote', ['Safir', 'Note A', '', 'Safir', '']);
+  runWrite(grids, 'apiAddNote', ['Safir', 'Note B', '', 'Safir', '']);
+
+  const notes = runOnGrids(grids, 'apiGetAllNotes').result.value.notes;
+  const target = notes.find(n => n.text === 'Note A');
+  assert.ok(target, 'la note A doit exister avant suppression');
+
+  const { result } = runWrite(grids, 'apiDeleteNote', [target.rowIndex, 'Safir', '']);
+  assert.strictEqual(result.value.success, true);
+
+  const left = runOnGrids(grids, 'apiGetAllNotes').result.value.notes.map(n => n.text);
+  // Un décalage d'un rang supprimerait la note B (ou la note du fixture) :
+  // c'est précisément ce que ce test attrape.
+  assert.strictEqual(left.includes('Note A'), false);
+  assert.strictEqual(left.includes('Note B'), true);
+});
