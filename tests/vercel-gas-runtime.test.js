@@ -8,6 +8,7 @@ const path = require('path');
 const { loadGas } = require('./harness.js');
 const { buildSheets } = require('./frontend/fixtures.js');
 const { makeFakeSheetsApi, fixtureGrids } = require('./helpers/fake-sheets-api');
+const { makeFakeDrive } = require('./helpers/fake-drive-api');
 
 const SCRIPT_ID = 'MOCK_SCRIPT_ID_12345'; // même valeur que gasMocks() du harness
 
@@ -333,12 +334,43 @@ test('readOnly : une fonction d\'écriture est refusée avant toute requête', (
   assert.strictEqual(api.calls.length, 0);
 });
 
-// apiSetAutoTrigger est désormais porté (drapeau persisté, voir plus bas) :
-// seul DriveApp (sauvegardes) reste non porté à ce stade du Plan 5.
-test('le service non porté (Drive) échoue avec un message explicite, pas un ReferenceError', () => {
+// Drive est câblé (Plan 5, dernier service manquant) : apiCreateSnapshot copie
+// le classeur pour de vrai et range la copie dans le sous-dossier dédié.
+test('apiCreateSnapshot copie le classeur et le range dans le sous-dossier Drive', () => {
   const grids = fixtureGrids(buildSheets());
-  const snapshot = runWrite(grids, 'apiCreateSnapshot', ['Safir', '']);
-  assert.match(JSON.stringify(snapshot.result ? snapshot.result.value : snapshot.error.message), /Plan 5/);
+  const sheetsApi = makeFakeSheetsApi(grids, { name: 'Tops' });
+  const drive = makeFakeDrive({
+    SHEET_TEST: { id: 'SHEET_TEST', name: 'Tops', parents: ['dossier-1'] },
+    'dossier-1': { id: 'dossier-1', name: 'Jeux', mimeType: 'application/vnd.google-apps.folder', parents: [] }
+  });
+  const syncFetch = (url, init) => (new URL(url).hostname === 'www.googleapis.com' ? drive.syncFetch(url, init) : sheetsApi.syncFetch(url, init));
+
+  const result = runApi({ fnName: 'apiCreateSnapshot', args: ['Safir', ''], spreadsheetId: 'SHEET_TEST', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch });
+
+  assert.strictEqual(result.value.success, true, JSON.stringify(result.value));
+  assert.match(result.value.name, /^Tops — Snapshot \d{4}-\d{2}-\d{2} \d{2}h\d{2}$/);
+  assert.ok(result.value.url, 'une URL de la copie doit être renvoyée');
+
+  const folder = Object.values(drive.state).find(f => f.mimeType === 'application/vnd.google-apps.folder' && f.name === 'Snapshots top-des-tops');
+  assert.ok(folder, 'le sous-dossier "Snapshots top-des-tops" doit être créé à côté de la source');
+  assert.deepStrictEqual(folder.parents, ['dossier-1'], 'le sous-dossier doit être créé dans le même dossier que le classeur source');
+
+  const copy = Object.values(drive.state).find(f => /^copy-/.test(f.id));
+  assert.ok(copy, 'une copie du classeur doit être créée');
+  assert.deepStrictEqual(copy.parents, [folder.id], 'la copie doit finir uniquement dans le sous-dossier (moveTo retire l\'ancien parent)');
+});
+
+test('apiCreateSnapshot renvoie un échec exploitable (pas un ReferenceError) si Drive répond en erreur', () => {
+  const grids = fixtureGrids(buildSheets());
+  const sheetsApi = makeFakeSheetsApi(grids, { name: 'Tops' });
+  // Aucun fichier connu de ce faux Drive : la toute première lecture (source) échoue.
+  const drive = makeFakeDrive({});
+  const syncFetch = (url, init) => (new URL(url).hostname === 'www.googleapis.com' ? drive.syncFetch(url, init) : sheetsApi.syncFetch(url, init));
+
+  const result = runApi({ fnName: 'apiCreateSnapshot', args: ['Safir', ''], spreadsheetId: 'SHEET_TEST', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch });
+
+  assert.strictEqual(result.value.success, false);
+  assert.match(result.value.error, /404/);
 });
 
 test('apiSetAutoTrigger persiste le drapeau au lieu de lever', () => {

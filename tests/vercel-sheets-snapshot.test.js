@@ -19,10 +19,10 @@ test('quoteSheetName double les apostrophes (même règle que _fetchSheetValues)
   assert.strictEqual(quoteSheetName('Top d\'or'), '\'Top d\'\'or\'');
 });
 
-test('fetchSpreadsheetMeta lit fuseau et onglets avec le jeton en en-tête', () => {
-  const r = recorder(() => ({ status: 200, body: JSON.stringify({ properties: { timeZone: 'Europe/Paris' }, sheets: [{ properties: { sheetId: 7, title: 'Players' } }] }) }));
+test('fetchSpreadsheetMeta lit fuseau, nom et onglets avec le jeton en en-tête', () => {
+  const r = recorder(() => ({ status: 200, body: JSON.stringify({ properties: { timeZone: 'Europe/Paris', title: 'Tops' }, sheets: [{ properties: { sheetId: 7, title: 'Players' } }] }) }));
   const meta = fetchSpreadsheetMeta({ syncFetch: r.syncFetch, accessToken: 'tok', spreadsheetId: 'SHEET_A' });
-  assert.deepStrictEqual(meta, { timeZone: 'Europe/Paris', sheets: [{ sheetId: 7, title: 'Players', rowCount: 0, columnCount: 0 }] });
+  assert.deepStrictEqual(meta, { timeZone: 'Europe/Paris', title: 'Tops', sheets: [{ sheetId: 7, title: 'Players', rowCount: 0, columnCount: 0 }] });
   assert.strictEqual(r.calls.length, 1);
   assert.match(r.calls[0].url, /^https:\/\/sheets\.googleapis\.com\/v4\/spreadsheets\/SHEET_A\?fields=/);
   assert.strictEqual(r.calls[0].init.headers.Authorization, 'Bearer tok');

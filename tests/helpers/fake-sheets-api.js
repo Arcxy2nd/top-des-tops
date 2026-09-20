@@ -24,6 +24,9 @@ function makeFakeSheetsApi(gridsByTitle, options) {
   const batches = [];
   let lockCell = '';
   const timeZone = (options && options.timeZone) || 'Europe/Paris';
+  // Optionnel : absent par défaut (comportement inchangé), utile aux tests qui
+  // exercent Spreadsheet.getName() (BackupService).
+  const spreadsheetTitle = options && options.name;
   const titles = Object.keys(gridsByTitle);
   function syncFetch(url, init) {
     calls.push({ url, init });
@@ -51,7 +54,7 @@ function makeFakeSheetsApi(gridsByTitle, options) {
     return {
       status: 200,
       body: JSON.stringify({
-        properties: { timeZone },
+        properties: Object.assign({ timeZone }, spreadsheetTitle ? { title: spreadsheetTitle } : {}),
         sheets: titles.map((title, i) => ({
           properties: {
             sheetId: i + 1,

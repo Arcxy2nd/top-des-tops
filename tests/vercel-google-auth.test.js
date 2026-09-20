@@ -27,7 +27,7 @@ test('_buildAssertion produit un JWT RS256 avec les bonnes revendications, signa
   assert.strictEqual(header.alg, 'RS256');
   assert.strictEqual(header.typ, 'JWT');
   assert.strictEqual(claims.iss, 'svc@test.iam.gserviceaccount.com');
-  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets');
+  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive');
   assert.strictEqual(claims.aud, 'https://oauth2.googleapis.com/token');
   assert.strictEqual(claims.iat, now);
   assert.strictEqual(claims.exp, now + 3600);
@@ -122,5 +122,13 @@ test('le scope demandé autorise l\'écriture (chemin d\'écriture du Plan 3)', 
   const { privateKey } = _makeKeyPair();
   const assertion = _buildAssertion({ client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey }, 1000);
   const claims = JSON.parse(Buffer.from(assertion.split('.')[1], 'base64url').toString('utf8'));
-  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets');
+  assert.strictEqual(claims.scope, 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive');
+});
+
+test('le scope demandé couvre Drive (instantanés du Plan 5)', () => {
+  const { privateKey } = _makeKeyPair();
+  const assertion = _buildAssertion({ client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey }, 1000);
+  const claims = JSON.parse(Buffer.from(assertion.split('.')[1], 'base64url').toString('utf8'));
+  assert.ok(claims.scope.indexOf('https://www.googleapis.com/auth/drive') !== -1, 'scope reçu : ' + claims.scope);
+  assert.ok(claims.scope.indexOf('https://www.googleapis.com/auth/spreadsheets') !== -1);
 });
