@@ -20,9 +20,6 @@ jobs:
   repoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Repoint both links
         env:
           SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
@@ -33,10 +30,11 @@ jobs:
           repoint() {
             local name="$1" url="$2"
             local link_id
-            link_id=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .shortioLinkId' deploy-targets.json)
-            if [ -z "$link_id" ] || [ "$link_id" = "null" ]; then
-              echo "ERROR: aucun lien short.io pour '$name'" >&2; return 1
-            fi
+            case "$name" in
+              "Site tops") link_id="lnk_7KB5_lI2Exd9nd9pUAtllkaqku" ;;
+              "Tops RDS") link_id="lnk_7KB5_vcILCneskdEsrEE7lJaup" ;;
+              *) echo "ERROR: aucun lien short.io pour '$name'" >&2; return 1 ;;
+            esac
             local current
             current=$(curl -s "https://api.short.io/links/${link_id}" -H "Authorization: ${SHORTIO_API_KEY}" | jq -r '.originalURL // "inconnue"')
             echo "[$name] destination actuelle : $current"

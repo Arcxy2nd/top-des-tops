@@ -10,6 +10,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 **Humanisé** : L'application est désormais hébergée sur une infrastructure plus rapide ; les liens habituels fonctionnent à l'identique (il faudra seulement re-choisir son identité une fois).
 **Technique** : Bascule de Google Apps Script vers Vercel — `Index.html` servi par `api/app.js`, appels serveur via `POST /api/rpc` exécutant `Code.gs` dans un contexte `vm`, écritures rejouées en un `spreadsheets.batchUpdate` atomique sous verrou `ScriptLock`, propriétés de script persistées dans l'onglet `ScriptProperties`, points automatiques par Vercel Cron (filtrés par `auto_trigger_installed`), pont Discord sur `/api/discord` ; liens courts repointés par le workflow `repoint-shortlinks.yml`, déploiement GAS automatique désactivé.
 
+### Supprimé
+**Humanisé** : L'ancien système de mise en ligne via Google Apps Script est retiré.
+**Technique** : Suppression de `.github/workflows/deploy-gas.yml`, `.github/scripts/deploy-gas.sh`, `.github/scripts/strip-comments.js` (et son test), `deploy-targets.json`, `.claspignore`, `SETUP-AUTOSYNC.md` ; `DEPLOIEMENT.md` réécrit pour Vercel ; `push.bat` enchaîne désormais `vercel deploy --prod` ; identifiants short.io intégrés à `repoint-shortlinks.yml`.
+
 ## [v3.34.0] - 2026-09-21
 
 ### Supprimé

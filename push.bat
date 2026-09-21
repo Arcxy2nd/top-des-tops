@@ -28,5 +28,12 @@ if errorlevel 1 (
 )
 
 echo.
-echo === Push termine, deploiement auto en cours ===
+echo === Push termine, deploiement Vercel (les deux instances) ===
+call vercel deploy --prod --yes --scope troispiliers
+if errorlevel 1 (
+    echo Le deploiement Vercel a echoue.
+    pause
+    exit /b 1
+)
+echo === Deploiement termine ===
 pause

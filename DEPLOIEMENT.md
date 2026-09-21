@@ -1,110 +1,42 @@
-# Rendre l'application publique — Guide complet
+# Déploiement
 
-## Étape 1 — Ouvrir le projet dans Apps Script
+Depuis la v3.35.0 (2026-09-21), les deux instances (« Site tops » et « Tops RDS ») sont servies par **Vercel**. Google Apps Script n'est plus utilisé pour servir l'application.
 
-1. Va sur [script.google.com](https://script.google.com)
-2. Ouvre le projet **top-des-tops**
+## Déployer
 
----
+Après avoir poussé sur `main` :
 
-## Étape 2 — Configurer le SPREADSHEET_ID (une seule fois)
+```bash
+vercel deploy --prod --yes --scope troispiliers
+```
 
-Si ce n'est pas encore fait, il faut dire au script quelle feuille Google Sheets utiliser.
+Un seul déploiement met à jour les deux instances. `push.bat` enchaîne commit, push et déploiement. Le dépôt GitHub n'est **pas** relié au projet Vercel et ne doit jamais l'être : un push seul ne déploie rien.
 
-1. Dans l'éditeur, clique sur le menu **"Exécuter"** en haut
-2. Clique sur **"Exécuter la fonction"**
-3. Choisis la fonction `setup` ou `setSpreadsheetId` si elle existe  
-   *(si elle n'existe pas, voir note en bas de page)*
-4. Accepte les permissions demandées
+`.vercelignore` limite l'envoi au code servi (`api/`, `lib/`, `Code.gs`, `AutoPoints.gs`, `DiscordBridge.gs`, `Index.html`, `tenants.json`…).
 
----
+## Instances
 
-## Étape 3 — Déployer l'application web
+| Instance | Hôte Vercel | Lien court |
+|---|---|---|
+| Site tops | `tops-site-tops.vercel.app` | `c55zvj.s.gy/tops-des-tops` |
+| Tops RDS | `tops-rds.vercel.app` | `c55zvj.s.gy/top-RDS` |
+| Copie de test | `tops-des-tops-vercel.vercel.app` | — |
 
-1. Clique sur le bouton **"Déployer"** en haut à droite
-2. Choisis **"Nouveau déploiement"**
-3. Clique sur l'icône **engrenage** à côté de "Sélectionner le type" → choisis **"Application Web"**
-4. Remplis les champs :
-   - **Description** : `v1` (ou ce que tu veux)
-   - **Exécuter en tant que** : `Moi (ton adresse email)`
-   - **Qui a accès** : `Tout utilisateur avec un compte Google`  
-     *(avec un compte Gmail personnel, c'est le maximum disponible — l'option "Tout le monde" sans compte n'existe plus pour les comptes non-professionnels)*
-5. Clique sur **"Déployer"**
+`tenants.json` associe chaque hôte à son classeur Google Sheets (et épingle l'`instanceId` qui préfixe le stockage local). Ajouter une instance : ajouter un domaine au projet Vercel, une entrée dans `tenants.json`, et partager le classeur en **Éditeur** au compte de service `tops-des-tops@trois-487801.iam.gserviceaccount.com`.
 
-> Les personnes qui ouvrent le lien devront être connectées à n'importe quel compte Google.
-> Elles n'ont pas besoin d'avoir accès à ta feuille Sheets — le script tourne en ton nom.
+## Variables d'environnement (Vercel, production)
 
----
+- `GOOGLE_SERVICE_ACCOUNT_KEY` — clé JSON du compte de service.
+- `DISCORD_BRIDGE_SECRET` — secret partagé avec BotGhost (`/api/discord`).
+- `CRON_SECRET` — protège la tâche planifiée des points automatiques.
+- `TDT_READ_ONLY=1` — **arrêt d'urgence** : toute écriture est refusée. `printf '1' | vercel env add TDT_READ_ONLY production --scope troispiliers`, puis redéployer ; `vercel env rm TDT_READ_ONLY production --yes --scope troispiliers` pour rouvrir.
 
-## Étape 4 — Autoriser le script (avertissement de sécurité)
+## Liens courts et retour arrière
 
-Google va afficher un écran **"Google n'a pas validé cette application"**. C'est normal pour un script personnel, il faut juste passer outre.
+Les liens courts short.io sont le commutateur. Ils se déplacent avec le workflow GitHub Actions **« Repoint short links »** (`.github/workflows/repoint-shortlinks.yml`, lancement manuel ; la clé short.io est dans les secrets GitHub) :
 
-1. Clique sur **"Paramètres avancés"** en bas à gauche de la fenêtre
-2. Clique sur **"Accéder à [nom du projet] (non sécurisé)"**
-3. Clique sur **"Autoriser"**
+```bash
+gh workflow run repoint-shortlinks.yml -f site_tops_url=<url> -f tops_rds_url=<url>
+```
 
-Cette étape ne se fait **qu'une seule fois**. Les personnes qui utilisent le lien ensuite ne verront pas cet écran.
-
----
-
-## Étape 5 — Récupérer le lien public
-
-Après le déploiement, une fenêtre s'affiche avec :
-
-> **URL de l'application web** : `https://script.google.com/macros/s/XXXXXXX/exec`
-
-**Copie ce lien.** C'est l'URL à partager avec tout le monde.
-
----
-
-## Étape 6 — Mettre à jour après une modification du code
-
-Depuis la mise en place de la synchronisation automatique (voir `SETUP-AUTOSYNC.md`), cette étape est **automatique** :
-
-1. Modifie `Code.gs`, `AutoPoints.gs`, `Index.html`, `Mobile.html` ou `appsscript.json` localement
-2. `git push` vers `main`
-3. GitHub Actions pousse le code, archive l'ancien déploiement, en crée un nouveau, et met à jour le lien short.io — sans action manuelle, pour **chaque copie** listée dans `deploy-targets.json`
-
-Tu peux suivre la progression dans l'onglet **Actions** du dépôt GitHub. En cas d'échec sur une copie (visible en rouge), les logs indiquent laquelle et à quelle étape ; les autres copies sont quand même mises à jour.
-
----
-
-## Note — Messages d'autorisation "ScriptApp.getProjectTriggers" ou "UrlFetchApp.fetch"
-
-Ce message apparaît lorsque Google exige une re-validation des autorisations de sécurité (par exemple pour la gestion des triggers automatiques ou les requêtes externes GitHub `UrlFetchApp.fetch` du Changelog). Les déploiements automatiques (`clasp`/GitHub Actions) ne peuvent pas valider les nouveaux périmètres OAuth à la place du propriétaire du script.
-
-**Pour réautoriser le script (une seule fois par copie) :**
-
-1. Ouvre le projet dans [script.google.com](https://script.google.com)
-2. Dans l'éditeur, sélectionne une fonction (ex: `apiGetChangelog` ou `apiSetAutoTrigger`) dans le menu déroulant en haut
-3. Clique sur **"Exécuter"**
-4. Google affiche l'écran d'autorisation ("Google n'a pas validé cette application") — clique **"Paramètres avancés"** puis **"Accéder à [nom du projet] (non sécurisé)"** puis **"Autoriser"**
-5. Recharge l'application Web.
-
----
-
-## Note — Si le SPREADSHEET_ID n'est pas configuré
-
-Si l'app affiche une erreur `SPREADSHEET_ID est manquant`, il faut le configurer manuellement :
-
-1. Dans Apps Script, clique sur **"Paramètres du projet"** (icône engrenage à gauche)
-2. Descends jusqu'à **"Propriétés du script"**
-3. Clique sur **"Ajouter une propriété"**
-4. Mets :
-   - Propriété : `SPREADSHEET_ID`
-   - Valeur : l'ID de ta feuille Google Sheets *(c'est la partie longue dans l'URL de ton sheet, entre `/d/` et `/edit`)*
-5. Clique sur **"Enregistrer"**
-
----
-
-## Note — Limite de 200 versions dans Google Apps Script (« Cannot create more versions »)
-
-Google Apps Script limite chaque projet à 200 versions historiques. Si cette limite est atteinte sur l'un des deux projets Apps Script (« Site tops » ou « Tops RDS »), le workflow d'auto-déploiement GitHub Actions affiche une erreur `Cannot create more versions`.
-
-**Pour débloquer une instance ayant atteint 200 versions :**
-
-1. Ouvre le projet correspondant sur [script.google.com](https://script.google.com) (ScriptId présent dans `deploy-targets.json`)
-2. Dans le menu de gauche, clique sur **Paramètres du projet** (⚙️) ou accède à la liste des versions/déploiements
-3. Supprime ou nettoie les anciennes versions historiques inutilisées
-4. Relance le workflow dans GitHub Actions (ou effectue un nouveau `git push`)
+Sans paramètres, il pointe vers les hôtes Vercel. **Retour arrière vers Apps Script** : le relancer avec les URL `/exec` notées dans `NEXT_SESSION.md` — tant que les déploiements Web App Apps Script existent encore côté Google.
