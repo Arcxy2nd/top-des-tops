@@ -27,6 +27,10 @@ Toute évolution retenue sur la méthode de travail avec l'IA doit être écrite
 
 `NEXT_SESSION.md` (racine du projet) suit l'état courant, mis à jour **en continu** (dès qu'une décision/bug/config a de la valeur pour la suite), jamais seulement en fin de session. 4 blocs stricts : État courant / Dernière session / Écarts / Rappels+Backlog (modèle `H:/IA/projets/AEVO3/NEXT_SESSION.md`, système généralisé à tout le vault le 2026-08-14). Lu en premier, avant ce fichier (§0). Ne remplace pas `CHANGELOG.md` (historique versionné du produit) ni `memory/MEMORY.md` (mémoire portable détaillée) — `NEXT_SESSION.md` est l'état condensé du moment présent.
 
+## RÈGLE — PAS DE TCHAT DANS L'APPLICATION
+
+Le tchat flottant a été retiré en v3.34.0 sur décision explicite de l'utilisateur (2026-09-21), après un refus erroné de le retirer la veille. Ne pas le réintroduire, ni sous forme de widget, ni sous forme d'onglet, sans demande explicite. L'onglet `Chat` des classeurs existants est laissé en place mais n'est plus lu ni écrit par l'application ; `tests/chat-removed.test.js` fige cette absence.
+
 ## RÈGLE — PUBLIABLE = ANGLAIS
 
 Tout artefact destiné à être publié (repo, README, commits, releases) : anglais, même si la conversation se fait en français. Le code (§8) est déjà en anglais ; cette règle couvre aussi commits, README, releases.
@@ -123,7 +127,7 @@ Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seul
 
 **Backend Vercel (branche `feature/vercel-migration-foundation`, non fusionnée)** : les fonctions serverless exécutent le vrai `Code.gs` dans un contexte `vm` par requête. Les écritures sont accumulées dans un journal en mémoire puis rejouées en **un seul `spreadsheets.batchUpdate` atomique** en fin de requête — une exception jette tout le lot (seule survivante : la ligne d'audit d'un échec d'authentification). `LockService` et `PropertiesService`, absents de Vercel, sont portés par deux onglets techniques du classeur : `ScriptLock` (cellule A1 = bail horodaté, verrou « écrire puis relire ») et `ScriptProperties` (Key/Value). La variable Vercel `TDT_READ_ONLY=1` referme le backend en lecture seule sans redéploiement.
 
-**Frontend sous Vercel (Plan 4)** : `Index.html` est servi par la fonction `api/app.js`, qui lui concatène le script d'identifiant d'instance que `doGet` ajoutait (dérivé du classeur du tenant, surchargeable par `instanceId` dans `tenants.json` pour ne pas invalider les clés `tdt_<id>_*` existantes ; l'identifiant est échappé `\u003c` pour interdire toute sortie de la balise `<script>`). Côté client, `callServer()` passe par un transport à double voie : `google.script.run` si l'objet existe, sinon `POST /api/rpc` — l'application reste donc exécutable sous Apps Script comme sous Vercel. Le runtime ne télécharge plus tous les onglets à chaque requête : chargement à la demande, avec bascule en un lot unique au-delà de deux onglets touchés (un sondage de tchat ne lit plus l'historique).
+**Frontend sous Vercel (Plan 4)** : `Index.html` est servi par la fonction `api/app.js`, qui lui concatène le script d'identifiant d'instance que `doGet` ajoutait (dérivé du classeur du tenant, surchargeable par `instanceId` dans `tenants.json` pour ne pas invalider les clés `tdt_<id>_*` existantes ; l'identifiant est échappé `\u003c` pour interdire toute sortie de la balise `<script>`). Côté client, `callServer()` passe par un transport à double voie : `google.script.run` si l'objet existe, sinon `POST /api/rpc` — l'application reste donc exécutable sous Apps Script comme sous Vercel. Le runtime ne télécharge plus tous les onglets à chaque requête : chargement à la demande, avec bascule en un lot unique au-delà de deux onglets touchés (une lecture ciblée ne lit plus l'historique).
 
 **Intégrations sous Vercel (Plan 5)** : le déclencheur horaire d'Apps Script est remplacé par un drapeau `auto_trigger_installed` dans l'onglet technique `ScriptProperties`, lu par une tâche planifiée Vercel (`api/cron/auto-points`, protégée par `CRON_SECRET`). **Le plan Vercel Hobby ne permet qu'une exécution par jour** : la tâche tourne à 02:00 UTC au lieu de toutes les heures — les règles d'automatisation restent journalières/hebdomadaires/mensuelles, seule l'heure d'application change. Le pont Discord devient `GET /api/discord` : la dérogation « Worker Cloudflare » du principe zéro-serveur-externe **tombe** (une fonction Vercel répond en 200 sans la redirection 302 d'Apps Script). Le secret partagé vit dans la variable Vercel `DISCORD_BRIDGE_SECRET`, injectée dans le bac à sable pour que `DiscordBridge.gs` valide contre la même valeur — une seule source. Les instantanés passent par l'API Drive v3 avec le compte de service : la copie lui appartient et le propriétaire humain y accède par son lien.
 
@@ -142,7 +146,6 @@ Categories    : Name | Description | Emoji | Hex color | [Ordre]
 Notes         : Date | Player | Note text | [NoteId] | [CrééPar] | [ModifiéPar] | [ModifiéLe]
 Bareme        : Top | Action (text) | Points | [Id]  (pas de colonne Ordre, tri strict par points croissants)
 Phrases       : Preset | Pool | Phrase | [Ordre]
-Chat          : Id | Date | Author | Text | ReplyToId
 AuditLog      : Timestamp | Auteur | Action | Entité | Avant | Après | Détail | [Snapshot] | [AnnuléLe]
 Settings      : Key | Value
 AltCategories : Name | Description | Emoji | Hex color
@@ -151,7 +154,7 @@ AutoRules     : ID | Joueur | Catégorie | Points | Description | Fréquence | I
 Aggregates    : Vue matérialisée persistante (totaux, métriques par joueur/catégorie/mois, lastEvent, globalBest)
 ```
 
-Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
+Les feuilles **Notes**, **Bareme**, **Phrases**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
 
 ### Traçabilité & Stockage physique de l'état courant (Notes)
 
@@ -180,7 +183,6 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `BaremeService` | CRUD règles de points (barème), tri croissant automatique par points, auto-création de la feuille |
 | `BaremeMatcher` | Détection de correspondances entre descriptions d'entrées et règles du barème (Dice bigrammes + fenêtres de mots) |
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
-| `ChatService` | Messages du tchat flottant (lecture, envoi, suppression de ses propres messages), résolution du message cité par une réponse, auto-création de la feuille |
 | `AuditService` | Journalisation des opérations, annulation d'écritures, snapshots, auto-création de la feuille |
 | `SettingsSheetService` | Gestion des paramètres de l'application dans la feuille Settings |
 | `AltSettingsService` / `AltStorageService` | Gestion des catégories et scores du Top Alt |
@@ -207,10 +209,6 @@ Fichier HTML/CSS/JS monofichier.
 | ❓ Guide | Documentation inline thématique et recherche dynamique |
 
 `🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé (avec efficacité du cache, tuile règle du barème introuvable et détection d'homonymes), nettoyage (zéros/orphelins/doublons ; les outils "scores aberrants" et "joueurs inactifs" ont été retirés en v3.15.1), classement par règle du barème par ressemblance avec seuil réglable (`bareme_match_threshold`), détection/regroupement de lots répartis, groupes hérités, points automatiques, recalcul des agrégats et création d'instantanés (snapshots Google Drive).
-
-### Tchat flottant
-
-Pas un onglet — un widget global (bouton 💬 `#chatToggleBtn` + panneau `#chatSidePanel`) superposé à toutes les pages, en dehors du système d'onglets. Desktop : bouton dans la navbar, panneau latéral sticky. Mobile : bouton flottant rond au-dessus de la barre de nav du bas, panneau plein écran. Un clic sur le bouton ouvre/ferme le panneau ; l'état ouvert/fermé est mémorisé en localStorage. Markdown complet, mentions `@Joueur` et `#Top` (avec autocomplétion), réponse à un message (aperçu cité avec avatar), horodatage, suppression de ses propres messages uniquement. Stockage dans la feuille `Chat` (auto-créée) via `ChatService`. Pas de push serveur possible (GAS) : sondage adaptatif (4s panneau ouvert / 20s fermé), avec badge de messages non lus quand le panneau est fermé.
 
 ### Types de graphique (Dashboard)
 
