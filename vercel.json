@@ -1,0 +1,25 @@
+{
+  "functions": {
+    "api/rpc.js": {
+      "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}",
+      "maxDuration": 60
+    },
+    "api/app.js": {
+      "includeFiles": "Index.html"
+    },
+    "api/cron/auto-points.js": {
+      "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}",
+      "maxDuration": 60
+    },
+    "api/discord.js": {
+      "includeFiles": "{Code.gs,AutoPoints.gs,DiscordBridge.gs,appsscript.json}",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/api/app" }
+  ],
+  "crons": [
+    { "path": "/api/cron/auto-points", "schedule": "0 2 * * *" }
+  ]
+}

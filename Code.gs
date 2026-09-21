@@ -7,7 +7,6 @@
  * Bareme    : [0] Action (text) | [1] Points  (optional sheet, auto-created)
  * Settings  : [0] Key  | [1] Value  (optional sheet, auto-created — app_title, logo_url)
  * AutoRules : automatic point-granting rules (optional sheet, auto-created — see AutoPoints.gs)
- * Chat      : [0] Id | [1] Date | [2] Author | [3] Text | [4] ReplyToId (optional sheet, auto-created)
  */
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────────
@@ -240,7 +239,6 @@ const SHEET_HEADERS = {
   notes:         ['date', 'joueur', 'note', 'noteid', 'créépar', 'modifiépar', 'modifiéle'],
   bareme:        ['top', 'action', 'points', 'id'],
   phrases:       ['preset', 'pool', 'phrase', 'ordre'],
-  chat:          ['id', 'date', 'auteur', 'texte', 'réponseà'],
   auditLog:      ['timestamp', 'auteur', 'action', 'entité', 'avant', 'après', 'détail', 'snapshot', 'annuléle'],
   settings:      ['key', 'value'],
   altCategories: ['name', 'description', 'emoji', 'hex color'],
@@ -257,7 +255,6 @@ const CANONICAL_SHEET_HEADERS = {
   notes:         ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
   bareme:        ['Top', 'Action', 'Points', 'Id'],
   phrases:       ['Preset', 'Pool', 'Phrase', 'Ordre'],
-  chat:          ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
   auditLog:      ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe'],
   settings:      ['Key', 'Value'],
   altCategories: ['Name', 'Description', 'Emoji', 'Hex color'],
@@ -398,7 +395,7 @@ function _isHeaderRow(sheetKey, row) {
 
 // Memoized per execution: Apps Script builds a fresh global scope for every request,
 // so this never outlives the data it describes. Cleared with the sheet cache because
-// a sheet created mid-request (Notes, Chat, Bareme…) gains its header right then.
+// a sheet created mid-request (Notes, Bareme…) gains its header right then.
 let _headerOffsetMemo = {};
 function _clearHeaderOffsetMemo() { _headerOffsetMemo = {}; }
 
@@ -471,7 +468,7 @@ function _ensureHeaderLabel(sheetKey, sheet, col) {
 
 function _ensureAllSheetHeaders() {
   const sheets = ConfigService.getSheets();
-  const keys = ['players', 'categories', 'history', 'notes', 'bareme', 'phrases', 'chat', 'auditLog', 'settings', 'altCategories', 'altHistory', 'autoRules', 'aggregates'];
+  const keys = ['players', 'categories', 'history', 'notes', 'bareme', 'phrases', 'auditLog', 'settings', 'altCategories', 'altHistory', 'autoRules', 'aggregates'];
   keys.forEach(k => {
     if (sheets[k]) _ensureSheetHeaders(k, sheets[k]);
   });
@@ -530,11 +527,10 @@ const ConfigService = (() => {
       const auditLog = ss.getSheetByName('AuditLog') || null;
       const settings = ss.getSheetByName('Settings') || null;
       const autoRules = ss.getSheetByName('AutoRules') || null;
-      const chat      = ss.getSheetByName('Chat')      || null;
       const altCategories = ss.getSheetByName('AltCategories') || null;
       const altHistory    = ss.getSheetByName('AltHistory')    || null;
       const aggregates    = ss.getSheetByName('Aggregates')    || null;
-      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, chat, altCategories, altHistory, aggregates };
+      _cache = { spreadsheet: ss, history, players, categories, notes, bareme, phrases, auditLog, settings, autoRules, altCategories, altHistory, aggregates };
       return _cache;
     } catch(e) {
       throw new Error("Erreur de connexion BDD : " + e.message);
@@ -691,14 +687,6 @@ function _settingsVersion() {
 function _bumpSettingsVersion() {
   const next = (parseInt(_getScriptProperty('settings_version') || '0', 10) + 1) % 1000000000;
   _setScriptProperty('settings_version', String(next));
-}
-
-function _chatVersion() {
-  return _getScriptProperty('chat_version') || '0';
-}
-function _bumpChatVersion() {
-  const next = (parseInt(_getScriptProperty('chat_version') || '0', 10) + 1) % 1000000000;
-  _setScriptProperty('chat_version', String(next));
 }
 
 function _baremeVersion() {
@@ -1103,11 +1091,11 @@ const SettingsService = {
     if (!data[idx] || currentName !== oldName) {
       throw new Error(`Cette ligne a changé entre-temps — recharge la page et réessaie.`);
     }
-    // Renommer propage en cascade vers History/Notes/Chat/Bareme/Phrases par simple
+    // Renommer propage en cascade vers History/Notes/Bareme/Phrases par simple
     // correspondance de texte sur oldName (_renameInColumn, plus bas). Avec un nom
     // dupliqué sur deux lignes, ce renommage fusionnerait silencieusement l'historique
     // des DEUX entités sous un seul nom — perte de données irréversible que rowIndex
-    // ne peut pas empêcher ici (History/Notes/Chat n'ont pas de colonne d'identifiant).
+    // ne peut pas empêcher ici (History/Notes n'ont pas de colonne d'identifiant).
     // On refuse plutôt que de tenter une fusion automatique (voir §7, incident joueur
     // perdu) : l'utilisateur doit lever l'ambiguïté à la main dans le Google Sheet.
     if (data.filter((row, i) => i >= _headerOffsetFromValues(type.toLowerCase(), data) && (row[0] || '').toString().trim() === oldName).length > 1) {
@@ -1154,17 +1142,10 @@ const SettingsService = {
       // renaming a player would silently orphan their notes (invisible in the
       // UI, which only ever groups by currently-known player names).
       this._renameInColumn('notes', ConfigService.getSheets().notes, 2, oldName, newName);
-      // Chat messages reference their author by name (column 3, "Auteur") — without
-      // this, a renamed player's old messages keep the stale name: unmatched by
-      // cachedPlayers (generic avatar/color fallback) and unrecognized by the
-      // author === _whoAmI check, silently losing the ability to delete their own
-      // past messages.
-      this._renameInColumn('chat', ConfigService.getSheets().chat, 3, oldName, newName);
-      // Notes/Chat are cached independently of Settings (notes_all_v*/chat_msgs_v*) —
+      // Notes are cached independently of Settings (notes_all_v*) —
       // without these, a cached reader keeps serving the old name for up to
       // CACHE_TTL_SECONDS after this rename (audit fix 2026-08-26).
       _bumpNotesVersion();
-      _bumpChatVersion();
       return;
     }
 
@@ -2286,106 +2267,6 @@ const NotesService = {
     if (isNaN(idx) || idx < _firstDataRow('notes', sheet)) return '';
     const v = sheet.getRange(idx, 4).getValue();
     return v ? v.toString() : '';
-  }
-};
-
-// ─── CHAT SERVICE ──────────────────────────────────────────────────────────────
-const ChatService = {
-
-  // Volume borné : l'app cible un petit groupe de joueurs, pas un historique
-  // illimité — au-delà, les plus anciens messages sortent simplement de la vue.
-  MAX_MESSAGES: 500,
-
-  /** Renvoie la feuille Chat, en la CRÉANT automatiquement si elle n'existe pas. */
-  _sheet() {
-    let sheet = ConfigService.getSheets().chat;
-    if (sheet) return sheet;
-    const ss = ConfigService.getSheets().spreadsheet;
-    sheet = ss.insertSheet('Chat');
-    sheet.appendRow(['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ']);
-    sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
-    ConfigService.clearCache();
-    return sheet;
-  },
-
-  /** Tous les messages (les plus anciens d'abord). L'aperçu du message cité par une
-   *  réponse est résolu ici, côté serveur, pour survivre même si l'original est
-   *  supprimé entre-temps (replyToDeleted). */
-  getAllMessages() {
-    const cache = CacheService.getScriptCache();
-    const key   = 'chat_msgs_v' + _chatVersion();
-    const raw   = _cacheGetChunked(cache, key);
-    if (raw) {
-      try { return JSON.parse(raw); } catch (e) {}
-    }
-    const sheet = ConfigService.getSheets().chat;
-    if (!sheet) return { messages: [] };
-    const { values: data, startRow } = _readDataRows('chat', sheet, 5);
-    if (!data.length) return { messages: [] };
-    const byId = {};
-    const rows = [];
-    for (let i = 0; i < data.length; i++) {
-      const row    = data[i];
-      const id     = row[0] ? row[0].toString() : '';
-      const author = row[2] ? row[2].toString() : '';
-      const text   = row[3] ? row[3].toString() : '';
-      if (!id || (!author && !text)) continue;
-      const d = _parseDateCell(row[1]);
-      const msg = {
-        id,
-        timestamp: (!d || isNaN(d.getTime()) || d.getFullYear() <= 1970) ? null : d.toISOString(),
-        author,
-        text,
-        replyToId: row[4] ? row[4].toString() : '',
-        rowIndex: i + startRow
-      };
-      byId[id] = msg;
-      rows.push(msg);
-    }
-    rows.forEach(msg => {
-      if (!msg.replyToId) return;
-      const original = byId[msg.replyToId];
-      msg.replyToAuthor  = original ? original.author : '';
-      msg.replyToText    = original ? original.text   : '';
-      msg.replyToDeleted = !original;
-    });
-    const result = { messages: rows.slice(-ChatService.MAX_MESSAGES) };
-    _cachePutChunked(cache, key, JSON.stringify(result), CONFIG.CACHE_TTL_SECONDS);
-    return result;
-  },
-
-  postMessage(author, text, replyToId) {
-    if (!author) throw new Error("Identité manquante.");
-    if (!text || !text.trim()) throw new Error("Le message ne peut pas être vide.");
-    const trimmed = text.trim();
-    if (trimmed.length > 2000) throw new Error("Message trop long (2000 caractères max).");
-
-    const sheet = this._sheet();
-    const id = Utilities.getUuid();
-    const now = new Date();
-    sheet.appendRow([id, now, author, trimmed, replyToId || '']);
-    _bumpChatVersion();
-    return { id, rowIndex: sheet.getLastRow(), timestamp: now.toISOString(), author, text: trimmed, replyToId: replyToId || '' };
-  },
-
-  /** Supprime un message — uniquement si `author` en est bien l'auteur. */
-  deleteMessage(id, author) {
-    const sheet = ConfigService.getSheets().chat;
-    if (!sheet) throw new Error("Message introuvable.");
-    const lastRow  = sheet.getLastRow();
-    const startRow = _firstDataRow('chat', sheet);
-    if (lastRow < startRow) throw new Error("Message introuvable.");
-    const data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 5).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString() === id) {
-        const rowAuthor = data[i][2] ? data[i][2].toString() : '';
-        if (rowAuthor !== author) throw new Error("Tu ne peux supprimer que tes propres messages.");
-        sheet.deleteRow(i + startRow);
-        _bumpChatVersion();
-        return { deletedRow: data[i] };
-      }
-    }
-    throw new Error("Message introuvable.");
   }
 };
 
@@ -4709,19 +4590,6 @@ function apiEditNote(rowIndex, newText, author, optNewDate, password) {
   } catch(e) { return fail(e); }
 }
 
-// ── Tchat ───────────────────────────────────────────────────────────────────────
-
-function apiGetChatMessages(sinceVersion) {
-  try {
-    const currentVersion = _chatVersion();
-    if (sinceVersion !== undefined && sinceVersion !== null && String(sinceVersion) === String(currentVersion)) {
-      return { success: true, notModified: true, version: currentVersion };
-    }
-    const result = ChatService.getAllMessages();
-    return { success: true, messages: result.messages, version: currentVersion };
-  } catch(e) { return fail(e); }
-}
-
 // ── Composite de Démarrage ──────────────────────────────────────────────────────
 function apiGetBootstrapData() {
   try {
@@ -4738,37 +4606,8 @@ function apiGetBootstrapData() {
       filteredData:  safe(() => apiGetFilteredData([], [], '', ''), { success: true, chartData: { labels: [], datasets: [] } }),
       quickStats:    safe(() => apiGetQuickStats(), { success: true }),
       phrases:       safe(() => apiGetPhrases(), { success: true, phrases: [] }),
-      activePreset:  safe(() => apiGetActivePhrasePreset(), { success: true, preset: '__default__' }),
-      chatMessages:  safe(() => apiGetChatMessages(), { success: true, messages: [] })
+      activePreset:  safe(() => apiGetActivePhrasePreset(), { success: true, preset: '__default__' })
     };
-  } catch(e) { return fail(e); }
-}
-
-function apiPostChatMessage(text, replyToId, author, password) {
-  try {
-    requireAuthor(author, password);
-    return withLock(() => {
-      const msg = ChatService.postMessage(author, text, replyToId);
-      const sheet = ConfigService.getSheets().chat;
-      AuditService.log(author, 'Message tchat envoyé', 'Chat',
-        '', msg.text.slice(0, 200), replyToId ? ('En réponse au message #' + replyToId) : 'Nouveau fil',
-        { sheet: 'chat', op: 'insert', rowIndex: msg.rowIndex,
-          after: sheet.getRange(msg.rowIndex, 1, 1, 5).getValues()[0] });
-      return { success: true, message: msg };
-    });
-  } catch(e) { return fail(e); }
-}
-
-function apiDeleteChatMessage(id, author, password) {
-  try {
-    requireAuthor(author, password);
-    return withLock(() => {
-      const result = ChatService.deleteMessage(id, author);
-      AuditService.log(author, 'Message tchat supprimé', 'Chat',
-        (result.deletedRow[3] || '').toString().slice(0, 200), 'Supprimé', 'Message #' + id + ' supprimé',
-        { sheet: 'chat', op: 'delete', before: result.deletedRow });
-      return { success: true };
-    });
   } catch(e) { return fail(e); }
 }
 

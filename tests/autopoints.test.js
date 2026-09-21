@@ -229,3 +229,54 @@ test('runAutoPoints logs trigger errors directly to AuditService on failure', ()
 });
 
 
+
+test('runDue date chaque règle du jour où elle était due, pas du jour d\'exécution', () => {
+  const gas = loadGas();
+
+  // Midi local : aucun décalage de fuseau ne peut faire basculer le jour.
+  const atNoon = daysAgo => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  };
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+  const dueOld = atNoon(3);
+  const dueRecent = atNoon(1);
+
+  const autoRulesSheet = makeSheet([
+    ['Id', 'Player', 'Category', 'Points', 'Description', 'Frequency', 'Interval', 'DaysOfWeek', 'DayOfMonth', 'StartDate', 'NextRun', 'LastRun', 'Active', 'CreatedBy'],
+    ['AR1', 'Alice', 'Mario Kart', 5, 'Vieille règle', 'daily', 1, '', '', dueOld.toISOString(), dueOld.toISOString(), '', true, 'Admin'],
+    ['AR2', 'Bob', 'Mario Kart', 7, 'Règle récente', 'daily', 1, '', '', dueRecent.toISOString(), dueRecent.toISOString(), '', true, 'Admin']
+  ], 'AutoRules');
+  const auditSheet = makeSheet([['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail']], 'AuditLog');
+
+  gas.ConfigService.getSheets = () => ({
+    spreadsheet: { insertSheet: () => autoRulesSheet, getSheetByName: name => (name === 'AutoRules' ? autoRulesSheet : null) },
+    autoRules: autoRulesSheet,
+    auditLog: auditSheet
+  });
+  gas.ConfigService.clearCache = () => {};
+  gas.SettingsService.getEntities = type => {
+    if (type === 'Players') return [{ name: 'Alice' }, { name: 'Bob' }];
+    if (type === 'Categories') return [{ name: 'Mario Kart' }];
+    return [];
+  };
+
+  let captured = null;
+  gas.StorageService.appendBulkPlan = plan => { captured = plan; };
+
+  gas.AutoPointsService.runDue('Admin');
+
+  assert.ok(captured, 'un plan doit être soumis');
+  // Étalé dans des tableaux du contexte principal : `captured` vient du realm
+  // vm, où deepStrictEqual échoue sur des tableaux pourtant identiques.
+  const dates = [...captured].map(g => g.date);
+  const players = [...captured].map(g => [...g.entries].map(e => e.player).join('+'));
+  // Un groupe par jour d'échéance, trié, et surtout : aucune date du jour.
+  assert.deepStrictEqual(dates, [dayKey(dueOld), dayKey(dueRecent)]);
+  assert.deepStrictEqual(players, ['Alice', 'Bob']);
+  assert.strictEqual(dates.includes(dayKey(atNoon(0))), false,
+    'la date d\'exécution ne doit jamais être imposée à la place de l\'échéance');
+});

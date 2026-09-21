@@ -23,20 +23,49 @@ function extractFunction(source, name) {
   return source.slice(start, i + 1);
 }
 
-function loadCallServer() {
+function loadCallServer(options) {
+  const opts = options || {};
   const html = fs.readFileSync(INDEX, 'utf8');
   const toasts = [];
   const errors = [];
+  const fetchCalls = [];
   const sandbox = {
     showToast: (msg, kind) => toasts.push({ msg: String(msg), kind: kind }),
     console: { error: (...a) => errors.push(a.map(String).join(' ')), warn() {}, log() {} },
-    google: { script: { run: null } },
     _MUTATING_APIS: new Set(['apiMutatingTest']),
-    _identityPassword: 'my-secret-pwd'
+    _identityPassword: 'my-secret-pwd',
+    fetch: (url, init) => {
+      fetchCalls.push({ url, init });
+      const reply = opts.reply || { ok: true, value: { success: true } };
+      return Promise.resolve({
+        status: opts.status || 200,
+        json: () => Promise.resolve(reply)
+      });
+    }
   };
+  // google absent = hébergement Vercel ; présent = hébergement GAS.
+  if (!opts.noGoogle) sandbox.google = { script: { run: null } };
+  // showActionToast est optionnel dans callServer : absent par défaut ici, pour
+  // que les tests historiques continuent de mesurer le repli showToast. Les
+  // tests du renvoi idempotent l'injectent explicitement.
+  const actionToasts = [];
+  if (opts.withActionToast) {
+    sandbox.showActionToast = (msg, label, cb, delay, kind) =>
+      actionToasts.push({ msg: String(msg), label: label, run: cb, kind: kind });
+  }
   vm.createContext(sandbox);
-  vm.runInContext(extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;', sandbox);
-  return { callServer: sandbox.__callServer, toasts, errors, sandbox };
+  vm.runInContext(
+    extractFunction(html, '_newIdempotencyKey') + '\n' +
+    extractFunction(html, '_rpcTransport') + '\n' +
+    extractFunction(html, 'callServer') + '\nthis.__callServer = callServer;',
+    sandbox
+  );
+  return { callServer: sandbox.__callServer, toasts, errors, fetchCalls, actionToasts, sandbox };
+}
+
+/** Laisse la micro-file des promesses se vider (le transport fetch est asynchrone). */
+function flush() {
+  return new Promise(resolve => setImmediate(resolve));
 }
 
 // Mirrors the google.script.run contract: handlers are attached by chaining,
@@ -106,11 +135,11 @@ test('callServer with silent=true suppresses failure toasts on both failure and 
   sandbox.google.script.run = runner;
 
   let errSeen = 0;
-  callServer('apiFail', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  callServer('apiFail', [], () => {}, 'Sondage', () => { errSeen++; }, true);
   assert.strictEqual(errSeen, 1, 'onError callback must still be invoked');
   assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on network failure');
 
-  callServer('apiErrorPayload', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  callServer('apiErrorPayload', [], () => {}, 'Sondage', () => { errSeen++; }, true);
   assert.strictEqual(errSeen, 2, 'onError callback must still be invoked');
   assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on success:false payload');
 });
@@ -316,4 +345,127 @@ test('the harness exposes every server function Index.html calls', () => {
     // calls it renders an error state that has nothing to do with the app.
     'fonctions appelées par Index.html mais absentes du harness : ' + missing.join(', ')
   );
+});
+
+test('sans google.script.run, callServer poste sur /api/rpc et rend la valeur', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true, reply: { ok: true, value: { success: true, n: 7 } } });
+  let got = null;
+  callServer('apiAnything', [1, 2], res => { got = res; }, 'Chargement test');
+  await flush();
+  assert.strictEqual(fetchCalls.length, 1);
+  assert.strictEqual(fetchCalls[0].url, '/api/rpc');
+  assert.strictEqual(fetchCalls[0].init.method, 'POST');
+  assert.strictEqual(fetchCalls[0].init.headers['Content-Type'], 'application/json');
+  assert.deepStrictEqual(JSON.parse(fetchCalls[0].init.body), { fn: 'apiAnything', args: [1, 2] });
+  assert.deepStrictEqual(got, { success: true, n: 7 });
+});
+
+test('transport fetch : le mot de passe est ajouté aux seules fonctions mutantes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+  callServer('apiMutatingTest', ['a'], () => {}, 'Test');
+  callServer('apiAnything', ['a'], () => {}, 'Test');
+  await flush();
+  assert.deepStrictEqual(JSON.parse(fetchCalls[0].init.body).args, ['a', 'my-secret-pwd']);
+  assert.deepStrictEqual(JSON.parse(fetchCalls[1].init.body).args, ['a']);
+});
+
+test('transport fetch : ok:false devient une erreur, avec toast et onError', async () => {
+  const { callServer, toasts } = loadCallServer({ noGoogle: true, reply: { ok: false, error: 'Tenant inconnu pour cet hôte.' } });
+  const seen = [];
+  callServer('apiAnything', [], () => { throw new Error('ne doit pas être appelé'); }, 'Chargement test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1);
+  assert.match(String(seen[0].message || seen[0]), /Tenant inconnu/);
+  assert.strictEqual(toasts.length, 1);
+  assert.strictEqual(toasts[0].kind, 'error');
+});
+
+test('transport fetch : une réponse illisible ne laisse pas l\'appel en suspens', async () => {
+  const { callServer, sandbox } = loadCallServer({ noGoogle: true });
+  sandbox.fetch = () => Promise.resolve({ status: 502, json: () => Promise.reject(new Error('Unexpected token <')) });
+  const seen = [];
+  callServer('apiAnything', [], () => {}, 'Chargement test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1, 'onError doit être appelé même si le corps n\'est pas du JSON');
+});
+
+test('transport fetch : un refus d\'identité passe par la reprise de mot de passe', async () => {
+  const { callServer, toasts } = loadCallServer({
+    noGoogle: true,
+    reply: { ok: true, value: { success: false, error: 'Mot de passe invalide ou requis pour agir en tant que Safir' } }
+  });
+  const seen = [];
+  callServer('apiMutatingTest', [], () => {}, 'Test', err => seen.push(err));
+  await flush();
+  assert.strictEqual(seen.length, 1, 'onError doit être appelé après le traitement du refus');
+  assert.ok(toasts.length <= 1, 'pas de double notification');
+});
+
+test('avec google.script.run présent, aucun fetch n\'est émis (hébergement GAS inchangé)', async () => {
+  const { callServer, fetchCalls, sandbox } = loadCallServer();
+  sandbox.google.script.run = fakeRunner({ success: true, value: 42 });
+  let got = null;
+  callServer('apiAnything', [], res => { got = res; }, 'Chargement test');
+  await flush();
+  assert.strictEqual(fetchCalls.length, 0);
+  assert.strictEqual(got.value, 42);
+});
+
+// ── Clé d'idempotence côté client (constat 2 de la revue finale) ────────────
+
+test('transport fetch : une clé d\'idempotence accompagne les seules fonctions mutantes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  await flush();
+  const mutating = JSON.parse(fetchCalls[0].init.body);
+  assert.strictEqual(typeof mutating.idempotencyKey, 'string');
+  assert.ok(mutating.idempotencyKey.length > 8, 'une clé devinable ne protège rien');
+
+  callServer('apiReadTest', ['Alice'], () => {});
+  await flush();
+  const read = JSON.parse(fetchCalls[1].init.body);
+  assert.strictEqual(read.idempotencyKey, undefined, 'une lecture n\'a rien à dédupliquer');
+});
+
+test('deux gestes distincts reçoivent deux clés distinctes', async () => {
+  const { callServer, fetchCalls } = loadCallServer({ noGoogle: true });
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  callServer('apiMutatingTest', ['Alice'], () => {});
+  await flush();
+  const first = JSON.parse(fetchCalls[0].init.body).idempotencyKey;
+  const second = JSON.parse(fetchCalls[1].init.body).idempotencyKey;
+  assert.notStrictEqual(first, second,
+    'deux saisies identiques voulues doivent rester deux écritures');
+});
+
+test('« Réessayer » après une panne réseau renvoie la MÊME clé', async () => {
+  const { callServer, fetchCalls, actionToasts } = loadCallServer({
+    noGoogle: true, withActionToast: true, status: 500, reply: { ok: false, error: 'Délai dépassé' }
+  });
+
+  callServer('apiMutatingTest', ['Alice'], () => {}, 'Ajout');
+  await flush();
+  const sent = JSON.parse(fetchCalls[0].init.body).idempotencyKey;
+
+  assert.strictEqual(actionToasts.length, 1, 'un geste mutant en échec doit proposer un renvoi');
+  assert.strictEqual(actionToasts[0].label, 'Réessayer');
+  assert.strictEqual(actionToasts[0].kind, 'error');
+
+  actionToasts[0].run();
+  await flush();
+  const retried = JSON.parse(fetchCalls[1].init.body).idempotencyKey;
+  // Le cœur du correctif : si le premier envoi avait été appliqué malgré le
+  // délai, ce renvoi tombe sur la clé déjà enregistrée et n'écrit rien.
+  assert.strictEqual(retried, sent);
+});
+
+test('une lecture en échec garde le toast simple, sans bouton de renvoi', async () => {
+  const { callServer, toasts, actionToasts } = loadCallServer({
+    noGoogle: true, withActionToast: true, status: 500, reply: { ok: false, error: 'Délai dépassé' }
+  });
+  callServer('apiReadTest', ['Alice'], () => {}, 'Chargement');
+  await flush();
+  assert.strictEqual(actionToasts.length, 0, 'rien à dédupliquer sur une lecture');
+  assert.strictEqual(toasts.length, 1);
 });

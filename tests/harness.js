@@ -182,10 +182,9 @@ function gasMocks() {
       getScriptLock: () => ({ waitLock: () => true, releaseLock: () => {} })
     },
     // Real Apps Script provides Utilities as a built-in global; it is absent from
-    // this sandbox by default, which made ChatService.postMessage() (the only
-    // caller of Utilities.getUuid) throw "Utilities is not defined" in every test
-    // and in the frontend preview harness alike, undetected because no test ever
-    // exercised it.
+    // this sandbox by default. Le mock reste en place : tout nouvel appelant de
+    // Utilities.* échouerait sinon par "Utilities is not defined", sans test pour
+    // le détecter (c'est ce qui était arrivé au tchat, depuis retiré).
     Utilities: {
       getUuid: () => crypto.randomUUID(),
       computeDigest: (algorithm, value) => {
@@ -256,7 +255,7 @@ function gasMocks() {
 const EXPORTED_GLOBALS = [
   'CONFIG', 'Logger', 'ConfigService', 'AuditService', 'SettingsService', 'StorageService',
   'NotesService', 'AnalyticsService', 'BaremeService', 'BaremeMatcher', 'PhrasesService', 'SettingsSheetService',
-  'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'ChatService', 'AggregatesService',
+  'AltSettingsService', 'AltStorageService', 'AutoPointsService', 'AggregatesService',
   'DiscordBridgeService',
   'withLock', 'NAV_PAGES', 'doGet', 'ScriptApp', 'requireAuthor', 'runAutoPoints',
   '_byteLength', '_cachePutChunked', '_cacheGetChunked',

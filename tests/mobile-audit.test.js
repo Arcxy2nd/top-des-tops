@@ -42,12 +42,9 @@ test('html et body verrouillent le débordement horizontal avec overflow-x: hidd
   assert.match(html, /body\s*\{[^}]*overflow-x:\s*hidden/s);
 });
 
-test('Hiérarchie des z-index mobile : Toast (11000) au-dessus de Chat et Tiroir (10000) au-dessus de Bottom Nav (9000)', () => {
+test('Hiérarchie des z-index mobile : Toast (11000) au-dessus du Tiroir (10000) au-dessus de Bottom Nav (9000)', () => {
   const bottomNavBlock = block('.mobile-bottom-nav {', '.mobile-bottom-nav .nav-btn {');
   assert.match(bottomNavBlock, /z-index:\s*9000;/);
-
-  const chatMobileBlock = block('body.mobile-layout .chat-side-panel', '/* Boutons contrôles droite */');
-  assert.match(chatMobileBlock, /z-index:\s*10000;/);
 
   const baremeMobileBlock = block('body:not(.desktop-layout) .bareme-drawer {', 'body:not(.desktop-layout) .bareme-drawer.open');
   assert.match(baremeMobileBlock, /z-index:\s*10000;/);
@@ -69,11 +66,6 @@ test('Mini-calendrier : cellules tactiles .d-cal-day de 32px de haut minimum sur
   assert.match(mobileAutoBlock, /\.d-cal-day\s*\{[^}]*height:\s*32px/s);
 });
 
-test('Tchat : actions visibles au toucher via @media (hover: none)', () => {
-  const chatActionsBlock = block('.chat-msg-actions {', '.chat-msg-reply {');
-  assert.match(chatActionsBlock, /@media\s*\(hover:\s*none\)\s*\{\s*\.chat-msg-actions\s*\{\s*opacity:\s*1;\s*\}\s*\}/);
-});
-
 test('Bannière CTA mobile : persistance de fermeture dans localStorage', () => {
   assert.match(html, /tdt_mobile_banner_dismissed/);
 });
@@ -85,7 +77,7 @@ test('Navbar mobile : refresh-badge masqué et who-am-i-btn contraint sans cheva
   assert.match(topBarBlock, /\.theme-toggle[^}]*margin:\s*0\s*!important/s);
 });
 
-test('Modales et exports : z-index à 10500 pour recouvrir la bottom nav (9000) et le chat (10000)', () => {
+test('Modales et exports : z-index à 10500 pour recouvrir la bottom nav (9000) et le tiroir (10000)', () => {
   const modalBackdropBlock = block('.modal-backdrop {', '.modal-box {');
   assert.match(modalBackdropBlock, /z-index:\s*10500;/);
 
@@ -93,7 +85,7 @@ test('Modales et exports : z-index à 10500 pour recouvrir la bottom nav (9000) 
   assert.match(exportOverlayBlock, /z-index:\s*10500;/);
 });
 
-test('Mention popup : z-index à 10001 au-dessus du tchat et écouteur tactile pointerdown', () => {
+test('Mention popup : z-index à 10001 au-dessus du tiroir et écouteur tactile pointerdown', () => {
   const mentionPopupBlock = block('.md-mention-popup {', '.md-mention-item {');
   assert.match(mentionPopupBlock, /z-index:\s*10001;/);
 
@@ -134,19 +126,6 @@ test('Saisie ergonomique Notes et Lot : wrap 2 lignes et pleines largeurs sur mo
 test('Actions tactiles inconditionnellement visibles sur mobile sans dépendre de hover:none', () => {
   const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
   assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.hist-actions-cell\s*\{[^}]*opacity:\s*1\s*!important/);
-  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.chat-msg-actions\s*\{[^}]*opacity:\s*1\s*!important/);
-});
-
-test('Tchat mobile : FAB à z-index 9001 au-dessus de la nav (9000) et safe-area-inset-top sur panneau plein écran', () => {
-  const chatFabBlock = block('body.mobile-layout .nav-chat-btn', 'body.mobile-layout .nav-chat-btn .chat-btn-label');
-  assert.match(chatFabBlock, /z-index:\s*9001;/);
-
-  const chatPanelBlock = block('body.mobile-layout .chat-side-panel', '/* Boutons contrôles droite */');
-  assert.match(chatPanelBlock, /padding-top:\s*env\(safe-area-inset-top/);
-
-  const mobileAutoBlock = block('/* ── Auto-detect mobile via media query (< 768px sans desktop-layout forcé) ── */', '</style>');
-  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.nav-chat-btn\s*\{[^}]*z-index:\s*9001;/);
-  assert.match(mobileAutoBlock, /body:not\(\.desktop-layout\)\s+\.chat-side-panel\s*\{[^}]*padding-top:\s*env\(safe-area-inset-top/);
 });
 
 test('Autocomplétion mentions : utilise visualViewport pour éviter d\'être caché sous le clavier virtuel', () => {

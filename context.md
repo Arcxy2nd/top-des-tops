@@ -8,10 +8,9 @@ Au début de chaque session (rituel d'initialisation, prise de connaissance du c
 
 ---
 
-## RÈGLE IMPÉRATIVE — PUSH SYSTÉMATIQUE SUR LES DEUX CIBLES (« Site tops » & « Tops RDS »)
+## RÈGLE IMPÉRATIVE — DÉPLOIEMENT SYSTÉMATIQUE SUR LES DEUX INSTANCES (« Site tops » & « Tops RDS »)
 
-Toute modification livrée doit **IMPÉRATIVEMENT** être poussée via `git push` sur `main` afin d'actualiser et déployer **les deux instances de l'application (« Site tops » et « Tops RDS »)** via le workflow GitHub Actions (`.github/workflows/deploy-gas.yml`).
-En cas d'opération de déploiement manuel ou `clasp push` hors CI, il faut **OBLIGATOIREMENT** exécuter la mise à jour sur les 2 cibles listées dans `deploy-targets.json`. Aucune livraison ne doit laisser l'une des deux copies non mise à jour.
+Depuis la bascule Vercel (v3.35.0, 2026-09-21), **un seul déploiement Vercel sert les deux instances** : chaque hôte est relié à son classeur par `tenants.json`. Toute modification livrée doit **IMPÉRATIVEMENT** être poussée (`git push` sur `main`) **ET** déployée par la CLI : `vercel deploy --prod --yes --scope troispiliers` (sans `--scope` : « Not authorized »). Le push seul ne déploie plus rien — le dépôt n'est volontairement **pas** relié à Vercel (voir §10).
 
 ## RÈGLE IMPÉRATIVE — MERGE ET DÉPLOIEMENT SYSTÉMATIQUES SANS DEMANDER
 
@@ -26,6 +25,10 @@ Toute évolution retenue sur la méthode de travail avec l'IA doit être écrite
 ## RÈGLE IMPÉRATIVE — FICHIER D'ÉTAT INTER-SESSIONS
 
 `NEXT_SESSION.md` (racine du projet) suit l'état courant, mis à jour **en continu** (dès qu'une décision/bug/config a de la valeur pour la suite), jamais seulement en fin de session. 4 blocs stricts : État courant / Dernière session / Écarts / Rappels+Backlog (modèle `H:/IA/projets/AEVO3/NEXT_SESSION.md`, système généralisé à tout le vault le 2026-08-14). Lu en premier, avant ce fichier (§0). Ne remplace pas `CHANGELOG.md` (historique versionné du produit) ni `memory/MEMORY.md` (mémoire portable détaillée) — `NEXT_SESSION.md` est l'état condensé du moment présent.
+
+## RÈGLE — PAS DE TCHAT DANS L'APPLICATION
+
+Le tchat flottant a été retiré en v3.34.0 sur décision explicite de l'utilisateur (2026-09-21), après un refus erroné de le retirer la veille. Ne pas le réintroduire, ni sous forme de widget, ni sous forme d'onglet, sans demande explicite. L'onglet `Chat` des classeurs existants est laissé en place mais n'est plus lu ni écrit par l'application ; `tests/chat-removed.test.js` fige cette absence.
 
 ## RÈGLE — PUBLIABLE = ANGLAIS
 
@@ -96,7 +99,7 @@ Après la lecture, si la session porte sur un bug → invoquer `/superpowers:sys
 
 Application web de suivi de scores pour un groupe de joueurs. Chaque joueur accumule des points en participant à des **Tops** (catégories : jeux, défis, activités…). L'app permet de saisir les scores, visualiser les classements, annoter les sessions et gérer les règles de points.
 
-Hébergée sur **Google Apps Script** — pas de serveur, pas de base de données externe. Tout tourne dans le compte Google du propriétaire.
+Hébergée sur **Vercel** depuis la v3.35.0 (2026-09-21) : les fonctions serveur exécutent le même `Code.gs` qu'Apps Script dans un contexte isolé, et les données restent dans Google Sheets, lues et écrites par un compte de service. Aucune base de données externe.
 
 ### Usage cible
 
@@ -115,11 +118,19 @@ Hébergée sur **Google Apps Script** — pas de serveur, pas de base de donnée
 | Stockage    | Google Sheets             |
 | Graphiques  | Chart.js 4.5.1 (CDN jsDelivr, version figée) |
 | Tests       | Node.js test runner natif (`node --test`, `npm test`, `npm run verify`), VM GAS et stubs DOM |
-| Déploiement | Web App GAS (`/exec` URL) |
+| Déploiement | Vercel (projet `tops-des-tops-vercel`, CLI) — un hôte par instance, résolu par `tenants.json` |
 
 Pas de build, pas de framework, aucune dépendance npm à l'exécution. Une seule librairie d'affichage est chargée depuis un CDN dans `<head>` (Chart.js 4.5.1 ; GSAP et Lenis ont été retirés en v2.2.0 et v3.28.0 au profit de l'API Web Animations native pour alléger le bundle et fluidifier le rendu) et trois bibliothèques sont chargées à la demande au premier export (jsPDF, SheetJS, fflate) — toutes épinglées à une version précise : une version flottante casserait les deux instances sans qu'aucun commit ne soit poussé. Le HTML est servi directement par GAS via `HtmlService`.
 
 **Dérogation d'infrastructure documentée (Bridge Discord)** : Le principe « zéro serveur externe » admet une unique exception : le relai **Cloudflare Worker** (`top-des-tops-bridge`) pour le bridge Discord / BotGhost. Google Apps Script impose une redirection HTTP 302 vers `script.googleusercontent.com` que BotGhost ne suit pas. Le Worker relaie les requêtes entrantes, suit la redirection 302 et renvoie la réponse synchrone au bot Discord.
+
+**Backend Vercel (branche `feature/vercel-migration-foundation`, non fusionnée)** : les fonctions serverless exécutent le vrai `Code.gs` dans un contexte `vm` par requête. Les écritures sont accumulées dans un journal en mémoire puis rejouées en **un seul `spreadsheets.batchUpdate` atomique** en fin de requête — une exception jette tout le lot (seule survivante : la ligne d'audit d'un échec d'authentification). `LockService` et `PropertiesService`, absents de Vercel, sont portés par deux onglets techniques du classeur : `ScriptLock` (cellule A1 = bail horodaté, verrou « écrire puis relire ») et `ScriptProperties` (Key/Value). La variable Vercel `TDT_READ_ONLY=1` referme le backend en lecture seule sans redéploiement.
+
+**Frontend sous Vercel (Plan 4)** : `Index.html` est servi par la fonction `api/app.js`, qui lui concatène le script d'identifiant d'instance que `doGet` ajoutait (dérivé du classeur du tenant, surchargeable par `instanceId` dans `tenants.json` pour ne pas invalider les clés `tdt_<id>_*` existantes ; l'identifiant est échappé `\u003c` pour interdire toute sortie de la balise `<script>`). Côté client, `callServer()` passe par un transport à double voie : `google.script.run` si l'objet existe, sinon `POST /api/rpc` — l'application reste donc exécutable sous Apps Script comme sous Vercel. Le runtime ne télécharge plus tous les onglets à chaque requête : chargement à la demande, avec bascule en un lot unique au-delà de deux onglets touchés (une lecture ciblée ne lit plus l'historique).
+
+**Intégrations sous Vercel (Plan 5)** : le déclencheur horaire d'Apps Script est remplacé par un drapeau `auto_trigger_installed` dans l'onglet technique `ScriptProperties`, lu par une tâche planifiée Vercel (`api/cron/auto-points`, protégée par `CRON_SECRET`). **Le plan Vercel Hobby ne permet qu'une exécution par jour** : la tâche tourne à 02:00 UTC au lieu de toutes les heures — les règles d'automatisation restent journalières/hebdomadaires/mensuelles, seule l'heure d'application change. Le pont Discord devient `GET /api/discord` : la dérogation « Worker Cloudflare » du principe zéro-serveur-externe **tombe** (une fonction Vercel répond en 200 sans la redirection 302 d'Apps Script). Le secret partagé vit dans la variable Vercel `DISCORD_BRIDGE_SECRET`, injectée dans le bac à sable pour que `DiscordBridge.gs` valide contre la même valeur — une seule source. Les instantanés passent par l'API Drive v3 avec le compte de service : la copie lui appartient et le propriétaire humain y accède par son lien.
+
+**Migration Vercel en cours (branche `feature/vercel-migration-foundation`, non déployée en production)** : les fonctions Vercel `api/*` exécutent le vrai `Code.gs` (+ `AutoPoints.gs`, `DiscordBridge.gs`) **sans modification**, dans un contexte `vm` neuf par requête, en lui fournissant sous Node les services Google qu'il appelle (`lib/gas-runtime/`, même principe que `tests/harness.js`). Conséquence : toute évolution backend continue de se faire dans `Code.gs`, jamais dans une copie Node. Une fonction `api*` est considérée comme une écriture si elle a un paramètre `author` (règle vérifiée contre `_MUTATING_APIS` par test) ; les écritures sont refusées en 403 tant que le Plan 3 n'a pas livré le chemin d'écriture.
 
 ---
 
@@ -134,7 +145,6 @@ Categories    : Name | Description | Emoji | Hex color | [Ordre]
 Notes         : Date | Player | Note text | [NoteId] | [CrééPar] | [ModifiéPar] | [ModifiéLe]
 Bareme        : Top | Action (text) | Points | [Id]  (pas de colonne Ordre, tri strict par points croissants)
 Phrases       : Preset | Pool | Phrase | [Ordre]
-Chat          : Id | Date | Author | Text | ReplyToId
 AuditLog      : Timestamp | Auteur | Action | Entité | Avant | Après | Détail | [Snapshot] | [AnnuléLe]
 Settings      : Key | Value
 AltCategories : Name | Description | Emoji | Hex color
@@ -143,7 +153,7 @@ AutoRules     : ID | Joueur | Catégorie | Points | Description | Fréquence | I
 Aggregates    : Vue matérialisée persistante (totaux, métriques par joueur/catégorie/mois, lastEvent, globalBest)
 ```
 
-Les feuilles **Notes**, **Bareme**, **Phrases**, **Chat**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
+Les feuilles **Notes**, **Bareme**, **Phrases**, **AuditLog**, **Settings**, **AltCategories**, **AltHistory**, **AutoRules** et **Aggregates** sont optionnelles — créées automatiquement si absentes.
 
 ### Traçabilité & Stockage physique de l'état courant (Notes)
 
@@ -172,7 +182,6 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `BaremeService` | CRUD règles de points (barème), tri croissant automatique par points, auto-création de la feuille |
 | `BaremeMatcher` | Détection de correspondances entre descriptions d'entrées et règles du barème (Dice bigrammes + fenêtres de mots) |
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
-| `ChatService` | Messages du tchat flottant (lecture, envoi, suppression de ses propres messages), résolution du message cité par une réponse, auto-création de la feuille |
 | `AuditService` | Journalisation des opérations, annulation d'écritures, snapshots, auto-création de la feuille |
 | `SettingsSheetService` | Gestion des paramètres de l'application dans la feuille Settings |
 | `AltSettingsService` / `AltStorageService` | Gestion des catégories et scores du Top Alt |
@@ -199,10 +208,6 @@ Fichier HTML/CSS/JS monofichier.
 | ❓ Guide | Documentation inline thématique et recherche dynamique |
 
 `🔧 Outils` (sous Paramètres, pas un onglet principal) : rapport de santé (avec efficacité du cache, tuile règle du barème introuvable et détection d'homonymes), nettoyage (zéros/orphelins/doublons ; les outils "scores aberrants" et "joueurs inactifs" ont été retirés en v3.15.1), classement par règle du barème par ressemblance avec seuil réglable (`bareme_match_threshold`), détection/regroupement de lots répartis, groupes hérités, points automatiques, recalcul des agrégats et création d'instantanés (snapshots Google Drive).
-
-### Tchat flottant
-
-Pas un onglet — un widget global (bouton 💬 `#chatToggleBtn` + panneau `#chatSidePanel`) superposé à toutes les pages, en dehors du système d'onglets. Desktop : bouton dans la navbar, panneau latéral sticky. Mobile : bouton flottant rond au-dessus de la barre de nav du bas, panneau plein écran. Un clic sur le bouton ouvre/ferme le panneau ; l'état ouvert/fermé est mémorisé en localStorage. Markdown complet, mentions `@Joueur` et `#Top` (avec autocomplétion), réponse à un message (aperçu cité avec avatar), horodatage, suppression de ses propres messages uniquement. Stockage dans la feuille `Chat` (auto-créée) via `ChatService`. Pas de push serveur possible (GAS) : sondage adaptatif (4s panneau ouvert / 20s fermé), avec badge de messages non lus quand le panneau est fermé.
 
 ### Types de graphique (Dashboard)
 
@@ -443,7 +448,7 @@ Le projet dispose d'une suite de tests automatisés Node.js native (`npm test`, 
 
 ### Commit & push (Double Déploiement Obligatoire)
 
-Toute modification livrée doit être commit **et systématiquement poussée (`git push`)**. Le push déclenche l'auto-sync GitHub Actions (§10) qui déploie automatiquement le code vers **les deux cibles simultanément (« Site tops » et « Tops RDS »)**. Un commit gardé en local ou non poussé prive les deux instances des mises à jour. Ne jamais oublier de push sur les deux cibles, et **ne jamais demander la permission de committer/pousser** — c'est systématique et obligatoire.
+Toute modification livrée doit être commit **et systématiquement poussée (`git push`)**, puis **déployée** par `vercel deploy --prod --yes --scope troispiliers` (§10) — un seul déploiement met à jour **les deux instances à la fois (« Site tops » et « Tops RDS »)**. Un commit non poussé ou non déployé prive les deux instances des mises à jour. **Ne jamais demander la permission de committer, pousser ou déployer** — c'est systématique et obligatoire.
 
 **Compte GitHub officiel : `Arcxy2nd`** — Toujours utiliser `Arcxy2nd` pour toutes les opérations GitHub (`git push`, `gh`, etc.). Avant tout `pull`/`push`/`commit` distant, vérifier le compte actif via `gh auth status` et basculer sur `Arcxy2nd` si nécessaire (`gh auth switch --user Arcxy2nd`). Ne jamais utiliser d'autre compte (un second compte existe sur la machine pour d'autres projets). **Le switch ne tient pas durablement entre les pushs** — revérifier `gh auth status` avant chaque push, même si un switch a déjà été fait dans la session.
 
@@ -475,15 +480,24 @@ Les skills installés doivent être **invoqués aux moments-clés**, pas ignoré
 
 ## §10 — DÉPLOIEMENT
 
-Web App GAS — exécutée en tant que le propriétaire, accessible à tout compte Google. Le code est déployé vers **deux copies** ("Site tops" et "Tops RDS", même code, Sheet différent), chacune derrière son propre lien court short.io stable.
+**Vercel depuis la v3.35.0 (2026-09-21).** Un seul projet Vercel (`tops-des-tops-vercel`, équipe `troispiliers`) sert les deux instances :
 
-Depuis la mise en place de la synchro automatique, chaque `git push` sur `main` déclenche un workflow GitHub Actions (`.github/workflows/deploy-gas.yml`) qui, pour chaque copie listée dans `deploy-targets.json` : pousse le code via `clasp`, archive l'ancien déploiement, en crée un nouveau (nouvelle URL `/exec`), puis repointe le lien short.io correspondant vers cette nouvelle URL. Plus de déploiement manuel dans l'éditeur GAS.
+| Instance | Hôte Vercel | Lien court | Classeur |
+|---|---|---|---|
+| Site tops | `tops-site-tops.vercel.app` | `c55zvj.s.gy/tops-des-tops` | `1q-NFXFd8o-dyG2-aiqBEjrm7-kTlKco794iCxeEllnE` |
+| Tops RDS | `tops-rds.vercel.app` | `c55zvj.s.gy/top-RDS` | `1JI9Cc9lZi1yfTuz-C7t0OhX0N2GTKtDoDaf9NvSrHtw` |
+| Copie de test | `tops-des-tops-vercel.vercel.app` | — | `1IpnM_k7sicaktxtvwaYMiMnFbnJz6nhsELmagF1WS78` |
 
-**Interdiction des déploiements in-place en production (`clasp deploy -i`) vs copies de test** :
-- **En production (« Site tops » et « Tops RDS »)** : Interdiction absolue de `clasp deploy -i`. Abandonné en v3.3.0 suite à des pannes récurrentes de cache CDN Google servant d'anciennes versions d'assets sans possibilité d'invalidation. Tout déploiement de production doit être strictement immuable (`clasp deploy --description`), avec archivage/suppression de l'ancien (`clasp undeploy`) et mise à jour dynamique du pointeur court short.io via le workflow GitHub Actions.
-- **Sur copie de test dédiée fixe (ex: bot Discord test)** : `clasp deploy -i <deploymentId>` est au contraire explicitement requis après un `clasp push` afin de maintenir l'URL `/exec` fixe déclarée dans les services tiers (BotGhost) sans rupture de webhook.
+- **Déployer** : `vercel deploy --prod --yes --scope troispiliers`, depuis la racine du dépôt. `.vercelignore` limite l'envoi au code servi (`api/`, `lib/`, `.gs`, `Index.html`, `tenants.json`…).
+- **Ne JAMAIS relier le dépôt GitHub au projet Vercel** : chaque push déploierait tout le dépôt, notes privées comprises.
+- **Tenants** : `tenants.json` associe chaque hôte à son classeur ; `instanceId` y est épinglé (10 premiers caractères de l'ancien `scriptId` GAS) pour conserver les clés de stockage local `tdt_<id>_*`. Ajouter une instance = un domaine Vercel + une entrée `tenants.json` + partager le classeur en Éditeur au compte de service.
+- **Variables d'environnement Vercel** (production) : `GOOGLE_SERVICE_ACCOUNT_KEY` (clé JSON du compte de service `tops-des-tops@trois-487801.iam.gserviceaccount.com`), `DISCORD_BRIDGE_SECRET`, `CRON_SECRET`. Interrupteur d'urgence : `TDT_READ_ONLY=1` (toute écriture refusée en 403) — `printf '1' | vercel env add TDT_READ_ONLY production --scope troispiliers` puis redéployer.
+- **Onglets techniques** créés dans chaque classeur par le backend Vercel : `ScriptProperties` (remplace les propriétés de script GAS : compteurs `*_version`, `active_phrase_preset`, `auto_trigger_installed`), `ScriptLock` (verrou), `Idempotency` (anti-doublon). Ne pas les supprimer.
+- **Points automatiques** : tâche planifiée Vercel quotidienne (02:00 UTC, limite du plan Hobby) ; elle n'agit que sur un classeur dont `auto_trigger_installed` vaut `1` dans `ScriptProperties`.
+- **Liens courts = commutateur** : workflow GitHub Actions « Repoint short links » (`.github/workflows/repoint-shortlinks.yml`, lancement manuel, clé short.io dans les secrets GitHub). **Retour arrière vers Apps Script** : relancer ce workflow avec les URL `/exec` notées dans `NEXT_SESSION.md` — les déploiements GAS sont laissés en place tant que la Task 5 du Plan 6 n'est pas faite.
+- **Apps Script** : `.github/workflows/deploy-gas.yml` ne se déclenche plus au push et ne touche plus aux liens courts ; il reste lançable à la main pour tenir le chemin de retour arrière à jour. Règle historique toujours vraie pour GAS : jamais de `clasp deploy -i` en production.
 
-Procédure de mise en place initiale (une seule fois) : `SETUP-AUTOSYNC.md`. Détails historiques et note sur `SPREADSHEET_ID` : `DEPLOIEMENT.md`.
+Historique Apps Script (avant la v3.35.0) : `SETUP-AUTOSYNC.md`, `DEPLOIEMENT.md`.
 
 ---
 

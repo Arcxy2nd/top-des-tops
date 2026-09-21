@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.35.0] - 2026-09-21
+
+### Modifié
+**Humanisé** : L'application est désormais hébergée sur une infrastructure plus rapide ; les liens habituels fonctionnent à l'identique (il faudra seulement re-choisir son identité une fois).
+**Technique** : Bascule de Google Apps Script vers Vercel — `Index.html` servi par `api/app.js`, appels serveur via `POST /api/rpc` exécutant `Code.gs` dans un contexte `vm`, écritures rejouées en un `spreadsheets.batchUpdate` atomique sous verrou `ScriptLock`, propriétés de script persistées dans l'onglet `ScriptProperties`, points automatiques par Vercel Cron (filtrés par `auto_trigger_installed`), pont Discord sur `/api/discord` ; liens courts repointés par le workflow `repoint-shortlinks.yml`, déploiement GAS automatique désactivé.
+
+## [v3.34.0] - 2026-09-21
+
+### Supprimé
+**Humanisé** : Le tchat a été retiré de l'application.
+**Technique** : Suppression de `ChatService`, `apiGetChatMessages`, `apiPostChatMessage`, `apiDeleteChatMessage` et des compteurs `chat_version` dans `Code.gs` ; suppression du widget (`#chatToggleBtn`, `#chatSidePanel`, CSS et bloc JS) et de la section « Tchat » du Guide dans `Index.html` ; la clé `chatMessages` disparaît de `apiGetBootstrapData()` et `SettingsService.renameEntity` ne propage plus vers la feuille `Chat`, qui reste en place sans être lue ni écrite. Garde-fou de non-retour : `tests/chat-removed.test.js`.
+
 ## [v3.33.2] - 2026-09-19
 
 ### Corrigé

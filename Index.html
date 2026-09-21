@@ -240,108 +240,17 @@
       .app-brand-title { display: none !important; }
     }
 
-    .nav-chat-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text);
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-    }
-    .nav-chat-btn:hover {
-      background: var(--btn-alt);
-      border-color: var(--accent);
-    }
-    .nav-chat-btn.active {
-      background: var(--accent);
-      color: var(--on-accent);
-      border-color: var(--accent);
-    }
-    .chat-badge {
-      background: var(--error);
-      color: var(--on-accent);
-      font-size: 0.7rem;
-      font-weight: 800;
-      border-radius: 10px;
-      padding: 1px 6px;
-      margin-left: 4px;
-    }
-
-    /* ── SIDEBAR CHAT (desktop uniquement) ── */
-    /* Sur desktop-layout : .container est flex, le panel est sticky à droite */
     body.desktop-layout .container {
       display: flex;
       align-items: flex-start;
       gap: 16px;
       max-width: 1600px !important;
     }
-    body.desktop-layout .chat-side-panel {
-      width: 360px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 70px;
-      height: calc(100vh - 90px);
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      display: flex;
-      flex-direction: column;
-      box-shadow: var(--glass-shadow);
-      z-index: 100;
-      overflow: hidden;
-      order: 2;
-    }
     /* Le contenu principal prend tout l'espace restant */
-    body.desktop-layout .container > :not(.chat-side-panel):not(#toastContainer) {
+    body.desktop-layout .container > :not(#toastContainer) {
       flex: 1 1 0;
       min-width: 0;
     }
-    /* ── TCHAT EN MOBILE-LAYOUT : bouton flottant + panneau plein écran ──
-       Restaure l'accès au Tchat perdu à la fusion Mobile.html→Index.html
-       (l'ancien widget flottant `#mChatFab` n'a jamais été reconstruit dans le
-       layout unique). Réutilise le même bouton/panneau que le desktop (mêmes
-       éléments, même JS openChatPanel/closeChatPanel) — seule la présentation
-       change : bouton rond au-dessus de la barre de nav du bas, panneau en
-       plein écran plutôt qu'en colonne latérale. */
-    body.mobile-layout .nav-chat-btn {
-      display: flex;
-      position: fixed;
-      right: 16px;
-      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-      z-index: 9001;
-      width: 52px;
-      height: 52px;
-      padding: 0;
-      border-radius: 50%;
-      justify-content: center;
-      background: var(--accent);
-      color: var(--on-accent);
-      border-color: var(--accent);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-    }
-    body.mobile-layout .nav-chat-btn .chat-btn-label { display: none; }
-    body.mobile-layout .nav-chat-btn .chat-badge {
-      position: absolute; top: -4px; right: -4px; margin-left: 0;
-      border: 2px solid var(--bg);
-    }
-    body.mobile-layout .chat-side-panel {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      max-width: none;
-      height: 100%;
-      border-radius: 0;
-      z-index: 10000;
-      padding-top: env(safe-area-inset-top, 0px);
-    }
-
     /* Boutons contrôles droite */
     .nav-refresh-wrap {
       display: flex; align-items: center; gap: 5px;
@@ -2513,60 +2422,6 @@
     .md-mention-item.md-mention-active { background: rgba(255,255,255,0.06); }
 
 
-    /* ── TCHAT (panneau latéral, accessible depuis tous les onglets) ── */
-    .chat-panel-header {
-      display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
-      font-weight: 700; border-bottom: 1px solid var(--border); flex-shrink: 0;
-    }
-    .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 10px 12px; -webkit-overflow-scrolling: touch; }
-    .chat-msg { display: flex; gap: 10px; }
-    .chat-msg.pending { opacity: 0.55; }
-    .chat-msg-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .chat-msg-body-col { flex: 1; min-width: 0; }
-    .chat-msg-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-    .chat-msg-author { font-weight: 700; font-size: 0.9rem; }
-    .chat-msg-time { font-size: 0.72rem; color: var(--text-muted); }
-    .chat-msg-actions { margin-left: auto; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
-    .chat-msg:hover .chat-msg-actions,
-    .chat-msg:focus-within .chat-msg-actions { opacity: 1; }
-    @media (hover: none) { .chat-msg-actions { opacity: 1; } }
-    .chat-msg-actions button {
-      background: none; border: none; cursor: pointer; color: var(--text-muted);
-      font-size: 0.95rem; padding: 4px 6px; min-height: 32px; min-width: 32px;
-      display: inline-flex; align-items: center; justify-content: center;
-    }
-    .chat-msg-actions button:hover { color: var(--accent); }
-    .chat-msg-reply {
-      display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted);
-      border-left: 3px solid var(--border); padding: 2px 0 2px 8px; margin: 4px 0; cursor: pointer;
-      max-width: 100%; overflow: hidden;
-    }
-    .chat-msg-reply-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .chat-msg-reply strong { color: var(--text); }
-    .chat-msg-reply span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-msg-reply.deleted { font-style: italic; }
-    .chat-msg-text { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
-    .chat-msg.highlight { animation: chatHighlight 1.4s ease; }
-    @keyframes chatHighlight {
-      0%, 100% { background: transparent; }
-      20% { background: color-mix(in srgb, var(--accent) 18%, transparent); }
-    }
-    .chat-reply-banner {
-      display: flex; align-items: center; gap: 10px; background: var(--btn-alt);
-      border-radius: 8px; padding: 6px 10px; margin: 0 12px 8px; font-size: 0.8rem; flex-shrink: 0;
-    }
-    .chat-reply-banner-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .chat-reply-banner-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .chat-reply-banner-snippet { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
-    /* Pas de max-height ici : autoGrowTextarea() (JS) gère déjà dynamiquement la
-       hauteur et le overflow-y — un plafond CSS indépendant coupait l'affichage
-       avant que le JS ne pense devoir activer le défilement (texte invisible
-       sans scrollbar sur un message de 5 à 8 lignes). */
-    .chat-composer textarea { flex: 1; resize: vertical; min-height: 40px; }
-    .chat-empty { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px 0; }
-    .chat-empty.chat-error { display: flex; flex-direction: column; gap: 8px; align-items: center; }
-
     /* ── RICH SELECT ── */
     .rich-select {
       position: relative; display: flex; width: 100%;
@@ -4570,8 +4425,6 @@
   body.mobile-layout .fill-opt { min-height: 38px; padding: 8px 12px; font-size: 0.82rem; }
   body.mobile-layout .lot-sort-btn { min-height: 38px; padding: 6px 12px; font-size: 0.82rem; }
   body.mobile-layout button.note-meta-edited { min-height: 36px; padding: 6px 10px; font-size: 0.75rem; }
-  body.mobile-layout .chat-msg-actions button { min-height: 40px; min-width: 40px; }
-  body.mobile-layout .chat-composer { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
   body.mobile-layout .export-pill { min-height: 38px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; }
   body.mobile-layout .chart-controls { gap: 10px 14px; }
   body.mobile-layout .chart-control select { flex: 1; }
@@ -4704,37 +4557,6 @@
   @media (max-width: 768px) {
     body:not(.desktop-layout) #desktopNavGroup { display: none !important; }
     body:not(.desktop-layout) #mobileBottomNav { display: flex !important; }
-    body:not(.desktop-layout) .nav-chat-btn {
-      display: flex;
-      position: fixed;
-      right: 16px;
-      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-      z-index: 9001;
-      width: 52px;
-      height: 52px;
-      padding: 0;
-      border-radius: 50%;
-      justify-content: center;
-      background: var(--accent);
-      color: var(--on-accent);
-      border-color: var(--accent);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-    }
-    body:not(.desktop-layout) .nav-chat-btn .chat-btn-label { display: none; }
-    body:not(.desktop-layout) .nav-chat-btn .chat-badge {
-      position: absolute; top: -4px; right: -4px; margin-left: 0;
-      border: 2px solid var(--bg);
-    }
-    body:not(.desktop-layout) .chat-side-panel {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      max-width: none;
-      height: 100%;
-      border-radius: 0;
-      z-index: 10000;
-      padding-top: env(safe-area-inset-top, 0px);
-    }
     body:not(.desktop-layout) .container { max-width: 600px; margin: 12px auto; padding: 0 10px calc(85px + env(safe-area-inset-bottom, 0px)); }
     body:not(.desktop-layout) .card { padding: 14px; }
     body:not(.desktop-layout) h2 { font-size: 1.1rem; }
@@ -4779,9 +4601,6 @@
     body:not(.desktop-layout) .d-mode-seg { display: flex; width: 100%; }
     body:not(.desktop-layout) .d-mode-seg .d-mode-btn { flex: 1 1 0; min-height: var(--tap-min); font-size: 0.82rem; padding: 8px 10px; display: inline-flex; align-items: center; justify-content: center; }
     body:not(.desktop-layout) .hist-actions-cell { opacity: 1 !important; }
-    body:not(.desktop-layout) .chat-msg-actions { opacity: 1 !important; }
-    body:not(.desktop-layout) .chat-msg-actions button { min-height: 40px; min-width: 40px; }
-    body:not(.desktop-layout) .chat-composer { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
 
     /* Notes — saisie ergonomique et cartes tactiles */
     body:not(.desktop-layout) .notes-player-chip { min-height: var(--tap-min); padding: 6px 14px; }
@@ -4856,7 +4675,6 @@
     body:not(.desktop-layout) .bsect-add input[type="number"],
     body:not(.desktop-layout) .bsect-add input[type="text"],
     body:not(.desktop-layout) .guide-search-input,
-    body:not(.desktop-layout) #chatInput,
     body:not(.desktop-layout) .bulk-import-textarea,
     body:not(.desktop-layout) .notes-search-row input,
     body:not(.desktop-layout) .notes-flash-input-row input[type="text"],
@@ -4892,7 +4710,6 @@
       <button class="nav-refresh-btn" id="globalRefreshBtn" title="Rafraîchir les données">🔄</button>
       <span class="refresh-badge" id="refreshBadge"></span>
       <button class="nav-bareme-btn" id="baremeBtn" aria-expanded="false" title="Barème des Tops (touche ?)"><span class="bareme-btn-icon">⚖️</span><span class="bareme-btn-label">Barème</span></button>
-      <button class="nav-chat-btn" id="chatToggleBtn" title="Ouvrir le Tchat"><span class="chat-btn-icon">💬</span><span class="chat-btn-label">Tchat</span><span id="chatBadge" class="chat-badge" style="display:none;"></span></button>
     </div>
     <div class="who-am-i-wrap" id="whoAmIWrap">
       <button class="who-am-i-btn" id="whoAmIBtn" title="Sélectionner mon identité">
@@ -4956,27 +4773,6 @@
 
 <div class="container">
   <div id="toastContainer"></div>
-
-  <!-- ══ PANNEAU / TIROIR DE TCHAT ══ -->
-  <aside id="chatSidePanel" class="chat-side-panel" style="display:none;">
-    <div class="chat-panel-header">
-      <span>💬 Tchat</span>
-      <button id="chatPanelClose" class="small" title="Fermer">✕</button>
-    </div>
-    <div id="chatMessages" class="chat-messages"></div>
-    <div id="chatReplyBanner" class="chat-reply-banner" style="display:none;">
-      <img id="chatReplyBannerAvatar" class="chat-reply-banner-avatar" alt="">
-      <div class="chat-reply-banner-text">
-        <span>↩ Réponse à <strong id="chatReplyBannerAuthor"></strong></span>
-        <span id="chatReplyBannerSnippet" class="chat-reply-banner-snippet"></span>
-      </div>
-      <button id="chatReplyBannerCancel" class="small" title="Annuler la réponse">✕</button>
-    </div>
-    <div class="chat-composer">
-      <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message… (@joueur, #top, markdown)"></textarea>
-      <button id="chatSendBtn" class="primary">Envoyer</button>
-    </div>
-  </aside>
 
   <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
   <div id="tab-dashboard" class="tab-content active">
@@ -5737,7 +5533,6 @@
           <button type="button" class="guide-nav-btn" data-section="saisie"><span class="gnb-icon">✍️</span>Saisir un Lot</button>
           <button type="button" class="guide-nav-btn" data-section="historique"><span class="gnb-icon">📜</span>Historique</button>
           <button type="button" class="guide-nav-btn" data-section="notes"><span class="gnb-icon">📝</span>Notes</button>
-          <button type="button" class="guide-nav-btn" data-section="tchat"><span class="gnb-icon">💬</span>Tchat</button>
 
           <div class="guide-sidebar-separator"></div>
           <div class="guide-nav-group-label">Paramètres</div>
@@ -5809,18 +5604,6 @@
             <ul class="guide-feature-list">
               <li class="guide-feature-item"><span class="guide-feature-icon">⚡</span><div class="guide-feature-body"><strong>Barre de saisie rapide</strong><span>En haut de l'onglet : sélectionne le joueur (chip), tape la note et appuie sur <kbd>Entrée</kbd> pour l'ajouter en une seconde.</span></div></li>
               <li class="guide-feature-item"><span class="guide-feature-icon">👤</span><div class="guide-feature-body"><strong>Blocs par joueur</strong><span>Toutes les notes de chaque joueur apparaissent regroupées avec date d'ajout et bouton de suppression.</span></div></li>
-            </ul>
-          </div>
-
-          <!-- Tchat -->
-          <div class="guide-content-section" id="gsec-tchat">
-            <h3>💬 Tchat</h3>
-            <p class="guide-section-subtitle">Discussion en temps quasi-réel entre les membres.</p>
-            <ul class="guide-feature-list">
-              <li class="guide-feature-item"><span class="guide-feature-icon">🖥️</span><div class="guide-feature-body"><strong>Volet latéral / Bouton flottant</strong><span>Sur PC : panneau latéral ancré. Sur mobile : bouton flottant 💬 déplaçable par clic maintenu.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">📝</span><div class="guide-feature-body"><strong>Markdown GFM complet</strong><span>Gras, italique, barré, listes, citations, blocs de code, tableaux… tout le Markdown GitHub est supporté.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">🏷️</span><div class="guide-feature-body"><strong>Mentions &amp; Réponses</strong><span>Tape <code>@Joueur</code> ou <code>#Top</code> pour une autocomplétion. Réponds à un message avec aperçu du message cité.</span></div></li>
-              <li class="guide-feature-item"><span class="guide-feature-icon">🔔</span><div class="guide-feature-body"><strong>Badge de messages non lus</strong><span>L'app vérifie les nouveaux messages toutes les 4 secondes quand le panneau est ouvert, toutes les 20 secondes quand il est fermé. Un badge apparaît alors sur le bouton 💬.</span></div></li>
             </ul>
           </div>
 
@@ -6581,7 +6364,7 @@
       const width = Math.round(Math.min(Math.max(r.width, 180), Math.min(320, viewW - 16)));
       popup.style.width = width + 'px';
       // Bascule au-dessus du champ quand il n'y a pas la place en dessous — le
-      // composeur du tchat flottant est collé en bas de l'écran, et sur mobile le
+      // champ visé peut être collé en bas de l'écran, et sur mobile le
       // clavier virtuel réduit le visualViewport.
       const popupHeight = popup.offsetHeight || 220;
       const spaceBelow = viewH - r.bottom;
@@ -8592,392 +8375,6 @@
     return pill;
   }
 
-  // ── TCHAT FLOTTANT ─────────────────────────────────────────────────
-  // Widget global (bouton #chatToggleBtn dans la navbar + panneau latéral
-  // #chatSidePanel), pas un onglet : accessible depuis n'importe quelle page.
-  // Un clic sur le bouton ouvre/ferme le panneau ; son état ouvert/fermé est
-  // mémorisé en localStorage (CHAT_PANEL_OPEN_KEY) pour survivre à un reload.
-  let _chatMessages = [];
-  let _chatLoadedOnce = false;
-  let _chatReplyTo = null; // { id, author, text } ou null
-  let _chatPollTimer = null;
-  let _chatAtBottom = true;
-  let _chatPanelOpen = false;
-  let _chatInputFit = null;
-  let _chatUnreadCount = 0;
-  let _chatPendingSends = []; // envois optimistes pas encore confirmés par le serveur
-  // Ids de tous les messages déjà vus au moins une fois (confirmés par le serveur),
-  // pour compter les non-lus par id réel plutôt que par une comparaison de longueur
-  // totale — un ajout+suppression compensés entre deux sondages laisse la longueur
-  // inchangée mais doit quand même compter comme un message jamais vu.
-  let _chatSeenIds = new Set();
-  const CHAT_PANEL_OPEN_KEY = 'tdt_chat_panel_open';
-  let _chatVersion = 0;
-  let _chatIdleCount = 0;
-  const CHAT_OPEN_BACKOFF = [4000, 6000, 8000, 10000, 12000];
-  const CHAT_CLOSED_BACKOFF = [20000, 30000, 45000, 60000];
-
-  function getChatPollDelay() {
-    const steps = _chatPanelOpen ? CHAT_OPEN_BACKOFF : CHAT_CLOSED_BACKOFF;
-    const idx = Math.min(_chatIdleCount, steps.length - 1);
-    return steps[idx];
-  }
-
-  function resetChatBackoff() {
-    _chatIdleCount = 0;
-    scheduleChatPoll();
-  }
-
-  function formatChatTime(iso) {
-    if (!iso) return { short: '', title: '' };
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return { short: '', title: '' };
-    const short = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const title = d.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-    return { short, title };
-  }
-
-  function chatSnippet(text, len) {
-    const clean = (text || '').replace(/\n/g, ' ').trim();
-    return clean.length > len ? clean.slice(0, len) + '…' : clean;
-  }
-
-  function buildChatMessageEl(msg) {
-    const el = document.createElement('div');
-    el.className = 'chat-msg' + (msg.pending ? ' pending' : '');
-    el.id = 'chat-msg-' + msg.id;
-
-    const player = cachedPlayers.find(p => p.name === msg.author);
-    const img = document.createElement('img');
-    img.className = 'chat-msg-avatar';
-    img.src = getAvatarUrl(msg.author, player ? player.meta : '');
-    img.alt = msg.author;
-    img.onerror = () => { img.src = getAvatarUrl(msg.author, ''); };
-    el.appendChild(img);
-
-    const col = document.createElement('div');
-    col.className = 'chat-msg-body-col';
-
-    const head = document.createElement('div');
-    head.className = 'chat-msg-head';
-    const author = document.createElement('span');
-    author.className = 'chat-msg-author';
-    author.textContent = msg.author;
-    author.style.color = playerColor(msg.author);
-    head.appendChild(author);
-    const time = formatChatTime(msg.timestamp);
-    const timeEl = document.createElement('span');
-    timeEl.className = 'chat-msg-time';
-    timeEl.textContent = msg.pending ? '🕒' : time.short;
-    timeEl.title = msg.pending ? 'Envoi en cours…' : time.title;
-    head.appendChild(timeEl);
-
-    const actions = document.createElement('div');
-    actions.className = 'chat-msg-actions';
-    if (!msg.pending) {
-      const replyBtn = document.createElement('button');
-      replyBtn.textContent = '↩️';
-      replyBtn.title = 'Répondre';
-      replyBtn.addEventListener('click', () => setChatReplyTo(msg));
-      actions.appendChild(replyBtn);
-      if (msg.author === _whoAmI) {
-        const delBtn = document.createElement('button');
-        delBtn.className = 'danger';
-        delBtn.textContent = '🗑️';
-        delBtn.title = 'Supprimer';
-        delBtn.addEventListener('click', () => {
-          if (!requireIdentity()) return;
-          openConfirmModal('Supprimer ce message ?', () => {
-            buzz();
-            callServer('apiDeleteChatMessage', [msg.id, _whoAmI || ''], () => {
-              // Recharge depuis le serveur plutôt que de simplement retirer le
-              // message en local : d'autres messages peuvent citer celui-ci en
-              // réponse, et seul le serveur sait recalculer replyToDeleted pour eux.
-              loadChat();
-            }, 'Suppression message');
-          });
-        });
-        actions.appendChild(delBtn);
-      }
-    }
-    head.appendChild(actions);
-    col.appendChild(head);
-
-    if (msg.replyToId) {
-      const reply = document.createElement('div');
-      reply.className = 'chat-msg-reply' + (msg.replyToDeleted ? ' deleted' : '');
-      if (msg.replyToDeleted) {
-        reply.innerHTML = '<span>Message supprimé</span>';
-      } else {
-        const replyPlayer = cachedPlayers.find(p => p.name === msg.replyToAuthor);
-        const replyImg = document.createElement('img');
-        replyImg.className = 'chat-msg-reply-avatar';
-        replyImg.src = getAvatarUrl(msg.replyToAuthor, replyPlayer ? replyPlayer.meta : '');
-        replyImg.alt = '';
-        replyImg.onerror = () => { replyImg.src = getAvatarUrl(msg.replyToAuthor, ''); };
-        reply.appendChild(replyImg);
-        const replyStrong = document.createElement('strong');
-        replyStrong.textContent = msg.replyToAuthor;
-        replyStrong.style.color = playerColor(msg.replyToAuthor);
-        reply.appendChild(replyStrong);
-        const replySpan = document.createElement('span');
-        replySpan.textContent = chatSnippet(msg.replyToText, 60);
-        reply.appendChild(replySpan);
-        reply.addEventListener('click', () => {
-          const target = document.getElementById('chat-msg-' + msg.replyToId);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.remove('highlight'); void target.offsetWidth; target.classList.add('highlight');
-          }
-        });
-      }
-      col.appendChild(reply);
-    }
-
-    const body = document.createElement('div');
-    body.className = 'chat-msg-text';
-    body.innerHTML = renderMarkdown(msg.text);
-    col.appendChild(body);
-
-    el.appendChild(col);
-    return el;
-  }
-
-  function renderChatMessages(forceScroll) {
-    const container = document.getElementById('chatMessages');
-    if (!container) return;
-    container.innerHTML = '';
-    // Un envoi optimiste peut arriver côté serveur (et être ramené par le sondage
-    // périodique indépendant, pollChat()) avant que le callback de succès du POST
-    // d'origine n'ait retiré l'entrée de _chatPendingSends — sans ce filtre, le
-    // même message s'affiche brièvement deux fois (une fois confirmé, une fois
-    // "en attente").
-    const pendingStillOwed = _chatPendingSends.filter(p => !_chatMessages.some(m =>
-      m.author === p.author && m.text === p.text && (m.replyToId || '') === (p.replyToId || '')
-    ));
-    const all = _chatMessages.concat(pendingStillOwed);
-    if (!all.length) {
-      container.innerHTML = '<div class="chat-empty">Aucun message pour le moment. Lance la discussion !</div>';
-    } else {
-      all.forEach(msg => container.appendChild(buildChatMessageEl(msg)));
-      if (forceScroll || _chatAtBottom) container.scrollTop = container.scrollHeight;
-    }
-  }
-
-  function setChatReplyTo(msg) {
-    _chatReplyTo = { id: msg.id, author: msg.author, text: msg.text };
-    const player = cachedPlayers.find(p => p.name === msg.author);
-    const avatar = document.getElementById('chatReplyBannerAvatar');
-    avatar.src = getAvatarUrl(msg.author, player ? player.meta : '');
-    avatar.onerror = () => { avatar.src = getAvatarUrl(msg.author, ''); };
-    document.getElementById('chatReplyBannerAuthor').textContent = msg.author;
-    document.getElementById('chatReplyBannerAuthor').style.color = playerColor(msg.author);
-    document.getElementById('chatReplyBannerSnippet').textContent = chatSnippet(msg.text, 80);
-    document.getElementById('chatReplyBanner').style.display = 'flex';
-    document.getElementById('chatInput').focus();
-  }
-
-  function clearChatReplyTo() {
-    _chatReplyTo = null;
-    document.getElementById('chatReplyBanner').style.display = 'none';
-  }
-
-  function updateChatBadge() {
-    const badge = document.getElementById('chatBadge');
-    if (!badge) return;
-    if (_chatUnreadCount > 0) {
-      badge.textContent = _chatUnreadCount > 99 ? '99+' : String(_chatUnreadCount);
-      badge.style.display = 'inline-flex';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
-  function openChatPanel() {
-    _chatPanelOpen = true;
-    localStorage.setItem(CHAT_PANEL_OPEN_KEY, '1');
-    const panel = document.getElementById('chatSidePanel');
-    if (panel) panel.style.display = 'flex';
-    const btn = document.getElementById('chatToggleBtn');
-    if (btn) btn.classList.add('active');
-    _chatUnreadCount = 0;
-    updateChatBadge();
-    resetChatBackoff();
-    if (!_chatLoadedOnce) loadChat(); else { renderChatMessages(true); pollChat(); }
-  }
-
-  function closeChatPanel() {
-    _chatPanelOpen = false;
-    localStorage.removeItem(CHAT_PANEL_OPEN_KEY);
-    const panel = document.getElementById('chatSidePanel');
-    if (panel) panel.style.display = 'none';
-    const btn = document.getElementById('chatToggleBtn');
-    if (btn) btn.classList.remove('active');
-    resetChatBackoff();
-  }
-
-  function toggleChatPanel() {
-    if (_chatPanelOpen) closeChatPanel(); else openChatPanel();
-  }
-
-  function initChatWidget() {
-    const btn = document.getElementById('chatToggleBtn');
-    const closeBtn = document.getElementById('chatPanelClose');
-    const sendBtn = document.getElementById('chatSendBtn');
-    const input = document.getElementById('chatInput');
-    const replyCancelBtn = document.getElementById('chatReplyBannerCancel');
-    const messagesEl = document.getElementById('chatMessages');
-    const sidePanel = document.getElementById('chatSidePanel');
-    if (btn) btn.addEventListener('click', toggleChatPanel);
-    if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
-    if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
-    if (input) {
-      attachMentionAutocomplete(input);
-      _chatInputFit = autoGrowTextarea(input, 0.3);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-      });
-    }
-    if (replyCancelBtn) replyCancelBtn.addEventListener('click', clearChatReplyTo);
-    if (messagesEl) {
-      messagesEl.addEventListener('scroll', function() {
-        _chatAtBottom = (this.scrollHeight - this.scrollTop - this.clientHeight) < 60;
-      });
-    }
-    if (localStorage.getItem(CHAT_PANEL_OPEN_KEY) === '1' && btn && getComputedStyle(btn).display !== 'none') {
-      _chatPanelOpen = true;
-      if (sidePanel) sidePanel.style.display = 'flex';
-      btn.classList.add('active');
-      _chatUnreadCount = 0;
-      updateChatBadge();
-      resetChatBackoff();
-      if (messagesEl && !_chatLoadedOnce) {
-        messagesEl.innerHTML = '<div class="chat-empty" style="color:var(--text-muted);padding:20px;text-align:center;">Chargement du tchat...</div>';
-      }
-    }
-    scheduleChatPoll();
-  }
-
-  function loadChat(onDone) {
-    callServer('apiGetChatMessages', [_chatVersion], res => {
-      if (res.version !== undefined) _chatVersion = res.version;
-      _chatMessages = res.messages || [];
-      _chatMessages.forEach(m => _chatSeenIds.add(m.id));
-      _chatLoadedOnce = true;
-      renderChatMessages(true);
-      if (typeof onDone === 'function') onDone();
-    }, 'Chargement du tchat', () => {
-      const container = document.getElementById('chatMessages');
-      if (container && !_chatLoadedOnce) {
-        container.innerHTML = '<div class="chat-empty chat-error">Impossible de charger le tchat. <button id="chatRetryBtn" class="small">Réessayer</button></div>';
-        const retryBtn = document.getElementById('chatRetryBtn');
-        if (retryBtn) retryBtn.addEventListener('click', () => loadChat(onDone));
-      }
-      if (typeof onDone === 'function') onDone();
-    });
-  }
-
-  // Sondage adaptatif différentiel & pause quand l'onglet est inactif :
-  // - Panneau ouvert : 4s -> 6s -> 8s -> 10s -> 12s
-  // - Panneau fermé : 20s -> 30s -> 45s -> 60s
-  // - Onglet masqué/arrière-plan : Pause complète (sauvegarde quota GAS)
-  function scheduleChatPoll() {
-    if (_chatPollTimer) { clearTimeout(_chatPollTimer); _chatPollTimer = null; }
-    if (document.hidden) return;
-    _chatPollTimer = setTimeout(() => {
-      pollChat(() => scheduleChatPoll());
-    }, getChatPollDelay());
-  }
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      resetChatBackoff();
-      pollChat(() => scheduleChatPoll());
-    } else {
-      if (_chatPollTimer) { clearTimeout(_chatPollTimer); _chatPollTimer = null; }
-    }
-  });
-
-  let _chatPollInFlight = false;
-  function pollChat(onComplete) {
-    if (_chatPollInFlight) {
-      if (typeof onComplete === 'function') onComplete();
-      return;
-    }
-    _chatPollInFlight = true;
-    callServer('apiGetChatMessages', [_chatVersion], res => {
-      _chatPollInFlight = false;
-      if (res.version !== undefined) {
-        _chatVersion = res.version;
-      }
-      if (res.notModified) {
-        _chatIdleCount++;
-        if (typeof onComplete === 'function') onComplete();
-        return;
-      }
-      _chatIdleCount = 0;
-      const fresh = res.messages || [];
-      const prevLastId = _chatMessages.length ? _chatMessages[_chatMessages.length - 1].id : null;
-      const changed = fresh.length !== _chatMessages.length ||
-        (fresh.length && prevLastId !== fresh[fresh.length - 1].id);
-      if (!changed) {
-        if (typeof onComplete === 'function') onComplete();
-        return;
-      }
-      // Compte les non-lus par id jamais vu plutôt que par écart de longueur totale :
-      // un message ajouté puis retiré (le sien ou un autre) entre deux sondages peut
-      // laisser la longueur inchangée alors qu'un message réel n'a jamais été vu.
-      const newCount = fresh.filter(m => !_chatSeenIds.has(m.id)).length;
-      fresh.forEach(m => _chatSeenIds.add(m.id));
-      _chatMessages = fresh;
-      if (_chatPanelOpen) {
-        renderChatMessages(false);
-      } else if (newCount > 0) {
-        _chatUnreadCount += newCount;
-      }
-      updateChatBadge();
-      if (typeof onComplete === 'function') onComplete();
-    }, 'Actualisation du tchat', () => {
-      _chatPollInFlight = false;
-      if (typeof onComplete === 'function') onComplete();
-    }, true);
-  }
-
-  // Envoi optimiste : le message apparaît immédiatement (grisé, horloge) sans
-  // attendre le serveur ; en cas d'échec il est retiré et le texte restauré.
-  function sendChatMessage() {
-    if (!requireIdentity()) return;
-    const input = document.getElementById('chatInput');
-    const text = input.value.trim();
-    if (!text) return;
-    const replyTo = _chatReplyTo;
-    const temp = {
-      id: 'pending-' + Date.now(),
-      author: _whoAmI, text, timestamp: new Date().toISOString(),
-      replyToId: replyTo ? replyTo.id : '',
-      replyToAuthor: replyTo ? replyTo.author : '',
-      replyToText: replyTo ? replyTo.text : '',
-      pending: true
-    };
-    _chatPendingSends.push(temp);
-    input.value = '';
-    if (_chatInputFit) _chatInputFit(); // reset la hauteur du textarea après envoi
-    clearChatReplyTo();
-    renderChatMessages(true);
-    callServer('apiPostChatMessage', [text, temp.replyToId, _whoAmI || ''], () => {
-      _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
-      resetChatBackoff();
-      loadChat();
-    }, 'Envoi du message', () => {
-      _chatPendingSends = _chatPendingSends.filter(m => m.id !== temp.id);
-      input.value = text;
-      if (replyTo) setChatReplyTo({ id: replyTo.id, author: replyTo.author, text: replyTo.text });
-      renderChatMessages(false);
-    });
-  }
-
-  // Fin des helpers Tchat
-
   // ── SÉLECTION MULTIPLE PAR GLISSER (souris seule et tactile) ─────────
   // Équivalent à un shift+clic mais sans dépendre du clavier : on clique
   // (ou touche) une case, puis on glisse dessus/à travers les autres pour
@@ -10001,7 +9398,7 @@
     'apiGroupSimilarEntries', 'apiUndoAuditEntry', 'apiFixZeroPoints', 'apiDeleteOrphans',
     'apiCreateSnapshot', 'apiBackfillNoteAuthors', 'apiUpdateHistoryDescription',
     'apiUpdateHistoryEntry', 'apiAddNote', 'apiDeleteNote', 'apiEditNote',
-    'apiPostChatMessage', 'apiDeleteChatMessage', 'apiUpdateBulkEntries',
+    'apiUpdateBulkEntries',
     'apiGroupDistributedLots', 'apiGroupRows', 'apiUngroupLot', 'apiRemoveFromGroup',
     'apiDeleteGroup', 'apiApplyMentionFixes', 'apiReorderPhrases', 'apiRepairOrder',
     'apiAddPhrase', 'apiSavePhrasesBatch', 'apiUpdatePhrase', 'apiDeletePhrase',
@@ -10011,7 +9408,52 @@
     'apiApplyBaremeSuggestions', 'apiSaveBaremeMatchThreshold'
   ]);
 
-  function callServer(fn, params, onSuccess, errorLabel, onError, silent) {
+  // Transport à double voie : sous Google Apps Script on garde google.script.run,
+  // servi par Vercel le même contrat passe par POST /api/rpc ({ok, value|error}).
+  // Les deux hébergements restent utilisables tant que la bascule n'est pas faite.
+  // Identifiant unique d'un geste mutant. crypto.randomUUID() n'existe pas sur
+  // les contextes non sécurisés (http://) : repli sur une valeur suffisamment
+  // improbable — une collision ferait ignorer une écriture légitime.
+  function _newIdempotencyKey() {
+    if (typeof crypto !== 'undefined' && crypto && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+  }
+
+  function _rpcTransport(fn, args, onValue, onFailure, idempotencyKey) {
+    if (typeof google !== 'undefined' && google && google.script && google.script.run) {
+      // Apps Script : pas de clé à transmettre, google.script.run ne rejoue rien.
+      google.script.run.withSuccessHandler(onValue).withFailureHandler(onFailure)[fn](...args);
+      return;
+    }
+    const payload = { fn: fn, args: args };
+    if (idempotencyKey) payload.idempotencyKey = idempotencyKey;
+    fetch('/api/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(response => response.json().then(body => ({ status: response.status, body: body })))
+      .then(reply => {
+        if (reply.body && reply.body.ok) {
+          onValue(reply.body.value);
+          return;
+        }
+        const message = (reply.body && reply.body.error) || ('Erreur HTTP ' + reply.status);
+        onFailure(new Error(message));
+      })
+      .catch(err => onFailure(err instanceof Error ? err : new Error(String(err))));
+  }
+
+  // `idempotencyKey` n'est jamais fourni par un appelant métier : callServer la
+  // fabrique au premier essai d'un geste mutant et se la repasse à lui-même
+  // pour tout RENVOI du même geste (modale de mot de passe, « Réessayer »).
+  // Un envoi qui atteint Google mais dont la réponse se perd ne peut donc plus
+  // être appliqué deux fois. Un nouveau clic délibéré fabrique une clé neuve :
+  // deux saisies identiques voulues restent deux lignes.
+  function callServer(fn, params, onSuccess, errorLabel, onError, silent, idempotencyKey) {
+    const idemKey = _MUTATING_APIS.has(fn) ? (idempotencyKey || _newIdempotencyKey()) : null;
     const handleAuthError = (errMessage) => {
       _identityPassword = '';
       if (typeof setIdentityPassword === 'function') setIdentityPassword('');
@@ -10020,7 +9462,9 @@
       const p = players ? players.find(x => x.name === currentWho) : null;
       if (p && p.hasPassword && typeof openIdentityPwdModal === 'function') {
         openIdentityPwdModal(p, () => {
-          callServer(fn, params, onSuccess, errorLabel, onError, silent);
+          // Même geste, donc même clé : si le premier essai avait malgré tout
+          // écrit avant de buter sur l'identité, ce renvoi ne doublera rien.
+          callServer(fn, params, onSuccess, errorLabel, onError, silent, idemKey);
         });
         const errEl = (typeof document !== 'undefined' && document.getElementById) ? document.getElementById('identityPwdError') : null;
         if (errEl) {
@@ -10039,46 +9483,56 @@
       if (onError) onError(errMessage);
     };
 
-    let runner = google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.success === false) {
-          const errStr = String(res.error || '');
-          if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
-            handleAuthError(res.error);
-            return;
-          }
-          if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
-          if (onError) onError(res.error);
-          return;
-        }
-        if (!onSuccess) return;
-        // google.script.run swallows any exception thrown here: without this try,
-        // a broken handler leaves the skeleton spinning forever, with no toast,
-        // no error state, and no trace — this was the Dashboard outage.
-        try {
-          onSuccess(res);
-        } catch (err) {
-          console.error('callServer/' + fn, err);
-          if (!silent) showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
-          if (onError) onError(err);
-        }
-      })
-      .withFailureHandler(err => {
-        const errStr = String((err && err.message) || err || '');
+    const onValue = res => {
+      if (res && res.success === false) {
+        const errStr = String(res.error || '');
         if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
-          handleAuthError(errStr);
+          handleAuthError(res.error);
           return;
         }
-        if (!silent) showToast((errorLabel || 'Erreur serveur') + ' : ' + (err.message || err), 'error');
+        if (!silent) showToast((errorLabel || 'Erreur') + ' : ' + res.error, 'error');
+        if (onError) onError(res.error);
+        return;
+      }
+      if (!onSuccess) return;
+      // google.script.run swallows any exception thrown here: without this try,
+      // a broken handler leaves the skeleton spinning forever, with no toast,
+      // no error state, and no trace — this was the Dashboard outage.
+      try {
+        onSuccess(res);
+      } catch (err) {
+        console.error('callServer/' + fn, err);
+        if (!silent) showToast((errorLabel || 'Erreur d\'affichage') + ' : ' + ((err && err.message) || err), 'error');
         if (onError) onError(err);
-      });
+      }
+    };
+    const onFailure = err => {
+      const errStr = String((err && err.message) || err || '');
+      if (fn !== 'apiVerifyIdentity' && (errStr.includes('Mot de passe') || errStr.includes('authentification') || errStr.includes('Identité requise'))) {
+        handleAuthError(errStr);
+        return;
+      }
+      const message = (errorLabel || 'Erreur serveur') + ' : ' + ((err && err.message) || err);
+      // Sur un geste mutant, l'erreur peut être un simple délai réseau alors
+      // que le serveur a déjà écrit. Le renvoi proposé ici réutilise la clé :
+      // il aboutit sans rien dupliquer, au lieu de laisser l'utilisateur
+      // recliquer le bouton — ce qui, lui, repart sur une clé neuve.
+      if (!silent && idemKey && typeof showActionToast === 'function') {
+        showActionToast(message, 'Réessayer', () => {
+          callServer(fn, params, onSuccess, errorLabel, onError, silent, idemKey);
+        }, 10000, 'error');
+      } else if (!silent) {
+        showToast(message, 'error');
+      }
+      if (onError) onError(err);
+    };
     const pwd = (typeof getIdentityPassword === 'function')
       ? getIdentityPassword()
       : (_identityPassword || '');
     const actualParams = _MUTATING_APIS.has(fn)
       ? [...params, pwd]
       : params;
-    runner[fn](...actualParams);
+    _rpcTransport(fn, actualParams, onValue, onFailure, idemKey);
   }
 
   // ── REORDER (boutons monter/descendre) ───────────────────────────────────
@@ -11124,9 +10578,6 @@
     renderWhoAmI();
     closeWhoAmIDropdown();
     showToast('Déconnecté.', 'info');
-    if (document.getElementById('chatSidePanel') && document.getElementById('chatSidePanel').classList.contains('open')) {
-      renderChatMessages();
-    }
   }
   window.logoutIdentity = logoutIdentity;
 
@@ -21120,7 +20571,6 @@
     initGsapEffects();
     initSettingsTabs();
     initHistoryTabs();
-    initChatWidget();
     applyTooltipStylePrefs(getTooltipStylePrefs());
     renderTooltipStyleSettings();
     bindButtons();
@@ -21459,17 +20909,7 @@
         }
       }
 
-      // 9. Chat Messages
-      if (res.chatMessages && res.chatMessages.success) {
-        if (res.chatMessages.version !== undefined) _chatVersion = res.chatMessages.version;
-        _chatMessages = res.chatMessages.messages || [];
-        _chatMessages.forEach(m => _chatSeenIds.add(m.id));
-        _chatLoadedOnce = true;
-        renderChatMessages(true);
-        updateChatBadge();
-      }
-
-      // 10. Secondary stats (Stats Hub)
+      // 9. Secondary stats (Stats Hub)
       setTimeout(refreshDashboardStats, 150);
 
     }, 'Composite bootstrap', () => {
@@ -21505,7 +20945,6 @@
           if (list) list.innerHTML = '<p style="color:var(--text-muted);margin:10px 0;">Données indisponibles.</p>';
         });
       })],
-      ['tchat',       () => loadChat()],
       ['statistiques', () => setTimeout(refreshDashboardStats, 150)]
     ];
     steps.forEach(([label, step]) => {

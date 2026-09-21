@@ -245,15 +245,29 @@ const AutoPointsService = (() => {
 
     if (valid.length) {
       const tz = (typeof Session !== 'undefined' && Session.getScriptTimeZone) ? Session.getScriptTimeZone() : 'Etc/UTC';
-      const today = (typeof Utilities !== 'undefined' && Utilities.formatDate)
-        ? Utilities.formatDate(now, tz, 'yyyy-MM-dd')
-        : (typeof _dayKey === 'function' ? _dayKey(now) : (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')));
-      const entries = valid.map(r => ({
-        player: r.player, category: r.category, points: r.points, times: 1,
-        description: r.description || 'Points automatiques', groupTag: '',
-        saiseur: 'Auto (' + (r.createdBy || 'système') + ')'
-      }));
-      StorageService.appendBulkPlan([{ date: today, entries }]);
+      const dayKeyOf = d => (typeof Utilities !== 'undefined' && Utilities.formatDate)
+        ? Utilities.formatDate(d, tz, 'yyyy-MM-dd')
+        : (typeof _dayKey === 'function' ? _dayKey(d) : (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')));
+      // Chaque règle est datée du jour où elle était DUE, pas de l'instant où
+      // l'exécuteur passe. Sous Apps Script (déclencheur horaire) l'écart était
+      // d'au plus une heure ; sur Vercel la tâche planifiée est quotidienne, si
+      // bien qu'une règle due à 23h30 se retrouvait datée du lendemain. Une
+      // échéance est toujours <= now (filtre `due` ci-dessus) : aucune date
+      // future ne peut donc être produite (règle rétrospective, context.md).
+      const byDay = {};
+      valid.forEach(r => {
+        const dueDate = new Date(r.nextRun);
+        const key = dayKeyOf(isNaN(dueDate.getTime()) ? now : dueDate);
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push({
+          player: r.player, category: r.category, points: r.points, times: 1,
+          description: r.description || 'Points automatiques', groupTag: '',
+          saiseur: 'Auto (' + (r.createdBy || 'système') + ')'
+        });
+      });
+      StorageService.appendBulkPlan(
+        Object.keys(byDay).sort().map(date => ({ date: date, entries: byDay[date] }))
+      );
     }
 
     const sheet = ConfigService.getSheets().autoRules;

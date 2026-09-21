@@ -21,3 +21,12 @@ screenshots/
 .env
 .vercel/
 node_modules/
+.vercel
+.env*
+/trois-487801-*.json
+docs/superpowers/plans/2026-09-19-vercel-gas-runtime-read.md
+docs/superpowers/plans/2026-09-20-vercel-write-path.md
+docs/superpowers/plans/2026-09-20-vercel-frontend.md
+docs/superpowers/plans/2026-09-20-vercel-integrations.md
+docs/superpowers/plans/2026-09-20-vercel-cutover.md
+docs/superpowers/plans/2026-09-21-chat-removal.md

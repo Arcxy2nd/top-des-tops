@@ -215,22 +215,6 @@ test('the first note of a headerless Notes sheet is returned and headers inserte
   assert.deepStrictEqual(notesSheet._grid[0], ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe']);
 });
 
-// ── Chat ─────────────────────────────────────────────────────────────────────
-
-test('the first message of a headerless Chat sheet is returned and headers inserted', () => {
-  const gas = loadGas();
-  const chatSheet = makeSheet([
-    ['id-1', new Date('2026-01-05T12:00:00Z'), 'Ilker',   'Salut', ''],
-    ['id-2', new Date('2026-01-05T12:01:00Z'), 'Antoine', 'Yo',    '']
-  ]);
-  gas.ConfigService.getSheets = () => ({
-    chat: chatSheet
-  });
-  const res = gas.ChatService.getAllMessages();
-  assert.strictEqual(res.messages.length, 2);
-  assert.deepStrictEqual(chatSheet._grid[0], ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ']);
-});
-
 // ── Alt categories ───────────────────────────────────────────────────────────
 
 test('the first alt category of a headerless AltCategories sheet is returned and headers inserted', () => {

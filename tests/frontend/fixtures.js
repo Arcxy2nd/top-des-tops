@@ -58,7 +58,7 @@ function historyRows() {
 // stayed permanently empty in the browser preview.
 const AUTO_CREATE_SHEET_KEY_BY_NAME = {
   AuditLog: 'auditLog', Settings: 'settings', AutoRules: 'autoRules',
-  Notes: 'notes', Bareme: 'bareme', Phrases: 'phrases', Chat: 'chat',
+  Notes: 'notes', Bareme: 'bareme', Phrases: 'phrases',
   AltCategories: 'altCategories', AltHistory: 'altHistory'
 };
 
@@ -69,8 +69,7 @@ function buildSheets() {
     history:    makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur', 'BaremeId'], ...historyRows()]),
     notes:      makeSheet([['Date', 'Player', 'Note text'], ['2026-08-01', 'Alik', 'Note de test']]),
     bareme:     makeSheet([['Top', 'Action', 'Points', 'Id'], ['Mauvais', 'Insulter la mère', 204, 'R_FIX1'], ['Mauvais', 'Mauvais perdant', 10, 'R_FIX2'], ['Méchant', 'Tacle par derrière', 15, 'R_FIX3']]),
-    phrases:    makeSheet([['Preset', 'Pool', 'Phrase'], ['__default__', 'first', '👑 {player} règne avec {pts} pts.']]),
-    chat:       makeSheet([['Id', 'Date', 'Author', 'Text', 'ReplyToId'], ['1', '2026-08-01', 'Ilker', 'Salut @Safir', '']]),
+    phrases:    makeSheet([['Preset', 'Pool', 'Phrase'], ['__default__', 'first', '👑 {player} règne avec {pts} pts.']]),
     altHistory: makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Author'],
                            ['2026-08-01', 'Alik', 'Trou du cul', 7, 'Native', '', '', 'Admin']]),
     altCategories: makeSheet([['Name', 'Description', 'Emoji', 'Hex color'], ['Trou du cul', 'Gros zgeg', '🤠', '#ee6943']])
