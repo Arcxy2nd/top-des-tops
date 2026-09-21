@@ -77,3 +77,39 @@ test('scriptIdForTenant est déterministe et hexadécimal pur (pas de préfixe c
   assert.strictEqual(id, scriptIdForTenant('SHEET_A'));
   assert.notStrictEqual(id, scriptIdForTenant('SHEET_B'));
 });
+
+// ── Garde-fous de la table réelle (Plan 6) : ils valident tenants.json tel qu'il
+// est versionné, avant et après la déclaration des deux instances de production.
+test('chaque tenant déclaré porte un spreadsheetId et résout sans ambiguïté', () => {
+  const tenants = loadTenants(TENANTS_FILE);
+  const hosts = Object.keys(tenants);
+  assert.ok(hosts.length > 0);
+  hosts.forEach(host => {
+    assert.strictEqual(host, host.toLowerCase(), 'hôte non normalisé : ' + host);
+    const resolved = resolveTenant(host, tenants);
+    assert.ok(resolved && resolved.spreadsheetId, 'tenant sans classeur : ' + host);
+  });
+});
+
+test('un instanceId déclaré fait exactement 10 caractères (préfixe de stockage hérité)', () => {
+  const tenants = loadTenants(TENANTS_FILE);
+  Object.keys(tenants).forEach(host => {
+    const declared = tenants[host].instanceId;
+    if (declared === undefined || declared === null) return;
+    assert.strictEqual(String(declared).length, 10, 'instanceId de longueur inattendue pour ' + host + ' : ' + declared);
+  });
+});
+
+test('deux hôtes ne peuvent pas partager un classeur ET un instanceId différent', () => {
+  const tenants = loadTenants(TENANTS_FILE);
+  const seen = {};
+  Object.keys(tenants).forEach(host => {
+    const entry = tenants[host];
+    const key = entry.spreadsheetId;
+    const id = entry.instanceId || null;
+    if (Object.prototype.hasOwnProperty.call(seen, key)) {
+      assert.strictEqual(seen[key], id, 'le classeur ' + key + ' est servi avec deux identifiants d\'instance différents — le stockage local des utilisateurs serait cloisonné par hasard');
+    }
+    seen[key] = id;
+  });
+});
