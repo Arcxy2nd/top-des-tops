@@ -112,16 +112,6 @@ test('apiGetAutoRules : aucun déclencheur installé par défaut, aucune erreur'
   assert.strictEqual(result.value.triggerError, '');
 });
 
-test('apiGetChatMessages : un client dont la version diffère reçoit les messages', () => {
-  const { result } = runOnGrids(fixtureGrids(buildSheets()), 'apiGetChatMessages', ['inconnue']);
-  assert.strictEqual(result.value.success, true);
-  assert.notStrictEqual(result.value.notModified, true, 'une version cliente qui diffère du compteur ne peut pas donner "non modifié"');
-  assert.ok(
-    result.value.messages.some(m => m.author === 'Ilker' && m.text === 'Salut @Safir'),
-    'le message de la fixture Chat doit être renvoyé'
-  );
-});
-
 test('UrlFetchApp : GET autorisé (apiGetChangelog)', () => {
   const grids = fixtureGrids(buildSheets());
   const api = makeFakeSheetsApi(grids);
@@ -158,12 +148,12 @@ function requestedTitles(call) {
   return new URL(call.url).searchParams.getAll('ranges').map(r => r.replace(/^'|'$/g, '').replace(/''/g, '\''));
 }
 
-test('un sondage de tchat ne télécharge que les onglets qu\'il touche', () => {
+test('une lecture ciblée ne télécharge que les onglets qu\'elle touche', () => {
   const grids = fixtureGrids(buildSheets());
-  const { api } = runWrite(grids, 'apiGetChatMessages', ['version-inconnue']);
+  const { api } = runWrite(grids, 'apiGetAllNotes');
   const titles = gridRequests(api).reduce((acc, c) => acc.concat(requestedTitles(c)), []);
-  assert.ok(titles.indexOf('Chat') !== -1, 'le tchat doit être lu');
-  assert.strictEqual(titles.indexOf('History'), -1, 'l\'historique complet ne doit jamais être téléchargé pour un sondage');
+  assert.ok(titles.indexOf('Notes') !== -1, 'les notes doivent être lues');
+  assert.strictEqual(titles.indexOf('History'), -1, 'l\'historique complet ne doit jamais être téléchargé pour une lecture ciblée');
   assert.ok(gridRequests(api).length <= 3, 'au plus 3 requêtes de grille, reçu ' + gridRequests(api).length);
 });
 
@@ -195,9 +185,9 @@ test('un onglet absent du classeur rend une grille vide sans requête supplémen
 // simulé). Seules des clés dérivées de l'horloge peuvent être neutralisées,
 // chacune justifiée par un commentaire ; toute autre différence est un bug.
 const VOLATILE_KEYS = [
-  // apiGetChatMessages (via apiGetBootstrapData) renvoie _chatVersion() : le
-  // harness lit '0' (PropertiesService jamais écrit), le runtime Vercel amorce
-  // une valeur aléatoire par appel (Code.gs ~697, runtime.js VERSION_PROPERTY_KEYS,
+  // Les endpoints qui renvoient un compteur de version : le
+  // harness lit '0' (PropertiesService jamais écrit), le runtime Vercel lit
+  // la valeur de l'onglet ScriptProperties (runtime.js VERSION_PROPERTY_KEYS,
   // fix « compteurs de version factices ») — divergence attendue, pas un bug.
   'version'
 ];
@@ -239,19 +229,21 @@ PARITY_CASES.forEach(([fnName, args]) => {
   });
 });
 
-test('les compteurs de version viennent de la feuille, plus d\'un tirage aléatoire', () => {
+test('une lecture ne sème aucun compteur de version : elle lit la feuille ou rien', () => {
   const grids = fixtureGrids(buildSheets());
-  grids.ScriptProperties = [['Key', 'Value'], ['chat_version', '12']];
-  const first = runOnGrids(grids, 'apiGetChatMessages', [0]);
-  const second = runOnGrids(grids, 'apiGetChatMessages', [0]);
-  assert.strictEqual(first.result.value.version, '12');
-  assert.strictEqual(second.result.value.version, '12', 'deux appels identiques donnent la même version');
+  grids.ScriptProperties = [['Key', 'Value'], ['notes_version', '12']];
+  const { calls } = runOnGrids(grids, 'apiGetAllNotes');
+  assert.deepStrictEqual(grids.ScriptProperties[1], ['notes_version', '12'], 'le compteur existant est lu tel quel');
+  assert.strictEqual(grids.ScriptProperties.length, 2, 'aucune ligne ajoutée par une lecture');
+  assert.ok(!calls.some(c => /batchUpdate/.test(c.url)), "une lecture n'écrit jamais");
 });
 
-test('compteur absent de la feuille : Code.gs retombe sur sa valeur par défaut', () => {
+test("compteur absent de la feuille : aucun onglet de propriétés n'est créé par une lecture", () => {
   const grids = fixtureGrids(buildSheets());
-  const { result } = runOnGrids(grids, 'apiGetChatMessages', [0]);
-  assert.strictEqual(result.value.version, '0');
+  delete grids.ScriptProperties;
+  const { calls } = runOnGrids(grids, 'apiGetAllNotes');
+  assert.strictEqual(grids.ScriptProperties, undefined, "une lecture ne crée pas l'onglet des propriétés");
+  assert.ok(!calls.some(c => /batchUpdate/.test(c.url)), "une lecture n'écrit jamais");
 });
 
 function runWrite(grids, fnName, args) {

@@ -135,11 +135,11 @@ test('callServer with silent=true suppresses failure toasts on both failure and 
   sandbox.google.script.run = runner;
 
   let errSeen = 0;
-  callServer('apiFail', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  callServer('apiFail', [], () => {}, 'Sondage', () => { errSeen++; }, true);
   assert.strictEqual(errSeen, 1, 'onError callback must still be invoked');
   assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on network failure');
 
-  callServer('apiErrorPayload', [], () => {}, 'Poll chat', () => { errSeen++; }, true);
+  callServer('apiErrorPayload', [], () => {}, 'Sondage', () => { errSeen++; }, true);
   assert.strictEqual(errSeen, 2, 'onError callback must still be invoked');
   assert.strictEqual(toasts.length, 0, 'toast must be suppressed when silent=true on success:false payload');
 });
@@ -468,22 +468,4 @@ test('une lecture en échec garde le toast simple, sans bouton de renvoi', async
   await flush();
   assert.strictEqual(actionToasts.length, 0, 'rien à dédupliquer sur une lecture');
   assert.strictEqual(toasts.length, 1);
-});
-
-test('le sondage du tchat plafonne à 30 s au moins quand la conversation est inactive', () => {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const open = /const CHAT_OPEN_BACKOFF = \[([^\]]+)\]/.exec(html);
-  assert.ok(open, 'CHAT_OPEN_BACKOFF introuvable dans Index.html');
-  const steps = open[1].split(',').map(s => Number(s.trim()));
-
-  // Chaque sondage coûte 2 lectures Sheets, sur un quota de 60/minute PAR
-  // COMPTE DE SERVICE. Un palier haut à 12 s (10 req/min/visiteur) saturait le
-  // quota à six visiteurs. Ce garde-fou empêche de revenir en arrière sans
-  // s'en rendre compte.
-  assert.ok(steps[steps.length - 1] >= 30000,
-    'le palier le plus lent doit rester >= 30 s (quota Sheets), vu : ' + steps[steps.length - 1]);
-  // La réactivité d'une conversation vivante ne doit pas être sacrifiée :
-  // le premier palier reste court, et resetChatBackoff y ramène à chaque message.
-  assert.ok(steps[0] <= 5000, 'le palier le plus rapide doit rester <= 5 s');
-  assert.deepStrictEqual(steps.slice().sort((a, b) => a - b), steps, 'les paliers doivent être croissants');
 });

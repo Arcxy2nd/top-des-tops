@@ -88,22 +88,7 @@ test('apiEditNote updates note date and registers in audit log', () => {
   assert.strictEqual(d.getDate(), 25);
 });
 
-test('ChatService.getAllMessages handles Sheets serial date numbers', () => {
-  const gas = loadGas();
-  const chatSheet = makeSheet([
-    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
-    ['msg_1', 46278, 'Alice', 'Hello!', '']
-  ]);
-  gas.ConfigService.getSheets = () => ({ chat: chatSheet, spreadsheet: { insertSheet: () => chatSheet } });
 
-  const res = gas.ChatService.getAllMessages();
-  assert.strictEqual(res.messages.length, 1);
-  const msg = res.messages[0];
-  assert.ok(msg.timestamp);
-  const d = new Date(msg.timestamp);
-  assert.strictEqual(d.getFullYear(), 2026);
-  assert.notStrictEqual(d.getFullYear(), 1970);
-});
 
 test('_parseLocalDateWithNow handles multiple formats and rejects invalid dates', () => {
   const gas = loadGas();

@@ -4,7 +4,7 @@ const assert = require('assert');
 const { loadGas } = require('./harness.js');
 const { buildSheets } = require('./frontend/fixtures.js');
 
-test('apiGetBootstrapData aggregates all 10 startup RPC endpoints in a single response', () => {
+test('apiGetBootstrapData aggregates all 9 startup RPC endpoints in a single response', () => {
   const gas = loadGas();
   const sheets = buildSheets();
   gas.ConfigService.getSheets = () => sheets;
@@ -42,10 +42,6 @@ test('apiGetBootstrapData aggregates all 10 startup RPC endpoints in a single re
 
   // 9. activePreset
   assert.ok(res.activePreset && res.activePreset.success);
-
-  // 10. chatMessages
-  assert.ok(res.chatMessages && res.chatMessages.success);
-  assert.ok(Array.isArray(res.chatMessages.messages));
 });
 
 test('apiGetBootstrapData gracefully catches individual endpoint failures without crashing', () => {
@@ -102,19 +98,6 @@ test('Index.html does not trap desktop screens with a buggy _layoutStable ignori
   const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
 
   assert.strictEqual(html.includes('_layoutStable'), false, '_layoutStable ne doit pas exister dans Index.html');
-});
-
-test('Index.html controls #chatSidePanel display style and not a phantom #chatPanel', () => {
-  const fs = require('fs');
-  const path = require('path');
-  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
-
-  const chatInitIdx = html.indexOf('function initChatWidget(');
-  assert.notStrictEqual(chatInitIdx, -1);
-  const chatBlock = html.slice(chatInitIdx, chatInitIdx + 1500);
-  assert.strictEqual(chatBlock.includes("document.getElementById('chatPanel')"), false, 'chatPanel fantôme ne doit pas être cherché');
-  assert.ok(chatBlock.includes("document.getElementById('chatSidePanel')"), 'chatSidePanel doit être ciblé');
-  assert.ok(chatBlock.includes("style.display = 'flex'"), 'le panneau du tchat ouvert doit être affiché avec display: flex');
 });
 
 test('Index.html distinguishes physical mobile devices on 0px iframe boot without locking mobile in desktop layout', () => {

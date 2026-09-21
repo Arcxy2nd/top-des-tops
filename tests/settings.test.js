@@ -8,7 +8,7 @@ const { loadGas, makeSheet } = require('./harness.js');
 // Players, "Name | Description | Emoji | Hex color" pour Categories) — un faux joueur
 // et une fausse catégorie nommés "Name" apparaissaient donc systématiquement en tête
 // de chaque liste, partout où getEntities() est consommé (Dashboard, Historique,
-// Paramètres, tchat...).
+// Paramètres...).
 test('getEntities excludes the header row of the Players sheet', () => {
   const gas = loadGas();
   gas.ConfigService.getSheets = () => ({
@@ -254,9 +254,9 @@ test('SettingsService.setEntityColor refuses a rowIndex whose current content no
 
 test('SettingsService.renameEntity refuses to rename a row whose name is shared by another row', () => {
   // rowIndex targeting alone is NOT enough here: renaming propagates in cascade to
-  // History/Notes/Chat/Bareme/Phrases by matching the OLD NAME AS TEXT
+  // History/Notes/Bareme/Phrases by matching the OLD NAME AS TEXT
   // (_renameInColumn), not by row. With two "Alice" rows, renaming row 3 to "Alicia"
-  // would relabel row 2's History/Notes/Chat entries to "Alicia" too — merging two
+  // would relabel row 2's History/Notes entries to "Alicia" too — merging two
   // different people's history under a single new name, silently and irreversibly.
   // Refuse instead of attempting an automatic (and inherently lossy) merge.
   const gas = loadGas();
@@ -269,7 +269,7 @@ test('SettingsService.renameEntity refuses to rename a row whose name is shared 
     ['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur'],
     ['2026-08-01', 'Alice', 'Jeux', 5, '', '', '']
   ]);
-  gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat: null });
+  gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null });
 
   assert.throws(() => gas.SettingsService.renameEntity('Players', 3, 'Alice', 'Alicia', '', ''), /partagent le nom/);
 
@@ -334,39 +334,11 @@ test('SettingsService.renameEntity propagates a player rename to their Notes, le
   assert.strictEqual(notesValues[2][1], 'Bob', 'la note de Bob ne doit pas être touchée par le renommage d\'Alice');
 });
 
-// Régression : renameEntity() propage déjà le renommage d'un Joueur à
-// History/AutoRules/Notes, mais jamais à la feuille Chat — l'auteur d'un
-// message tchat gardait l'ancien nom après un renommage, perdant son avatar/
-// couleur (plus retrouvé dans la liste des joueurs actifs) et la possibilité
-// de supprimer ses propres anciens messages (comparaison whoAmI === author).
-test('SettingsService.renameEntity propagates a player rename to their Chat messages, leaving other authors untouched', () => {
-  const gas = loadGas();
-  const players = makeSheet([
-    ['Name', 'Avatar URL', 'Hex color', 'Password'],
-    ['Alice', '', '#ff0000', ''],
-    ['Bob', '', '#00ff00', '']
-  ]);
-  const history = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'GroupId', 'Saiseur']]);
-  const chat = makeSheet([
-    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
-    ['m1', new Date('2026-01-01'), 'Alice', 'Message d\'Alice', ''],
-    ['m2', new Date('2026-01-02'), 'Bob', 'Message de Bob', '']
-  ]);
-  gas.ConfigService.getSheets = () => ({ players, history, notes: null, autoRules: null, chat });
-
-  gas.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
-
-  const chatValues = chat.getDataRange().getValues();
-  assert.strictEqual(chatValues[1][2], 'Alicia', 'le message d\'Alice doit maintenant référencer Alicia');
-  assert.strictEqual(chatValues[2][2], 'Bob', 'le message de Bob ne doit pas être touché par le renommage d\'Alice');
-});
-
 // Régression (audit cache 2026-08-26) : renameEntity() propageait déjà le
-// renommage vers Notes/Chat en écriture directe, mais ne bumpait jamais
-// _notesVersion()/_chatVersion() — un lecteur passant par le cache
-// (getAllNotes/getAllMessages) pouvait donc servir l'ancien nom jusqu'à
-// expiration du TTL (600s) après un renommage.
-test('SettingsService.renameEntity invalidates the Notes and Chat caches, not just the raw sheet', () => {
+// renommage vers Notes en écriture directe, mais ne bumpait jamais
+// _notesVersion() — un lecteur passant par le cache (getAllNotes) pouvait
+// donc servir l'ancien nom jusqu'à expiration du TTL (600s) après un renommage.
+test('SettingsService.renameEntity invalidates the Notes cache, not just the raw sheet', () => {
   const gas = loadGas();
   const players = makeSheet([
     ['Name', 'Avatar URL', 'Hex color', 'Password'],
@@ -377,26 +349,18 @@ test('SettingsService.renameEntity invalidates the Notes and Chat caches, not ju
     ['Date', 'Joueur', 'Note', 'NoteId', 'CrééPar', 'ModifiéPar', 'ModifiéLe'],
     [new Date('2026-01-01'), 'Alice', 'Note sur Alice', 'n1', 'Alice', '', '']
   ]);
-  const chat = makeSheet([
-    ['Id', 'Date', 'Auteur', 'Texte', 'RéponseÀ'],
-    ['m1', new Date('2026-01-01'), 'Alice', 'Message d\'Alice', '']
-  ]);
-  gas.ConfigService.getSheets = () => ({ players, history, notes, chat, autoRules: null });
+  gas.ConfigService.getSheets = () => ({ players, history, notes, autoRules: null });
 
-  // Populate the caches BEFORE the rename, exactly like a real reader would.
+  // Populate the cache BEFORE the rename, exactly like a real reader would.
   const notesBefore = gas.NotesService.getAllNotes();
-  const chatBefore = gas.ChatService.getAllMessages();
   assert.strictEqual(notesBefore.notes[0].player, 'Alice');
-  assert.strictEqual(chatBefore.messages[0].author, 'Alice');
 
   gas.SettingsService.renameEntity('Players', 2, 'Alice', 'Alicia', '', '');
 
   // Read again WITHOUT any manual cache-clearing helper — a real cross-request
   // reader only ever gets a fresh result if the version counter changed.
   const notesAfter = gas.NotesService.getAllNotes();
-  const chatAfter = gas.ChatService.getAllMessages();
   assert.strictEqual(notesAfter.notes[0].player, 'Alicia', 'the Notes cache must reflect the rename immediately, not after TTL expiry');
-  assert.strictEqual(chatAfter.messages[0].author, 'Alicia', 'the Chat cache must reflect the rename immediately, not after TTL expiry');
 });
 
 test('SettingsService.renameEntity invalidates the Bareme and Phrases caches on a category rename', () => {

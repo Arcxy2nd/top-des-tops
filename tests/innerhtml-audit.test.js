@@ -39,10 +39,6 @@ const AUDITED = [
     reason: 'html agrège introHtml (renderMarkdown) et les cartes (buildChangelogVersionCard échappe ver et formate via renderMarkdown)'
   },
   {
-    snippet: "body.innerHTML = renderMarkdown(msg.text);",
-    reason: 'renderMarkdown échappe le texte du message et produit du HTML sécurisé'
-  },
-  {
     snippet: "for (let i = 0; i < rows; i++) {\n      html += '<' + tag + ' class=\"skeleton' + extraClass + '\" style=\"height:' + height + 'px;margin-bottom:8px;\"></' + tag + '>';\n    }\n    container.innerHTML = html;",
     reason: 'showSkeleton génère des div/tags de squelette avec des dimensions numériques'
   },
