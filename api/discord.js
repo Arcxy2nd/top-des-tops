@@ -9,8 +9,8 @@ const { getSharedSyncFetch } = require('../lib/gas-runtime/sync-fetch');
 const { bridgeReply, resolveBridgeRequest } = require('../lib/discord-bridge');
 
 // GET seulement : BotGhost n'envoie que des requêtes GET avec paramètres
-// d'URL, et ne suit pas les redirections — d'où le Worker Cloudflare qui
-// relayait l'URL /exec de GAS, devenu inutile ici (réponse 200 directe).
+// d'URL, et ne suit pas les redirections — l'URL /exec de GAS (302) lui
+// était donc inutilisable ; ici la réponse est un 200 direct.
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   try {
