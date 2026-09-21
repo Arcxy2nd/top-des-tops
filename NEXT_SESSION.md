@@ -13,7 +13,18 @@
 - Porte de décision cache (Plan A, v3.30.22) : toujours en attente du retour utilisateur sur la tuile « Cache navigateur ».
 - Bridge Discord/BotGhost : code complet et testé, déployé en production et sur la copie de test — inchangé.
 
+## Dernière session
+- **Vérification des écritures en conditions réelles (2026-09-21)** — la copie de test est passée en Éditeur pour le compte de service, tout le chemin d'écriture a été exercé contre le déploiement de production Vercel, puis nettoyé :
+  - *Écriture* : `apiAddNote` en 200, note réellement présente dans l'onglet `Notes` (auto-créé avec ses en-têtes canoniques), `noteId` et `CrééPar` corrects.
+  - *Verrou* : `ScriptLock!A1` vide après coup — le bail est bien rendu, pas de verrou orphelin.
+  - *Propriétés de script* : onglet `ScriptProperties` réellement persisté, `notes_version` et `logs_version` incrémentés à chaque écriture (1→2 et 3→4 sur la séquence ajout puis suppression). Fin de l'amorçage aléatoire confirmée en réel.
+  - *Idempotence* : le rejeu de la **même** clé rend la réponse d'origine avec `replayed:true` et **n'écrit pas** de seconde ligne. Onglet `Idempotency` créé et alimenté.
+  - *Identité* : mauvais mot de passe refusé (`success:false`, message métier), aucune écriture.
+  - *Nettoyage* : la note de test a été supprimée par l'application elle-même (`apiDeleteNote` en 200) — le chemin de suppression est donc vérifié en réel lui aussi. Classeur rendu propre.
+  - Mots de passe des joueurs factices relevés dans la copie de test pour les prochaines sessions (voir Rappels) — ils manquaient, la vérification était bloquée dessus.
 - **Retrait du tchat livré (v3.34.0)** — l'utilisateur a confirmé que le retrait était bien sa demande et que le refus du 2026-09-20 était une erreur de lecture. Plan écrit (`docs/superpowers/plans/2026-09-21-chat-removal.md`, gitignoré) puis exécuté en entier : 4 blocs supprimés côté serveur (`ChatService`, les 3 endpoints, les compteurs `chat_version`, la propagation de renommage), 6 blocs côté interface (bouton de navbar, panneau, CSS desktop et mobile, bloc JS complet, section du Guide, câblage de démarrage), 13 fichiers de test nettoyés et un garde-fou de non-retour ajouté (`tests/chat-removed.test.js`). Décisions prises en cours de route : l'onglet `Chat` des classeurs n'est pas supprimé, les mentions et le markdown sont conservés, la largeur du conteneur desktop (1600 px, introduite pour loger le panneau) est gardée pour ne pas rétrécir la page. 703 tests verts, déployé, vérifié en navigateur.
+
+## Écarts
 - ~~Vérification réelle des écritures impossible~~ — **LEVÉ le 2026-09-21** : le compte de service est passé Éditeur sur la copie de test, la vérification du Plan 3 est complète (voir « Dernière session »).
 - Pont Discord (`addPoints`), points automatiques et Tops Alternatifs n'attribuent pas de règle du barème par conception (rattrapage via l'outil de détection).
 - Porte de décision cache du Plan A : en attente du retour utilisateur sur la valeur de la tuile « Cache navigateur ».
