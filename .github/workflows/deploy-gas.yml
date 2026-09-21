@@ -1,15 +1,11 @@
 name: Deploy to Google Apps Script
 
+# Depuis la bascule Vercel (Plan 6, 2026-09-21), les deux instances sont servies
+# par Vercel : ce workflow ne se déclenche plus à chaque push (il repointait les
+# liens courts vers Apps Script, ce qui annulait la bascule) et ne touche plus
+# aux liens courts. Il reste lançable à la main pour tenir le chemin de retour
+# arrière GAS à jour ; les liens se gèrent via repoint-shortlinks.yml.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '**.gs'
-      - '**.html'
-      - 'appsscript.json'
-      - 'deploy-targets.json'
-      - '.github/workflows/deploy-gas.yml'
-      - '.github/scripts/deploy-gas.sh'
   workflow_dispatch: {}
 
 jobs:

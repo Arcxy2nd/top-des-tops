@@ -75,23 +75,9 @@ EOF
   local new_url="https://script.google.com/macros/s/${new_deployment_id}/exec"
   echo "New deployment URL for '$name': $new_url"
 
-  echo "== 4/4: Updating short.io link =="
-  local http_status
-  http_status=$(curl -s -o /tmp/shortio_response.json -w "%{http_code}" -X POST \
-    "https://api.short.io/links/${shortio_link_id}" \
-    -H "Authorization: ${SHORTIO_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d "{\"originalURL\": \"${new_url}\"}")
-
-  cat /tmp/shortio_response.json
-
-  if [ "$http_status" -ge 400 ]; then
-    echo "ERROR: short.io update failed for '$name' with HTTP $http_status." >&2
-    echo "The new code IS live at $new_url but the short.io link was NOT updated. Fix it manually." >&2
-    return 1
-  fi
-
-  echo "Done with '$name'. Short.io link now points to $new_url"
+  # Plus de repointage short.io depuis la bascule Vercel : les liens courts
+  # pointent sur Vercel et se gèrent via .github/workflows/repoint-shortlinks.yml.
+  echo "Done with '$name'. Short.io link left untouched (Vercel cutover)."
   return 0
 }
 

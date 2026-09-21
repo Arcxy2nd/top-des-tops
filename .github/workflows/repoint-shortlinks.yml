@@ -1,0 +1,53 @@
+name: Repoint short links
+
+# Commutateur de la bascule Vercel : repointe les deux liens courts short.io
+# vers l'URL donnée pour chaque instance. Par défaut, les hôtes Vercel.
+# Retour arrière = relancer avec les URL /exec Apps Script (affichées dans le
+# journal de la précédente exécution, ligne « destination actuelle »).
+on:
+  workflow_dispatch:
+    inputs:
+      site_tops_url:
+        description: 'Destination du lien « Site tops »'
+        required: true
+        default: 'https://tops-site-tops.vercel.app/'
+      tops_rds_url:
+        description: 'Destination du lien « Tops RDS »'
+        required: true
+        default: 'https://tops-rds.vercel.app/'
+
+jobs:
+  repoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Repoint both links
+        env:
+          SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          SITE_TOPS_URL: ${{ inputs.site_tops_url }}
+          TOPS_RDS_URL: ${{ inputs.tops_rds_url }}
+        run: |
+          set -euo pipefail
+          repoint() {
+            local name="$1" url="$2"
+            local link_id
+            link_id=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .shortioLinkId' deploy-targets.json)
+            if [ -z "$link_id" ] || [ "$link_id" = "null" ]; then
+              echo "ERROR: aucun lien short.io pour '$name'" >&2; return 1
+            fi
+            local current
+            current=$(curl -s "https://api.short.io/links/${link_id}" -H "Authorization: ${SHORTIO_API_KEY}" | jq -r '.originalURL // "inconnue"')
+            echo "[$name] destination actuelle : $current"
+            local status
+            status=$(curl -s -o /tmp/r.json -w "%{http_code}" -X POST "https://api.short.io/links/${link_id}" \
+              -H "Authorization: ${SHORTIO_API_KEY}" -H "Content-Type: application/json" \
+              -d "$(jq -n --arg u "$url" '{originalURL: $u}')")
+            if [ "$status" -ge 400 ]; then
+              echo "ERROR: short.io a répondu $status pour '$name'" >&2; cat /tmp/r.json >&2; return 1
+            fi
+            echo "[$name] nouvelle destination : $(jq -r '.originalURL' /tmp/r.json)"
+          }
+          repoint "Site tops" "$SITE_TOPS_URL"
+          repoint "Tops RDS" "$TOPS_RDS_URL"
