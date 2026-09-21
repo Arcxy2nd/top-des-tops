@@ -6,10 +6,11 @@ const { resolveTenant, scriptIdForTenant } = require('../../lib/tenants');
 const { getAccessToken } = require('../../lib/google-auth');
 const { runApi } = require('../../lib/gas-runtime/runtime');
 const { getSharedSyncFetch } = require('../../lib/gas-runtime/sync-fetch');
+const { runAutoPointsIfInstalled } = require('../../lib/auto-points-cron');
 
 // Le cron tourne toujours ; c'est la propriété auto_trigger_installed du
-// classeur qui décide si les règles s'exécutent — runAutoPoints -> runDue ne
-// fait rien quand aucune règle n'est due.
+// classeur qui décide si les règles s'exécutent — vérifiée explicitement par
+// runAutoPointsIfInstalled, runDue ne la consultant pas.
 module.exports = async function handler(req, res) {
   try {
     const expected = process.env.CRON_SECRET;
@@ -54,16 +55,14 @@ module.exports = async function handler(req, res) {
     let failures = 0;
     for (const tenant of targets) {
       try {
-        const { value } = runApi({
-          fnName: 'runAutoPoints',
-          args: [],
+        const outcome = runAutoPointsIfInstalled(runApi, {
           spreadsheetId: tenant.spreadsheetId,
           accessToken,
           scriptId: scriptIdForTenant(tenant.spreadsheetId),
           syncFetch: getSharedSyncFetch(),
           readOnly: process.env.TDT_READ_ONLY === '1'
         });
-        results.push({ tenant: tenant.host, ok: true, value: value });
+        results.push({ tenant: tenant.host, ok: true, skipped: outcome.skipped, reason: outcome.reason, value: outcome.value });
       } catch (e) {
         failures++;
         console.error('api/cron/auto-points failure for ' + tenant.host + ':', e);
