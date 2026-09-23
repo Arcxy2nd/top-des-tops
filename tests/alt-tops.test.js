@@ -8,11 +8,20 @@ const HEADER_HIST = ['Date', 'Player', 'Category', 'Points', 'Description', 'Gro
 const HEADER_ALT_CAT = ['Name', 'Description', 'Emoji', 'Hex color'];
 const HEADER_ALT_HIST = ['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur'];
 
-test('AltSettingsService auto-creates AltCategories sheet and performs CRUD', () => {
+const HEADER_ALT_CAT_V2 = ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'];
+
+function altSheets(gas, altRows, altHistRows) {
+  const altCategories = makeSheet([HEADER_ALT_CAT].concat(altRows || []));
+  const altHistory = makeSheet([HEADER_ALT_HIST].concat(altHistRows || []));
+  gas.ConfigService.getSheets = () => ({ altCategories, altHistory });
+  return { altCategories, altHistory };
+}
+
+test('AltSettingsService auto-creates AltCategories with the Ordre column and reads through SettingsService', () => {
   const gas = loadGas();
   const spreadsheet = {
     insertSheet(name) {
-      const sheet = makeSheet([HEADER_ALT_CAT]);
+      const sheet = makeSheet([]);
       this._sheets[name] = sheet;
       return sheet;
     },
@@ -23,22 +32,68 @@ test('AltSettingsService auto-creates AltCategories sheet and performs CRUD', ()
     altCategories: spreadsheet._sheets['AltCategories'] || null
   });
 
+  assert.deepStrictEqual([...gas.AltSettingsService.getAltCategories()], []);
+  assert.deepStrictEqual([...spreadsheet._sheets['AltCategories']._grid[0]], HEADER_ALT_CAT_V2);
+
+  gas.SettingsService.addEntity('AltCategories', 'Top 1', 'Premier', '⭐');
   const cats = gas.AltSettingsService.getAltCategories();
-  assert.deepStrictEqual(cats, []);
+  assert.strictEqual(cats.length, 1);
+  assert.deepStrictEqual({ ...cats[0] }, { rowIndex: 2, name: 'Top 1', description: 'Premier', emoji: '⭐', color: '' });
+});
 
-  gas.AltSettingsService.saveAltCategories([
-    { name: 'Top 1', description: 'Premier top alt', emoji: '⭐', color: '#ff0000' }
-  ]);
+test('addEntity refuses a duplicate Alt Top name', () => {
+  const gas = loadGas();
+  altSheets(gas, [['Top 1', '', '⭐', '#ff0000']]);
+  assert.throws(() => gas.SettingsService.addEntity('AltCategories', 'Top 1', '', ''), /existe déjà/);
+});
 
-  gas.ConfigService.getSheets = () => ({
-    spreadsheet,
-    altCategories: spreadsheet._sheets['AltCategories']
-  });
+test('getAltCategories keeps legacy 4-column sheets readable and sorts by Ordre once set', () => {
+  const gas = loadGas();
+  const { altCategories } = altSheets(gas, [['B', '', '', ''], ['A', '', '', '']]);
+  assert.deepStrictEqual([...gas.AltSettingsService.getAltCategories().map(c => c.name)], ['B', 'A']);
+  gas.SettingsService.reorderEntities('AltCategories', [3, 2], ['A', 'B']);
+  assert.strictEqual(altCategories._grid[1][4], 2);
+  assert.strictEqual(altCategories._grid[2][4], 1);
+  assert.deepStrictEqual([...gas.AltSettingsService.getAltCategories().map(c => c.name)], ['A', 'B']);
+});
 
-  const catsAfter = gas.AltSettingsService.getAltCategories();
-  assert.strictEqual(catsAfter.length, 1);
-  assert.strictEqual(catsAfter[0].name, 'Top 1');
-  assert.strictEqual(catsAfter[0].emoji, '⭐');
+test('renameEntity on an Alt Top cascades to AltHistory column C only', () => {
+  const gas = loadGas();
+  const { altCategories, altHistory } = altSheets(gas,
+    [['Vieux', 'd', '⭐', '#123456']],
+    [
+      [new Date('2026-08-01'), 'Alice', 'Vieux', 3, '', '2', '', 'Alice'],
+      [new Date('2026-08-02'), 'Bob', 'Autre', 1, 'Vieux', '', '', 'Bob']
+    ]);
+  gas.SettingsService.renameEntity('AltCategories', 2, 'Vieux', 'Neuf', 'd2', '🔥');
+  assert.deepStrictEqual([...altCategories._grid[1]].slice(0, 4), ['Neuf', 'd2', '🔥', '#123456']);
+  assert.strictEqual(altHistory._grid[1][2], 'Neuf');
+  assert.strictEqual(altHistory._grid[2][2], 'Autre');
+  assert.strictEqual(altHistory._grid[2][4], 'Vieux');
+});
+
+test('renameEntity on an Alt Top refuses homonyms and stale rows', () => {
+  const gas = loadGas();
+  altSheets(gas, [['Jumeau', '', '', ''], ['Jumeau', '', '', '']]);
+  assert.throws(() => gas.SettingsService.renameEntity('AltCategories', 2, 'Jumeau', 'X', '', ''), /Tops alternatifs partagent/);
+  assert.throws(() => gas.SettingsService.renameEntity('AltCategories', 2, 'Autre', 'X', '', ''), /a changé entre-temps/);
+});
+
+test('deleteEntity on an Alt Top removes only the targeted row and leaves AltHistory untouched', () => {
+  const gas = loadGas();
+  const { altCategories, altHistory } = altSheets(gas,
+    [['A', '', '', ''], ['B', '', '', '']],
+    [[new Date('2026-08-01'), 'Alice', 'A', 3, '', '', '', 'Alice']]);
+  gas.SettingsService.deleteEntity('AltCategories', 2, 'A');
+  assert.deepStrictEqual(altCategories._grid.map(r => r[0]), ['Name', 'B']);
+  assert.strictEqual(altHistory._grid.length, 2);
+});
+
+test('setEntityColor on an Alt Top writes column D', () => {
+  const gas = loadGas();
+  const { altCategories } = altSheets(gas, [['A', '', '', '']]);
+  gas.SettingsService.setEntityColor('AltCategories', 2, 'A', '#00ff00');
+  assert.strictEqual(altCategories._grid[1][3], '#00ff00');
 });
 
 test('AltStorageService adds and retrieves entries in AltHistory with refHistoryRowId', () => {

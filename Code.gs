@@ -241,7 +241,7 @@ const SHEET_HEADERS = {
   phrases:       ['preset', 'pool', 'phrase', 'ordre'],
   auditLog:      ['timestamp', 'auteur', 'action', 'entité', 'avant', 'après', 'détail', 'snapshot', 'annuléle'],
   settings:      ['key', 'value'],
-  altCategories: ['name', 'description', 'emoji', 'hex color'],
+  altCategories: ['name', 'description', 'emoji', 'hex color', 'ordre'],
   altHistory:    ['date', 'player', 'category', 'points', 'description', 'refhistoryrowid', 'groupid', 'saiseur'],
   autoRules:     ['id', 'player', 'category', 'points', 'description', 'frequency', 'interval',
                   'daysofweek', 'dayofmonth', 'startdate', 'nextrun', 'lastrun', 'active', 'createdby'],
@@ -257,7 +257,7 @@ const CANONICAL_SHEET_HEADERS = {
   phrases:       ['Preset', 'Pool', 'Phrase', 'Ordre'],
   auditLog:      ['Timestamp', 'Auteur', 'Action', 'Entité', 'Avant', 'Après', 'Détail', 'Snapshot', 'AnnuléLe'],
   settings:      ['Key', 'Value'],
-  altCategories: ['Name', 'Description', 'Emoji', 'Hex color'],
+  altCategories: ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre'],
   altHistory:    ['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur'],
   autoRules:     ['ID', 'Joueur', 'Catégorie', 'Points', 'Description', 'Fréquence', 'Intervalle',
                   'JoursSemaine', 'JourMois', 'DateDébut', 'ProchaineExécution', 'DernièreExécution', 'Actif', 'CrééPar'],
@@ -955,11 +955,23 @@ function _sortByOrdreOrOriginal(items, getOrdre) {
 
 // ─── SETTINGS SERVICE ──────────────────────────────────────────────────────────
 const SettingsService = {
-  VALID_TYPES:   ['Players', 'Categories'],
+  VALID_TYPES:   ['Players', 'Categories', 'AltCategories'],
   VALID_ACTIONS: ['ADD', 'DELETE', 'RENAME'],
+  SHEET_KEYS:    { Players: 'players', Categories: 'categories', AltCategories: 'altCategories' },
+
+  _sheetKey(type) { return this.SHEET_KEYS[type]; },
+
+  // AltCategories est optionnelle (§3) : créée à la volée comme avant ; Players
+  // et Categories sont obligatoires et jamais créées par l'app.
+  _sheet(type) {
+    return type === 'AltCategories'
+      ? AltSettingsService._sheet()
+      : ConfigService.getSheets()[this._sheetKey(type)];
+  },
 
   getEntities(type) {
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
     if (!sheet) return [];
     const cache = CacheService.getScriptCache();
     // Row count is folded into the key so a row added/removed directly in the
@@ -967,16 +979,16 @@ const SettingsService = {
     // _settingsVersion() — invalidates the cache immediately instead of the
     // entity staying invisible (or a deleted one staying visible) for up to
     // CACHE_TTL_SECONDS.
-    const key   = 'ent_' + type.toLowerCase() + '_v' + _settingsVersion() + '_r' + sheet.getLastRow();
-    const raw   = _cacheGetChunked(cache, key);
+    const cacheKey = 'ent_' + key + '_v' + _settingsVersion() + '_r' + sheet.getLastRow();
+    const raw   = _cacheGetChunked(cache, cacheKey);
     if (raw) {
       try { return JSON.parse(raw); } catch (e) {}
     }
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
+    const data  = _fetchSheetValues(key, sheet);
     if (!data.length) return [];
     let rowsData = data;
-    if (!_isHeaderRow(type.toLowerCase(), data[0])) {
-      _ensureSheetHeaders(type.toLowerCase(), sheet, data);
+    if (!_isHeaderRow(key, data[0])) {
+      _ensureSheetHeaders(key, sheet, data);
     } else {
       rowsData = data.slice(1);
     }
@@ -1008,17 +1020,18 @@ const SettingsService = {
       }
     });
     const serial = JSON.stringify(result);
-    _cachePutChunked(cache, key, serial, CONFIG.CACHE_TTL_SECONDS);
+    _cachePutChunked(cache, cacheKey, serial, CONFIG.CACHE_TTL_SECONDS);
     return result;
   },
 
   addEntity(type, name, meta, icon) {
     name = (name || '').toString().trim();
     if (!name) throw new Error("Le nom ne peut pas être vide.");
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
-    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
+    _ensureSheetHeaders(key, sheet);
+    const data  = _fetchSheetValues(key, sheet);
+    const off   = _headerOffsetFromValues(key, data);
     // A duplicate name isn't just cosmetic here: deleteEntity() removes every
     // row matching a name, so two entities sharing one would both vanish on
     // what looks like a single, unitary deletion.
@@ -1039,9 +1052,10 @@ const SettingsService = {
   // couleur l'un de l'autre parce qu'un findIndex par nom retombe toujours sur
   // le premier match.
   setEntityColor(type, rowIndex, expectedName, color) {
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
+    _ensureSheetHeaders(key, sheet);
+    const data  = _fetchSheetValues(key, sheet);
     const idx = rowIndex - 1;
     const currentName = (data[idx] && data[idx][0] != null) ? data[idx][0].toString().trim() : '';
     const expName = (expectedName || '').toString().trim();
@@ -1061,9 +1075,10 @@ const SettingsService = {
   // entre-temps a décalé les lignes) — on refuse plutôt que de risquer de
   // toucher la mauvaise ligne.
   deleteEntity(type, rowIndex, expectedName) {
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
+    _ensureSheetHeaders(key, sheet);
+    const data  = _fetchSheetValues(key, sheet);
     const row = data[rowIndex - 1];
     const currentName = (row && row[0] != null) ? row[0].toString().trim() : '';
     const expName = (expectedName || '').toString().trim();
@@ -1072,6 +1087,8 @@ const SettingsService = {
     }
     sheet.deleteRow(rowIndex);
     _bumpSettingsVersion();
+    // Les agrégats ne couvrent que History : inutile de les reconstruire pour un Top alternatif.
+    if (type === 'AltCategories') return;
     try {
       if (typeof AggregatesService !== 'undefined') {
         AggregatesService.rebuild();
@@ -1083,9 +1100,10 @@ const SettingsService = {
     oldName = (oldName || '').toString().trim();
     newName = (newName || '').toString().trim();
     if (!newName) throw new Error("Nouveau nom vide.");
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
+    _ensureSheetHeaders(key, sheet);
+    const data  = _fetchSheetValues(key, sheet);
     const idx = rowIndex - 1;
     const currentName = (data[idx] && data[idx][0] != null) ? data[idx][0].toString().trim() : '';
     if (!data[idx] || currentName !== oldName) {
@@ -1098,12 +1116,12 @@ const SettingsService = {
     // ne peut pas empêcher ici (History/Notes n'ont pas de colonne d'identifiant).
     // On refuse plutôt que de tenter une fusion automatique (voir §7, incident joueur
     // perdu) : l'utilisateur doit lever l'ambiguïté à la main dans le Google Sheet.
-    if (data.filter((row, i) => i >= _headerOffsetFromValues(type.toLowerCase(), data) && (row[0] || '').toString().trim() === oldName).length > 1) {
-      const label = type === 'Players' ? 'joueurs' : 'Tops';
+    if (data.filter((row, i) => i >= _headerOffsetFromValues(key, data) && (row[0] || '').toString().trim() === oldName).length > 1) {
+      const label = type === 'Players' ? 'joueurs' : (type === 'AltCategories' ? 'Tops alternatifs' : 'Tops');
       throw new Error(`Plusieurs ${label} partagent le nom "${oldName}" — renomme d'abord l'un des doublons directement dans le Google Sheet pour lever l'ambiguïté avant de pouvoir renommer depuis l'app.`);
     }
     if (newName !== oldName && data.some((row, i) =>
-        i >= _headerOffsetFromValues(type.toLowerCase(), data) && i !== idx && (row[0] || '').toString().trim() === newName)) {
+        i >= _headerOffsetFromValues(key, data) && i !== idx && (row[0] || '').toString().trim() === newName)) {
       throw new Error(`${newName} existe déjà.`);
     }
     if (type === 'Players') {
@@ -1114,6 +1132,13 @@ const SettingsService = {
       sheet.getRange(idx + 1, 1, 1, 4).setValues([[newName, newMeta || "", newIcon || "", existingColor]]);
     }
     _bumpSettingsVersion();
+
+    if (type === 'AltCategories') {
+      // Un Top alternatif n'est référencé que par AltHistory (colonne C) : ni
+      // History, ni Barème, ni Phrases, ni AutoRules, ni agrégats.
+      this._renameInColumn('altHistory', ConfigService.getSheets().altHistory, 3, oldName, newName);
+      return;
+    }
 
     const histSheet = ConfigService.getSheets().history;
     const lastRow   = histSheet.getLastRow();
@@ -1214,10 +1239,11 @@ const SettingsService = {
   // le clic — une ligne dont le nom a changé entre-temps est refusée plutôt que
   // silencieusement réordonnée sous une identité que l'utilisateur n'a pas vue.
   reorderEntities(type, orderedRowIndexes, expectedNames) {
-    const sheet = ConfigService.getSheets()[type.toLowerCase()];
-    _ensureSheetHeaders(type.toLowerCase(), sheet);
-    const data  = _fetchSheetValues(type.toLowerCase(), sheet);
-    const off   = _headerOffsetFromValues(type.toLowerCase(), data);
+    const key = this._sheetKey(type);
+    const sheet = this._sheet(type);
+    _ensureSheetHeaders(key, sheet);
+    const data  = _fetchSheetValues(key, sheet);
+    const off   = _headerOffsetFromValues(key, data);
     const validRowIndexes = [];
     for (let i = off; i < data.length; i++) if (data[i][0] && data[i][0].toString().trim()) validRowIndexes.push(i + 1);
     const wanted = orderedRowIndexes.map(Number);
@@ -1815,42 +1841,24 @@ const AltSettingsService = {
     let sheet = ConfigService.getSheets().altCategories;
     if (sheet) return sheet;
     const ss = ConfigService.getSheets().spreadsheet;
+    const headers = CANONICAL_SHEET_HEADERS.altCategories;
     sheet = ss.insertSheet('AltCategories');
-    sheet.appendRow(['Name', 'Description', 'Emoji', 'Hex color']);
-    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
     ConfigService.clearCache();
     return sheet;
   },
 
+  // Forme historique conservée (description/emoji) pour tous les consommateurs ;
+  // rowIndex en plus pour l'adressage strict par ligne (§7).
   getAltCategories() {
-    const sheet = this._sheet();
-    if (!sheet) return [];
-    const data = _fetchSheetValues('altCategories', sheet);
-    if (!data || !data.length) return [];
-    if (!_isHeaderRow('altCategories', data[0])) {
-      _ensureSheetHeaders('altCategories', sheet, data);
-    }
-    const off = _headerOffsetFromValues('altCategories', data);
-    return data
-      .filter((r, i) => i >= off && r[0] && r[0].toString() !== 'Name')
-      .map(r => ({
-        name: r[0] ? r[0].toString() : '',
-        description: r[1] ? r[1].toString() : '',
-        emoji: r[2] ? r[2].toString() : '🎯',
-        color: r[3] ? r[3].toString() : '#7c8cff'
-      }));
-  },
-
-  saveAltCategories(categories) {
-    const sheet = this._sheet();
-    sheet.clearContents();
-    sheet.appendRow(['Name', 'Description', 'Emoji', 'Hex color']);
-    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
-    if (categories && categories.length) {
-      const rows = categories.map(c => [c.name, c.description || '', c.emoji || '🎯', c.color || '#7c8cff']);
-      sheet.getRange(2, 1, rows.length, 4).setValues(rows);
-    }
-    ConfigService.clearCache();
+    return SettingsService.getEntities('AltCategories').map(e => ({
+      rowIndex:    e.rowIndex,
+      name:        e.name,
+      description: e.meta,
+      emoji:       e.icon || '🎯',
+      color:       e.color
+    }));
   }
 };
 
