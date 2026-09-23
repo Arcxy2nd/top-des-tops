@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.35.1] - 2026-09-23
+
+### Corrigé
+**Humanisé** : Le menu déroulant « Saiseur » (et tout autre menu du même type) reste maintenant cliquable même ouvert depuis une fenêtre modale — il ne s'affiche plus caché derrière.
+**Technique** : `.rs-panel` (reparenté sous `<body>` en `position:fixed` à l'ouverture) passe de `z-index: 9999` à `10600`, au-dessus de `.modal-backdrop` (10500) dont il devient frère et non plus descendant. Garde-fou ajouté dans `tests/mobile-audit.test.js`.
+
 ## [v3.35.0] - 2026-09-21
 
 ### Modifié
