@@ -793,3 +793,73 @@ test('apiSavePhrasesBatch inserts phrases and records complete audit trail witho
   assert.match(log[6], /3 phrase\(s\) ajoutée\(s\) dans first, second/);
 });
 
+// ─── Tops alternatifs — gestion alignée sur les Tops ─────────────────────────────
+
+function altAuditSheets(gas, altRows, altHistRows) {
+  const audit = makeAuditSheetV9();
+  const altCategories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']].concat(altRows || []));
+  const altHistory = makeSheet([['Date', 'Player', 'Category', 'Points', 'Description', 'RefHistoryRowId', 'GroupId', 'Saiseur']].concat(altHistRows || []));
+  injectSheets(gas, {
+    spreadsheet: { insertSheet: () => audit, getSheetByName: () => null },
+    history: makeSheet([['Date','Player','Category','Points','Description','GroupId','Saiseur']]),
+    players: defaultPlayers(), categories: makeSheet([]),
+    notes: null, bareme: null, phrases: null, auditLog: audit,
+    altCategories, altHistory
+  });
+  return { audit, altCategories, altHistory };
+}
+
+test('apiManageEntity ADD/undo on an Alt Top', () => {
+  const gas = loadGas();
+  const { audit, altCategories } = altAuditSheets(gas, []);
+  const res = gas.apiManageEntity('ADD', 'AltCategories', 'Top 1', 'desc', null, '⭐', 'Alice', null);
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(altCategories._grid[1][0], 'Top 1');
+  assert.strictEqual(audit._grid[1][2], 'Top alternatif ajouté');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(altCategories._grid.length, 1);
+});
+
+test('apiManageEntity RENAME/undo on an Alt Top restores the row', () => {
+  const gas = loadGas();
+  const { altCategories, altHistory } = altAuditSheets(gas,
+    [['Vieux', '', '⭐', '#123456', 1]],
+    [[new Date('2026-08-01'), 'Alice', 'Vieux', 3, '', '', '', 'Alice']]);
+  gas.apiManageEntity('RENAME', 'AltCategories', 'Neuf', '', 'Vieux', '⭐', 'Alice', 2);
+  assert.strictEqual(altCategories._grid[1][0], 'Neuf');
+  assert.strictEqual(altHistory._grid[1][2], 'Neuf');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(altCategories._grid[1][0], 'Vieux');
+});
+
+test('apiManageEntity DELETE/undo on an Alt Top restores the deleted row', () => {
+  const gas = loadGas();
+  const { altCategories } = altAuditSheets(gas, [['A', 'd', '⭐', '#ff0000', 1], ['B', '', '', '', 2]]);
+  gas.apiManageEntity('DELETE', 'AltCategories', null, null, 'A', null, 'Alice', 2);
+  assert.deepStrictEqual(altCategories._grid.map(r => r[0]), ['Name', 'B']);
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.ok(altCategories._grid.some(r => r[0] === 'A'));
+});
+
+test('apiSetColor/undo on an Alt Top', () => {
+  const gas = loadGas();
+  const { altCategories } = altAuditSheets(gas, [['A', '', '', '#111111', 1]]);
+  gas.apiSetColor('AltCategories', 2, 'A', '#222222', 'Alice');
+  assert.strictEqual(altCategories._grid[1][3], '#222222');
+  gas.apiUndoAuditEntry(2, 'Alice');
+  assert.strictEqual(altCategories._grid[1][3], '#111111');
+});
+
+test('apiReorderEntities on Alt Tops returns the fresh Alt list', () => {
+  const gas = loadGas();
+  altAuditSheets(gas, [['A', '', '', '', 1], ['B', '', '', '', 2]]);
+  const res = gas.apiReorderEntities('AltCategories', [3, 2], ['B', 'A'], 'Alice');
+  assert.strictEqual(res.success, true);
+  assert.deepStrictEqual([...res.altCategories.map(c => c.name)], ['B', 'A']);
+});
+
+test('apiSaveAltCategories no longer exists', () => {
+  const gas = loadGas();
+  assert.strictEqual(typeof gas.apiSaveAltCategories, 'undefined');
+});
+

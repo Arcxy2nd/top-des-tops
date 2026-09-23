@@ -17,6 +17,9 @@ const CONFIG = {
   AUTO_TRIGGER_INTERVAL_HOURS: 1
 };
 
+// Palette de repli des graphiques quand un Top (principal ou alternatif) n'a pas de couleur.
+const CHART_DEFAULT_COLORS = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+
 // ─── SHARED DATE/ID HELPERS ────────────────────────────────────────────────────
 /** Zero-pads a number to 2 digits. */
 function _pad2(n) { return String(n).padStart(2, '0'); }
@@ -2803,7 +2806,7 @@ const AnalyticsService = {
     const displayPlayers    = (players    && players.length)    ? players    : allPlayerNames;
     const displayCategories = (categories && categories.length) ? categories : allCategoryNames;
 
-    const defaultColors = ['#ff4757','#00d4aa','#ffd166','#6c63ff','#ff6b81','#3742fa'];
+    const defaultColors = CHART_DEFAULT_COLORS;
     const catColorMap = {};
     allCategories.forEach(c => { if (c.color) catColorMap[c.name] = c.color; });
 
@@ -3583,16 +3586,23 @@ function apiApplyBaremeSuggestions(items, author, password) {
   } catch (e) { return fail(e); }
 }
 
+/** Libellé singulier d'un type d'entité pour le journal d'audit. */
+function _entityLabel(type) {
+  if (type === 'Players') return 'Joueur';
+  if (type === 'AltCategories') return 'Top alternatif';
+  return 'Top';
+}
+
 function apiSetColor(type, rowIndex, expectedName, color, author, password) {
   try {
     requireAuthor(author, password);
     if (!SettingsService.VALID_TYPES.includes(type)) throw new Error("Type invalide.");
     if (!rowIndex) throw new Error("Ligne non précisée — recharge la page et réessaie.");
     return withLock(() => {
-      const sheetKey = type === 'Players' ? 'players' : 'categories';
+      const sheetKey = SettingsService._sheetKey(type);
       const numCols  = type === 'Players' ? 3 : 4;
       const colorCol = type === 'Players' ? 3 : 4;
-      const sheet    = ConfigService.getSheets()[sheetKey];
+      const sheet    = SettingsService._sheet(type);
       const data     = _fetchSheetValues(sheetKey, sheet);
       const beforeRow = data[rowIndex - 1] ? data[rowIndex - 1].slice(0, numCols) : null;
       // "before" vient de la ligne déjà lue plutôt que d'une relecture par nom
@@ -3600,7 +3610,7 @@ function apiSetColor(type, rowIndex, expectedName, color, author, password) {
       // de décrire la couleur de l'autre jumeau dans le journal d'audit.
       const before = beforeRow ? (beforeRow[colorCol - 1] || '') : '';
       SettingsService.setEntityColor(type, rowIndex, expectedName, color);
-      const label = type === 'Players' ? 'Joueur' : 'Top';
+      const label = _entityLabel(type);
       const afterRow = beforeRow ? sheet.getRange(rowIndex, 1, 1, numCols).getValues()[0] : null;
       AuditService.log(author, 'Couleur ' + label.toLowerCase(), label + ': ' + expectedName,
         before || 'défaut', color || 'défaut',
@@ -3618,10 +3628,10 @@ function apiManageEntity(action, type, newName, newMeta, oldName, newIcon, autho
     if (!SettingsService.VALID_TYPES.includes(type))     throw new Error("Type invalide.");
     if (!SettingsService.VALID_ACTIONS.includes(action)) throw new Error("Action invalide.");
     return withLock(() => {
-      const label = type === 'Players' ? 'Joueur' : 'Top';
-      const sheetKey = type === 'Players' ? 'players' : 'categories';
+      const label = _entityLabel(type);
+      const sheetKey = SettingsService._sheetKey(type);
       const numCols  = type === 'Players' ? 3 : 4;
-      const sheet    = ConfigService.getSheets()[sheetKey];
+      const sheet    = SettingsService._sheet(type);
 
       if (action === 'ADD') {
         SettingsService.addEntity(type, newName, newMeta, newIcon);
@@ -3673,7 +3683,7 @@ function apiReorderEntities(type, orderedRowIndexes, expectedNames, author, pass
     if (!Array.isArray(orderedRowIndexes) || !orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     if (!Array.isArray(expectedNames) || expectedNames.length !== orderedRowIndexes.length) throw new Error("Liste d'ordre invalide.");
     return withLock(() => {
-      const label = type === 'Players' ? 'Joueurs' : 'Tops';
+      const label = type === 'Players' ? 'Joueurs' : (type === 'AltCategories' ? 'Tops alternatifs' : 'Tops');
       const prevNames = SettingsService.getEntities(type).map(e => e.name);
       SettingsService.reorderEntities(type, orderedRowIndexes, expectedNames);
       AuditService.log(author, 'Ordre modifié', label,
@@ -3682,14 +3692,15 @@ function apiReorderEntities(type, orderedRowIndexes, expectedNames, author, pass
         orderedRowIndexes.length + ' ' + label.toLowerCase() + ' réordonné(s)',
         null);
       ConfigService.clearCache();
-      // Renvoyer les deux listes fraîches (comme apiGetSettings) évite au client de
+      // Renvoyer les listes fraîches (comme apiGetSettings) évite au client de
       // rappeler loadEntities() après coup — celle-ci repeint d'abord depuis son
       // cache localStorage (donc l'ancien ordre, pré-réorganisation) avant que la
       // vraie réponse arrive, ce qui produisait un aller-retour visible.
       return {
-        success:    true,
-        players:    SettingsService.getEntities('Players'),
-        categories: SettingsService.getEntities('Categories')
+        success:       true,
+        players:       SettingsService.getEntities('Players'),
+        categories:    SettingsService.getEntities('Categories'),
+        altCategories: AltSettingsService.getAltCategories()
       };
     });
   } catch(e) { return fail(e); }
@@ -4095,23 +4106,6 @@ function apiGetAltCategories() {
   } catch(e) { return fail(e); }
 }
 
-function apiSaveAltCategories(author, list, password) {
-  try {
-    requireAuthor(author, password);
-    return withLock(function() {
-      const prevList = AltSettingsService.getAltCategories();
-      const beforeStr = prevList.map(c => c.name).join(', ') || 'Aucune catégorie';
-      AltSettingsService.saveAltCategories(list);
-      const afterStr = list.map(c => c.name).join(', ') || 'Aucune catégorie';
-      AuditService.log(author, 'Mise à jour Tops Alternatifs', 'AltCategories',
-        beforeStr, afterStr,
-        list.length + ' catégorie(s) alternative(s) configurée(s)');
-      ConfigService.clearCache();
-      return { success: true, altCategories: AltSettingsService.getAltCategories() };
-    });
-  } catch(e) { return fail(e); }
-}
-
 function apiLinkHistoryRowsToAltCategory(author, rowIndices, altCategory, password) {
   try {
     requireAuthor(author, password);
@@ -4200,7 +4194,7 @@ function apiGetAltAnalyticsData(players, altCategories, startDate, endDate) {
     const datasets = displayAltCats.map((cat, i) => ({
       label: cat,
       data: displayPlayers.map(p => (scores[p] && scores[p][cat]) || 0),
-      backgroundColor: catColorMap[cat] || '#7c8cff',
+      backgroundColor: catColorMap[cat] || CHART_DEFAULT_COLORS[i % CHART_DEFAULT_COLORS.length],
       borderRadius: 4
     }));
 

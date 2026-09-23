@@ -122,7 +122,8 @@ test('apiReorderEntities requires an author and logs to AuditLog', () => {
     ['Bob',   '', '', '', 2]
   ]);
   const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ players, auditLog });
+  const altCategories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  gas.ConfigService.getSheets = () => ({ players, auditLog, altCategories });
   gas.ConfigService.clearCache = () => {};
 
   const noAuthor = gas.apiReorderEntities('Players', [3, 2], ['Bob', 'Alice'], '');
@@ -149,7 +150,8 @@ test('apiReorderEntities returns the fresh players/categories lists in the new o
     ['Défis', '', '', '', 2]
   ]);
   const auditLog = makeSheet([['Timestamp','Auteur','Action','Entité','Avant','Après','Détail','Snapshot','AnnuléLe']]);
-  gas.ConfigService.getSheets = () => ({ players, categories, auditLog });
+  const altCategories = makeSheet([['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']]);
+  gas.ConfigService.getSheets = () => ({ players, categories, auditLog, altCategories });
   gas.ConfigService.clearCache = () => {};
 
   const res = gas.apiReorderEntities('Players', [3, 2], ['Bob', 'Alice'], 'Alice');
