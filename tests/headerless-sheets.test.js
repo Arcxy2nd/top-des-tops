@@ -228,6 +228,6 @@ test('the first alt category of a headerless AltCategories sheet is returned and
   });
   const cats = gas.AltSettingsService.getAltCategories();
   assert.deepStrictEqual(cats.map(c => c.name), ['Bonus', 'Malus']);
-  assert.deepStrictEqual(altSheet._grid[0], ['Name', 'Description', 'Emoji', 'Hex color']);
+  assert.deepStrictEqual(altSheet._grid[0], ['Name', 'Description', 'Emoji', 'Hex color', 'Ordre']);
 });
 
