@@ -5049,7 +5049,7 @@
       <div class="add-form">
         <p class="add-form-label">Ajouter un Top Alternatif</p>
         <input type="text" id="newAltCatName" placeholder="Nom (ex : Top 1)">
-        <input type="text" id="newAltCatDesc" placeholder="Description (optionnel)">
+        <div id="newAltCatMetaEditor"></div>
         <input type="text" id="newAltCatEmoji" placeholder="Emoji (ex : ⭐) — optionnel" maxlength="8">
         <button id="addAltCatBtn" class="primary small">+ Ajouter</button>
       </div>
@@ -8354,6 +8354,24 @@
     const i = cachedCategories.findIndex(c => c.name === name);
     return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : hashColor('C|' + name);
   }
+  function altCategoryColor(name) {
+    const c = cachedAltCategories.find(c => c.name === name);
+    if (c && c.color) return c.color;
+    const i = cachedAltCategories.findIndex(c => c.name === name);
+    return i >= 0 ? CHART_COLORS[i % CHART_COLORS.length] : ALT_FALLBACK_COLOR;
+  }
+  // Joueurs, Tops et Tops alternatifs partagent la même liste (Paramètres) :
+  // chacun garde sa couleur et son cache propres.
+  function entityColor(type, name) {
+    if (type === 'Players') return playerColor(name);
+    if (type === 'AltCategories') return altCategoryColor(name);
+    return categoryColor(name);
+  }
+  function entityCache(type) {
+    if (type === 'Players') return cachedPlayers;
+    if (type === 'AltCategories') return cachedAltCategories;
+    return cachedCategories;
+  }
   // Pastille de Top colorée (emoji + nom), teintée par la couleur de la catégorie.
   function categoryPill(name) {
     const col = categoryColor(name);
@@ -8522,7 +8540,7 @@
           container.className = 'rs-thumb rs-thumb-emoji';
         } else {
           container.className = 'rs-thumb rs-thumb-dot';
-          container.style.background = (altC && altC.color) || ALT_FALLBACK_COLOR;
+          container.style.background = altCategoryColor(val);
         }
       } else {
         var pData = cachedPlayers.find(function(p) { return p.name === val; });
@@ -8602,7 +8620,7 @@
           // for Alt categories) duplicated it visibly next to the thumb.
           var dot = document.createElement('span');
           dot.className = 'rs-cat-dot';
-          dot.style.background = isAltCategory ? (item.color || ALT_FALLBACK_COLOR) : categoryColor(item.val);
+          dot.style.background = isAltCategory ? altCategoryColor(item.val) : categoryColor(item.val);
           opt.appendChild(dot);
         }
         opt.addEventListener('mousedown', function(e) {
@@ -9351,11 +9369,11 @@
     row.appendChild(allChip);
 
     const categoriesToRender = (activeDashboardUniverse === 'alt')
-      ? cachedAltCategories.map(ac => ({ name: ac.name, icon: ac.emoji || '⭐', color: ac.color || ALT_FALLBACK_COLOR }))
+      ? cachedAltCategories.map(ac => ({ name: ac.name, icon: ac.emoji || '⭐', color: altCategoryColor(ac.name) }))
       : cachedCategories;
 
     categoriesToRender.forEach(c => {
-      const col = (activeDashboardUniverse === 'alt') ? (c.color || ALT_FALLBACK_COLOR) : categoryColor(c.name);
+      const col = (activeDashboardUniverse === 'alt') ? altCategoryColor(c.name) : categoryColor(c.name);
       const label = (c.icon ? c.icon + ' ' : '') + c.name;
       const chip = makeFilterChip(label, col, '', () => {
         if (selectedCategoryChips.has(c.name)) selectedCategoryChips.delete(c.name);
@@ -10023,7 +10041,11 @@
 
     document.getElementById('uPickerNewAltBtn').onclick = () => {
       closeModal();
-      addAltCategory();
+      goToTab('tab-settings');
+      const stabBtn = document.querySelector('.settings-nav-btn[data-stab="stab-alt-categories"]');
+      if (stabBtn) stabBtn.click();
+      const nameIn = document.getElementById('newAltCatName');
+      if (nameIn) nameIn.focus();
     };
 
     document.getElementById('uPickerCancelBtn').onclick = closeModal;
@@ -10192,10 +10214,10 @@
     if (!requireIdentity(() => openEditModal(entityType, oldName, oldMeta, oldIcon, currentColor, rowIndex))) return;
     const box = document.getElementById('modalBox');
     box.classList.add('wide');
-    const isCat  = entityType === 'Categories';
+    const isCat  = entityType !== 'Players';
     const isPlay = entityType === 'Players';
     const metaLabel = isPlay ? 'URL avatar' : 'Description';
-    const initColor = currentColor || (isPlay ? playerColor(oldName) : categoryColor(oldName));
+    const initColor = currentColor || entityColor(entityType, oldName);
 
     box.innerHTML =
       '<h3>Éditer — ' + escapeHtml(oldName) + '</h3>' +
@@ -10249,16 +10271,19 @@
         const col = picker.value;
         if (!n) return;
         closeModal();
-        const cache = isCat ? cachedCategories : cachedPlayers;
-        const item  = cache.find(x => x.name === oldName);
-        if (item) item.color = col;
 
         const performRename = () => {
           callServer('apiManageEntity', ['RENAME', entityType, n, m, oldName, ic, _whoAmI || '', rowIndex], () => {
-            if (isPlay && oldName === _whoAmI) {
-              applyIdentity(n);
+            if (entityType === 'AltCategories') {
+              renameAltSelections(oldName, n);
+              reloadAltCategories(() => {
+                loadAltHistoryMap(() => renderHistoryFilterChips());
+                if (activeDashboardUniverse === 'alt') applyFilters();
+              });
+            } else {
+              if (isPlay && oldName === _whoAmI) applyIdentity(n);
+              loadEntities();
             }
-            loadEntities();
             showToast('Modifié avec succès.', 'success');
             refreshColorDependentViews();
           }, 'Erreur renommage');
@@ -10438,14 +10463,7 @@
       if (typeof onDone === 'function') onDone();
 
       // Chargement en arrière-plan non-bloquant des tops alternatifs
-      callServer('apiGetAltCategories', [], resAlt => {
-        if (resAlt && resAlt.success) {
-          cachedAltCategories = resAlt.altCategories || [];
-          renderAltCategoriesList();
-          renderHistoryFilterChips();
-          if (activeDashboardUniverse === 'alt') renderCategoryChips();
-        }
-      }, 'Tops alternatifs', () => { /* non-bloquant */ });
+      reloadAltCategories();
 
       loadAltHistoryMap(() => {
         renderHistoryFilterChips();
@@ -10713,86 +10731,57 @@
     }
   }
 
+  let _altCategoriesReqGen = 0;
+  function applyAltCategories(list) {
+    cachedAltCategories = list || [];
+    renderAltCategoriesList();
+    renderHistoryFilterChips();
+    if (activeDashboardUniverse === 'alt') renderCategoryChips();
+  }
+  // Garde de génération comme _entitiesReqGen : une réponse partie avant un clic
+  // ▲/▼ plus récent ne doit pas repeindre l'ancien ordre.
+  function reloadAltCategories(onDone) {
+    const gen = ++_altCategoriesReqGen;
+    callServer('apiGetAltCategories', [], res => {
+      if (gen !== _altCategoriesReqGen) return;
+      if (res && res.success) applyAltCategories(res.altCategories);
+      if (typeof onDone === 'function') onDone();
+    }, 'Tops alternatifs', () => { /* non-bloquant */ });
+  }
+  // Un renommage ne doit pas vider silencieusement un filtre actif sur ce Top alternatif.
+  function renameAltSelections(oldName, newName) {
+    if (oldName === newName) return;
+    if (selectedHistAltCategories.delete(oldName)) selectedHistAltCategories.add(newName);
+    if (activeDashboardUniverse === 'alt' && selectedCategoryChips.delete(oldName)) selectedCategoryChips.add(newName);
+  }
+
   function renderAltCategoriesList() {
     const ul = document.getElementById('altCategoriesList');
     if (!ul) return;
-    ul.innerHTML = '';
-    if (!cachedAltCategories.length) {
-      ul.innerHTML = '<li class="empty-state" style="padding:12px;color:var(--text-muted);font-style:italic;">Aucun Top alternatif configuré.</li>';
-      return;
-    }
-    cachedAltCategories.forEach(cat => {
-      const li = document.createElement('li');
-      li.className = 'entity-item';
-      const icon = cat.emoji || '🎯';
-      const color = cat.color || ALT_FALLBACK_COLOR;
-      li.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;flex:1;">
-          <span style="font-size:1.2rem;">${escapeHtml(icon)}</span>
-          <div>
-            <strong style="color:${escapeHtml(color)};">${escapeHtml(cat.name)}</strong>
-            <div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(cat.description || '')}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button class="small secondary manage-alt-pts-btn" data-name="${escapeHtml(cat.name)}">👁️ Gérer les points</button>
-          <button class="small danger delete-alt-cat-btn" data-name="${escapeHtml(cat.name)}">🗑️</button>
-        </div>
-      `;
-      ul.appendChild(li);
-    });
-
-    ul.querySelectorAll('.manage-alt-pts-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        openAltCategoryManagerModal(btn.dataset.name);
-      });
-    });
-
-    ul.querySelectorAll('.delete-alt-cat-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const name = btn.dataset.name;
-        openConfirmModal(`Supprimer le Top Alternatif "${name}" ?`, () => {
-          if (!requireIdentity()) return;
-          const newList = cachedAltCategories.filter(c => c.name !== name);
-          callServer('apiSaveAltCategories', [_whoAmI, newList], res => {
-            if (res.success) {
-              cachedAltCategories = res.altCategories || [];
-              renderAltCategoriesList();
-              showToast(`Top alternatif "${name}" supprimé.`, 'success');
-            }
-          }, 'Suppression Top Alternatif');
-        });
-      });
-    });
+    const items = cachedAltCategories.map(c => ({
+      rowIndex: c.rowIndex, name: c.name, meta: c.description || '', icon: c.emoji || '', color: c.color || ''
+    }));
+    renderEntityList(ul, items, 'AltCategories');
   }
 
+  let newAltCatMetaEditor = null; // monté au démarrage, à côté de celui des Tops
   function addAltCategory() {
-    const nameIn = document.getElementById('newAltCatName');
-    const descIn = document.getElementById('newAltCatDesc');
-    const emojiIn = document.getElementById('newAltCatEmoji');
-    if (!nameIn) return;
-    const name = nameIn.value.trim();
-    if (!name) { showToast('Veuillez entrer un nom pour le Top alternatif.', 'error'); return; }
-    const checkIdent = typeof requireIdentity === 'function' ? requireIdentity : window.requireIdentity;
-    if (checkIdent && !checkIdent()) return;
-
-    const newList = [...cachedAltCategories, {
-      name: name,
-      description: descIn ? descIn.value.trim() : '',
-      emoji: emojiIn && emojiIn.value.trim() ? emojiIn.value.trim() : '🎯',
-      color: '#' + Math.floor(Math.random()*16777215).toString(16)
-    }];
-
-    callServer('apiSaveAltCategories', [_whoAmI, newList], res => {
-      if (res.success) {
-        cachedAltCategories = res.altCategories || [];
-        renderAltCategoriesList();
-        nameIn.value = '';
-        if (descIn) descIn.value = '';
-        if (emojiIn) emojiIn.value = '';
-        showToast(`Top alternatif "${name}" créé !`, 'success');
-      }
-    }, 'Création Top Alternatif');
+    const doAdd = () => {
+      const nameIn  = document.getElementById('newAltCatName');
+      const emojiIn = document.getElementById('newAltCatEmoji');
+      const name = nameIn.value.trim();
+      if (!name) { showToast('Nom requis.', 'error'); nameIn.focus(); return; }
+      const meta = newAltCatMetaEditor ? newAltCatMetaEditor._getValue().trim() : '';
+      const icon = emojiIn.value.trim();
+      callServer('apiManageEntity', ['ADD', 'AltCategories', name, meta, null, icon, _whoAmI || '', null], () => {
+        nameIn.value = ''; emojiIn.value = '';
+        if (newAltCatMetaEditor) newAltCatMetaEditor._setValue('');
+        reloadAltCategories();
+        showToast('Top alternatif ajouté.', 'success');
+      }, 'Ajout Top alternatif');
+    };
+    if (!requireIdentity(doAdd)) return;
+    doAdd();
   }
 
   function renderEntityList(container, items, type) {
@@ -10833,10 +10822,12 @@
         });
         colorIn.addEventListener('change', () => {
           const doChange = () => {
-            const p = cachedPlayers.find(p => p.name === item.name);
-            if (p) p.color = colorIn.value;
-            callServer('apiSetColor', ['Players', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
-            refreshColorDependentViews();
+            const col = colorIn.value;
+            callServer('apiSetColor', ['Players', item.rowIndex, item.name, col, _whoAmI || ''], () => {
+              const p = cachedPlayers.find(p => p.name === item.name);
+              if (p) p.color = col;
+              refreshColorDependentViews();
+            }, 'Color save', () => { colorDot.style.background = playerColor(item.name); });
           };
           if (!requireIdentity(doChange)) return;
           doChange();
@@ -10844,32 +10835,35 @@
         colorLbl.appendChild(colorDot);
         colorLbl.appendChild(colorIn);
         left.appendChild(colorLbl);
-      } else if (type === 'Categories' && item.icon) {
+      } else if (type !== 'Players' && item.icon) {
         const ic = document.createElement('span');
         ic.style.cssText = 'font-size:1.3rem; min-width:28px; text-align:center;';
         ic.textContent = item.icon;
         left.appendChild(ic);
       }
-      if (type === 'Categories') {
+      if (type !== 'Players') {
         // Color swatch — opens native color picker on click
         const colorLbl = document.createElement('label');
-        colorLbl.title = 'Changer la couleur du Top';
+        colorLbl.title = type === 'AltCategories' ? 'Changer la couleur du Top alternatif' : 'Changer la couleur du Top';
         colorLbl.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;position:relative;flex-shrink:0;';
         const colorDot = document.createElement('span');
-        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,0.25);background:' + categoryColor(item.name) + ';';
+        colorDot.style.cssText = 'display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,0.25);background:' + entityColor(type, item.name) + ';';
         const colorIn = document.createElement('input');
         colorIn.type = 'color';
-        colorIn.value = item.color || categoryColor(item.name);
+        colorIn.value = item.color || entityColor(type, item.name);
         colorIn.style.cssText = 'opacity:0;position:absolute;width:0;height:0;';
         colorIn.addEventListener('input', () => {
           colorDot.style.background = colorIn.value;
         });
         colorIn.addEventListener('change', () => {
           const doChange = () => {
-            const c = cachedCategories.find(c => c.name === item.name);
-            if (c) c.color = colorIn.value;
-            callServer('apiSetColor', ['Categories', item.rowIndex, item.name, colorIn.value, _whoAmI || ''], null, 'Color save');
-            refreshColorDependentViews();
+            const col = colorIn.value;
+            callServer('apiSetColor', [type, item.rowIndex, item.name, col, _whoAmI || ''], () => {
+              const c = entityCache(type).find(c => c.name === item.name);
+              if (c) c.color = col;
+              if (type === 'AltCategories') applyAltCategories(cachedAltCategories);
+              refreshColorDependentViews();
+            }, 'Color save', () => { colorDot.style.background = entityColor(type, item.name); });
           };
           if (!requireIdentity(doChange)) return;
           doChange();
@@ -10884,7 +10878,7 @@
       strong.className = 'entity-name';
       strong.textContent = item.name;
       info.appendChild(strong);
-      if (item.meta && type === 'Categories') {
+      if (item.meta && type !== 'Players') {
         const meta = document.createElement('span');
         meta.className = 'entity-meta';
         meta.innerHTML = renderMarkdown(item.meta);
@@ -10895,18 +10889,22 @@
       btns.className = 'entity-btns';
       const editBtn = document.createElement('button');
       editBtn.className = 'small'; editBtn.textContent = '✏️'; editBtn.title = 'Éditer';
-      const col = type === 'Players' ? playerColor(item.name) : categoryColor(item.name);
+      const col = entityColor(type, item.name);
       editBtn.addEventListener('click', () => openEditModal(type, item.name, item.meta, item.icon, col, item.rowIndex));
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '🗑️'; delBtn.title = 'Supprimer';
       delBtn.addEventListener('click', () => {
         const doDelete = () => {
-          openConfirmModal('Supprimer "' + item.name + '" définitivement ?', () => {
+          const msg = type === 'AltCategories'
+            ? 'Supprimer le Top alternatif "' + item.name + '" ? Ses points restent dans la feuille mais ne s\'affichent plus (annulable depuis le Journal).'
+            : 'Supprimer "' + item.name + '" définitivement ?';
+          openConfirmModal(msg, () => {
             buzz();
             // rowIndex cible précisément cette ligne — indispensable si un autre Joueur/Top
             // partage le même nom (deux lignes homonymes ne doivent plus disparaître ensemble).
             callServer('apiManageEntity', ['DELETE', type, null, null, item.name, null, _whoAmI || '', item.rowIndex], () => {
-              loadEntities(); applyFilters();
+              if (type === 'AltCategories') reloadAltCategories();
+              else { loadEntities(); applyFilters(); }
               showToast('Supprimé.', 'success');
             }, 'Suppression');
           });
@@ -10914,6 +10912,12 @@
         if (!requireIdentity(doDelete)) return;
         doDelete();
       });
+      if (type === 'AltCategories') {
+        const ptsBtn = document.createElement('button');
+        ptsBtn.className = 'small secondary'; ptsBtn.textContent = '👁️ Gérer les points';
+        ptsBtn.addEventListener('click', () => openAltCategoryManagerModal(item.name));
+        btns.appendChild(ptsBtn);
+      }
       btns.appendChild(editBtn); btns.appendChild(delBtn);
       li.appendChild(left); li.appendChild(btns);
       container.appendChild(li);
@@ -10924,6 +10928,14 @@
         const rows = Array.from(container.querySelectorAll('.entity-item'));
         const orderedRowIndexes = rows.map(el => Number(el.dataset.rowIndex));
         const expectedNames     = rows.map(el => el.dataset.name);
+        if (type === 'AltCategories') {
+          const altGen = ++_altCategoriesReqGen;
+          callServer('apiReorderEntities', [type, orderedRowIndexes, expectedNames, _whoAmI || ''], res => {
+            if (altGen !== _altCategoriesReqGen) return;
+            applyAltCategories(res.altCategories);
+          }, 'Réordonner', () => { reloadAltCategories(); });
+          return;
+        }
         const gen = ++_entitiesReqGen;
         callServer('apiReorderEntities', [type, orderedRowIndexes, expectedNames, _whoAmI || ''], res => {
           // Peindre directement depuis la réponse plutôt que rappeler loadEntities() :
@@ -13684,8 +13696,7 @@
 
   function applyRowCategoryVisuals(div, categoryName, isAlt) {
     if (isAlt) {
-      const ac = cachedAltCategories.find(c => c.name === categoryName);
-      div.style.setProperty('--row-accent', (ac && ac.color) || ALT_FALLBACK_COLOR);
+      div.style.setProperty('--row-accent', altCategoryColor(categoryName));
       return;
     }
     div.style.setProperty('--row-accent', categoryColor(categoryName || ''));
@@ -14146,7 +14157,7 @@
       if (active) {
         const cat = cachedAltCategories.find(c => c.name === altCatSel.value);
         const icon = cat && cat.emoji ? cat.emoji + ' ' : '';
-        const catColor = (cat && cat.color) || ALT_FALLBACK_COLOR;
+        const catColor = altCategoryColor(altCatSel.value);
         altBtn.className = 'alt-picker-btn active';
         altBtn.style.cssText = `display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:16px; border:1.5px solid ${catColor}; background:rgba(var(--alt-accent-rgb), 0.22); color:${catColor}; font-size:0.78rem; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(var(--alt-accent-rgb), 0.3);`;
         altBtnContent.innerHTML = '⭐ Top Alt : <strong>' + escapeHtml(icon + altCatSel.value) + '</strong> <span class="alt-clear-btn" style="margin-left:6px; opacity:0.85; font-weight:900; padding:0 2px;">✕</span>';
@@ -14185,7 +14196,7 @@
         const opt = document.createElement('div');
         opt.className = 'alt-picker-opt';
         const isSelected = altCb.checked && altCatSel.value === ac.name;
-        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ` background:${ac.color || ALT_FALLBACK_COLOR}; color:#121824; font-weight:800;` : ' color:var(--text);');
+        opt.style.cssText = 'padding:8px 10px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; transition:background 0.15s;' + (isSelected ? ` background:${altCategoryColor(ac.name)}; color:#121824; font-weight:800;` : ' color:var(--text);');
         
         const labelDiv = document.createElement('div');
         labelDiv.style.cssText = 'display:flex; align-items:center; gap:6px;';
@@ -15593,7 +15604,7 @@
 
       cachedAltCategories.forEach(ac => {
         const active = selectedHistAltCategories.has(ac.name);
-        const color = ac.color || ALT_FALLBACK_COLOR;
+        const color = altCategoryColor(ac.name);
         const label = (ac.emoji ? ac.emoji + ' ' : '⭐ ') + ac.name;
         acContainer.appendChild(makeChip(label, active, active ? color : null, () => {
           if (selectedHistAltCategories.has(ac.name)) selectedHistAltCategories.delete(ac.name);
@@ -16193,7 +16204,7 @@
         const altCatObj = cachedAltCategories.find(ac => ac.name === altName);
         const altBadge = document.createElement('span');
         altBadge.className = 'hist-pill alt-badge';
-        const altColor = altCatObj ? (altCatObj.color || ALT_FALLBACK_COLOR) : ALT_FALLBACK_COLOR;
+        const altColor = altCatObj ? altCategoryColor(altCatObj.name) : ALT_FALLBACK_COLOR;
         const altEmoji = altCatObj ? (altCatObj.emoji || '⭐') : '⭐';
         altBadge.style.setProperty('--pill-bg', tint(altColor, 0.15));
         altBadge.style.setProperty('--pill-bd', altColor);
@@ -18601,6 +18612,9 @@
     const newCategoryMetaEditor = buildTextEditor({ value: '', rows: 2, placeholder: 'Description (optionnel)' });
     document.getElementById('newCategoryMetaEditor').appendChild(newCategoryMetaEditor);
 
+    newAltCatMetaEditor = buildTextEditor({ value: '', rows: 2, placeholder: 'Description (optionnel)' });
+    document.getElementById('newAltCatMetaEditor').appendChild(newAltCatMetaEditor);
+
     document.getElementById('addCategoryBtn').addEventListener('click', () => {
       const doAdd = () => {
         const name = document.getElementById('newCategoryName').value.trim();
@@ -20828,10 +20842,7 @@
 
       // 4. Catégories alternatives
       if (res.altCategories && res.altCategories.success) {
-        cachedAltCategories = res.altCategories.altCategories || [];
-        renderAltCategoriesList();
-        renderHistoryFilterChips();
-        if (activeDashboardUniverse === 'alt') renderCategoryChips();
+        applyAltCategories(res.altCategories.altCategories);
       }
 
       // 5. Alt History Map
