@@ -85,6 +85,11 @@ test('Modales et exports : z-index à 10500 pour recouvrir la bottom nav (9000) 
   assert.match(exportOverlayBlock, /z-index:\s*10500;/);
 });
 
+test('Rich select : z-index au-dessus des modales (panneau reparenté sous <body>, frère de #modalBackdrop)', () => {
+  const rsPanelBlock = block('.rs-panel {', '.rs-option {');
+  assert.match(rsPanelBlock, /z-index:\s*10600;/);
+});
+
 test('Mention popup : z-index à 10001 au-dessus du tiroir et écouteur tactile pointerdown', () => {
   const mentionPopupBlock = block('.md-mention-popup {', '.md-mention-item {');
   assert.match(mentionPopupBlock, /z-index:\s*10001;/);
