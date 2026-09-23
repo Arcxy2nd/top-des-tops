@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.36.0] - 2026-09-23
+
+### Ajouté
+**Humanisé** : Les Tops Alternatifs se renomment, se recolorent, se réordonnent et se suppriment comme les Tops, avec annulation depuis le Journal.
+**Technique** : `SettingsService` accepte le type `AltCategories` (colonne `Ordre`, cascade de renommage vers `AltHistory`) ; `apiManageEntity` / `apiSetColor` / `apiReorderEntities` le prennent en charge avec instantanés d'annulation ; `renderEntityList` / `openEditModal` réutilisés côté client.
+
+### Modifié
+**Humanisé** : Un Top Alternatif sans couleur choisie prend la palette des graphiques au lieu d'une couleur tirée au hasard.
+**Technique** : `getAltCategories` renvoie `color: ''` si vide ; `altCategoryColor()` côté client et `CHART_DEFAULT_COLORS` côté serveur pour le repli.
+
+### Corrigé
+**Humanisé** : Le bouton « Nouveau Top Alt » du sélecteur de points ouvre le formulaire au lieu d'afficher une erreur.
+**Technique** : `uPickerNewAltBtn` navigue vers Paramètres → Tops Alternatifs ; couleur des Joueurs/Tops mise en cache seulement après confirmation serveur.
+
+### Supprimé
+**Humanisé** : Plus de réécriture complète de la liste des Tops Alternatifs à chaque ajout ou suppression.
+**Technique** : `apiSaveAltCategories` et `AltSettingsService.saveAltCategories` retirés.
+
 ## [v3.35.1] - 2026-09-23
 
 ### Corrigé

@@ -147,7 +147,7 @@ Bareme        : Top | Action (text) | Points | [Id]  (pas de colonne Ordre, tri 
 Phrases       : Preset | Pool | Phrase | [Ordre]
 AuditLog      : Timestamp | Auteur | Action | Entité | Avant | Après | Détail | [Snapshot] | [AnnuléLe]
 Settings      : Key | Value
-AltCategories : Name | Description | Emoji | Hex color
+AltCategories : Name | Description | Emoji | Hex color | [Ordre]
 AltHistory    : Date | Player | Category | Points | Description | [RefHistoryRowId] | [GroupId] | [Saiseur]
 AutoRules     : ID | Joueur | Catégorie | Points | Description | Fréquence | Intervalle | JoursSemaine | JourMois | DateDébut | ProchaineExécution | DernièreExécution | Actif | CrééPar
 Aggregates    : Vue matérialisée persistante (totaux, métriques par joueur/catégorie/mois, lastEvent, globalBest)
@@ -184,7 +184,7 @@ Tous les services sont des objets littéraux ou IIFE, sans classe ES6. Pattern :
 | `PhrasesService` | CRUD phrases de commentaires, gestion des presets, auto-création de la feuille |
 | `AuditService` | Journalisation des opérations, annulation d'écritures, snapshots, auto-création de la feuille |
 | `SettingsSheetService` | Gestion des paramètres de l'application dans la feuille Settings |
-| `AltSettingsService` / `AltStorageService` | Gestion des catégories et scores du Top Alt |
+| `AltSettingsService` / `AltStorageService` | Création de la feuille et lecture des Tops alternatifs (CRUD via `SettingsService`, type `AltCategories`), scores du Top Alt |
 | `AutoRulesService` | Gestion et exécution automatique des règles récurrentes de points |
 | `AggregatesService` | Maintien incrémental de la vue matérialisée (totaux, métriques, lastEvent, globalBest) avec cache multi-niveaux |
 | `BackupService` | Création de copies complètes / instantanés (snapshots) sur Google Drive |
