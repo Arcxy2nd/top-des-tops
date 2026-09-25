@@ -205,27 +205,41 @@ function makeFakeSheetsApi(gridsByTitle, options) {
       return { status: 200, body: JSON.stringify(lockCell === '' ? {} : { values: [[lockCell]] }) };
     }
     const u = new URL(url);
+    // Propriétés d'un onglet : partagées par la réponse de métadonnées et
+    // par celle du classeur entier.
+    const sheetProperties = title => ({
+      sheetId: idOf[title],
+      title,
+      gridProperties: {
+        rowCount: Math.max(1, (gridsByTitle[title] || []).length),
+        columnCount: Math.max(1, (gridsByTitle[title] || []).reduce((m, r) => Math.max(m, (r || []).length), 0))
+      }
+    });
+    const bookProperties = Object.assign({ timeZone }, spreadsheetTitle ? { title: spreadsheetTitle } : {});
+    const rowDataOf = title => (gridsByTitle[title] || []).map(row => ({ values: (row || []).map(toApiCell) }));
     if (u.searchParams.get('includeGridData') === 'true') {
-      const sheets = u.searchParams.getAll('ranges').map(_unquote).map(title => ({
+      const ranges = u.searchParams.getAll('ranges');
+      // Sans `ranges` : classeur entier (métadonnées + toutes les grilles).
+      if (!ranges.length) {
+        return {
+          status: 200,
+          body: JSON.stringify({
+            properties: bookProperties,
+            sheets: order.map(title => ({ properties: sheetProperties(title), data: [{ rowData: rowDataOf(title) }] }))
+          })
+        };
+      }
+      const sheets = ranges.map(_unquote).map(title => ({
         properties: { title },
-        data: [{ rowData: (gridsByTitle[title] || []).map(row => ({ values: (row || []).map(toApiCell) })) }]
+        data: [{ rowData: rowDataOf(title) }]
       }));
       return { status: 200, body: JSON.stringify({ sheets }) };
     }
     return {
       status: 200,
       body: JSON.stringify({
-        properties: Object.assign({ timeZone }, spreadsheetTitle ? { title: spreadsheetTitle } : {}),
-        sheets: order.map(title => ({
-          properties: {
-            sheetId: idOf[title],
-            title,
-            gridProperties: {
-              rowCount: Math.max(1, (gridsByTitle[title] || []).length),
-              columnCount: Math.max(1, (gridsByTitle[title] || []).reduce((m, r) => Math.max(m, (r || []).length), 0))
-            }
-          }
-        }))
+        properties: bookProperties,
+        sheets: order.map(title => ({ properties: sheetProperties(title) }))
       })
     };
   }

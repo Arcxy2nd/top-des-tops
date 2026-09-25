@@ -36,10 +36,10 @@ function withoutRetryDelays(fn) {
 }
 
 const BUDGET = {
-  apiGetBootstrapData: { reads: 4, writes: 0 },
-  apiGetQuickStats: { reads: 4, writes: 0 },
-  apiGetAllNotes: { reads: 3, writes: 0 },
-  apiGetHistoryPage: { reads: 3, writes: 0 }
+  apiGetBootstrapData: { reads: 1, writes: 0 },
+  apiGetQuickStats: { reads: 1, writes: 0 },
+  apiGetAllNotes: { reads: 1, writes: 0 },
+  apiGetHistoryPage: { reads: 1, writes: 0 }
 };
 
 Object.keys(BUDGET).forEach(fn => {
@@ -56,7 +56,7 @@ test('budget écriture apiAddNote', () => {
   const api = makeWorld();
   const out = call(api, 'apiAddNote', ['Safir', 'Note budget', '', 'Safir', '']);
   assert.strictEqual(out.value.success, true);
-  assert.ok(out.meter.sheetsReads <= 7, out.meter.sheetsReads + ' lectures');
+  assert.ok(out.meter.sheetsReads <= 4, out.meter.sheetsReads + ' lectures');
   assert.ok(out.meter.sheetsWrites <= 3, out.meter.sheetsWrites + ' écritures');
 });
 
