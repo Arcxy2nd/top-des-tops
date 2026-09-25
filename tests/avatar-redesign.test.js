@@ -165,3 +165,24 @@ test('CSS rules ensure avatar rings and mask gradients', () => {
   // .npb-head img est cerclé
   assert.ok(html.includes('box-shadow: 0 0 0 2.5px var(--player-color, var(--border))'), 'Avatar de colonne cerclé aux couleurs du joueur');
 });
+
+test('podium background avatars feature rank-specific metallic styling, champion pulse and mask gradient', () => {
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  // .phrase-podium-bg-avatar est configuré avec masque dégradé et dimensions
+  assert.ok(html.includes('.phrase-podium-bg-avatar {'), 'Classe .phrase-podium-bg-avatar définie');
+  assert.ok(html.includes('object-fit: cover; object-position: center top;'), 'Avatar d\'arrière-plan podium cadré proprement');
+
+  // Traitement spécial Champion (Or) avec aura animée
+  assert.ok(html.includes('.podium-column.rank-1 .phrase-podium-bg-avatar {'), 'Sélecteur champion rank-1 présent');
+  assert.ok(html.includes('@keyframes championAvatarAura'), 'Animation d\'aura du champion définie');
+  assert.ok(html.includes('animation: championAvatarAura'), 'Animation d\'aura appliquée au rank-1');
+
+  // Traitement Argent et Bronze avec drop-shadows métalliques
+  assert.ok(html.includes('.podium-column.rank-2 .phrase-podium-bg-avatar {'), 'Sélecteur dauphin rank-2 présent');
+  assert.ok(html.includes('.podium-column.rank-3 .phrase-podium-bg-avatar {'), 'Sélecteur 3ème place rank-3 présent');
+
+  // Isolation z-index pour garantir la lisibilité du texte du podium
+  assert.ok(html.includes('.phrase-podium-card > :not(.phrase-podium-bg-avatar) {'), 'Isolation z-index des enfants de la carte podium');
+});
+

@@ -3336,13 +3336,94 @@
       color: var(--text);
     }
 
-    .phrase-podium-bg-avatar {
-      position: absolute; right: -12px; bottom: -12px;
-      width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
-      opacity: 0.06; pointer-events: none; z-index: 0;
+    /* ── Filigrane d'Avatar Arrière-plan Podium Spécial ── */
+    .phrase-podium-card > :not(.phrase-podium-bg-avatar) {
+      position: relative;
+      z-index: 1;
     }
-    .podium-column.first .phrase-podium-bg-avatar {
-      width: 130px; height: 130px; opacity: 0.09;
+    .phrase-podium-bg-avatar {
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 155px; height: 100%; object-fit: cover; object-position: center top;
+      pointer-events: none; z-index: 0;
+      opacity: 0.13;
+      border-radius: 0 16px 0 0;
+      mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.5) 60%, transparent 95%);
+      -webkit-mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.5) 60%, transparent 95%);
+      transform-origin: center right;
+      transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s ease;
+    }
+
+    /* Rank 1 : Champion Or 🥇 */
+    .podium-column.rank-1 .phrase-podium-bg-avatar {
+      width: 190px;
+      opacity: 0.18;
+      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.42)) contrast(1.08) saturate(1.2);
+      animation: championAvatarAura 3.6s ease-in-out infinite;
+    }
+    @keyframes championAvatarAura {
+      0%, 100% {
+        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.32)) contrast(1.06) saturate(1.15);
+        opacity: 0.18;
+        transform: scale(1);
+      }
+      50% {
+        filter: drop-shadow(0 0 24px rgba(255, 215, 0, 0.65)) contrast(1.14) saturate(1.35);
+        opacity: 0.25;
+        transform: scale(1.03);
+      }
+    }
+    .podium-column.rank-1:hover .phrase-podium-bg-avatar {
+      opacity: 0.34;
+      transform: scale(1.07);
+      filter: drop-shadow(0 0 28px rgba(255, 215, 0, 0.85)) contrast(1.18) saturate(1.4);
+      animation: none;
+    }
+
+    /* Rank 2 : Dauphin Argent 🥈 */
+    .podium-column.rank-2 .phrase-podium-bg-avatar {
+      width: 145px;
+      opacity: 0.13;
+      filter: drop-shadow(0 0 14px rgba(192, 192, 192, 0.32)) contrast(1.04) brightness(1.08);
+    }
+    .podium-column.rank-2:hover .phrase-podium-bg-avatar {
+      opacity: 0.25;
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 22px rgba(192, 192, 192, 0.65)) contrast(1.12) brightness(1.15);
+    }
+
+    /* Rank 3 : Troisième Bronze 🥉 */
+    .podium-column.rank-3 .phrase-podium-bg-avatar {
+      width: 140px;
+      opacity: 0.12;
+      filter: drop-shadow(0 0 14px rgba(205, 127, 50, 0.32)) contrast(1.04) saturate(1.15);
+    }
+    .podium-column.rank-3:hover .phrase-podium-bg-avatar {
+      opacity: 0.23;
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 22px rgba(205, 127, 50, 0.65)) contrast(1.1) saturate(1.25);
+    }
+
+    /* Thème clair : blend multiply subtil et sans halos saturés */
+    body.light .phrase-podium-bg-avatar {
+      mix-blend-mode: multiply;
+      opacity: 0.08;
+      filter: none;
+    }
+    body.light .podium-column.rank-1 .phrase-podium-bg-avatar {
+      opacity: 0.12;
+      animation: none;
+    }
+    body.light .podium-column.rank-1:hover .phrase-podium-bg-avatar {
+      opacity: 0.20;
+      filter: none;
+    }
+    body.light .podium-column.rank-2:hover .phrase-podium-bg-avatar {
+      opacity: 0.16;
+      filter: none;
+    }
+    body.light .podium-column.rank-3:hover .phrase-podium-bg-avatar {
+      opacity: 0.15;
+      filter: none;
     }
 
     /* ── Feed compact (4ème+) Innovant ── */
@@ -3400,6 +3481,8 @@
       .podium-column.rank-1 .podium-step-base { height: 54px; font-size: 1.2rem; }
       .podium-column.rank-2 .podium-step-base { height: 38px; font-size: 1rem; }
       .podium-column.rank-3 .podium-step-base { height: 26px; font-size: 0.9rem; }
+      .phrase-podium-bg-avatar { width: 95px; opacity: 0.10; }
+      .podium-column.rank-1 .phrase-podium-bg-avatar { width: 120px; opacity: 0.14; }
     }
     @media (max-width: 380px) {
       .phrases-podium {
@@ -3427,6 +3510,8 @@
         width: 38px;
         height: 38px;
       }
+      .phrase-podium-bg-avatar { width: 75px; opacity: 0.08; }
+      .podium-column.rank-1 .phrase-podium-bg-avatar { width: 90px; opacity: 0.11; }
     }
 
     /* ── Commentaires par Top (section plate, toujours visible) ── */
@@ -8178,10 +8263,12 @@
           phraseText.className = 'phrase-podium-text';
           phraseText.textContent = `" ${p.text} "`;
 
-          // Filigrane d'avatar en fond
+          // Filigrane d'avatar en fond (podium spécial)
           const bgAvImg = document.createElement('img');
           bgAvImg.className = 'phrase-podium-bg-avatar';
           bgAvImg.src = getAvatarUrl(p.player, plData ? plData.meta : '');
+          bgAvImg.decoding = 'async';
+          bgAvImg.setAttribute('aria-hidden', 'true');
           bgAvImg.onerror = () => { bgAvImg.style.display = 'none'; };
           bgAvImg.alt = '';
 
