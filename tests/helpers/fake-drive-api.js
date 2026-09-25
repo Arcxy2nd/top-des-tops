@@ -36,6 +36,12 @@ function makeFakeDrive(files) {
       return { status: 200, body: JSON.stringify(state[id]) };
     }
     const id = /\/files\/([^/?]+)/.exec(url)[1];
+    // Version du fichier (cache du classeur) : seulement si la ressource en
+    // déclare une, sinon Drive « indisponible » et le cache reste éteint.
+    if (new URL(url).searchParams.get('fields') === 'version') {
+      if (!state[id] || state[id].version === undefined) return { status: 404, body: '{"error":{"message":"File not found"}}' };
+      return { status: 200, body: JSON.stringify({ version: String(state[id].version) }) };
+    }
     if (!state[id]) return { status: 404, body: '{"error":{"message":"File not found"}}' };
     return { status: 200, body: JSON.stringify(state[id]) };
   }

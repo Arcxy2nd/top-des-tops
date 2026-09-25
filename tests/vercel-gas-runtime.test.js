@@ -72,8 +72,11 @@ test('onglet sans en-tête : aucun joueur perdu, écritures de réparation non p
   assert.ok(result.discardedWrites >= 1, 'l\'insertion d\'en-tête doit être journalisée puis écartée');
   // Aucune requête ne doit jamais pouvoir écrire dans le classeur : ni un verbe
   // HTTP différent de GET, ni un corps, ni un appel à :batchUpdate ou /values
-  // (les deux endpoints d'écriture de Sheets API v4).
-  calls.forEach(c => {
+  // (les deux endpoints d'écriture de Sheets API v4). Seule exception : la
+  // lecture de la version Drive du fichier, qui valide le cache du classeur.
+  const isDriveVersion = c => c.url.indexOf('googleapis.com/drive/v3/files/') !== -1 && c.url.indexOf('fields=version') !== -1
+    && !(c.init && c.init.method && c.init.method !== 'GET') && !(c.init && c.init.body);
+  calls.filter(c => !isDriveVersion(c)).forEach(c => {
     assert.ok(c.url.startsWith('https://sheets.googleapis.com/v4/spreadsheets/'), 'URL Sheets attendue : ' + c.url);
     assert.ok(c.url.indexOf(':batchUpdate') === -1, 'aucun appel :batchUpdate : ' + c.url);
     assert.ok(c.url.indexOf('/values') === -1, 'aucun appel /values : ' + c.url);
@@ -136,9 +139,11 @@ function gridRequests(api) {
     grids.AuditLog = [['Timestamp', 'Auteur', 'Action']];
     const { result, api } = runWrite(grids, fnName, fnName === 'apiGetHistoryPage' ? [1, 50] : []);
     assert.ok(result.value, fnName + ' doit rendre une valeur');
-    assert.strictEqual(api.calls.length, 1, 'reçu ' + api.calls.length + ' requêtes');
+    // Requêtes Sheets seulement : la version Drive (cache du classeur) relève d'un autre quota.
+    const sheetsCalls = api.calls.filter(c => c.url.indexOf('sheets.googleapis.com') !== -1);
+    assert.strictEqual(sheetsCalls.length, 1, 'reçu ' + sheetsCalls.length + ' requêtes Sheets');
     assert.strictEqual(gridRequests(api).length, 1, 'la requête unique doit porter les grilles');
-    assert.deepStrictEqual(new URL(api.calls[0].url).searchParams.getAll('ranges'), [], 'classeur entier, sans ranges');
+    assert.deepStrictEqual(new URL(sheetsCalls[0].url).searchParams.getAll('ranges'), [], 'classeur entier, sans ranges');
   });
 });
 

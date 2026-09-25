@@ -60,6 +60,49 @@ test('budget écriture apiAddNote', () => {
   assert.ok(out.meter.sheetsWrites <= 3, out.meter.sheetsWrites + ' écritures');
 });
 
+// Phase 3 : instantané du classeur gardé par l'instance chaude, validé par la
+// version Drive. Les tests ci-dessus tournent sans Drive (le faux Sheets ne
+// sert pas l'API Drive) : ils vérifient le repli à 1 lecture par appel.
+const snapshotCache = require('../lib/gas-runtime/snapshot-cache');
+
+function makeWorldWithDrive() {
+  const sheets = makeWorld();
+  const drive = { version: 1 };
+  return {
+    syncFetch(url, init) {
+      if (String(url).indexOf('googleapis.com/drive/v3/files/') !== -1) {
+        return { status: 200, body: JSON.stringify({ version: String(drive.version) }) };
+      }
+      const res = sheets.syncFetch(url, init);
+      if (/:batchUpdate$/.test(url)) drive.version++;
+      return res;
+    }
+  };
+}
+
+['apiGetBootstrapData', 'apiGetQuickStats'].forEach(fn => {
+  test('budget cache : 2e ' + fn + ' identique = 0 lecture', () => {
+    snapshotCache.clear();
+    const world = makeWorldWithDrive();
+    call(world, fn);
+    const out = call(world, fn);
+    assert.strictEqual(out.meter.sheetsReads, 0);
+    assert.strictEqual(out.meter.sheetsWrites, 0);
+    snapshotCache.clear();
+  });
+});
+
+test('budget cache : apiAddNote avec instantané chaud ≤ 3 lectures', () => {
+  snapshotCache.clear();
+  const world = makeWorldWithDrive();
+  call(world, 'apiGetAllNotes');
+  const out = call(world, 'apiAddNote', ['Safir', 'Note budget', '', 'Safir', '']);
+  assert.strictEqual(out.value.success, true);
+  assert.ok(out.meter.sheetsReads <= 3, out.meter.sheetsReads + ' lectures');
+  assert.ok(out.meter.sheetsWrites <= 3, out.meter.sheetsWrites + ' écritures');
+  snapshotCache.clear();
+});
+
 test('un 429 passager ne remonte pas à l\'utilisateur', () => {
   const api = makeWorld({ failWith429: 1 });
   const out = withoutRetryDelays(() => call(api, 'apiGetAllNotes'));
