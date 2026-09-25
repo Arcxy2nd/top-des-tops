@@ -1,0 +1,85 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert');
+const { runApi } = require('../lib/gas-runtime/runtime');
+const { buildSheets } = require('./frontend/fixtures.js');
+const { makeFakeSheetsApi, fixtureGrids } = require('./helpers/fake-sheets-api');
+const meterLib = require('../lib/gas-runtime/request-meter');
+
+// Budget de requêtes Sheets par appel : le garde-fou du quota (60/min).
+// Chaque phase du plan 2026-09-25 abaisse ces plafonds.
+const SCRIPT_ID = 'MOCK_SCRIPT_ID_12345';
+
+function makeWorld(options) {
+  return makeFakeSheetsApi(fixtureGrids(buildSheets()), options);
+}
+
+function call(api, fnName, args) {
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    return runApi({ fnName, args: args || [], spreadsheetId: 'SHEET_BUDGET', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch: api.syncFetch });
+  } finally {
+    console.warn = warn;
+  }
+}
+
+// Pauses de réessai à zéro le temps d'un test (le module lit le tableau à chaque essai).
+function withoutRetryDelays(fn) {
+  const saved = meterLib.RETRY_DELAYS_MS.slice();
+  meterLib.RETRY_DELAYS_MS.fill(0);
+  try {
+    return fn();
+  } finally {
+    saved.forEach((v, i) => { meterLib.RETRY_DELAYS_MS[i] = v; });
+  }
+}
+
+const BUDGET = {
+  apiGetBootstrapData: { reads: 4, writes: 0 },
+  apiGetQuickStats: { reads: 4, writes: 0 },
+  apiGetAllNotes: { reads: 3, writes: 0 },
+  apiGetHistoryPage: { reads: 3, writes: 0 }
+};
+
+Object.keys(BUDGET).forEach(fn => {
+  test('budget ' + fn, () => {
+    const api = makeWorld();
+    // apiGetHistoryPage(page, pageSize, filtres…) : filtres absents = aucun filtre.
+    const out = call(api, fn, fn === 'apiGetHistoryPage' ? [1, 50] : []);
+    assert.ok(out.meter.sheetsReads <= BUDGET[fn].reads, fn + ' : ' + out.meter.sheetsReads + ' lectures');
+    assert.ok(out.meter.sheetsWrites <= BUDGET[fn].writes, fn + ' : ' + out.meter.sheetsWrites + ' écritures');
+  });
+});
+
+test('budget écriture apiAddNote', () => {
+  const api = makeWorld();
+  const out = call(api, 'apiAddNote', ['Safir', 'Note budget', '', 'Safir', '']);
+  assert.strictEqual(out.value.success, true);
+  assert.ok(out.meter.sheetsReads <= 7, out.meter.sheetsReads + ' lectures');
+  assert.ok(out.meter.sheetsWrites <= 3, out.meter.sheetsWrites + ' écritures');
+});
+
+test('un 429 passager ne remonte pas à l\'utilisateur', () => {
+  const api = makeWorld({ failWith429: 1 });
+  const out = withoutRetryDelays(() => call(api, 'apiGetAllNotes'));
+  assert.ok(out.value);
+});
+
+// Code.gs rattrape l'exception de lecture (et retente lui-même l'ouverture du
+// classeur) : un 429 persistant ressort donc en { success: false, error }.
+test('429 persistant : l\'appel échoue avec le message Sheets', () => {
+  const api = makeWorld({ failWith429: 1000 });
+  const error = console.error;
+  console.error = () => {};
+  let out;
+  try {
+    out = withoutRetryDelays(() => call(api, 'apiGetAllNotes'));
+  } finally {
+    console.error = error;
+  }
+  assert.strictEqual(out.value.success, false);
+  assert.match(out.value.error, /Échec Sheets API \(429\)/);
+});
+
+module.exports = { makeWorld, call };

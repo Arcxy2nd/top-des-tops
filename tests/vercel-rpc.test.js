@@ -116,3 +116,30 @@ test('une erreur de transport ne divulgue jamais l\'URL appelée (identifiant du
   assert.doesNotMatch(r.body.error, /SHEET_A|sheets\.googleapis\.com/);
   assert.match(r.body.error, /Délai réseau dépassé \(30000 ms\) : \[URL masquée\]/);
 });
+
+test('chaque appel écrit une ligne [quota] avec son coût en requêtes', async () => {
+  const lines = [];
+  const log = console.log;
+  console.log = (...a) => { lines.push(a.join(' ')); };
+  try {
+    await call({ body: { fn: 'apiX', args: [] }, runApiImpl: () => ({ value: 1, meter: { sheetsReads: 2, sheetsWrites: 0, drive: 0 } }) });
+  } finally {
+    console.log = log;
+  }
+  assert.ok(lines.includes('[quota] apiX sheetsReads=2 sheetsWrites=0 drive=0'), lines.join('\n'));
+});
+
+test('un échec écrit aussi sa ligne [quota]', async () => {
+  const lines = [];
+  const log = console.log;
+  const err = console.error;
+  console.log = (...a) => { lines.push(a.join(' ')); };
+  console.error = () => {};
+  try {
+    await call({ body: { fn: 'apiX', args: [] }, runApiImpl: () => { const e = new Error('boom'); e.meter = { sheetsReads: 3, sheetsWrites: 1, drive: 0 }; throw e; } });
+  } finally {
+    console.log = log;
+    console.error = err;
+  }
+  assert.ok(lines.includes('[quota] apiX sheetsReads=3 sheetsWrites=1 drive=0'), lines.join('\n'));
+});

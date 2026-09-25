@@ -180,8 +180,16 @@ function makeFakeSheetsApi(gridsByTitle, options) {
     }
   };
 
+  // Quota simulé : les n premières requêtes répondent 429 sans rien appliquer,
+  // comme Google quand le plafond par minute est atteint.
+  let pending429 = (options && options.failWith429) || 0;
+
   function syncFetch(url, init) {
     calls.push({ url, init });
+    if (pending429 > 0) {
+      pending429--;
+      return { status: 429, body: '{"error":{"code":429}}' };
+    }
     if (/:batchUpdate$/.test(url)) {
       const body = JSON.parse((init && init.body) || '{}');
       batches.push(body.requests || []);
