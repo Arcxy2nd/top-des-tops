@@ -6,6 +6,7 @@ const { resolveTenant, scriptIdForTenant } = require('../../lib/tenants');
 const { getAccessToken } = require('../../lib/google-auth');
 const { runApi } = require('../../lib/gas-runtime/runtime');
 const { getSharedSyncFetch } = require('../../lib/gas-runtime/sync-fetch');
+const { redisConfigFromEnv } = require('../../lib/gas-runtime/redis-lock');
 const { runAutoPointsIfInstalled } = require('../../lib/auto-points-cron');
 
 // Le cron tourne toujours ; c'est la propriété auto_trigger_installed du
@@ -60,7 +61,9 @@ module.exports = async function handler(req, res) {
           accessToken,
           scriptId: scriptIdForTenant(tenant.spreadsheetId),
           syncFetch: getSharedSyncFetch(),
-          readOnly: process.env.TDT_READ_ONLY === '1'
+          readOnly: process.env.TDT_READ_ONLY === '1',
+          // Même verrou que api/rpc, sinon les deux écrivains ne s'excluent pas.
+          redis: redisConfigFromEnv(process.env)
         });
         results.push({ tenant: tenant.host, ok: true, skipped: outcome.skipped, reason: outcome.reason, value: outcome.value });
       } catch (e) {

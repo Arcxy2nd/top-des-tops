@@ -103,6 +103,32 @@ test('budget cache : apiAddNote avec instantané chaud ≤ 3 lectures', () => {
   snapshotCache.clear();
 });
 
+// Phase 4 : verrou Upstash Redis (faux Redis) — le verrou ne coûte plus rien
+// en quota Sheets, il ne reste que le batchUpdate.
+test('budget cache + verrou Redis : apiAddNote = 0 lecture, 1 écriture', () => {
+  const { makeFakeRedis } = require('./vercel-redis-lock.test.js');
+  snapshotCache.clear();
+  const world = makeWorldWithDrive();
+  const redis = makeFakeRedis();
+  const syncFetch = (url, init) => (String(url).indexOf('https://redis.test') === 0 ? redis.syncFetch(url, init) : world.syncFetch(url, init));
+  const opts = { spreadsheetId: 'SHEET_BUDGET', accessToken: 'tok', scriptId: SCRIPT_ID, syncFetch, redis: { url: 'https://redis.test', token: 'rtok' } };
+  const warn = console.warn;
+  console.warn = () => {};
+  let out;
+  try {
+    runApi(Object.assign({ fnName: 'apiGetAllNotes', args: [] }, opts));
+    out = runApi(Object.assign({ fnName: 'apiAddNote', args: ['Safir', 'Note budget', '', 'Safir', ''] }, opts));
+  } finally {
+    console.warn = warn;
+  }
+  assert.strictEqual(out.value.success, true);
+  assert.strictEqual(out.meter.sheetsReads, 0);
+  assert.strictEqual(out.meter.sheetsWrites, 1);
+  assert.deepStrictEqual(redis.calls.map(c => c.cmd[0]), ['SET', 'EVAL']);
+  assert.strictEqual(redis.store.size, 0);
+  snapshotCache.clear();
+});
+
 test('un 429 passager ne remonte pas à l\'utilisateur', () => {
   const api = makeWorld({ failWith429: 1 });
   const out = withoutRetryDelays(() => call(api, 'apiGetAllNotes'));

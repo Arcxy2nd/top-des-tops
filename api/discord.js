@@ -6,6 +6,7 @@ const { scriptIdForTenant } = require('../lib/tenants');
 const { getAccessToken } = require('../lib/google-auth');
 const { runBridge } = require('../lib/gas-runtime/runtime');
 const { getSharedSyncFetch } = require('../lib/gas-runtime/sync-fetch');
+const { redisConfigFromEnv } = require('../lib/gas-runtime/redis-lock');
 const { bridgeReply, resolveBridgeRequest } = require('../lib/discord-bridge');
 
 // GET seulement : BotGhost n'envoie que des requêtes GET avec paramètres
@@ -46,7 +47,9 @@ module.exports = async function handler(req, res) {
       // exactement le même secret que la route — plus de copie séparée à
       // maintenir dans l'onglet ScriptProperties du classeur.
       secret: process.env.DISCORD_BRIDGE_SECRET,
-      readOnly: process.env.TDT_READ_ONLY === '1'
+      readOnly: process.env.TDT_READ_ONLY === '1',
+      // Même verrou que api/rpc, sinon les deux écrivains ne s'excluent pas.
+      redis: redisConfigFromEnv(process.env)
     });
     res.status(200).send(out.body);
   } catch (e) {

@@ -4,6 +4,7 @@
 const tenants = require('../tenants.json');
 const { handleRpc } = require('../lib/rpc');
 const { getSharedSyncFetch } = require('../lib/gas-runtime/sync-fetch');
+const { redisConfigFromEnv } = require('../lib/gas-runtime/redis-lock');
 
 function _parseServiceAccount() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
@@ -31,7 +32,9 @@ module.exports = async function handler(req, res) {
       syncFetch: getSharedSyncFetch(),
       // Interrupteur d'arrêt d'urgence : poser TDT_READ_ONLY=1 dans les
       // variables Vercel referme le backend en lecture seule sans redéployer.
-      readOnly: process.env.TDT_READ_ONLY === '1'
+      readOnly: process.env.TDT_READ_ONLY === '1',
+      // Verrou Upstash (optionnel) : mêmes variables pour tous les écrivains.
+      redis: redisConfigFromEnv(process.env)
     });
     if (result.status === 405) res.setHeader('Allow', 'POST');
     res.status(result.status).json(result.body);
