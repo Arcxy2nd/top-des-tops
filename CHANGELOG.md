@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.37.0] - 2026-09-25
+
+### Modifié
+**Humanisé** : Rafraîchir la page consomme beaucoup moins le quota Google, ce qui évite l'erreur « 429 » même en rafraîchissant souvent.
+**Technique** : Le runtime Vercel lit métadonnées et onglets en une seule requête (`fetchWorkbook`), puis garde le classeur en mémoire de l'instance chaude (`lib/gas-runtime/snapshot-cache.js`), validé par la version Drive du fichier (`drive-version.js`) et mis à jour en place par nos propres lots (`batch-apply.js`) ; sans API Drive, repli à 1 lecture par appel.
+
+**Humanisé** : Une modification ne consomme plus de lectures Google pour son verrou quand Upstash est configuré.
+**Technique** : Verrou optionnel Upstash Redis (`redis-lock.js`, `SET NX PX` + libération compare-et-supprime) activé par `KV_REST_API_URL`/`KV_REST_API_TOKEN` ; repli sur l'onglet `ScriptLock` sinon.
+
+**Humanisé** : Deux chargements identiques lancés en même temps n'interrogent plus le serveur qu'une fois.
+**Technique** : `callServer` fusionne les appels de lecture identiques en vol (`_inflightReads`), jamais les écritures.
+
+### Ajouté
+**Humanisé** : Un refus passager de Google (quota) est réessayé automatiquement au lieu d'afficher une erreur.
+**Technique** : `request-meter.js` réessaie les 429 (1 s, 2 s, 4 s) et compte les requêtes ; chaque RPC écrit `[quota] <fn> sheetsReads= sheetsWrites= drive=` dans les logs ; budgets figés par `tests/sheets-budget.test.js`.
+
 ## [v3.36.0] - 2026-09-23
 
 ### Ajouté
