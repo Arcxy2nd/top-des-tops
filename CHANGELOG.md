@@ -7,8 +7,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com).
 ## [v3.38.0] - 2026-09-25
 
 ### Modifié
-**Humanisé** : Les cartes de notes sont plus lisibles sans filigrane parasite et chaque avatar s'affiche désormais avec un anneau aux couleurs de son joueur.
-**Technique** : Retrait du filigrane `.note-card-bg` dans `buildNoteCard` ; anneau coloré (`--player-color`) ajouté aux avatars de colonnes (`.npb-head img`), aux auteurs de notes (`.note-meta-avatar`), aux mentions inline (`.mention img`), aux tuiles Quick Stats (`.qs-avatar`) et au profil actif (`.who-am-i-avatar`) ; prise en charge des parenthèses dans le regex des mentions et masque dégradé sur le filigrane du bandeau de saisie rapide.
+**Humanisé** : Les filigranes d'avatar en arrière-plan des cartes de notes ont été repensés avec un fondu en dégradé doux et un effet de profondeur au survol, sans gêner la lisibilité du texte. Chaque avatar s'affiche désormais avec un anneau aux couleurs de son joueur.
+**Technique** : Modernisation du filigrane `.note-card-bg` dans `buildNoteCard` avec un masque dégradé horizontal progressif (`linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%)`), opacité subtile (0.14 dark, 0.09 light avec `mix-blend-mode: multiply`), transition douce et léger zoom au survol (`scale(1.04)`, opacité 0.25), plan d'empilement `z-index` séparant le fond du contenu textuel ; anneau coloré (`--player-color`) ajouté aux avatars de colonnes (`.npb-head img`), aux auteurs de notes (`.note-meta-avatar`), aux mentions inline (`.mention img`), aux tuiles Quick Stats (`.qs-avatar`) et au profil actif (`.who-am-i-avatar`) ; prise en charge des parenthèses dans le regex des mentions et masque dégradé harmonisé sur le filigrane du bandeau de saisie rapide (`.notes-flash-avatar-bg`).
 
 ## [v3.37.0] - 2026-09-25
 

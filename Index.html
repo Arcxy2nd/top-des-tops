@@ -1408,6 +1408,33 @@
     .note-card:hover {
       border-color: var(--border-hover);
     }
+    .note-card-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 170px;
+      background-size: cover; background-position: center top;
+      border-radius: 0 10px 10px 0;
+      pointer-events: none; opacity: 0.14;
+      mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%);
+      -webkit-mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%);
+      transform-origin: center right;
+      transition: opacity 0.3s ease, transform 0.35s ease;
+      z-index: 0;
+    }
+    .note-card:hover .note-card-bg {
+      opacity: 0.25;
+      transform: scale(1.04);
+    }
+    body.light .note-card-bg {
+      opacity: 0.09;
+      mix-blend-mode: multiply;
+    }
+    body.light .note-card:hover .note-card-bg {
+      opacity: 0.18;
+    }
+    .note-card-head,
+    .note-text,
+    .note-footer {
+      position: relative; z-index: 1;
+    }
     .note-card-head {
       display: flex; align-items: center; gap: 8px;
       margin-bottom: 6px; flex-wrap: wrap;
@@ -1988,8 +2015,8 @@
       border-radius: 0 12px 12px 0;
       pointer-events: none; opacity: 0.12;
       transition: background-image 0.35s;
-      mask-image: linear-gradient(to right, transparent 0%, black 80%);
-      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 80%);
+      mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%);
+      -webkit-mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%);
     }
     .notes-flash-chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .notes-player-chip {
@@ -16715,6 +16742,12 @@
 
     const card = document.createElement('div');
     card.className = 'note-card';
+
+    const noteBg = document.createElement('div');
+    noteBg.className = 'note-card-bg';
+    const notePlayer = (Array.isArray(cachedPlayers) ? cachedPlayers.find(p => p.name === note.player) : null);
+    noteBg.style.backgroundImage = cssUrl(getAvatarUrl(note.player, notePlayer ? notePlayer.meta : ''));
+    card.appendChild(noteBg);
 
     const headc = document.createElement('div');
     headc.className = 'note-card-head';

@@ -73,9 +73,9 @@ test('renderMentions detects mentions inside parentheses (@Player) and brackets 
   assert.ok(out2.includes('data-player="Ilker"'), 'Joueur Ilker associé');
 });
 
-test('buildNoteCard does not generate .note-card-bg watermark', () => {
+test('buildNoteCard generates redesigned .note-card-bg background avatar with proper styling', () => {
   const { buildNoteCard, env } = loadFns([
-    'escapeRegExp', 'escapeHtml', 'renderMarkdown', 'renderMentions', 'renderCategoryMentions',
+    'cssUrl', 'escapeRegExp', 'escapeHtml', 'renderMarkdown', 'renderMentions', 'renderCategoryMentions',
     'relativeDateLabel', 'buildNoteAuthorAvatar', 'buildNoteCard', 'getAvatarUrl'
   ]);
   env.cachedPlayers = [
@@ -87,7 +87,7 @@ test('buildNoteCard does not generate .note-card-bg watermark', () => {
 
   const note = {
     player: 'Safir',
-    text: 'Note de test sans filigrane',
+    text: 'Note de test avec filigrane repensé',
     timestamp: '2026-09-20T10:00:00Z',
     createdBy: 'Ilker',
     noteId: 'n_1'
@@ -95,12 +95,13 @@ test('buildNoteCard does not generate .note-card-bg watermark', () => {
 
   const card = buildNoteCard(note);
   const bg = card.children.find(c => c.className && c.className.includes('note-card-bg'));
-  assert.strictEqual(bg, undefined, 'Aucun élément .note-card-bg ne doit être présent dans la carte');
+  assert.ok(bg, 'L\'élément .note-card-bg doit être présent dans la carte');
+  assert.ok(bg.style.backgroundImage && bg.style.backgroundImage.includes('safir.png'), 'L\'avatar d\'arrière-plan correspond au joueur de la note');
 });
 
 test('buildNoteAuthorAvatar applies player color ring and buildNoteCard cleans footer text', () => {
   const { buildNoteCard, env } = loadFns([
-    'escapeRegExp', 'escapeHtml', 'renderMarkdown', 'renderMentions', 'renderCategoryMentions',
+    'cssUrl', 'escapeRegExp', 'escapeHtml', 'renderMarkdown', 'renderMentions', 'renderCategoryMentions',
     'relativeDateLabel', 'buildNoteAuthorAvatar', 'buildNoteCard', 'getAvatarUrl'
   ]);
   env.cachedPlayers = [
@@ -154,8 +155,9 @@ test('buildPlayerNoteBlock sets --player-color on column block', () => {
 test('CSS rules ensure avatar rings and mask gradients', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
 
-  // .notes-flash-avatar-bg porte un masque dégradé
-  assert.ok(html.includes('mask-image: linear-gradient(to right, transparent 0%, black 80%)'), 'Masque dégradé sur le filigrane flash');
+  // .note-card-bg et .notes-flash-avatar-bg portent un masque dégradé moderne
+  assert.ok(html.includes('.note-card-bg {'), 'Classe .note-card-bg définie');
+  assert.ok(html.includes('mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,0.6) 60%, transparent 95%)'), 'Masque dégradé sur les filigranes');
 
   // .note-player-block porte une bordure supérieure aux couleurs du joueur
   assert.ok(html.includes('border-top: 3px solid var(--player-color, var(--border))'), 'Liseré de bloc aux couleurs du joueur');
