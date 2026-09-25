@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.38.0] - 2026-09-25
+
+### Modifié
+**Humanisé** : Les cartes de notes sont plus lisibles sans filigrane parasite et chaque avatar s'affiche désormais avec un anneau aux couleurs de son joueur.
+**Technique** : Retrait du filigrane `.note-card-bg` dans `buildNoteCard` ; anneau coloré (`--player-color`) ajouté aux avatars de colonnes (`.npb-head img`), aux auteurs de notes (`.note-meta-avatar`), aux mentions inline (`.mention img`), aux tuiles Quick Stats (`.qs-avatar`) et au profil actif (`.who-am-i-avatar`) ; prise en charge des parenthèses dans le regex des mentions et masque dégradé sur le filigrane du bandeau de saisie rapide.
+
 ## [v3.37.0] - 2026-09-25
 
 ### Modifié

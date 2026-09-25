@@ -159,7 +159,7 @@
       box-shadow: 0 6px 16px rgba(0,0,0,0.15);
     }
     .qs-pill:active { transform: scale(0.97); }
-    .qs-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .qs-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 2px var(--player-color, transparent), 0 2px 8px rgba(0,0,0,0.2); }
     .qs-pill-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .qs-pill-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     .qs-pill-value {
@@ -402,7 +402,7 @@
       }
     }
     .who-am-i-btn.pulse { animation: wai-pulse 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97) 2 !important; }
-    .who-am-i-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .who-am-i-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 2px var(--my-color, transparent); }
     .who-am-i-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
     .who-am-i-arrow { font-size: 0.65rem; opacity: 0.6; transition: transform 0.2s; }
     .who-am-i-wrap.open .who-am-i-arrow { transform: rotate(180deg); }
@@ -1403,13 +1403,10 @@
       background: rgba(0,0,0,0.15); border: 1px solid var(--border);
       border-radius: 10px; padding: 12px 14px;
       position: relative; overflow: hidden;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .note-card-bg {
-      position: absolute; right: 0; top: 0; bottom: 0; width: 120px;
-      background-size: cover; background-position: center top;
-      border-radius: 0 10px 10px 0;
-      pointer-events: none; opacity: 0.12;
-      transition: background-image 0.35s;
+    .note-card:hover {
+      border-color: var(--border-hover);
     }
     .note-card-head {
       display: flex; align-items: center; gap: 8px;
@@ -1427,13 +1424,17 @@
     }
     .note-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; flex: 1 1 auto; min-width: 0; }
     .note-meta-item {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
       font-family: inherit; background: none; border: none; padding: 0;
       transition: color 0.15s;
     }
     .note-meta-item strong { color: var(--text); font-weight: 700; }
-    .note-meta-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: var(--btn-alt); }
+    .note-meta-avatar {
+      width: 18px; height: 18px; border-radius: 50%; object-fit: cover;
+      flex-shrink: 0; background: var(--btn-alt);
+      transition: box-shadow 0.15s;
+    }
     .note-meta-chevron { font-size: 0.85em; opacity: 0.6; transition: transform 0.15s, opacity 0.15s; }
     button.note-meta-edited {
       cursor: pointer;
@@ -1492,7 +1493,9 @@
       }
     }
     .note-player-block {
-      border: 1px solid var(--border); border-radius: 14px;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--player-color, var(--border));
+      border-radius: 14px;
       padding: 16px; margin-bottom: 0; background: var(--card);
       box-shadow: var(--glass-shadow);
       display: flex; flex-direction: column;
@@ -1500,6 +1503,7 @@
     }
     .note-player-block:hover {
       border-color: var(--border-hover);
+      border-top-color: var(--player-color, var(--border-hover));
     }
     .note-player-block-orphan {
       border-style: dashed; border-color: var(--warn);
@@ -1508,7 +1512,12 @@
       color: var(--warn);
     }
     .npb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .npb-head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--btn-alt); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .npb-head img {
+      width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+      background: var(--btn-alt);
+      box-shadow: 0 0 0 2.5px var(--player-color, var(--border)), 0 3px 10px rgba(0,0,0,0.25);
+      flex-shrink: 0;
+    }
     .npb-head .npb-name { font-weight: 800; font-size: 1.05rem; }
     .npb-head .npb-count { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-left: auto; background: var(--btn-alt); padding: 3px 8px; border-radius: var(--radius-full); }
     .npb-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -1979,6 +1988,8 @@
       border-radius: 0 12px 12px 0;
       pointer-events: none; opacity: 0.12;
       transition: background-image 0.35s;
+      mask-image: linear-gradient(to right, transparent 0%, black 80%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 80%);
     }
     .notes-flash-chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .notes-player-chip {
@@ -2396,12 +2407,16 @@
     }
     .md-preview code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; }
     .mention {
-      display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px;
+      display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 3px;
       border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--mention-color, var(--accent)) 55%, transparent);
       color: var(--text); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;
+      vertical-align: middle;
     }
-    .mention img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+    .mention img {
+      width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      box-shadow: 0 0 0 1px var(--mention-color, var(--accent));
+    }
     .category-mention {
       display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px;
       border-radius: 20px; background: color-mix(in srgb, var(--mention-color, var(--accent)) 16%, transparent);
@@ -5951,7 +5966,7 @@
     if (!cachedPlayers.length) return escapedHtml;
     const names = cachedPlayers.map(p => p.name).sort((a, b) => b.length - a.length);
     const alt = names.map(n => escapeRegExp(escapeHtml(n))).join('|');
-    const re = new RegExp('(^|\\s)@(' + alt + ')\\b', 'g');
+    const re = new RegExp('(^|\\s|[(\\[])@(' + alt + ')\\b', 'g');
     return escapedHtml.replace(re, (m, pre, name) => {
       const original = cachedPlayers.find(p => escapeHtml(p.name) === name);
       const realName = original ? original.name : name;
@@ -6678,6 +6693,7 @@
           const targetUrl = getAvatarUrl(s.leader.player, p ? p.meta : '');
           if (leaderAvatar.getAttribute('src') !== targetUrl) leaderAvatar.src = targetUrl;
           leaderAvatar.onerror = () => { leaderAvatar.src = getAvatarUrl(s.leader.player, ''); };
+          leaderAvatar.style.setProperty('--player-color', playerColor(s.leader.player));
           leaderAvatar.style.display = '';
         }
         const txt = s.leader.player + ' · ' + s.leader.points + ' pts';
@@ -6713,6 +6729,7 @@
           const targetUrl = getAvatarUrl(s.lastEvent.player, p ? p.meta : '');
           if (lastAvatar.getAttribute('src') !== targetUrl) lastAvatar.src = targetUrl;
           lastAvatar.onerror = () => { lastAvatar.src = getAvatarUrl(s.lastEvent.player, ''); };
+          lastAvatar.style.setProperty('--player-color', playerColor(s.lastEvent.player));
           lastAvatar.style.display = '';
         }
         const txt = s.lastEvent.player + ' +' + s.lastEvent.points + ' pts · ' + (s.lastEvent.date ? timeAgo(new Date(s.lastEvent.date)) : '');
@@ -6730,6 +6747,7 @@
           const targetUrl = getAvatarUrl(s.globalBest.player, p ? p.meta : '');
           if (recordAvatar.getAttribute('src') !== targetUrl) recordAvatar.src = targetUrl;
           recordAvatar.onerror = () => { recordAvatar.src = getAvatarUrl(s.globalBest.player, ''); };
+          recordAvatar.style.setProperty('--player-color', playerColor(s.globalBest.player));
           recordAvatar.style.display = '';
         }
         const txt = s.globalBest.player + ' · ' + s.globalBest.points + ' pts';
@@ -10647,6 +10665,7 @@
       if (p) {
         avatar.src = getAvatarUrl(p.name, p.meta);
         avatar.onerror = () => { avatar.src = getAvatarUrl(p.name, ''); };
+        avatar.style.setProperty('--my-color', (typeof playerColor === 'function' ? playerColor(p.name) : (p.color || '')) || 'transparent');
         const needsPwd = p.hasPassword && !hasPwd();
         nameSpan.textContent = p.name + (needsPwd ? ' 🔒' : '');
         if (btn) {
@@ -10656,6 +10675,7 @@
         }
       } else {
         avatar.src = getAvatarUrl('?', '');
+        avatar.style.setProperty('--my-color', 'transparent');
         nameSpan.textContent = 'Qui suis-je ?';
         if (btn) {
           btn.classList.add('unselected');
@@ -16576,6 +16596,8 @@
   function buildPlayerNoteBlock(player, notes) {
     const block = document.createElement('div');
     block.className = 'note-player-block';
+    const pCol = (typeof playerColor === 'function' ? playerColor(player.name) : (player.color || '')) || '';
+    if (pCol) block.style.setProperty('--player-color', pCol);
 
     // En-tête : avatar + nom + compteur
     const head = document.createElement('div');
@@ -16674,7 +16696,8 @@
     img.className = 'note-meta-avatar';
     const p = cachedPlayers.find(pl => pl.name === name);
     img.src = getAvatarUrl(name, p ? p.meta : '');
-    img.alt = '';
+    const authorCol = (typeof playerColor === 'function' ? playerColor(name) : (p && p.color || '')) || 'var(--border)';
+    img.style.boxShadow = '0 0 0 1.5px ' + authorCol;
     // Falls back to a generated avatar instead of vanishing, same as every
     // other avatar in the app — a broken custom URL shouldn't mean no avatar.
     img.onerror = () => {
@@ -16693,12 +16716,6 @@
     const card = document.createElement('div');
     card.className = 'note-card';
 
-    const noteBg = document.createElement('div');
-    noteBg.className = 'note-card-bg';
-    const notePlayer = cachedPlayers.find(p => p.name === note.player);
-    noteBg.style.backgroundImage = cssUrl(getAvatarUrl(note.player, notePlayer ? notePlayer.meta : ''));
-    card.appendChild(noteBg);
-
     const headc = document.createElement('div');
     headc.className = 'note-card-head';
     const dt = document.createElement('span');
@@ -16715,7 +16732,7 @@
       const createdEl = document.createElement('span');
       createdEl.className = 'note-meta-item';
       createdEl.appendChild(buildNoteAuthorAvatar(note.createdBy));
-      createdEl.appendChild(document.createTextNode('✍️ Créé par '));
+      createdEl.appendChild(document.createTextNode('Créé par '));
       const createdName = document.createElement('strong');
       createdName.textContent = note.createdBy;
       createdEl.appendChild(createdName);
@@ -16728,7 +16745,7 @@
       editedBtn.type = 'button';
       editedBtn.className = 'note-meta-item note-meta-edited';
       editedBtn.appendChild(buildNoteAuthorAvatar(note.lastEditedBy));
-      editedBtn.appendChild(document.createTextNode('📝 Modifié par '));
+      editedBtn.appendChild(document.createTextNode('Modifié par '));
       const editedName = document.createElement('strong');
       editedName.textContent = note.lastEditedBy;
       editedBtn.appendChild(editedName);
