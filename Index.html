@@ -5870,6 +5870,9 @@
   let selectedHistAltCategories = new Set();
   let activeDashboardUniverse = 'main'; // 'main' | 'alt'
   let activeLotUniverse = 'main';        // 'main' | 'alt'
+  // Lectures serveur en route, par « fonction|arguments » → appelants en attente
+  // de la même réponse (voir callServer). Déclarée ici, en tête, contre la TDZ.
+  const _inflightReads = new Map();
 
   // Tunable frontend values. No constant of this kind may be hardcoded
   // directly in the logic (context.md §8).
@@ -9554,6 +9557,20 @@
     const actualParams = _MUTATING_APIS.has(fn)
       ? [...params, pwd]
       : params;
+    // Un même appel de lecture déjà en route (même fonction, mêmes arguments)
+    // n'en relance pas un second : les deux attendent la même réponse. Jamais
+    // pour une écriture — chaque geste doit partir, avec sa propre clé.
+    // (typeof : certains tests extraient callServer seul, sans la Map globale.)
+    if (!idemKey && typeof _inflightReads !== 'undefined') {
+      const flightKey = fn + '|' + JSON.stringify(params || []);
+      const waiting = _inflightReads.get(flightKey);
+      if (waiting) { waiting.push({ onValue, onFailure }); return; }
+      const list = [{ onValue, onFailure }];
+      _inflightReads.set(flightKey, list);
+      const settle = pick => arg => { _inflightReads.delete(flightKey); list.forEach(w => w[pick](arg)); };
+      _rpcTransport(fn, actualParams, settle('onValue'), settle('onFailure'), null);
+      return;
+    }
     _rpcTransport(fn, actualParams, onValue, onFailure, idemKey);
   }
 
