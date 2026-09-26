@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com).
 
+## [v3.38.1] - 2026-09-26
+
+### Corrigé
+**Humanisé** : En saisie de lot sur une période en mode « Un total à répartir », les points des Tops supplémentaires sont désormais correctement répartis sur les jours au lieu d'être répétés chaque jour.
+**Technique** : `Index.html` — extraction de `expandRowToDayEntries(it, dates)` distribuant proportionnellement les points de chaque sous-top (`stVal = stBase + (k < stRem ? 1 : 0)`) sur les dates de la période lorsque `fill === 'distribute'` au lieu de dupliquer `it.subTops` tel quel chaque jour ; alignement de `computeRowTotalPoints` sur la somme distribuée et ajout d'écouteurs `input`/`change` sur `.sub-pts-input` pour le recalcul instantané du résumé de lot. Tests unitaires ajoutés dans `tests/lot-period.test.js`.
+
 ## [v3.38.0] - 2026-09-25
 
 ### Modifié

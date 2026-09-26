@@ -14511,6 +14511,9 @@
       delSubBtn.title = 'Retirer ce top supplémentaire';
       delSubBtn.addEventListener('click', () => { subItem.remove(); updateLotSummary(); });
 
+      subPtsInput.addEventListener('input', () => updateLotSummary());
+      subPtsInput.addEventListener('change', () => updateLotSummary());
+
       subItem.appendChild(document.createTextNode('🏷️ Top supp : '));
       subItem.appendChild(subCatDot);
       subItem.appendChild(subCatSel);
@@ -14911,8 +14914,8 @@
    * .custom-pts-in undercounts as soon as a date range or a sub-top is
    * involved. Mirrors the same date-explosion StorageService.appendBulkPlan
    * (Code.gs) applies at write time — repeat writes the full value on every
-   * date, distribute splits it across dates; sub-tops without their own
-   * points fall back to that date's main value, same as Code.gs.
+   * date, distribute splits it across dates; sub-tops follow the row's fill
+   * mode (distributed across dates in distribute mode, repeated in repeat mode).
    */
   function computeRowTotalPoints(row) {
     const ptsEl = row.querySelector('.custom-pts-in');
@@ -14930,26 +14933,15 @@
     const dates = applyMinPerDaySpread(rawDates, fill, points, minPerDayEl ? minPerDayEl.value : '');
     const n = Math.max(1, dates.length);
 
-    const perDatePoints = (n === 1 || fill === 'repeat')
-      ? new Array(n).fill(points)
-      : (() => {
-          const base = Math.floor(points / n), rem = points % n;
-          return Array.from({ length: n }, (_, k) => base + (k < rem ? 1 : 0));
-        })();
-
     const subTopPoints = Array.from(row.querySelectorAll('.sub-top-item')).map(st => {
       const ptsInput = st.querySelector('.sub-pts-input');
       const stPts = parseInt((ptsInput && ptsInput.value) || '', 10);
-      return (isNaN(stPts) || stPts < 1) ? null : stPts; // null = falls back to that date's main total
+      return (isNaN(stPts) || stPts < 1) ? null : stPts; // null = falls back to main points
     });
 
-    let total = 0;
-    perDatePoints.forEach(dayPts => {
-      if (dayPts <= 0) return;
-      total += dayPts;
-      subTopPoints.forEach(stPts => { total += (stPts === null ? dayPts : stPts); });
-    });
-    return total;
+    let totalPerInstance = points;
+    subTopPoints.forEach(stPts => { totalPerInstance += (stPts === null ? points : stPts); });
+    return (n === 1 || fill === 'repeat') ? (totalPerInstance * n) : totalPerInstance;
   }
 
   function updateLotSummary() {
@@ -15137,6 +15129,66 @@
     }, 'Saisie native Alt', () => { restore(); });
   }
 
+  function expandRowToDayEntries(it, dates) {
+    const itTotal = (parseInt(it.points, 10) || 0) * (parseInt(it.times, 10) || 0);
+    const effectiveGroupTag = it.groupTag || (dates.length > 1
+      ? ('rng_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7))
+      : '');
+    const out = [];
+
+    if (dates.length === 1 || it.fill === 'repeat') {
+      dates.forEach(dk => {
+        out.push({
+          date: dk,
+          entry: {
+            player: it.player, category: it.category, points: it.points, times: it.times,
+            description: it.description, groupTag: effectiveGroupTag,
+            baremeId: it.baremeId || '',
+            subTops: it.subTops, altCategory: it.altCategory
+          }
+        });
+      });
+    } else {
+      const n = dates.length, base = Math.floor(itTotal / n), rem = itTotal % n;
+      dates.forEach((dk, k) => {
+        const val = base + (k < rem ? 1 : 0);
+        const daySubTops = [];
+        (it.subTops || []).forEach(st => {
+          const stPtsRaw = parseInt(st.points, 10);
+          const stTotal = (!isNaN(stPtsRaw) && stPtsRaw >= 1) ? stPtsRaw : itTotal;
+          const stBase = Math.floor(stTotal / n), stRem = stTotal % n;
+          const stVal = stBase + (k < stRem ? 1 : 0);
+          if (stVal > 0) daySubTops.push({ category: st.category, points: stVal });
+        });
+
+        if (val > 0) {
+          out.push({
+            date: dk,
+            entry: {
+              player: it.player, category: it.category, points: val, times: 1,
+              description: it.description, groupTag: effectiveGroupTag,
+              baremeId: it.baremeId || '',
+              subTops: daySubTops, altCategory: it.altCategory
+            }
+          });
+        } else if (daySubTops.length > 0) {
+          const first = daySubTops[0];
+          const rest = daySubTops.slice(1);
+          out.push({
+            date: dk,
+            entry: {
+              player: it.player, category: first.category, points: first.points, times: 1,
+              description: it.description, groupTag: effectiveGroupTag,
+              baremeId: '',
+              subTops: rest, altCategory: ''
+            }
+          });
+        }
+      });
+    }
+    return out;
+  }
+
   function submitBulk() {
     const rows = document.querySelectorAll('.entry-row');
     // In Alt mode: collect entries for the native Alt batch (no History entry)
@@ -15283,31 +15335,10 @@
 
       if (dates.length > 1) hasRange = true;
 
-      const effectiveGroupTag = it.groupTag || (dates.length > 1
-        ? ('rng_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7))
-        : '');
-
-      if (dates.length === 1 || it.fill === 'repeat') {
-        dates.forEach(dk => {
-          (byDate[dk] = byDate[dk] || []).push({
-            player: it.player, category: it.category, points: it.points, times: it.times,
-            description: it.description, groupTag: effectiveGroupTag,
-            baremeId: it.baremeId || '',
-            subTops: it.subTops, altCategory: it.altCategory
-          });
-        });
-      } else {
-        const n = dates.length, base = Math.floor(itTotal / n), rem = itTotal % n;
-        dates.forEach((dk, k) => {
-          const val = base + (k < rem ? 1 : 0);
-          if (val > 0) (byDate[dk] = byDate[dk] || []).push({
-            player: it.player, category: it.category, points: val, times: 1,
-            description: it.description, groupTag: effectiveGroupTag,
-            baremeId: it.baremeId || '',
-            subTops: it.subTops, altCategory: it.altCategory
-          });
-        });
-      }
+      const daily = expandRowToDayEntries(it, dates);
+      daily.forEach(d => {
+        (byDate[d.date] = byDate[d.date] || []).push(d.entry);
+      });
     });
 
     const plan = Object.keys(byDate).sort().map(date => ({ date, entries: byDate[date] }));

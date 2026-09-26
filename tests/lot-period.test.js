@@ -121,6 +121,64 @@ test('computeRowTotalPoints computes points correctly for single date and period
   // 3 jours, repeat avec subTop (5 pts main + 2 pts subTop = 7 pts/jour * 3 jours = 21 pts)
   const r5 = makeRow(5, true, '2026-08-01', '2026-08-03', 'repeat', [2]);
   assert.strictEqual(computeRowTotalPoints(r5), 21);
+
+  // 5 jours, distribute avec subTop (5 pts main + 3 pts subTop = 8 pts total répartis)
+  const r6 = makeRow(5, true, '2026-08-01', '2026-08-05', 'distribute', [3]);
+  assert.strictEqual(computeRowTotalPoints(r6), 8);
+
+  // 5 jours, distribute avec subTop sans points explicites (hérite des 5 pts main = 10 pts total)
+  const r7 = makeRow(5, true, '2026-08-01', '2026-08-05', 'distribute', [null]);
+  assert.strictEqual(computeRowTotalPoints(r7), 10);
+});
+
+test('expandRowToDayEntries correctly distributes or repeats sub-tops across dates', () => {
+  const { lineDates, expandRowToDayEntries } = loadLotFns(['lineDates', 'expandRowToDayEntries']);
+
+  const dates5 = lineDates('2026-08-01', '2026-08-05'); // 5 dates
+
+  // 5 jours, distribute : 5 pts main + 3 pts subTop -> 5 pts main (1 pt/j) + 3 pts subTop (1 pt sur 3 jours)
+  const itemDist = {
+    player: 'Alice', category: 'Gaming', points: 5, times: 1, fill: 'distribute',
+    description: 'Test distribute', subTops: [{ category: 'Sport', points: 3 }]
+  };
+  const entriesDist = expandRowToDayEntries(itemDist, dates5);
+  assert.strictEqual(entriesDist.length, 5);
+
+  let totalMain = 0;
+  let totalSub = 0;
+  entriesDist.forEach((d, idx) => {
+    totalMain += d.entry.points;
+    (d.entry.subTops || []).forEach(st => {
+      assert.strictEqual(st.category, 'Sport');
+      totalSub += st.points;
+      assert.strictEqual(st.points, 1);
+    });
+    if (idx < 3) {
+      assert.strictEqual(d.entry.subTops.length, 1);
+    } else {
+      assert.strictEqual(d.entry.subTops.length, 0);
+    }
+  });
+  assert.strictEqual(totalMain, 5);
+  assert.strictEqual(totalSub, 3);
+  assert.strictEqual(totalMain + totalSub, 8);
+
+  // 5 jours, repeat : 5 pts main + 3 pts subTop -> 25 pts main + 15 pts subTop = 40 pts
+  const itemRep = {
+    player: 'Alice', category: 'Gaming', points: 5, times: 1, fill: 'repeat',
+    description: 'Test repeat', subTops: [{ category: 'Sport', points: 3 }]
+  };
+  const entriesRep = expandRowToDayEntries(itemRep, dates5);
+  assert.strictEqual(entriesRep.length, 5);
+  let totalRepMain = 0;
+  let totalRepSub = 0;
+  entriesRep.forEach(d => {
+    totalRepMain += d.entry.points;
+    (d.entry.subTops || []).forEach(st => { totalRepSub += st.points; });
+  });
+  assert.strictEqual(totalRepMain, 25);
+  assert.strictEqual(totalRepSub, 15);
+  assert.strictEqual(totalRepMain + totalRepSub, 40);
 });
 
 test('Alt mode period expansion correctly generates daily items for repeat and distribute', () => {
